@@ -57,8 +57,11 @@
 | 平台 | 构建 | 单元与契约测试 | SQLite 能力实测 | 文件系统故障演练 |
 |---|---|---|---|---|
 | macOS arm64（开发机，APFS） | 通过 | 通过（含 `-race`） | 通过，见下 | 未开始（T02/T08） |
-| Linux amd64/arm64 | 交叉编译通过 | CI 配置待首次运行 | CI 配置待首次运行 | 未开始 |
-| Windows amd64/arm64 | 交叉编译通过 | CI 配置待首次运行 | CI 配置待首次运行 | 未开始 |
-| macOS amd64 | 交叉编译通过 | 未运行 | 未运行 | 未开始 |
+| macOS arm64（CI） | 通过 | 通过 | 通过 | 未开始 |
+| Linux amd64（CI） | 通过 | 通过（含 `-race`） | 通过 | 未开始 |
+| Windows amd64（CI） | 通过 | 通过 | 通过 | 未开始 |
+| Linux arm64、Windows arm64、macOS amd64 | 交叉编译通过 | 未运行 | 未运行 | 未开始 |
+
+CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `ubuntu-latest`、`windows-latest`、`macos-latest` 运行器）：全部作业通过，三个平台的 SQLite 能力报告均满足必需项，单行提交约 0.4 ms（Linux）、0.5 ms（Windows）、1.3 ms（macOS，fullfsync）。托管运行器不代表目标 NAS 或其挂载方式，部署环境仍需单独实测。
 
 开发机实测（2026-09-27，Go 1.26.8，modernc.org/sqlite v1.59.0，SQLite 3.53.4）：WAL、synchronous=FULL、fullfsync、STRICT 表、RETURNING、JSON 函数、FTS5、busy 超时后返回可分类错误、上下文取消可中断长查询、回滚、`wal_checkpoint(TRUNCATE)`、`VACUUM INTO` 快照与 `integrity_check` 均通过；写事务中强杀进程后重开，已提交数据完整、未提交数据不出现。启用 fullfsync 后单行提交约 4 ms（内置 SSD）至 10 ms（外置 SSD）。交叉编译通过不代表其他平台的文件语义、恢复或隔离已验证。
