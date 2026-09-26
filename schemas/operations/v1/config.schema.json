@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v1/config.schema.json",
+  "title": "InstanceConfig",
+  "description": "数据根目录下可选的 config.yaml。只放服务配置，不放密钥或凭据；缺省时全部取默认值。未知字段一律拒绝，避免拼错的配置被静默忽略。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract"],
+  "properties": {
+    "contract": { "const": "lantai.config/v1" },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "初始化时写入实例标记的名称；已初始化实例以标记为准。",
+          "$ref": "instance.schema.json#/$defs/instance_name"
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "description": "主密钥等密钥材料的目录；相对路径以数据根目录为基准，默认 secrets。生产环境宜放在单独受控并单独备份的位置。",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_free_bytes": {
+          "description": "数据根所在文件系统的最低可用空间；低于它时实例不开放写入。默认 1 GiB。",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    }
+  }
+}

@@ -84,9 +84,10 @@ func (c Context) Validate() error {
 	return nil
 }
 
-// TransferClass 由主体类别决定：只有人的会话是交互档，其余一律批量档。
+// TransferClass 由主体类别决定：只有人本人的会话是交互档；其余（含代人
+// 调用的插件、adapter 等委托会话）一律批量档，客户端自报不能提升档位。
 func (c Context) TransferClass() TransferClass {
-	if c.PrincipalKind == Human {
+	if c.PrincipalKind == Human && c.DelegatedBy == "" {
 		return Interactive
 	}
 	return Batch

@@ -3,8 +3,11 @@
 领域模块目前只有[职责与任务](../docs/architecture.md)，具体子包随实现创建。已建立的公共部分（T00）：
 
 - `contract/`：公共契约的 Go 实现——`ids`、`clock`、`digest`、`canonjson`、`yamljson`、`schema`（加载 `schemas/` 并校验）、`errcode`（由注册表生成）、`event`、`execution`（执行与扩展宿主的公共判定）、`ownership`（表/文件/事件所有权登记），以及跨模块接口 `authz`、`install`、`commit`、`pin` 与各自的 `…test` 桩和契约套件。
-- `commands/`：命令上下文、请求摘要、操作阶段、幂等判定、业务所属库内的回执/operations/outbox 组件与统一锁顺序协调器；不拥有任何业务表。
-- `platform/sqlite/`：SQLite 驱动的连接基线与能力探测；五库连接编排与迁移归 T08。
+- `commands/`：命令上下文、请求摘要、操作阶段、幂等判定、业务所属库内的回执/operations/outbox 组件、统一锁顺序协调器与维护屏障写入口（`Gate`）；不拥有任何业务表。
+- `platform/sqlite/`：SQLite 驱动的连接基线与能力探测；`platform/sqlite/migrations/` 按库与表所有者登记五库迁移（T08 编排执行）。
+- `platform/fsutil/`：数据根单实例锁、原子替换写入、磁盘余量与文件系统类别探测（T08.1）。
+- `operations/`：实例生命周期（T08.1）——配置、实例标记、五库打开与按库迁移、兼容矩阵、维护屏障、启动恢复与就绪门禁、优雅退出、只读诊断。规则见[实例生命周期](../docs/contracts/instance.md)。
+- `identity/`：身份与安全（T01 的 M1 部分）——主体与角色、本机初始化、口令与 TOTP、会话与委托、实时授权与最终接受协调、Challenge/HumanGrant 与凭据/策略管理命令、受限因子恢复；子包 `masterkey`、`totp`、`password`、`httpauth`（浏览器与 CLI 凭据的服务端防护）。规则见[身份与授权](../docs/contracts/identity.md)。
 - `apiv1/`：由 `api/` 契约生成的 Go 传输类型，不手改。
 
 规则见[公共契约](../docs/contracts/README.md)。

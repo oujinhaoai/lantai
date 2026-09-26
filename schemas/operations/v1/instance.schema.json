@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v1/instance.schema.json",
+  "title": "InstanceMarker",
+  "description": "数据根目录的实例标记 instance.json，由 operations 原子替换写入。标记存在即表示该目录已属于某个实例：不再开放初始化；标记存在而权威库缺失时进入恢复诊断。recovery_epoch 在从备份恢复时递增，旧会话、执行轮次与授权随之失效。migration 只在一次迁移尚未完成时出现，存在期间实例保持维护状态。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "instance_id",
+    "name",
+    "state",
+    "data_format_version",
+    "recovery_epoch",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "contract": { "const": "lantai.instance/v1" },
+    "instance_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "name": { "$ref": "#/$defs/instance_name" },
+    "state": {
+      "description": "initializing：初始化尚未完成，只能由 lantai init 继续；active：已完成初始化。",
+      "enum": ["initializing", "active"]
+    },
+    "data_format_version": {
+      "description": "数据目录与各库满足的数据格式版本（实例兼容矩阵的版本号）。",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "recovery_epoch": { "$ref": "../../common/v1/defs.schema.json#/$defs/epoch" },
+    "created_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
+    "updated_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
+    "migration": {
+      "description": "进行中或中断的迁移；全部库与格式满足兼容矩阵后移除。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "started_at", "from_format_version", "target_format_version"],
+      "properties": {
+        "run_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+        "started_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
+        "from_format_version": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "target_format_version": { "type": "integer", "minimum": 1, "maximum": 1000000 }
+      }
+    }
+  },
+  "$defs": {
+    "instance_name": {
+      "description": "实例名，小写英文、数字与连字符，用于显示与 TOTP 签发方。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,62}$"
+    }
+  }
+}

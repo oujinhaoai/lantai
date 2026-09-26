@@ -10,9 +10,9 @@ The name comes from Lantai, an imperial archive in the Han dynasty. Agents act a
 
 ## Project status
 
-The project is in **early development**. The Go project and the shared contracts are in place: identifiers, digests and canonicalization, request idempotency and receipts, the error model, the event envelope, operation stages, cross-module interfaces with stubs, and the shared execution and extension-host rules, all covered by automated tests.
+The project is in **early development**. The Go project and the shared contracts are in place: identifiers, digests and canonicalization, request idempotency and receipts, the error model, the event envelope, operation stages, cross-module interfaces with stubs, and the shared execution and extension-host rules. The M1 instance foundation and identity module are implemented as well: a single-writer data-root lock, per-database migrations with a compatibility matrix, the maintenance barrier and readiness gate, one-time local initialization (password, TOTP, and recovery codes), sessions and delegation, live authorization with a defined revocation order, action-bound human authorization for credential and policy management, and restricted factor recovery. All of this is covered by automated tests.
 
-There is still no runnable service, installation package, or verified deployment command; domain modules, the server, and client commands are implemented task by task. The capabilities below are design targets; features, performance, and platform behavior are claimed only with recorded acceptance results.
+There is still no runnable service, installation package, or verified deployment command: locally there are only the instance commands `lantai init`, `migrate`, `doctor`, and `recover-admin`; the REST interface, business commands, and web app are wired up task by task. The capabilities below are design targets; features, performance, and platform behavior are claimed only with recorded acceptance results.
 
 - [Architecture and top-level layout](docs/architecture.md) — Chinese
 - [Shared contracts](docs/contracts/README.md) — Chinese
@@ -96,7 +96,7 @@ lantai/
 └── web/        # Independently built and deployed web application
 ```
 
-Source code is added with the corresponding tasks. So far this includes the `cmd/lantai` entry point, the shared contracts and command components in `internal/`, the shared schemas and examples in `schemas/`, the shared HTTP contract in `api/`, and the generation and check scripts in `scripts/`; the other directories still contain responsibility notes only. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
+Source code is added with the corresponding tasks. So far this includes the `cmd/lantai` entry point (with the local instance commands), the shared contracts, command components, instance lifecycle (`operations`), and identity module (`identity`) in `internal/`, the shared schemas and examples in `schemas/`, the shared HTTP contract in `api/`, and the generation and check scripts in `scripts/`; the other directories still contain responsibility notes only. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
 
 ## Roadmap
 
@@ -108,7 +108,7 @@ Source code is added with the corresponding tasks. So far this includes the `cmd
 | M4 Migration | Validate and import under a separate migration plan after the M2 gate; may run alongside M3 |
 | M5–M8 Extensions | Rich previews, semantic search and DCC integration, push and IM, storage expansion, and inter-instance collaboration |
 
-Development starts with **T00 Engineering and contracts**, followed by the M1 [task dependencies](docs/tasks/README.md). Feature, performance, and recovery claims require recorded acceptance results.
+Development starts with **T00 Engineering and contracts**, followed by the M1 [task dependencies](docs/tasks/README.md); the instance foundation (T08.1) and the M1 part of identity and security (T01) are now implemented. Feature, performance, and recovery claims require recorded acceptance results.
 
 ## Contributing
 

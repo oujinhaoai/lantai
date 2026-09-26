@@ -25,10 +25,17 @@
 | 校验 JSON/YAML 文档 | `go run ./cmd/lantai schema validate lantai.error/v1 path/to/doc.json` |
 | 校验定义库中的单个定义 | `go run ./cmd/lantai schema validate 'lantai.execution-common/v1#/$defs/task_fence' fence.json` |
 | SQLite 能力实测（输出 JSON） | `go run ./scripts/probe/sqlite -dir <被测文件系统上的目录>` |
+| 本机初始化实例与首个管理员（交互式） | `go run ./cmd/lantai init -home <数据根> -admin <名称>` |
+| 只读诊断数据根 | `go run ./cmd/lantai doctor -home <数据根> [-json]` |
+| 应用待执行的迁移 | `go run ./cmd/lantai migrate -home <数据根>` |
+| 单管理员本机离线恢复（交互式） | `go run ./cmd/lantai recover-admin -home <数据根> -admin <名称>` |
+| Argon2id 默认参数在本机的耗时 | `go test -run '^$' -bench Default ./internal/identity/password/` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 
-`lantai` 退出码：0 成功；1 文档未通过校验；2 用法错误；3 读写或内部错误。`-json` 输出供自动化使用。
+`lantai` 退出码：0 成功；1 文档未通过校验，或实例状态不允许该操作；2 用法错误；3 读写或内部错误。`-json` 输出供自动化使用。
+
+实例命令只能在服务端本机、服务停止时对数据根运行（`doctor` 只读，运行中也可用）；`-home` 缺省时取环境变量 `LANTAI_HOME`。数据根、主密钥与口令都是真实凭据相关资料，开发与测试只用临时目录。`init` 与 `recover-admin` 在终端上不回显口令，验证器种子与恢复码只展示一次；输入不是终端时（例如脚本化测试）会给出提示。规则见[实例生命周期](contracts/instance.md)与[身份与授权](contracts/identity.md)。
 
 ## 生成物
 
@@ -36,6 +43,7 @@
 |---|---|---|
 | `schemas/common/v1/error-codes.json` | `internal/contract/errcode/codes_gen.go`、`docs/contracts/error-codes.md` | `scripts/gen/errcodes` |
 | `internal/contract/ownership` | `docs/contracts/ownership.md` | `scripts/gen/ownership` |
+| `internal/identity`（动作与策略登记） | `docs/contracts/identity-actions.md` | `scripts/gen/identity` |
 | `api/openapi.yaml` + `schemas/` | `api/gen/openapi.bundle.json`（自包含，供生成器与外部 SDK 工具使用） | `scripts/gen/openapi` |
 | `api/gen/openapi.bundle.json` | `internal/apiv1/models.gen.go` | oapi-codegen（配置 `api/oapi-codegen.yaml`） |
 

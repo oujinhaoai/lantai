@@ -14,6 +14,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/event"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/ownership"
 	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 )
 
@@ -746,6 +747,21 @@ func (s *Store) OpenOperations(ctx context.Context, q DBTX) ([]ids.ID, error) {
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// AppendEvents 在调用方的本库事务中写入 outbox，用于不经命令回执的状态变化
+// （例如会话开始与结束）。事件类型必须登记为本模块所有，且都属于 opID。
+func (s *Store) AppendEvents(ctx context.Context, q DBTX, opID ids.ID, events []event.Envelope) error {
+	for _, e := range events {
+		owner, err := ownership.EventOwner(e.EventType)
+		if err != nil {
+			return err
+		}
+		if owner != s.module {
+			return fmt.Errorf("%w: event type %s belongs to %s", ErrForeignCommand, e.EventType, owner)
+		}
+	}
+	return s.appendOutbox(ctx, q, opID, events)
 }
 
 func (s *Store) appendOutbox(ctx context.Context, q DBTX, opID ids.ID, events []event.Envelope) error {

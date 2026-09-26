@@ -1,0 +1,11 @@
+{
+  "description": "全部可选项",
+  "schema": "lantai.config/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.config/v1",
+    "instance": { "name": "studio" },
+    "secrets": { "dir": "/srv/lantai-secrets" },
+    "storage": { "min_free_bytes": 5368709120 }
+  }
+}

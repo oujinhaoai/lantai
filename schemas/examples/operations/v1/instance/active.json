@@ -1,0 +1,15 @@
+{
+  "description": "已完成初始化的实例标记",
+  "schema": "lantai.instance/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.instance/v1",
+    "instance_id": "01J8Z3K4M5N6P7Q8R9S0T100A1",
+    "name": "lantai",
+    "state": "active",
+    "data_format_version": 1,
+    "recovery_epoch": 1,
+    "created_at": "2026-09-27T08:00:00.000Z",
+    "updated_at": "2026-09-27T08:05:12.345Z"
+  }
+}

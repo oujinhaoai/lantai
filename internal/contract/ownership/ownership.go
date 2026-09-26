@@ -67,6 +67,7 @@ var InfraTables = []InfraTable{
 	{"processed_events", "events", []Database{Main, Ledger, Runtime, Index}, "消费者去重记录，与消费者状态同事务"},
 	{"pending_commands", "events", []Database{Main, Ledger, Runtime, Index}, "消费者待执行的跨模块命令"},
 	{"schema_migrations", "operations", []Database{Main, Ledger, Runtime, Events, Index}, "各库迁移版本"},
+	{"instance_binding", "operations", []Database{Main, Ledger, Runtime, Events, Index}, "库所属实例：启动时核对，防止混用其他实例的库文件（同一实例旧副本的混用由备份清单与恢复流程核对）"},
 }
 
 // DatabaseRule 规定每个库允许哪些模块拥有业务表。
@@ -106,11 +107,13 @@ var FileAreas = []FileArea{
 	{"audit", "events", "审计 JSONL 与摘要清单"},
 	{"backups", "operations", "备份清单与复制目标"},
 	{"extension-private", "extensions", "扩展私有命名空间目录；不是五库业务表"},
+	{"instance", "operations", "实例标记 instance.json、单实例锁 lantai.lock 与 config.yaml"},
+	{"secrets", "identity", "主密钥等密钥材料；与五库、事件、素材分开存放与备份"},
 }
 
 // EventPrefixes 把事件类型的第一段登记到所属模块；新前缀须先登记。
 var EventPrefixes = map[string]string{
-	"principal": "identity", "session": "identity", "project": "identity", "human_grant": "identity",
+	"principal": "identity", "session": "identity", "project": "identity", "human_grant": "identity", "policy": "identity",
 	"asset": "catalog", "namespace": "ledger",
 	"upload": "storage", "blob_grant": "storage",
 	"version": "ledger", "review": "ledger", "publication": "ledger", "lock": "ledger", "trash": "ledger", "comment": "ledger",

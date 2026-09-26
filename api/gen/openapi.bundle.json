@@ -404,12 +404,12 @@
     },
     "securitySchemes": {
       "bearerSession": {
-        "description": "会话令牌（由长期凭据换取，限定范围与有效期）。长期凭据不能直接调用业务接口。",
+        "description": "会话令牌 lts_…（由长期凭据换取或由人登录得到，限定范围与有效期）。长期凭据 ltk_…\n只能换会话，不能直接调用业务接口；浏览器会话令牌只能经 Cookie 使用。Bearer 请求\n不做 CSRF 检查，但仍须通过正常授权。见 docs/contracts/identity.md。\n",
         "scheme": "bearer",
         "type": "http"
       },
       "cookieSession": {
-        "description": "网页的 HttpOnly/Secure/SameSite 会话；写请求同时校验 Origin 与 CSRF 令牌。",
+        "description": "网页的 HttpOnly/Secure/SameSite=Strict 会话。GET/HEAD/OPTIONS 以外的请求必须带与\n允许列表精确相同的 Origin（缺失即拒绝）并在 X-CSRF-Token 头中带与该会话相符的 CSRF\n令牌；同一请求不能同时带 Bearer 与会话 Cookie。\n",
         "in": "cookie",
         "name": "lantai_session",
         "type": "apiKey"

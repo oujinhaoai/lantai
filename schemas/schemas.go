@@ -13,5 +13,5 @@ const BaseURI = "https://github.com/oujinhaoai/lantai/raw/main/schemas/"
 
 // FS 包含 index.json 与各 schema 文件（不含 examples）。
 //
-//go:embed index.json common
+//go:embed index.json common operations
 var FS embed.FS

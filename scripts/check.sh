@@ -27,6 +27,7 @@ go tool -modfile=scripts/tools/go.mod staticcheck ./...
 step "生成物无漂移"
 go run ./scripts/gen/errcodes -check
 go run ./scripts/gen/ownership -check
+go run ./scripts/gen/identity -check
 go run ./scripts/gen/openapi -check
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

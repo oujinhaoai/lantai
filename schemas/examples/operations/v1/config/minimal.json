@@ -1,0 +1,6 @@
+{
+  "description": "只声明契约，其余取默认值",
+  "schema": "lantai.config/v1",
+  "valid": true,
+  "document": { "contract": "lantai.config/v1" }
+}

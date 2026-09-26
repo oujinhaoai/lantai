@@ -1,6 +1,6 @@
 # 公共契约
 
-状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)。
+状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)；实例生命周期、迁移与维护屏障见 [instance.md](instance.md)（T08.1）；身份、会话、授权与人类授权见 [identity.md](identity.md)（T01），动作与策略登记见 [identity-actions.md](identity-actions.md)。
 
 契约通过测试只说明规则被编码并可重复校验，不代表依赖它们的业务模块已经实现；各模块最终接线须换成真实实现并通过对应验收。
 
@@ -80,16 +80,17 @@
 
 | 接口 | 实现方 | 桩 / 契约套件 |
 |---|---|---|
-| [`authz`](../../internal/contract/authz/authz.go)：可信调用者上下文、`Authorizer`、`SessionVerifier`、`EpochSource`；传输档位由主体类别推导，不信客户端自报 | identity（T01） | `authztest.Static`：授予、撤权、会话、整馆恢复 |
+| [`authz`](../../internal/contract/authz/authz.go)：可信调用者上下文、`Authorizer`、`SessionVerifier`、`EpochSource`；传输档位由主体类别推导，不信客户端自报，委托上下文一律为批量档 | identity（T01，已实现：[`identity.Service`](../../internal/identity/identity.go)；`EpochSource` 由 [`operations.Instance`](../../internal/operations/instance.go) 提供） | `authztest.Static`：授予、撤权、会话、整馆恢复；`RunAuthorizerContract`（桩与 identity 都通过） |
 | [`install`](../../internal/contract/install/install.go)：安装请求与 [`lantai.install-proof/v1`](../../schemas/common/v1/install-proof.schema.json) 证明、`Installer`（按 operation 幂等、只证明 installed） | storage（T02） | `installtest.Memory`、`RunInstallerContract` |
 | [`commit`](../../internal/contract/commit/commit.go)：`Ledger`（Prepare → Commit，最终接受边界复验当前授权与证明）、`Reader`（只读已提交版本，不依赖索引） | ledger（T03） | `committest.Memory`、`RunLedgerContract` |
 | [`pin`](../../internal/contract/pin/pin.go)：[`lantai.pin/v1`](../../schemas/common/v1/pin.schema.json) 保留记录与 `Held`（任一来源出错即视为仍被保留） | storage / ledger / operations | `pintest.Memory` |
 
-契约套件覆盖：Prepare/Commit 按键与 operation 幂等、同键异摘要冲突、撤权或旧会话提交被拒且版本不可见（操作 `blocked`，字节保留）、整馆恢复前接受的操作即使换新会话也须先对账（`OPERATION_NEEDS_RECONCILIATION`）、未经安装器签发的证明被拒、证明不符或内容损坏时隔离、基线落后、同资产进行中提交返回 `RESOURCE_BUSY`、取消已终结的操作不释放别人的占用、占名冲突、取消后版本号不回收、`REF_MISMATCH`，以及安装端的幂等、冲突、缺内容、大小不符、路径越界与非法 UTF-8、只认本安装器签发的证明与隔离。
+授权契约套件覆盖：授予与撤权对之后的判定立即生效、收窄的会话不能扩大、验证返回可信上下文、结束或到期的会话与整馆恢复之前的会话一律失效。台账与安装契约套件覆盖：Prepare/Commit 按键与 operation 幂等、同键异摘要冲突、撤权或旧会话提交被拒且版本不可见（操作 `blocked`，字节保留）、整馆恢复前接受的操作即使换新会话也须先对账（`OPERATION_NEEDS_RECONCILIATION`）、未经安装器签发的证明被拒、证明不符或内容损坏时隔离、基线落后、同资产进行中提交返回 `RESOURCE_BUSY`、取消已终结的操作不释放别人的占用、占名冲突、取消后版本号不回收、`REF_MISMATCH`，以及安装端的幂等、冲突、缺内容、大小不符、路径越界与非法 UTF-8、只认本安装器签发的证明与隔离。
 
 ## 所有权与锁顺序
 
 - 每张业务表只有一个模块写入，表名以模块名加下划线开头；模块只能在登记允许的库里建表；跨模块、跨库不联表、不建外键、不共用 SQL 事务。登记与检查函数在 [`internal/contract/ownership`](../../internal/contract/ownership/ownership.go)，迁移工具应对每个迁移创建的表调用 `CheckTable`；表格见[所有权](ownership.md)。
+- 写入口：所有写入（前台命令与后台任务）经 [`commands.Gate`](../../internal/commands/gate.go) 取锁；实例未开放写入时立即返回 `MAINTENANCE_MODE`，维护先关闭写入再取屏障独占锁，见 [instance.md](instance.md#状态就绪与维护屏障)。
 - 单核心进程内的统一取锁顺序：**实例维护屏障 → security_guard → project/namespace → asset → task/attempt → blob**，同层按键排序。业务提交取屏障共享与 security_guard 读；维护与备份取屏障独占；撤权、角色/策略变更、限制激活、锁定、审定撤销与敏感授权撤销取 security_guard 写。一次取锁给出完整集合；已持有锁时只能用 `Acquire` 返回的 ctx 继续取顺序更靠后的键，反向嵌套返回错误（顺序检查沿 ctx 传递，换用其他 ctx 会绕过检查）。等待中的写者会阻止后到的读者，撤权与维护不会被持续的提交饿死。锁内不做上传或远程网络调用。实现：[`commands.Coordinator`](../../internal/commands/locks.go)。
 - 这些锁只在一个核心进程内有效；将来多个进程写同一数据根时必须先换成可验证的共享串行化机制。
 

@@ -1,0 +1,10 @@
+{
+  "description": "拼错的配置项不能被静默忽略",
+  "schema": "lantai.config/v1",
+  "valid": false,
+  "expect": [{ "pointer": "/storage", "keyword": "additionalProperties" }],
+  "document": {
+    "contract": "lantai.config/v1",
+    "storage": { "min_free_byte": 1 }
+  }
+}

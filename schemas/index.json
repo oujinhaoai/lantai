@@ -12,6 +12,8 @@
     { "contract": "lantai.alias-generation/v1", "path": "common/v1/alias-generation.schema.json", "kind": "document", "owner": "T00" },
     { "contract": "lantai.namespace-claim/v1", "path": "common/v1/namespace-claim.schema.json", "kind": "document", "owner": "T00" },
     { "contract": "lantai.install-proof/v1", "path": "common/v1/install-proof.schema.json", "kind": "document", "owner": "T00" },
-    { "contract": "lantai.pin/v1", "path": "common/v1/pin.schema.json", "kind": "document", "owner": "T00" }
+    { "contract": "lantai.pin/v1", "path": "common/v1/pin.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.instance/v1", "path": "operations/v1/instance.schema.json", "kind": "document", "owner": "T08" },
+    { "contract": "lantai.config/v1", "path": "operations/v1/config.schema.json", "kind": "document", "owner": "T08" }
   ]
 }

@@ -1,6 +1,6 @@
 # 依赖、版本与许可证
 
-核对日期：2026-09-27。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
+核对日期：2026-09-27（T01/T08.1 新增 x/crypto、x/term，x/sys 升至 v0.48.0 并改为直接依赖）。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
 
 ## 链接进程序的依赖
 
@@ -19,9 +19,11 @@
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | 驱动依赖 | BSD-3-Clause |
 | `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | JSON Schema 2020-12 校验 | Apache-2.0 |
 | `go.yaml.in/yaml/v3` | v3.0.5 | YAML 解析（按 JSON 数据模型解释） | Apache-2.0；移植自 libyaml 的部分为 MIT |
-| `golang.org/x/sync` | v0.23.0 | 可取消、公平的加权信号量（锁协调） | BSD-3-Clause |
-| `golang.org/x/text` | v0.42.0 | schema 校验错误信息的本地化打印 | BSD-3-Clause |
-| `golang.org/x/sys` | v0.47.0 | 驱动依赖 | BSD-3-Clause |
+| `golang.org/x/sync` | v0.23.0 | 可取消、公平的加权信号量（锁协调、口令计算并发上限） | BSD-3-Clause |
+| `golang.org/x/text` | v0.42.0 | schema 校验错误信息的本地化打印；口令的 Unicode NFC 规范化 | BSD-3-Clause |
+| `golang.org/x/crypto` | v0.57.0 | 只用 `argon2`：口令的 Argon2id（RFC 9106）校验值 | BSD-3-Clause |
+| `golang.org/x/term` | v0.46.0 | 本机实例命令在终端读取口令时不回显 | BSD-3-Clause |
+| `golang.org/x/sys` | v0.48.0 | 数据根单实例锁（Unix `flock`、Windows `LockFileEx`）、磁盘余量与文件系统类别探测；驱动依赖 | BSD-3-Clause |
 
 发布二进制时须随附上述依赖的许可证与版权声明（BSD/MIT/Apache 均要求保留声明）。发布流程归 T08，届时从 `go.sum` 生成第三方声明，不在仓库预填 `NOTICE`。
 
@@ -33,7 +35,7 @@
 | `honnef.co/go/tools`（staticcheck） | v0.8.1（2026.2.1） | 静态检查 | MIT |
 | `golang.org/x/vuln`（govulncheck） | v1.8.0 | 已知漏洞扫描 | BSD-3-Clause |
 
-2026-09-27 使用 govulncheck v1.8.0 扫描，结果为未发现已知漏洞。
+2026-09-27 使用 govulncheck v1.8.0 扫描：代码不调用任何已知漏洞（退出码 0）。引入 x/crypto 后模块级另报 GO-2026-5932（`golang.org/x/crypto/openpgp` 已不维护、没有修复版本）；本项目只导入 `x/crypto/argon2`，不导入 `openpgp`。
 
 CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actions/setup-go` v7.0.0、`actions/upload-artifact` v7.0.1。
 
@@ -47,3 +49,5 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 - **YAML**：go.yaml.in/yaml/v3 是 YAML 组织维护的 yaml.v3 后续版本；解析后再按 JSON 数据模型逐节点转换并拒绝锚点、别名、非字符串键等。
 - **OpenAPI 生成**：oapi-codegen v2.8.0 不能直接跟随指向普通 JSON Schema 文件的外部引用，因此先由 `scripts/gen/openapi` 打包成自包含文档再生成。已知差异：可空类型生成为指针并省略空值；`format: date-time` 生成为 `time.Time`，其默认编码会省略末尾零毫秒，不满足契约时间格式，服务端输出须用契约包编码。生成代码不包含请求校验，校验与授权分别由 schema 注册表和领域检查完成。
 - **ULID、规范化 JSON**：规则简单且是摘要安全的关键，自行实现并用 ULID 规范示例与 RFC 8785 附录样例测试，不引入额外依赖。
+- **口令与密钥（T01，2026-09-27 核对）**：口令用 x/crypto 的 Argon2id（Go 维护的官方扩展库），不自制 KDF；默认 64 MiB、3 轮、单线程（RFC 9106 第二推荐方案的单线程形式），参数随每条记录保存，同时计算数默认 2，开发机（Apple 芯片）约 0.1 秒一次，目标 NAS 须实测后再调整。TOTP 种子加密用标准库经过验证的 AES-256-GCM，子密钥用标准库 `crypto/hkdf`；TOTP 本身按 RFC 6238 用标准库 HMAC-SHA1 实现，并以 RFC 6238 附录 B 的测试向量验证，不引入第三方 OTP 库。二维码生成暂未引入，登记时展示 Base32 种子与 otpauth 地址。
+- **文件锁与平台能力**：标准库没有公开的文件锁与磁盘余量接口，改用 x/sys；只实现 Linux、macOS、Windows（锁另支持 BSD），其他平台明确返回不支持。
