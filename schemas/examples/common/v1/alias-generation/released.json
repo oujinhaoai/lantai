@@ -1,0 +1,15 @@
+{
+  "description": "宽限期内整资产删除后立即释放名称",
+  "schema": "lantai.alias-generation/v1",
+  "valid": true,
+  "document": {
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "normalized_slug": "pansi/ch03/whitebox",
+    "generation": 1,
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "created_at": "2026-09-26T10:14:34.123Z",
+    "reason": "create",
+    "released_at": "2026-09-26T11:00:00.000Z",
+    "release_reason": "grace_delete"
+  }
+}

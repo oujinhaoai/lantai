@@ -1,0 +1,19 @@
+{
+  "description": "错误码必须大写下划线",
+  "schema": "lantai.error/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/error/code",
+      "keyword": "pattern"
+    }
+  ],
+  "document": {
+    "error": {
+      "code": "lease_stale",
+      "message": "x",
+      "retryable": false,
+      "recovery_action": "refresh_state"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "contract": "lantai.error-codes/v1",
+  "codes": [
+    { "code": "AUTH_REQUIRED", "http_status": 401, "retryable": false, "recovery_action": "reauthenticate", "owner": "identity", "summary": "缺少有效认证；重新认证，不自动升权" },
+    { "code": "TOKEN_EXPIRED", "http_status": 401, "retryable": false, "recovery_action": "reauthenticate", "owner": "identity", "summary": "会话或令牌已过期" },
+    { "code": "TOKEN_REVOKED", "http_status": 401, "retryable": false, "recovery_action": "reauthenticate", "owner": "identity", "summary": "会话或令牌已吊销，或属于旧 auth_epoch/recovery_epoch" },
+
+    { "code": "FORBIDDEN", "http_status": 403, "retryable": false, "recovery_action": "none", "owner": "identity", "summary": "当前身份、角色或策略不允许该动作" },
+    { "code": "HUMAN_PROOF_REQUIRED", "http_status": 403, "retryable": false, "recovery_action": "human_action", "owner": "identity", "summary": "敏感动作需要绑定目标的有效人类授权（HumanGrant）" },
+    { "code": "HUMAN_GRANT_MISMATCH", "http_status": 403, "retryable": false, "recovery_action": "human_action", "owner": "identity", "summary": "人类授权与动作、目标集合、请求摘要或 operation 不一致" },
+    { "code": "TOTP_REPLAY", "http_status": 403, "retryable": false, "recovery_action": "human_action", "owner": "identity", "summary": "该动态码时间步已被使用；等待下一个验证码后重新输入" },
+    { "code": "SELF_REVIEW_FORBIDDEN", "http_status": 403, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "制作者不能审定或质检自己的产物" },
+    { "code": "USE_RESTRICTED", "http_status": 403, "retryable": false, "recovery_action": "none", "owner": "provenance", "summary": "当前许可或来源限制禁止该用途" },
+    { "code": "BLOB_GRANT_REQUIRED", "http_status": 403, "retryable": false, "recovery_action": "upload_content", "owner": "storage", "summary": "内容需要本操作的上传或授权证明；不区分内容是否已存在" },
+
+    { "code": "NOT_FOUND", "http_status": 404, "retryable": false, "recovery_action": "none", "owner": "common", "summary": "对象不存在或调用者无权知道其存在" },
+
+    { "code": "BASE_VERSION_CONFLICT", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "ledger", "summary": "声明的基线版本已落后" },
+    { "code": "PATH_CONFLICT", "http_status": 409, "retryable": false, "recovery_action": "fix_request", "owner": "catalog", "summary": "路径已被占用或规范化后同名；不静默改名" },
+    { "code": "REF_AMBIGUOUS", "http_status": 409, "retryable": false, "recovery_action": "fix_request", "owner": "catalog", "summary": "路径曾被复用，需指定 alias_generation 或永久 ID" },
+    { "code": "REF_MISMATCH", "http_status": 409, "retryable": false, "recovery_action": "fix_request", "owner": "catalog", "summary": "版本不属于所给资产" },
+    { "code": "ASSET_LOCKED", "http_status": 409, "retryable": false, "recovery_action": "human_action", "owner": "ledger", "summary": "资产或祖先路径已锁定，需要人解锁" },
+    { "code": "ASSET_CHECKED_OUT", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "tasks", "summary": "资产被其他有效执行轮次签出" },
+    { "code": "ASSET_IN_USE", "http_status": 409, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "对象在用（已发布、被引用、正在修改或有流程），不能删除" },
+    { "code": "LEASE_STALE", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "tasks", "summary": "执行轮次、fence、租约到期或 recovery_epoch 不再有效" },
+    { "code": "TASK_ALREADY_CLAIMED", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "tasks", "summary": "席位已被其他会话领取" },
+    { "code": "REVIEW_TARGET_STALE", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "ledger", "summary": "审定目标已失效（新版提交、撤回或清单变化）" },
+    { "code": "PUBLICATION_CONFLICT", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "ledger", "summary": "发布指针修订与预期不符" },
+    { "code": "NOT_PUBLISHABLE", "http_status": 409, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "版本未审定通过、已停用或处于不可发布状态" },
+    { "code": "NOT_SUBMITTABLE", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "ledger", "summary": "版本当前状态不能提交审定" },
+    { "code": "NOT_PUBLISHED", "http_status": 409, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "资产没有有效发布版本（未发布或已暂停）" },
+    { "code": "TRASH_HELD", "http_status": 409, "retryable": false, "recovery_action": "human_action", "owner": "ledger", "summary": "回收站条目处于暂停清除状态" },
+    { "code": "NOT_DUE", "http_status": 409, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "回收站条目尚未到期" },
+    { "code": "RIGHTS_PENDING", "http_status": 409, "retryable": true, "recovery_action": "retry", "owner": "provenance", "summary": "限制尚未完成核验；按 retry_after_ms 再查，不默认放行" },
+    { "code": "INVALID_STATE_TRANSITION", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "common", "summary": "对象当前状态不允许该动作" },
+    { "code": "IDEMPOTENCY_CONFLICT", "http_status": 409, "retryable": false, "recovery_action": "fix_request", "owner": "common", "summary": "同一幂等键对应不同请求摘要；新意图必须使用新键" },
+    { "code": "OPERATION_NEEDS_RECONCILIATION", "http_status": 409, "retryable": false, "recovery_action": "reconcile", "owner": "common", "summary": "现有证据无法判定操作结果；禁止盲目重做" },
+
+    { "code": "IDEMPOTENCY_RESULT_EXPIRED", "http_status": 410, "retryable": false, "recovery_action": "refresh_state", "owner": "common", "summary": "已知旧操作超过响应缓存期；按返回的对象或操作摘要读取当前状态" },
+    { "code": "ASSET_IN_TRASH", "http_status": 410, "retryable": false, "recovery_action": "human_action", "owner": "ledger", "summary": "资产或版本在回收站中" },
+    { "code": "ASSET_PURGED", "http_status": 410, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "对象已清除，只剩墓碑（仅对有权查看墓碑者返回）" },
+    { "code": "CURSOR_EXPIRED", "http_status": 410, "retryable": false, "recovery_action": "resync", "owner": "events", "summary": "事件游标超出保留期；先固定起点水位再全量重同步" },
+
+    { "code": "PRECONDITION_FAILED", "http_status": 412, "retryable": false, "recovery_action": "refresh_state", "owner": "common", "summary": "预期修订或 ETag 已过期" },
+
+    { "code": "SCHEMA_INVALID", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "common", "summary": "请求或文档不符合 schema；按 details 逐条修正" },
+    { "code": "HASH_MISMATCH", "http_status": 422, "retryable": false, "recovery_action": "upload_content", "owner": "storage", "summary": "内容与声明的哈希或大小不符" },
+    { "code": "CHECKS_NOT_SATISFIED", "http_status": 422, "retryable": false, "recovery_action": "none", "owner": "ledger", "summary": "验收要求的检查或证据未满足" },
+    { "code": "DEPENDENCY_CYCLE", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "provenance", "summary": "声明的依赖关系形成环" },
+    { "code": "FIELD_REQUIRES_SPECIAL_COMMAND", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "catalog", "summary": "安全相关字段只能通过专门命令修改" },
+    { "code": "FLOW_REQUIRED", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "workflow", "summary": "该动作需要有效任务或流程上下文" },
+    { "code": "UNSUPPORTED_CAPABILITY", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "agent_execution", "summary": "执行后端或宿主未声明任务要求的能力；不派发" },
+    { "code": "EXTENSION_POINT_UNSUPPORTED", "http_status": 422, "retryable": false, "recovery_action": "fix_request", "owner": "extensions", "summary": "扩展点、target 或能力在当前阶段不受支持；不静默忽略配置" },
+
+    { "code": "RESOURCE_BUSY", "http_status": 423, "retryable": true, "recovery_action": "poll_operation", "owner": "common", "summary": "资源有进行中的持久操作；按返回的 operation_id 查询" },
+
+    { "code": "PRECONDITION_REQUIRED", "http_status": 428, "retryable": false, "recovery_action": "fix_request", "owner": "common", "summary": "缺少必需的预期修订、ETag 或基线" },
+
+    { "code": "QUOTA_EXCEEDED", "http_status": 429, "retryable": false, "recovery_action": "none", "owner": "common", "summary": "超出配额；停止并报告" },
+    { "code": "RATE_LIMITED", "http_status": 429, "retryable": true, "recovery_action": "retry", "owner": "common", "summary": "请求过快；按 retry_after_ms 等待" },
+
+    { "code": "START_KEY_CONFLICT", "http_status": 409, "retryable": false, "recovery_action": "fix_request", "owner": "agent_execution", "summary": "同一 execution_key 对应不同启动请求摘要" },
+    { "code": "BUDGET_EXHAUSTED", "http_status": 409, "retryable": false, "recovery_action": "human_action", "owner": "agent_execution", "summary": "预算已耗尽；执行暂停，需要预算变更" },
+    { "code": "RESUME_UNSUPPORTED", "http_status": 409, "retryable": false, "recovery_action": "none", "owner": "agent_execution", "summary": "后端未声明所请求的恢复类型" },
+    { "code": "RESULT_NOT_READY", "http_status": 409, "retryable": true, "recovery_action": "poll_operation", "owner": "agent_execution", "summary": "结果尚未封存；稍后查询" },
+    { "code": "SIDE_EFFECT_UNKNOWN", "http_status": 409, "retryable": false, "recovery_action": "reconcile", "owner": "agent_execution", "summary": "外部副作用结果不明；先对账，禁止换键重试" },
+    { "code": "EXTENSION_ACTIVATION_STALE", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "extensions", "summary": "扩展激活代次、包摘要或启用状态已不是当前值" },
+
+    { "code": "INTERNAL", "http_status": 500, "retryable": false, "recovery_action": "poll_operation", "owner": "common", "summary": "服务端内部错误；先查询 operation，再按其结果决定，不盲重启外部副作用" },
+    { "code": "MAINTENANCE_MODE", "http_status": 503, "retryable": true, "recovery_action": "retry", "owner": "operations", "summary": "实例处于维护、迁移或恢复状态，暂不接受该请求" },
+    { "code": "STORAGE_UNAVAILABLE", "http_status": 503, "retryable": true, "recovery_action": "retry", "owner": "storage", "summary": "存储暂不可写或文件被占用；未确认的提交不会被报告成功" },
+    { "code": "STORAGE_FULL", "http_status": 507, "retryable": false, "recovery_action": "human_action", "owner": "storage", "summary": "存储空间不足；需人释放空间，之后可用同一幂等键重试" }
+  ],
+  "superseded": [
+    { "code": "UNAUTHENTICATED", "replaced_by": ["AUTH_REQUIRED", "TOKEN_EXPIRED", "TOKEN_REVOKED"], "reason": "v1 区分缺少认证、过期与吊销" },
+    { "code": "FORBIDDEN_ROLE", "replaced_by": ["FORBIDDEN"], "reason": "角色、策略拒绝统一为 FORBIDDEN" },
+    { "code": "POLICY_VIOLATION", "replaced_by": ["FORBIDDEN", "HUMAN_PROOF_REQUIRED", "USE_RESTRICTED"], "reason": "按拒绝原因使用更具体的 v1 错误码" },
+    { "code": "LEASE_EXPIRED", "replaced_by": ["LEASE_STALE"], "reason": "到期、fence 不符与恢复代次变化统一为 LEASE_STALE，原因放在 details" },
+    { "code": "MISSING_BLOBS", "replaced_by": ["BLOB_GRANT_REQUIRED"], "reason": "区分“未上传”与“无授权”会泄露内容是否存在" }
+  ]
+}

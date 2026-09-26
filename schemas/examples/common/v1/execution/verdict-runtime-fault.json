@@ -1,0 +1,12 @@
+{
+  "description": "运行故障不是检查结论",
+  "schema": "lantai.execution-common/v1#/$defs/check_verdict",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "runtime_fault"
+}

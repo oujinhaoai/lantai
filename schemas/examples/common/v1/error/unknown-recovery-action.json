@@ -1,0 +1,19 @@
+{
+  "description": "recovery_action 只能取登记值",
+  "schema": "lantai.error/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/error/recovery_action",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "error": {
+      "code": "INTERNAL",
+      "message": "x",
+      "retryable": false,
+      "recovery_action": "restart"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "缺少包摘要的产物来源不可追溯",
+  "schema": "lantai.common-defs/v1#/$defs/producer_ref",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ],
+  "document": {
+    "extension_id": "org.example.asset-tools",
+    "extension_version": "0.1.0",
+    "source": "package"
+  }
+}

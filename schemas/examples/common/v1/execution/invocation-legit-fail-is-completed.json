@@ -1,0 +1,6 @@
+{
+  "description": "合法检查 fail 的调用运行结论是 completed",
+  "schema": "lantai.execution-common/v1#/$defs/invocation_outcome",
+  "valid": true,
+  "document": "completed"
+}

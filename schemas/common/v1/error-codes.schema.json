@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/error-codes.schema.json",
+  "title": "ErrorCodeRegistry",
+  "description": "错误码注册表的格式。注册表 error-codes.json 是错误码的唯一来源，Go 常量与文档表由 scripts/gen/errcodes 生成。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "codes", "superseded"],
+  "properties": {
+    "contract": { "const": "lantai.error-codes/v1" },
+    "codes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/code" }
+    },
+    "superseded": {
+      "description": "旧草案中出现、现已由 v1 契约替代的错误码；服务端不得再返回。",
+      "type": "array",
+      "items": { "$ref": "#/$defs/superseded" }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "http_status", "retryable", "recovery_action", "owner", "summary"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$" },
+        "http_status": { "type": "integer", "minimum": 400, "maximum": 599 },
+        "retryable": { "type": "boolean" },
+        "recovery_action": { "$ref": "defs.schema.json#/$defs/recovery_action" },
+        "owner": {
+          "description": "定义该错误语义的模块；common 表示跨模块通用。",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "superseded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "replaced_by", "reason"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$" },
+        "replaced_by": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$" }
+        },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 300 }
+      }
+    }
+  }
+}

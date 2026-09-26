@@ -1,0 +1,12 @@
+{
+  "description": "prepared 操作保留的名称",
+  "schema": "lantai.namespace-claim/v1",
+  "valid": true,
+  "document": {
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "normalized_slug": "pansi/ch03/new",
+    "claim_state": "reserved",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "revision": 1
+  }
+}

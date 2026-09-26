@@ -1,0 +1,17 @@
+{
+  "contract": "lantai.schema-index/v1",
+  "base_uri": "https://github.com/oujinhaoai/lantai/raw/main/schemas/",
+  "schemas": [
+    { "contract": "lantai.common-defs/v1", "path": "common/v1/defs.schema.json", "kind": "library", "owner": "T00" },
+    { "contract": "lantai.execution-common/v1", "path": "common/v1/execution.schema.json", "kind": "library", "owner": "T00" },
+    { "contract": "lantai.error/v1", "path": "common/v1/error.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.error-codes/v1", "path": "common/v1/error-codes.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.event-envelope/v1", "path": "common/v1/event-envelope.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.event-store-entry/v1", "path": "common/v1/event-store-entry.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.operation/v1", "path": "common/v1/operation.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.alias-generation/v1", "path": "common/v1/alias-generation.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.namespace-claim/v1", "path": "common/v1/namespace-claim.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.install-proof/v1", "path": "common/v1/install-proof.schema.json", "kind": "document", "owner": "T00" },
+    { "contract": "lantai.pin/v1", "path": "common/v1/pin.schema.json", "kind": "document", "owner": "T00" }
+  ]
+}

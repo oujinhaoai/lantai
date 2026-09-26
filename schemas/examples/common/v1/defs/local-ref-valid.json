@@ -1,0 +1,9 @@
+{
+  "description": "本馆入口可省略 instance_id",
+  "schema": "lantai.common-defs/v1#/$defs/local_ref",
+  "valid": true,
+  "document": {
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB"
+  }
+}

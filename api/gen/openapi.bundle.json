@@ -1,0 +1,502 @@
+{
+  "components": {
+    "headers": {
+      "RequestID": {
+        "description": "服务端请求编号。",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RetryAfter": {
+        "description": "建议的最短等待秒数（与错误体 retry_after_ms 一致）。",
+        "schema": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "description": "幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的\n202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。\n",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/IdempotencyKey"
+        }
+      },
+      "IfMatch": {
+        "description": "条件写入的预期 ETag；缺少必需的基线时返回 428 PRECONDITION_REQUIRED。",
+        "in": "header",
+        "name": "If-Match",
+        "required": false,
+        "schema": {
+          "maxLength": 128,
+          "type": "string"
+        }
+      },
+      "OperationID": {
+        "in": "path",
+        "name": "operation_id",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "RequestID": {
+        "description": "客户端请求编号，仅用于日志关联，不参与请求摘要。",
+        "in": "header",
+        "name": "X-Request-Id",
+        "required": false,
+        "schema": {
+          "maxLength": 128,
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "Accepted": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationStatusAccepted"
+            }
+          }
+        },
+        "description": "操作已持久接受但仍在进行；按 status_url 查询，不要换键重试。",
+        "headers": {
+          "Location": {
+            "description": "与 status_url 相同。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Error": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "description": "结构化错误；错误码、HTTP 状态、retryable 与 recovery_action 以错误码注册表为准。",
+        "headers": {
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CommandType": {
+        "description": "命令类型，<module>.<command>，例如 ledger.commit_version。",
+        "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+        "type": "string"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "description": "所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorEnvelopeErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "ErrorEnvelopeErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "稳定错误码，大写下划线；一经发布不改名。",
+            "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorEnvelopeErrorDetail"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "hint": {
+            "description": "修复提示。",
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "message": {
+            "description": "一句人话说明；不得包含凭据、签名 URL、无权来源的路径或哈希。",
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "recovery_action": {
+            "$ref": "#/components/schemas/RecoveryAction"
+          },
+          "refs": {
+            "description": "调用者有权看到的相关引用（路径@版本、永久 URI 或对象 ID）。",
+            "items": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "request_id": {
+            "description": "服务端请求编号，便于日志关联。",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "retry_after_ms": {
+            "description": "建议的最短等待毫秒数；HTTP 同时返回 Retry-After。",
+            "maximum": 86400000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "retryable": {
+            "description": "以同一幂等键原样重试是否可能成功。",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "recovery_action"
+        ],
+        "type": "object"
+      },
+      "ErrorEnvelopeErrorDetail": {
+        "additionalProperties": false,
+        "description": "逐项细节，例如 schema 错误位置、租约失效原因、在用引用。",
+        "properties": {
+          "data": {
+            "description": "所属模块定义的附加结构化数据；不得包含敏感信息。",
+            "type": "object"
+          },
+          "message": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "pointer": {
+            "$ref": "#/components/schemas/JsonPointer"
+          },
+          "reason": {
+            "description": "小写下划线的机器可读原因，例如 fence_mismatch、required。",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "ref": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "IdempotencyKey": {
+        "description": "客户端提供的幂等键；作用域为 (actor, project, command_type)。",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "JsonPointer": {
+        "description": "RFC 6901 JSON Pointer。",
+        "pattern": "^(/([^~/]|~[01])*)*$",
+        "type": "string"
+      },
+      "LantaiUri": {
+        "description": "永久引用的外部 URI 形式。",
+        "pattern": "^lantai://[0-7][0-9A-HJKMNP-TV-Z]{25}/assets/[0-7][0-9A-HJKMNP-TV-Z]{25}/versions/[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+        "type": "string"
+      },
+      "Module": {
+        "description": "服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。",
+        "pattern": "^[a-z][a-z0-9_]{1,31}$",
+        "type": "string"
+      },
+      "OperationStatus": {
+        "additionalProperties": false,
+        "description": "持久操作的对外状态视图（GET /api/v1/operations/{operation_id}）。不返回令牌、签名 URL 或敏感堆栈；按当前读取权限过滤 result_refs。",
+        "properties": {
+          "command_type": {
+            "$ref": "#/components/schemas/CommandType"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/RecoveryAction"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "owner_module": {
+            "$ref": "#/components/schemas/Module"
+          },
+          "parent_operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projection_pending": {
+            "description": "仅对 committed 有意义：该操作产生的事件是否仍未全部收录到 events.db。检索索引的落后量由查询水位另行报告。",
+            "type": "boolean"
+          },
+          "reason": {
+            "additionalProperties": false,
+            "description": "终态或阻塞时的精简原因；code 在错误码注册表中登记。",
+            "properties": {
+              "code": {
+                "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+                "type": "string"
+              },
+              "message": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "type": "object"
+          },
+          "result_refs": {
+            "items": {
+              "$ref": "#/components/schemas/OperationStatusResultRef"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "retryable": {
+            "description": "以原幂等键再次提交是否可能推进该操作。",
+            "type": "boolean"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/OperationStatusStage"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "operation_id",
+          "owner_module",
+          "command_type",
+          "stage",
+          "retryable",
+          "next_action",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OperationStatus",
+        "type": "object"
+      },
+      "OperationStatusAccepted": {
+        "additionalProperties": false,
+        "description": "HTTP 202 响应体：操作已持久接受但仍在进行中。",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/OperationStatusStage"
+          },
+          "status_url": {
+            "pattern": "^/api/v1/operations/[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "stage",
+          "status_url"
+        ],
+        "type": "object"
+      },
+      "OperationStatusResultRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "kind": {
+            "description": "对象类型，例如 asset、version、review、task_run。",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "uri": {
+            "$ref": "#/components/schemas/LantaiUri"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "OperationStatusStage": {
+        "description": "receiving → prepared → installed → committed 为主线；projected 由 committed 且事件已全部收录推导；blocked/quarantined 保留字节待处置；failed/cancelled 为终态。",
+        "enum": [
+          "receiving",
+          "prepared",
+          "installed",
+          "committed",
+          "projected",
+          "blocked",
+          "quarantined",
+          "failed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "RecoveryAction": {
+        "description": "调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。",
+        "enum": [
+          "none",
+          "retry",
+          "reauthenticate",
+          "refresh_state",
+          "poll_operation",
+          "reconcile",
+          "human_action",
+          "fix_request",
+          "upload_content",
+          "resync"
+        ],
+        "type": "string"
+      },
+      "Revision": {
+        "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+        "maximum": 9007199254740991,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "Timestamp": {
+        "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
+        "format": "date-time",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+        "type": "string"
+      },
+      "Ulid": {
+        "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+        "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "bearerSession": {
+        "description": "会话令牌（由长期凭据换取，限定范围与有效期）。长期凭据不能直接调用业务接口。",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "cookieSession": {
+        "description": "网页的 HttpOnly/Secure/SameSite 会话；写请求同时校验 Origin 与 CSRF 令牌。",
+        "in": "cookie",
+        "name": "lantai_session",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "兰台只有一套 REST 接口，CLI、MCP、SDK 与网页都经它访问。本文件维护\nHTTP 层的公共约定：认证方式、幂等键、请求编号、错误模型、202 响应与\n操作查询。数据结构引用 schemas/ 中的权威 JSON Schema，不在这里复制；\nscripts/gen/openapi 将其打包为自包含文档 api/gen/openapi.bundle.json。\n\n约定：/api/v1 内只加不改；写请求必须带 Idempotency-Key；著录修改带\nIf-Match；时间为 UTC 毫秒。业务端点由各模块在实现时按此约定加入。\n",
+    "license": {
+      "identifier": "GPL-3.0-only",
+      "name": "GPL-3.0-only"
+    },
+    "summary": "兰台 HTTP 契约（公共部分）",
+    "title": "Lantai API",
+    "version": "1.0.0-draft"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/operations/{operation_id}": {
+      "get": {
+        "description": "返回操作阶段、结果引用、是否可重试与下一步建议。结果引用按调用者\n当前读取权限过滤；无权知道的操作返回 404，不泄露存在性。\n",
+        "operationId": "getOperation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OperationID"
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationStatus"
+                }
+              }
+            },
+            "description": "操作状态",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "查询持久操作状态",
+        "tags": [
+          "operations"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerSession": []
+    },
+    {
+      "cookieSession": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "经网关同源访问；接口面前缀 /api/，传输面前缀 /xfer/（地址由服务端给出）",
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "持久操作状态查询",
+      "name": "operations"
+    }
+  ]
+}

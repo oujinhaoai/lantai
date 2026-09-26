@@ -1,0 +1,20 @@
+{
+  "description": "不返回堆栈等未定义字段",
+  "schema": "lantai.error/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/error",
+      "keyword": "additionalProperties"
+    }
+  ],
+  "document": {
+    "error": {
+      "code": "INTERNAL",
+      "message": "x",
+      "retryable": false,
+      "recovery_action": "poll_operation",
+      "stack": "goroutine 1"
+    }
+  }
+}

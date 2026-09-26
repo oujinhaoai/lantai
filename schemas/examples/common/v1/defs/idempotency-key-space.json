@@ -1,0 +1,12 @@
+{
+  "description": "幂等键不允许空白",
+  "schema": "lantai.common-defs/v1#/$defs/idempotency_key",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "retry 1"
+}

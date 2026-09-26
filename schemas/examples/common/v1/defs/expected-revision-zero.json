@@ -1,0 +1,6 @@
+{
+  "description": "0 表示对象必须尚不存在",
+  "schema": "lantai.common-defs/v1#/$defs/expected_revision",
+  "valid": true,
+  "document": 0
+}

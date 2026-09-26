@@ -1,0 +1,12 @@
+{
+  "description": "pass 是检查结论，不是运行结论",
+  "schema": "lantai.execution-common/v1#/$defs/invocation_outcome",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "pass"
+}

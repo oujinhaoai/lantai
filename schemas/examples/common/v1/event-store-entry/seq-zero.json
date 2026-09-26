@@ -1,0 +1,16 @@
+{
+  "description": "global_seq 从 1 开始",
+  "schema": "lantai.event-store-entry/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/global_seq",
+      "keyword": "minimum"
+    }
+  ],
+  "document": {
+    "global_seq": 0,
+    "recorded_at": "2026-09-26T10:14:34.123Z",
+    "event_id": "01J8Z3K4M5N6P7Q8R9S0T100ZD"
+  }
+}

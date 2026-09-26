@@ -1,0 +1,12 @@
+{
+  "description": "health 属于常驻宿主控制，不是业务执行动作",
+  "schema": "lantai.execution-common/v1#/$defs/execution_action",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "health"
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/error.schema.json",
+  "title": "ErrorEnvelope",
+  "description": "所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error"],
+  "properties": {
+    "error": { "$ref": "#/$defs/error_body" }
+  },
+  "$defs": {
+    "error_body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable", "recovery_action"],
+      "properties": {
+        "code": {
+          "description": "稳定错误码，大写下划线；一经发布不改名。",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"
+        },
+        "message": {
+          "description": "一句人话说明；不得包含凭据、签名 URL、无权来源的路径或哈希。",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "hint": {
+          "description": "修复提示。",
+          "type": "string",
+          "maxLength": 2000
+        },
+        "retryable": {
+          "description": "以同一幂等键原样重试是否可能成功。",
+          "type": "boolean"
+        },
+        "recovery_action": { "$ref": "defs.schema.json#/$defs/recovery_action" },
+        "retry_after_ms": {
+          "description": "建议的最短等待毫秒数；HTTP 同时返回 Retry-After。",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000
+        },
+        "request_id": {
+          "description": "服务端请求编号，便于日志关联。",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+        "refs": {
+          "description": "调用者有权看到的相关引用（路径@版本、永久 URI 或对象 ID）。",
+          "type": "array",
+          "maxItems": 50,
+          "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+        },
+        "details": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/error_detail" }
+        }
+      }
+    },
+    "error_detail": {
+      "description": "逐项细节，例如 schema 错误位置、租约失效原因、在用引用。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "description": "小写下划线的机器可读原因，例如 fence_mismatch、required。",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "pointer": { "$ref": "defs.schema.json#/$defs/json_pointer" },
+        "message": { "type": "string", "maxLength": 1000 },
+        "ref": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "data": {
+          "description": "所属模块定义的附加结构化数据；不得包含敏感信息。",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

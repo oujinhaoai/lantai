@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/event-envelope.schema.json",
+  "title": "EventEnvelope",
+  "description": "业务库 outbox、events.db 与审计导出共用的事件信封。global_seq 不在信封内，由 events.db 收录时分配（见 event-store-entry）。payload 的格式由 (event_type, schema_version) 决定，只含必要状态与引用，不含凭据或签名 URL。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "schema_version",
+    "aggregate_type",
+    "aggregate_id",
+    "aggregate_revision",
+    "actor_id",
+    "operation_id",
+    "correlation_id",
+    "occurred_at",
+    "payload"
+  ],
+  "properties": {
+    "event_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "event_type": { "$ref": "defs.schema.json#/$defs/event_type" },
+    "schema_version": {
+      "description": "payload 的 schema 主版本。",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "aggregate_type": { "$ref": "defs.schema.json#/$defs/aggregate_type" },
+    "aggregate_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "aggregate_revision": {
+      "description": "事件发生后聚合的修订；跨来源的业务顺序按它与因果 ID 判断，不按 global_seq。",
+      "$ref": "defs.schema.json#/$defs/revision"
+    },
+    "actor_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "session_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "project_id": {
+      "description": "项目范围事件必填；实例级事件（身份、实例运维）省略，只对有实例级读取权的调用者可见。",
+      "$ref": "defs.schema.json#/$defs/ulid"
+    },
+    "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "correlation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "causation_id": {
+      "description": "直接引起本事件的事件或操作 ID。",
+      "$ref": "defs.schema.json#/$defs/ulid"
+    },
+    "occurred_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "payload": { "type": "object" }
+  }
+}

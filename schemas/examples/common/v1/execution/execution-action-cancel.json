@@ -1,0 +1,6 @@
+{
+  "description": "业务执行动作",
+  "schema": "lantai.execution-common/v1#/$defs/execution_action",
+  "valid": true,
+  "document": "cancel"
+}

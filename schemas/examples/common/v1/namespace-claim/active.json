@@ -1,0 +1,13 @@
+{
+  "description": "当前占名指向第 2 代",
+  "schema": "lantai.namespace-claim/v1",
+  "valid": true,
+  "document": {
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "normalized_slug": "pansi/ch03/whitebox",
+    "current_generation": 2,
+    "claim_state": "active",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "revision": 5
+  }
+}

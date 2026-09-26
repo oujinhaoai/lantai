@@ -10,11 +10,13 @@ The name comes from Lantai, an imperial archive in the Han dynasty. Agents act a
 
 ## Project status
 
-The project is in **pre-development preparation**. This repository contains the first directory plan, architecture outline, and module backlog, awaiting maintainer confirmation before implementation starts.
+The project is in **early development**. The Go project and the shared contracts are in place: identifiers, digests and canonicalization, request idempotency and receipts, the error model, the event envelope, operation stages, cross-module interfaces with stubs, and the shared execution and extension-host rules, all covered by automated tests.
 
-There is no runnable service, installation package, or verified deployment command yet. The capabilities below are design targets; directory notes do not indicate implemented features. Dependency versions, platform behavior, and performance will be established during the first validation work.
+There is still no runnable service, installation package, or verified deployment command; domain modules, the server, and client commands are implemented task by task. The capabilities below are design targets; features, performance, and platform behavior are claimed only with recorded acceptance results.
 
 - [Architecture and top-level layout](docs/architecture.md) — Chinese
+- [Shared contracts](docs/contracts/README.md) — Chinese
+- [Development and verification commands](docs/development.md) — Chinese
 - [Module tasks and implementation order](docs/tasks/README.md) — Chinese
 - [Server, client, and web extension design](docs/extensions.md) — Chinese
 - [Documentation index](docs/README.md)
@@ -94,7 +96,7 @@ lantai/
 └── web/        # Independently built and deployed web application
 ```
 
-Each directory currently contains responsibility notes only. Source packages and project configuration will be created when the corresponding task starts. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
+Source code is added with the corresponding tasks. So far this includes the `cmd/lantai` entry point, the shared contracts and command components in `internal/`, the shared schemas and examples in `schemas/`, the shared HTTP contract in `api/`, and the generation and check scripts in `scripts/`; the other directories still contain responsibility notes only. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
 
 ## Roadmap
 
@@ -110,7 +112,7 @@ Development starts with **T00 Engineering and contracts**, followed by the M1 [t
 
 ## Contributing
 
-The current review scope is the layout and task boundaries. Once the development plan is confirmed, work begins on the project setup, dependency lock-in, and first interfaces. Go is planned for the core and CLI, TypeScript/React for the web app, and suitable languages for individual processors.
+The core and CLI use Go (the toolchain is pinned in `go.mod`); TypeScript/React is planned for the web app, and suitable languages for individual processors. Run `scripts/check.sh` before submitting changes and `scripts/generate.sh` after changing contracts. Commands, dependencies, and platform verification status are listed in [Development and verification](docs/development.md) and [Dependencies and licenses](docs/dependencies.md) (Chinese).
 
 The public repository accepts general-purpose code, documentation, configuration templates, and synthetic fixtures. Real assets, credentials, host addresses, private paths, production configuration, and internal notes remain private. Preserve licenses and attribution when adding third-party code.
 

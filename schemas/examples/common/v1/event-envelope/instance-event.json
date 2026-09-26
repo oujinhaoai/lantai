@@ -1,0 +1,18 @@
+{
+  "description": "实例级事件省略 project_id",
+  "schema": "lantai.event-envelope/v1",
+  "valid": true,
+  "document": {
+    "event_id": "01J8Z3K4M5N6P7Q8R9S0T100ZD",
+    "event_type": "principal.disabled",
+    "schema_version": 1,
+    "aggregate_type": "principal",
+    "aggregate_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "aggregate_revision": 3,
+    "actor_id": "01J8Z3K4M5N6P7Q8R9S0T100ZE",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "correlation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "occurred_at": "2026-09-26T10:14:34.123Z",
+    "payload": {}
+  }
+}

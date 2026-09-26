@@ -1,0 +1,12 @@
+{
+  "description": "必须以 Z 结尾",
+  "schema": "lantai.common-defs/v1#/$defs/timestamp",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "2026-09-26T18:14:34.123+08:00"
+}

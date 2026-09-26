@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json",
+  "title": "Lantai execution common definitions v1",
+  "description": "业务执行（T05/T06）与扩展宿主（T09）共用的公共定义，只通过 $ref 引用。任务 fence 与扩展激活代次是不同类型，接受结果时分别核验；业务执行结果、宿主健康与人审授权是三组互不相通的状态。规则见 docs/contracts/execution.md。",
+  "$defs": {
+    "protocol_id": {
+      "description": "执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。",
+      "type": "string",
+      "enum": [
+        "lantai.agent-execution/v1",
+        "lantai.processor/v1",
+        "lantai.host-control/v1"
+      ]
+    },
+    "execution_action": {
+      "description": "lantai.agent-execution/v1 的动作；describe 报告 adapter 能力。",
+      "type": "string",
+      "enum": [
+        "describe",
+        "start",
+        "lookup",
+        "status",
+        "resume",
+        "cancel",
+        "result"
+      ]
+    },
+    "host_control_action": {
+      "description": "lantai.host-control/v1 的动作，只用于常驻实例；不携带任务执行权，也不套用在一次性处理器上。",
+      "type": "string",
+      "enum": [
+        "describe",
+        "negotiate",
+        "configure",
+        "health",
+        "drain",
+        "stop"
+      ]
+    },
+    "task_fence": {
+      "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "lease_fence",
+        "recovery_epoch"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "defs.schema.json#/$defs/ulid"
+        },
+        "attempt_id": {
+          "$ref": "defs.schema.json#/$defs/ulid"
+        },
+        "lease_fence": {
+          "$ref": "defs.schema.json#/$defs/epoch"
+        },
+        "recovery_epoch": {
+          "$ref": "defs.schema.json#/$defs/epoch"
+        }
+      }
+    },
+    "activation_ref": {
+      "description": "扩展调用绑定的激活快照身份。extensions 模块签发；包摘要或代次变化后旧结果不被接受。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_id",
+        "extension_version",
+        "package_digest",
+        "activation_generation"
+      ],
+      "properties": {
+        "extension_id": {
+          "$ref": "defs.schema.json#/$defs/extension_id"
+        },
+        "extension_version": {
+          "$ref": "defs.schema.json#/$defs/extension_version"
+        },
+        "package_digest": {
+          "$ref": "defs.schema.json#/$defs/digest"
+        },
+        "activation_generation": {
+          "$ref": "defs.schema.json#/$defs/epoch"
+        }
+      }
+    },
+    "execution_header": {
+      "description": "执行协议请求的公共头。领域 schema 在此基础上增加各自字段；授权材料不放在这里，也不放在命令行参数中。",
+      "type": "object",
+      "required": [
+        "protocol",
+        "operation_id",
+        "request_hash",
+        "fence"
+      ],
+      "properties": {
+        "protocol": {
+          "$ref": "#/$defs/protocol_id"
+        },
+        "operation_id": {
+          "$ref": "defs.schema.json#/$defs/ulid"
+        },
+        "request_hash": {
+          "$ref": "defs.schema.json#/$defs/digest"
+        },
+        "fence": {
+          "$ref": "#/$defs/task_fence"
+        },
+        "activation": {
+          "$ref": "#/$defs/activation_ref"
+        }
+      }
+    },
+    "task_run_state": {
+      "description": "TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。",
+      "type": "string",
+      "enum": [
+        "pending",
+        "starting",
+        "running",
+        "waiting_input",
+        "paused",
+        "cancelling",
+        "needs_reconciliation",
+        "execution_succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "instance_health": {
+      "description": "常驻扩展实例的观察状态；ready 只表示可派发，不代表任何业务任务完成。",
+      "type": "string",
+      "enum": [
+        "resolved",
+        "starting",
+        "ready",
+        "draining",
+        "stopped",
+        "failed",
+        "quarantined"
+      ]
+    },
+    "effect_class": {
+      "description": "工具或外部动作的副作用类别，决定恢复时能否重试。",
+      "type": "string",
+      "enum": [
+        "pure_read",
+        "local_replaceable",
+        "lantai_command",
+        "external_idempotent",
+        "external_queryable",
+        "external_non_idempotent"
+      ]
+    },
+    "effect_state": {
+      "description": "ToolOperation 的副作用进度：先持久化 intended 再发送；结果不明为 effect_unknown，需对账后才能转为 completed 或 not_executed。",
+      "type": "string",
+      "enum": [
+        "intended",
+        "dispatched",
+        "completed",
+        "failed",
+        "not_executed",
+        "effect_unknown"
+      ]
+    },
+    "resume_class": {
+      "type": "string",
+      "enum": [
+        "portable_artifacts",
+        "backend_checkpoint",
+        "restart_safe",
+        "manual_only"
+      ]
+    },
+    "cancel_mode": {
+      "description": "adapter 能兑现的取消方式：revoke_only 只撤销兰台写入授权，停止需人或会话确认；cooperative 请求后端停止但可能延迟；enforced 由宿主终止进程树。",
+      "type": "string",
+      "enum": [
+        "revoke_only",
+        "cooperative",
+        "enforced"
+      ]
+    },
+    "termination": {
+      "description": "取消或结束时的停止确认；未确认停止不得报告 cancelled。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "termination_confirmed",
+        "unresolved_effects"
+      ],
+      "properties": {
+        "termination_confirmed": {
+          "type": "boolean"
+        },
+        "unresolved_effects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "invocation_outcome": {
+      "description": "一次性处理器或作业单次调用的运行结论，与检查的业务结论分开：completed 表示退出码 0 且结果完整、schema 合法（业务结论可以是 fail）；runtime_fault 表示崩溃、非零退出、超时、结果缺失或畸形，只有它计入熔断；not_dispatched（派发前拒绝或排队失败）、cancelled（已确认停止的取消）不计故障；unresolved 表示已派发但停止状态未知，须先回收或对账。",
+      "type": "string",
+      "enum": [
+        "completed",
+        "not_dispatched",
+        "cancelled",
+        "runtime_fault",
+        "unresolved"
+      ]
+    },
+    "check_verdict": {
+      "description": "检查的业务结论。只有 completed 的调用才能给出 pass 或 fail；其他运行结论一律为 unknown，不能当作 pass。",
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "unknown"
+      ]
+    }
+  }
+}

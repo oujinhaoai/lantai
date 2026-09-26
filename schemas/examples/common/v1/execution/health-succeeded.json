@@ -1,0 +1,12 @@
+{
+  "description": "业务执行结果不能写进宿主健康",
+  "schema": "lantai.execution-common/v1#/$defs/instance_health",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "execution_succeeded"
+}

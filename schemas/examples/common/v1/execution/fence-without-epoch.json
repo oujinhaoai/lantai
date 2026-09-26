@@ -1,0 +1,15 @@
+{
+  "description": "缺 recovery_epoch 的 fence 无法区分恢复前后",
+  "schema": "lantai.execution-common/v1#/$defs/task_fence",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ],
+  "document": {
+    "attempt_id": "01J8Z3K4M5N6P7Q8R9S0T100ZG",
+    "lease_fence": 4
+  }
+}

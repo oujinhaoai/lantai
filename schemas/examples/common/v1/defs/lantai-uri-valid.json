@@ -1,0 +1,6 @@
+{
+  "description": "永久引用 URI",
+  "schema": "lantai.common-defs/v1#/$defs/lantai_uri",
+  "valid": true,
+  "document": "lantai://01J8Z3K4M5N6P7Q8R9S0T100Z9/assets/01J8Z3K4M5N6P7Q8R9S0T100ZA/versions/01J8Z3K4M5N6P7Q8R9S0T100ZB"
+}

@@ -1,0 +1,6 @@
+{
+  "description": "普通相对路径",
+  "schema": "lantai.common-defs/v1#/$defs/relative_path",
+  "valid": true,
+  "document": "textures/body.png"
+}

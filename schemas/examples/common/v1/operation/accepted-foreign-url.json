@@ -1,0 +1,16 @@
+{
+  "description": "状态地址只能是本服务的相对路径",
+  "schema": "lantai.operation/v1#/$defs/accepted",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/status_url",
+      "keyword": "pattern"
+    }
+  ],
+  "document": {
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "stage": "installed",
+    "status_url": "https://evil.example/operations/01J8Z3K4M5N6P7Q8R9S0T100ZC"
+  }
+}

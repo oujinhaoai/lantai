@@ -1,0 +1,12 @@
+{
+  "description": "内置校验器的来源身份",
+  "schema": "lantai.common-defs/v1#/$defs/producer_ref",
+  "valid": true,
+  "document": {
+    "extension_id": "io.github.oujinhaoai.lantai.manifest-check",
+    "extension_version": "1.0.0",
+    "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "source": "builtin_release",
+    "contribution_id": "io.github.oujinhaoai.lantai.manifest-check.structure"
+  }
+}

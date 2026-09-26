@@ -1,0 +1,23 @@
+{
+  "description": "旧 fence 结果被拒绝",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "LEASE_STALE",
+      "message": "执行轮次已不是当前有效轮次",
+      "retryable": false,
+      "recovery_action": "refresh_state",
+      "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+      "details": [
+        {
+          "reason": "fence_mismatch",
+          "data": {
+            "presented_fence": 3,
+            "current_fence": 4
+          }
+        }
+      ]
+    }
+  }
+}

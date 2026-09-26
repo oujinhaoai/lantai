@@ -1,0 +1,20 @@
+{
+  "description": "schema 错误逐条列出",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "SCHEMA_INVALID",
+      "message": "请求不符合 schema",
+      "retryable": false,
+      "recovery_action": "fix_request",
+      "details": [
+        {
+          "reason": "required",
+          "pointer": "/manifest/files/0",
+          "message": "缺少 sha256"
+        }
+      ]
+    }
+  }
+}

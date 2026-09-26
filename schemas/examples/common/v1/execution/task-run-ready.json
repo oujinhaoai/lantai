@@ -1,0 +1,12 @@
+{
+  "description": "ready 是宿主健康状态，不是 TaskRun 状态",
+  "schema": "lantai.execution-common/v1#/$defs/task_run_state",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "ready"
+}

@@ -1,0 +1,9 @@
+{
+  "description": "取消未确认停止，仍有未决副作用",
+  "schema": "lantai.execution-common/v1#/$defs/termination",
+  "valid": true,
+  "document": {
+    "termination_confirmed": false,
+    "unresolved_effects": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "fence 从 1 开始",
+  "schema": "lantai.execution-common/v1#/$defs/task_fence",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/lease_fence",
+      "keyword": "minimum"
+    }
+  ],
+  "document": {
+    "attempt_id": "01J8Z3K4M5N6P7Q8R9S0T100ZG",
+    "lease_fence": 0,
+    "recovery_epoch": 1
+  }
+}

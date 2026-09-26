@@ -1,0 +1,22 @@
+{
+  "description": "执行请求公共头同时带任务 fence 与扩展激活",
+  "schema": "lantai.execution-common/v1#/$defs/execution_header",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "request_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "fence": {
+      "task_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+      "attempt_id": "01J8Z3K4M5N6P7Q8R9S0T100ZG",
+      "lease_fence": 4,
+      "recovery_epoch": 2
+    },
+    "activation": {
+      "extension_id": "org.example.asset-tools",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
+      "activation_generation": 7
+    }
+  }
+}

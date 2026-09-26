@@ -1,0 +1,12 @@
+{
+  "description": "必须带 3 位毫秒",
+  "schema": "lantai.common-defs/v1#/$defs/timestamp",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "2026-09-26T10:14:34Z"
+}

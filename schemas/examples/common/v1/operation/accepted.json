@@ -1,0 +1,10 @@
+{
+  "description": "HTTP 202 响应体",
+  "schema": "lantai.operation/v1#/$defs/accepted",
+  "valid": true,
+  "document": {
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "stage": "installed",
+    "status_url": "/api/v1/operations/01J8Z3K4M5N6P7Q8R9S0T100ZC"
+  }
+}

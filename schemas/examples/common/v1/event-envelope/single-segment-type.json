@@ -1,0 +1,29 @@
+{
+  "description": "事件类型至少两段",
+  "schema": "lantai.event-envelope/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/event_type",
+      "keyword": "pattern"
+    }
+  ],
+  "document": {
+    "event_id": "01J8Z3K4M5N6P7Q8R9S0T100ZD",
+    "event_type": "committed",
+    "schema_version": 1,
+    "aggregate_type": "asset",
+    "aggregate_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "aggregate_revision": 3,
+    "actor_id": "01J8Z3K4M5N6P7Q8R9S0T100ZE",
+    "session_id": "01J8Z3K4M5N6P7Q8R9S0T100ZF",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "correlation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "occurred_at": "2026-09-26T10:14:34.123Z",
+    "payload": {
+      "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB",
+      "number": 3
+    }
+  }
+}

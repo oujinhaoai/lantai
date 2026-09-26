@@ -1,0 +1,12 @@
+{
+  "description": "宿主控制协议没有 start；业务启动只走执行协议",
+  "schema": "lantai.execution-common/v1#/$defs/host_control_action",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "enum"
+    }
+  ],
+  "document": "start"
+}

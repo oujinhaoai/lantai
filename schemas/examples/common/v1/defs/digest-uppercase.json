@@ -1,0 +1,12 @@
+{
+  "description": "摘要十六进制必须小写",
+  "schema": "lantai.common-defs/v1#/$defs/digest",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "sha256:ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB"
+}

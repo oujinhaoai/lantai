@@ -1,0 +1,17 @@
+{
+  "description": "版本必须是语义化版本",
+  "schema": "lantai.execution-common/v1#/$defs/activation_ref",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/extension_version",
+      "keyword": "pattern"
+    }
+  ],
+  "document": {
+    "extension_id": "org.example.asset-tools",
+    "extension_version": "latest",
+    "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "activation_generation": 7
+  }
+}

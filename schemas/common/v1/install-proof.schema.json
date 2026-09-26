@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/install-proof.schema.json",
+  "title": "InstallProof",
+  "description": "storage 对一次版本文件安装的完整性证明：私有安装区已包含冻结清单列出的全部文件且哈希、大小逐一核验。它只证明 installed，不表示台账已 committed；ledger 在最终接受边界复验后才提交。证明本身不含自身摘要，摘要对规范化 JSON 计算后由台账保存。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "project_id",
+    "asset_id",
+    "version_id",
+    "version_number",
+    "manifest_digest",
+    "files",
+    "install_ref",
+    "installed_at"
+  ],
+  "properties": {
+    "contract": { "const": "lantai.install-proof/v1" },
+    "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "project_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "asset_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "version_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "version_number": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "manifest_digest": { "$ref": "defs.schema.json#/$defs/digest" },
+    "files": {
+      "description": "按 path 的字节序升序排列，path 不重复；与冻结清单逐项一致。",
+      "type": "array",
+      "maxItems": 100000,
+      "items": { "$ref": "#/$defs/file" }
+    },
+    "install_ref": {
+      "description": "storage 内部的安装位置引用，不是主机绝对路径。",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9/_.-]{0,255}$"
+    },
+    "installed_at": { "$ref": "defs.schema.json#/$defs/timestamp" }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size"],
+      "properties": {
+        "path": { "$ref": "defs.schema.json#/$defs/relative_path" },
+        "sha256": { "$ref": "defs.schema.json#/$defs/sha256_hex" },
+        "size": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "description": "来源只能是 builtin_release 或 package，不接受自报 official",
+  "schema": "lantai.common-defs/v1#/$defs/producer_ref",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/source",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "extension_id": "org.example.asset-tools",
+    "extension_version": "0.1.0",
+    "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "source": "official"
+  }
+}

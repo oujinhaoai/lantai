@@ -1,0 +1,34 @@
+{
+  "description": "证明中的路径不能越出版本目录",
+  "schema": "lantai.install-proof/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/files/1/path",
+      "keyword": "pattern"
+    }
+  ],
+  "document": {
+    "contract": "lantai.install-proof/v1",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB",
+    "version_number": 3,
+    "manifest_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "files": [
+      {
+        "path": "README.md",
+        "sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "size": 120
+      },
+      {
+        "path": "../outside.glb",
+        "sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "size": 20480
+      }
+    ],
+    "install_ref": "install/01j8z3k4m5n6p7q8r9s0t100zc",
+    "installed_at": "2026-09-26T10:14:34.123Z"
+  }
+}

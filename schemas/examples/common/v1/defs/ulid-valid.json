@@ -1,0 +1,6 @@
+{
+  "description": "规范大写 ULID",
+  "schema": "lantai.common-defs/v1#/$defs/ulid",
+  "valid": true,
+  "document": "01J8Z3K4M5N6P7Q8R9S0T100Z9"
+}

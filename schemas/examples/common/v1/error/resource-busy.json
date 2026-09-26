@@ -1,0 +1,15 @@
+{
+  "description": "进行中的持久操作",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "RESOURCE_BUSY",
+      "message": "资源有进行中的提交操作",
+      "retryable": true,
+      "recovery_action": "poll_operation",
+      "retry_after_ms": 2000,
+      "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "没有任务 fence 的执行请求不被接受",
+  "schema": "lantai.execution-common/v1#/$defs/execution_header",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ],
+  "document": {
+    "protocol": "lantai.processor/v1",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "request_hash": "sha256:abababababababababababababababababababababababababababababababab"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "description": "扩展清单契约不是执行协议",
+  "schema": "lantai.execution-common/v1#/$defs/execution_header",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/protocol",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "protocol": "lantai.extension/v1",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "request_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "fence": {
+      "task_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+      "attempt_id": "01J8Z3K4M5N6P7Q8R9S0T100ZG",
+      "lease_fence": 4,
+      "recovery_epoch": 2
+    }
+  }
+}

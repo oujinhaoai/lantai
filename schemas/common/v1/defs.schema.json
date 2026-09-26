@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json",
+  "title": "Lantai common definitions v1",
+  "description": "公共基础类型，只通过 $ref 引用，本身不是文档。字段含义与规则见 docs/contracts/README.md。",
+  "$defs": {
+    "ulid": {
+      "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "timestamp": {
+      "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "revision": {
+      "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "expected_revision": {
+      "description": "条件写入的预期修订；0 表示对象必须尚不存在。",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "epoch": {
+      "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "sha256_hex": {
+      "description": "64 位小写十六进制 SHA-256，用于名为 sha256 的字段。",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "digest": {
+      "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "idempotency_key": {
+      "description": "客户端提供的幂等键；作用域为 (actor, project, command_type)。",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "contract_id": {
+      "description": "契约标识 lantai.<name>/v<major>。",
+      "type": "string",
+      "pattern": "^lantai\\.[a-z0-9]+(?:[.-][a-z0-9]+)*/v[1-9][0-9]*$"
+    },
+    "module": {
+      "description": "服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "command_type": {
+      "description": "命令类型，<module>.<command>，例如 ledger.commit_version。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    },
+    "event_type": {
+      "description": "事件类型，小写点分，至少两段，例如 version.committed。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "aggregate_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "json_pointer": {
+      "description": "RFC 6901 JSON Pointer。",
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)*$"
+    },
+    "recovery_action": {
+      "description": "调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。",
+      "type": "string",
+      "enum": [
+        "none",
+        "retry",
+        "reauthenticate",
+        "refresh_state",
+        "poll_operation",
+        "reconcile",
+        "human_action",
+        "fix_request",
+        "upload_content",
+        "resync"
+      ]
+    },
+    "permanent_ref": {
+      "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "asset_id",
+        "version_id"
+      ],
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/ulid"
+        },
+        "asset_id": {
+          "$ref": "#/$defs/ulid"
+        },
+        "version_id": {
+          "$ref": "#/$defs/ulid"
+        }
+      }
+    },
+    "local_ref": {
+      "description": "本馆入口使用的版本引用，可省略 instance_id。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "version_id"
+      ],
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/ulid"
+        },
+        "asset_id": {
+          "$ref": "#/$defs/ulid"
+        },
+        "version_id": {
+          "$ref": "#/$defs/ulid"
+        }
+      }
+    },
+    "lantai_uri": {
+      "description": "永久引用的外部 URI 形式。",
+      "type": "string",
+      "pattern": "^lantai://[0-7][0-9A-HJKMNP-TV-Z]{25}/assets/[0-7][0-9A-HJKMNP-TV-Z]{25}/versions/[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "normalized_slug": {
+      "description": "项目内的资产路径别名，由 catalog 规范化（NFC、/ 分隔、跨平台保留名规则）；此处只约束基本形态。",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[^/\\x00-\\x1f]+(/[^/\\x00-\\x1f]+)*$"
+    },
+    "extension_id": {
+      "description": "扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。",
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "extension_version": {
+      "description": "扩展包语义化版本。",
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "extension_point_id": {
+      "description": "扩展点 ID，例如 artifact.processor、asset.validator；支持情况以 T09 登记为准。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "producer_ref": {
+      "description": "产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_id",
+        "extension_version",
+        "package_digest",
+        "source"
+      ],
+      "properties": {
+        "extension_id": {
+          "$ref": "#/$defs/extension_id"
+        },
+        "extension_version": {
+          "$ref": "#/$defs/extension_version"
+        },
+        "package_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "builtin_release",
+            "package"
+          ]
+        },
+        "contribution_id": {
+          "description": "包内贡献 ID，例如 org.example.asset-tools.check。",
+          "type": "string",
+          "maxLength": 160,
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$"
+        }
+      }
+    },
+    "relative_path": {
+      "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+)(/([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+))*$"
+    }
+  }
+}

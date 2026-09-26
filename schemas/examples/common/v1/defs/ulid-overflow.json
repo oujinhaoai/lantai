@@ -1,0 +1,12 @@
+{
+  "description": "首位大于 7 会溢出 128 位",
+  "schema": "lantai.common-defs/v1#/$defs/ulid",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "81J8Z3K4M5N6P7Q8R9S0T100Z9"
+}

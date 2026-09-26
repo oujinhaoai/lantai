@@ -1,0 +1,15 @@
+{
+  "description": "持久保存的引用必须带 instance_id",
+  "schema": "lantai.common-defs/v1#/$defs/permanent_ref",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ],
+  "document": {
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB"
+  }
+}

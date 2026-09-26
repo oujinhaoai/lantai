@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/pin.schema.json",
+  "title": "BlobPin",
+  "description": "阻止 Blob 被 GC 回收的持久保留记录。upload 随上传会话、commit 随 prepared 操作、backup 随备份复制；每类由所属模块写入并在 GC 根集合中枚举。pin 的有效期与上传会话 TTL 独立；进行中的备份 pin 不因普通 TTL 提前失效。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pin_id", "kind", "owner_module", "owner_ref", "blobs", "created_at"],
+  "properties": {
+    "pin_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "kind": { "type": "string", "enum": ["upload", "commit", "backup"] },
+    "owner_module": { "$ref": "defs.schema.json#/$defs/module" },
+    "owner_ref": {
+      "description": "持有该 pin 的对象：上传会话、操作或备份批次。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["upload_session", "operation", "backup"] },
+        "id": { "$ref": "defs.schema.json#/$defs/ulid" }
+      }
+    },
+    "blobs": {
+      "description": "被保留的 Blob 哈希，升序且不重复。",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "uniqueItems": true,
+      "items": { "$ref": "defs.schema.json#/$defs/sha256_hex" }
+    },
+    "created_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "expires_at": {
+      "description": "仅 upload pin 可设置到期时间；commit 与 backup pin 只能由所属操作显式释放。",
+      "$ref": "defs.schema.json#/$defs/timestamp"
+    },
+    "released_at": { "$ref": "defs.schema.json#/$defs/timestamp" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "enum": ["commit", "backup"] } } },
+      "then": { "not": { "required": ["expires_at"] } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "upload" } } },
+      "then": { "properties": { "owner_ref": { "properties": { "kind": { "const": "upload_session" } } } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "commit" } } },
+      "then": { "properties": { "owner_ref": { "properties": { "kind": { "const": "operation" } } } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "backup" } } },
+      "then": { "properties": { "owner_ref": { "properties": { "kind": { "const": "backup" } } } } }
+    }
+  ]
+}

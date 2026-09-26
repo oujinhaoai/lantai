@@ -1,0 +1,12 @@
+{
+  "description": "拒绝 .. 段",
+  "schema": "lantai.common-defs/v1#/$defs/relative_path",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "textures/../../etc/passwd"
+}

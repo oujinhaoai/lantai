@@ -1,0 +1,11 @@
+# oapi-codegen 配置：从打包后的自包含文档 api/gen/openapi.bundle.json 生成
+# Go 传输类型（只生成模型；服务端与客户端接口由 T07 按需要启用）。
+# 版本锁定在 scripts/tools/go.mod；运行方式见 scripts/generate.sh。
+package: apiv1
+output: internal/apiv1/models.gen.go
+generate:
+  models: true
+output-options:
+  skip-prune: true
+compatibility:
+  always-prefix-enum-values: true

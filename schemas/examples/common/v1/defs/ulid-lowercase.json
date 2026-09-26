@@ -1,0 +1,12 @@
+{
+  "description": "小写不是规范形式，拒绝",
+  "schema": "lantai.common-defs/v1#/$defs/ulid",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "pattern"
+    }
+  ],
+  "document": "01j8z3k4m5n6p7q8r9s0t100z9"
+}

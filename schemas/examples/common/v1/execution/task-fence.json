@@ -1,0 +1,11 @@
+{
+  "description": "任务 fence 同时携带 recovery_epoch",
+  "schema": "lantai.execution-common/v1#/$defs/task_fence",
+  "valid": true,
+  "document": {
+    "task_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "attempt_id": "01J8Z3K4M5N6P7Q8R9S0T100ZG",
+    "lease_fence": 4,
+    "recovery_epoch": 2
+  }
+}

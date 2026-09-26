@@ -31,7 +31,7 @@
 | [`tests/`](../tests/README.md) | 跨模块契约、故障注入、集成、端到端测试与合成 fixture | T00/M1；包内单元测试仍与源码相邻 |
 | [`web/`](../web/README.md) | TypeScript/React 网页及其构建、测试配置 | M3；只走公开接口，不读取数据库或服务端目录 |
 
-根文件为 `README.md`（中文默认）、`README.en.md`、`LICENSE` 和 `.gitignore`。`go.mod`、CI、工程约定和构建配置归 T00，在开发获确认后创建；`NOTICE` 随实际引入的第三方代码建立，不预填归属声明。
+根文件为 `README.md`（中文默认）、`README.en.md`、`LICENSE` 和 `.gitignore`。`go.mod`/`go.sum`（固定 Go 工具链）、`scripts/tools/go.mod`（开发工具版本）与 CI 配置 `.github/workflows/` 归 T00，已建立，命令见[开发与验证](development.md)；`.github/` 只放 CI 配置，不计入一级目录；`NOTICE` 随实际引入的第三方代码建立，不预填归属声明。
 
 数据目录由运行配置指定，位于源码仓库之外。部署模板与真实部署配置分别管理；`.gitignore` 只是减少误提交，不能代替内容审查。
 

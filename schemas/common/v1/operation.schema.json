@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/operation.schema.json",
+  "title": "OperationStatus",
+  "description": "持久操作的对外状态视图（GET /api/v1/operations/{operation_id}）。不返回令牌、签名 URL 或敏感堆栈；按当前读取权限过滤 result_refs。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "owner_module",
+    "command_type",
+    "stage",
+    "retryable",
+    "next_action",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "parent_operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "owner_module": { "$ref": "defs.schema.json#/$defs/module" },
+    "command_type": { "$ref": "defs.schema.json#/$defs/command_type" },
+    "stage": { "$ref": "#/$defs/stage" },
+    "projection_pending": {
+      "description": "仅对 committed 有意义：该操作产生的事件是否仍未全部收录到 events.db。检索索引的落后量由查询水位另行报告。",
+      "type": "boolean"
+    },
+    "result_refs": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/result_ref" }
+    },
+    "retryable": {
+      "description": "以原幂等键再次提交是否可能推进该操作。",
+      "type": "boolean"
+    },
+    "next_action": { "$ref": "defs.schema.json#/$defs/recovery_action" },
+    "reason": {
+      "description": "终态或阻塞时的精简原因；code 在错误码注册表中登记。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1000 }
+      }
+    },
+    "created_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "updated_at": { "$ref": "defs.schema.json#/$defs/timestamp" }
+  },
+  "$defs": {
+    "stage": {
+      "description": "receiving → prepared → installed → committed 为主线；projected 由 committed 且事件已全部收录推导；blocked/quarantined 保留字节待处置；failed/cancelled 为终态。",
+      "type": "string",
+      "enum": [
+        "receiving",
+        "prepared",
+        "installed",
+        "committed",
+        "projected",
+        "blocked",
+        "quarantined",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "description": "对象类型，例如 asset、version、review、task_run。",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "id": { "$ref": "defs.schema.json#/$defs/ulid" },
+        "revision": { "$ref": "defs.schema.json#/$defs/revision" },
+        "uri": { "$ref": "defs.schema.json#/$defs/lantai_uri" }
+      }
+    },
+    "accepted": {
+      "description": "HTTP 202 响应体：操作已持久接受但仍在进行中。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_id", "stage", "status_url"],
+      "properties": {
+        "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+        "stage": { "$ref": "#/$defs/stage" },
+        "status_url": {
+          "type": "string",
+          "pattern": "^/api/v1/operations/[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+        }
+      }
+    }
+  }
+}

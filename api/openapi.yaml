@@ -1,0 +1,133 @@
+openapi: 3.1.0
+info:
+  title: Lantai API
+  version: 1.0.0-draft
+  summary: 兰台 HTTP 契约（公共部分）
+  description: |
+    兰台只有一套 REST 接口，CLI、MCP、SDK 与网页都经它访问。本文件维护
+    HTTP 层的公共约定：认证方式、幂等键、请求编号、错误模型、202 响应与
+    操作查询。数据结构引用 schemas/ 中的权威 JSON Schema，不在这里复制；
+    scripts/gen/openapi 将其打包为自包含文档 api/gen/openapi.bundle.json。
+
+    约定：/api/v1 内只加不改；写请求必须带 Idempotency-Key；著录修改带
+    If-Match；时间为 UTC 毫秒。业务端点由各模块在实现时按此约定加入。
+  license:
+    name: GPL-3.0-only
+    identifier: GPL-3.0-only
+servers:
+  - url: /
+    description: 经网关同源访问；接口面前缀 /api/，传输面前缀 /xfer/（地址由服务端给出）
+security:
+  - bearerSession: []
+  - cookieSession: []
+tags:
+  - name: operations
+    description: 持久操作状态查询
+paths:
+  /api/v1/operations/{operation_id}:
+    get:
+      tags: [operations]
+      operationId: getOperation
+      summary: 查询持久操作状态
+      description: |
+        返回操作阶段、结果引用、是否可重试与下一步建议。结果引用按调用者
+        当前读取权限过滤；无权知道的操作返回 404，不泄露存在性。
+      parameters:
+        - $ref: '#/components/parameters/OperationID'
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 操作状态
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/common/v1/operation.schema.json'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerSession:
+      type: http
+      scheme: bearer
+      description: 会话令牌（由长期凭据换取，限定范围与有效期）。长期凭据不能直接调用业务接口。
+    cookieSession:
+      type: apiKey
+      in: cookie
+      name: lantai_session
+      description: 网页的 HttpOnly/Secure/SameSite 会话；写请求同时校验 Origin 与 CSRF 令牌。
+  parameters:
+    OperationID:
+      name: operation_id
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+        202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+      schema:
+        $ref: '../schemas/common/v1/defs.schema.json#/$defs/idempotency_key'
+    RequestID:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: 客户端请求编号，仅用于日志关联，不参与请求摘要。
+      schema:
+        type: string
+        maxLength: 128
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: 条件写入的预期 ETag；缺少必需的基线时返回 428 PRECONDITION_REQUIRED。
+      schema:
+        type: string
+        maxLength: 128
+  headers:
+    RequestID:
+      description: 服务端请求编号。
+      schema:
+        type: string
+    RetryAfter:
+      description: 建议的最短等待秒数（与错误体 retry_after_ms 一致）。
+      schema:
+        type: integer
+        minimum: 0
+  responses:
+    Error:
+      description: 结构化错误；错误码、HTTP 状态、retryable 与 recovery_action 以错误码注册表为准。
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestID'
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/common/v1/error.schema.json'
+    Accepted:
+      description: 操作已持久接受但仍在进行；按 status_url 查询，不要换键重试。
+      headers:
+        Location:
+          description: 与 status_url 相同。
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/common/v1/operation.schema.json#/$defs/accepted'

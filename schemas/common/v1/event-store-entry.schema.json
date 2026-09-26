@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/event-store-entry.schema.json",
+  "title": "EventStoreEntry",
+  "description": "events.db 对事件的收录记录。global_seq 只表示收录顺序；按 event_id 唯一，重复搬运不产生第二个逻辑事件。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["global_seq", "recorded_at", "event_id"],
+  "properties": {
+    "global_seq": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "recorded_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "event_id": { "$ref": "defs.schema.json#/$defs/ulid" }
+  }
+}

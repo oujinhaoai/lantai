@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/namespace-claim.schema.json",
+  "title": "NamespaceClaim",
+  "description": "台账中的占名控制记录：同一路径最多一个当前占名。active 指向当前代次；reserved 表示被 prepared 操作、改名或删除保留；released 后同名路径可取得新代次。孤立的别名历史文件不能直接抢占现名。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project_id", "normalized_slug", "claim_state", "operation_id", "revision"],
+  "properties": {
+    "project_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "normalized_slug": { "$ref": "defs.schema.json#/$defs/normalized_slug" },
+    "current_generation": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "claim_state": { "type": "string", "enum": ["active", "reserved", "released"] },
+    "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "revision": { "$ref": "defs.schema.json#/$defs/revision" }
+  },
+  "if": {
+    "properties": { "claim_state": { "const": "active" } }
+  },
+  "then": {
+    "required": ["current_generation"]
+  }
+}

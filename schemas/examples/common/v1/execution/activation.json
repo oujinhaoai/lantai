@@ -1,0 +1,11 @@
+{
+  "description": "扩展激活快照身份",
+  "schema": "lantai.execution-common/v1#/$defs/activation_ref",
+  "valid": true,
+  "document": {
+    "extension_id": "org.example.asset-tools",
+    "extension_version": "0.1.0",
+    "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "activation_generation": 7
+  }
+}

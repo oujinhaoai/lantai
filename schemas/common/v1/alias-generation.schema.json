@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/alias-generation.schema.json",
+  "title": "AliasGeneration",
+  "description": "路径别名的一代记录，追加写入命名空间历史，不可覆盖。同一 (project_id, normalized_slug) 的 generation 从 1 单调递增；path@vNNN 在出现多代后必须带 generation 才能精确解析。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project_id", "normalized_slug", "generation", "asset_id", "created_at", "reason"],
+  "properties": {
+    "project_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "normalized_slug": { "$ref": "defs.schema.json#/$defs/normalized_slug" },
+    "generation": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "asset_id": { "$ref": "defs.schema.json#/$defs/ulid" },
+    "created_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "reason": {
+      "description": "取得该代次的原因，例如 create、move、restore。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "released_at": { "$ref": "defs.schema.json#/$defs/timestamp" },
+    "release_reason": {
+      "description": "释放名称的原因，例如 grace_delete、admin_release。只有释放后同名路径才能取得新代次。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "operation_id": { "$ref": "defs.schema.json#/$defs/ulid" }
+  },
+  "dependentRequired": {
+    "released_at": ["release_reason"],
+    "release_reason": ["released_at"]
+  }
+}
