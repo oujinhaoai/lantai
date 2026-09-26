@@ -31,7 +31,7 @@
 | 执行环境限制 | [Node evaluator](https://github.com/deepseek-ai/deepseek-harness/blob/477b4f420553e8a52c2fbccc464d7561b239c443/packages/extensions/cordis-host-runner/src/sandbox.ts#L68)、[Browser evaluator](https://github.com/deepseek-ai/deepseek-harness/blob/477b4f420553e8a52c2fbccc464d7561b239c443/packages/extensions/cordis-client-runner/src/client/evaluator.ts#L166) | vm / new Function 不能作为独立 OS/origin 安全边界 |
 | 管理入口与补偿 | [CLI](https://github.com/deepseek-ai/deepseek-harness/blob/477b4f420553e8a52c2fbccc464d7561b239c443/apps/cli/src/plugin.ts#L10)、[包操作](https://github.com/deepseek-ai/deepseek-harness/blob/477b4f420553e8a52c2fbccc464d7561b239c443/packages/boot/plugin-manager/src/operations.ts#L465) | 共用包管理操作值得借鉴；不能据此承诺所有安装/升级失败无损回滚 |
 
-采用其生命周期思想，保留兰台自己的授权、任务 fence 与持久回执。源码中的依赖 token 表示服务需求，不等于用户授予权限；动态 Host/Browser 激活也不能直接套用到多项目协作。
+按实际资源引入其生命周期思想；M1 不建设通用 DI/依赖容器，保留兰台自己的授权、任务 fence 与持久回执。源码中的依赖 token 表示服务需求，不等于用户授予权限；动态 Host/Browser 激活也不能直接套用到多项目协作。
 
 ## 服务端官方来源
 
@@ -49,7 +49,13 @@
 
 ## 采用前仍需验证
 
-1. 三平台进程控制、协议 framing、隔离能力和清理故障；以结果选择 stdio 或其他本机 RPC 实现。
+1. M2 验证一次性处理器的三平台进程控制、文件协议、隔离能力与清理；常驻宿主有真实需求时才验证控制协议 framing、stdio 或其他本机 RPC 实现。
 2. M1 用官方静态 registry 验证契约，M2 一个真实处理插件验证全链路；不为所有预留扩展点预建服务。
-3. M3 独立验证网页来源、Cookie/CSRF、跨插件通信及撤权；无法部署隔离来源时保持声明式/首方扩展。
+3. M3 仅首方/声明式网页。第三方代码按需单独立项，再验证独立 origin、与主站跨站的部署、Cookie/CSRF、跨插件通信及撤权；不满足条件就保持首方/声明式扩展。
 4. 包、协议、配置/状态 schema 与业务输入版本分别锁定；各候选库的版本、许可证、维护成本在实际采用时另记录 ADR。
+
+## v2.1 评审补充
+
+2026-09-26 再核对 [Chrome 对 same-site / same-origin 的说明](https://web.dev/articles/same-site-same-origin)和 [WHATWG Web messaging](https://html.spec.whatwg.org/multipage/web-messaging.html#security)：不同端口/子域可形成不同 origin，但同 scheme、同可注册域仍可能同站。来源隔离不能单独防止携带主站会话的写请求；消息必须校验来源与结构，敏感投递不能用通配目标。
+
+由此采用的项目取舍见唯一[实现规格](../extensions.md)：第三方网页按需，跨站部署仍保留 Origin/CSRF 和 broker 校验；一次性处理器沿文件协议，常驻 RPC 不列入 M2；10 分钟 5 次运行故障、15 分钟冷却及单探针是兰台可配置初值，不是上述项目或规范的推荐常数。能力 probe 是代码执行，不能混入未经授权的静态导入。

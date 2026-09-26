@@ -6,4 +6,6 @@
 
 转码预览、标注与版本对比留 M5。本目录目前只有职责说明，详见[后续工作](../docs/tasks/README.md#later-work)。
 
-[T09](../docs/tasks/T09-extension-platform.md) 在这里实现 UI registry、设置 schema 表单和 broker，预留预览、侧栏、动作、任务结果、页面等插槽。首方 React 组件随应用发布；第三方视图经独立 origin 的 sandbox iframe 和有界 broker 访问能力，验证隔离后才启用。插件 origin 不承载主站会话，各不互信包不能共用 origin；单网关端口可按主机名分流。登录、人审、插件启停和权限管理由宿主提供，详见[三端扩展设计](../docs/extensions.md)。
+[T09.7](../docs/tasks/T09-extension-platform.md) 在 M3 实现官方组件、声明式 UI registry 与设置表单，提供预览、侧栏、动作、任务结果等插槽；首方 React 组件随应用发布。登录、人审、插件启停和权限管理由宿主提供。
+
+第三方网页视图属于按需工作，不是 M3 承诺。未来接入须使用独立 origin、sandbox iframe 与有界 broker，采用与主站不同的可注册域并验证目标浏览器 site 隔离；内网特殊后缀须实测，仅有同站点子域不足以证明隔离。扩展来源不承载会话凭据，各不互信包隔离，精确 Origin 检查和 CSRF 防护仍必需；单网关端口可以按主机名分流，但不降低这些条件。插件实现规格以[三端扩展设计](../docs/extensions.md)为唯一权威。

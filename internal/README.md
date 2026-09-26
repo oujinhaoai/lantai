@@ -10,4 +10,4 @@
 
 包内单元测试与源码相邻；跨模块测试在 `tests/`。只暴露当前调用方需要的接口，暂不建立通用 `pkg/`。
 
-[T09 扩展平台](../docs/tasks/T09-extension-platform.md) 拥有插件 registry/manager/broker/host：main 保存登记、启用与配置，runtime 保存实例和健康；包审定仍引用 ledger，TaskRun/JobAttempt 仍属 T06。可信内置模块采用静态组装，运行时插件不能替换授权和提交核心。
+[T09 扩展平台](../docs/tasks/T09-extension-platform.md) 拥有扩展登记与宿主：M1 只做内置静态登记及来源字段，M2 保存 main 启用配置和 runtime 激活/宿主故障状态，引用 T06 invocation/attempt，运行一次性处理器并实施包治理；包审定仍引用 ledger，TaskRun/JobAttempt 仍属 T06。通用 DI、跨插件依赖和常驻服务容器按真实需求建设，不能从 registry 名称推导为 M1 前置。可信内置模块采用静态组装，扩展不能替换授权和提交核心；实现规格见[扩展设计](../docs/extensions.md)。
