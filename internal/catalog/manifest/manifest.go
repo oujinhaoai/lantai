@@ -23,6 +23,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/install"
 	"github.com/oujinhaoai/lantai/internal/contract/schema"
+	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/schemas"
 )
 
@@ -96,14 +97,15 @@ type Rights struct {
 
 // Content 是冻结的版本内容；manifest_digest 对它计算。
 type Content struct {
-	AssetType     AssetType      `json:"asset_type"`
-	TypeSchema    string         `json:"type_schema"`
-	BaseVersionID ids.ID         `json:"base_version_id,omitempty"`
-	VersionNote   string         `json:"version_note,omitempty"`
-	Files         []File         `json:"files"`
-	Uses          []Use          `json:"uses"`
-	Rights        Rights         `json:"rights"`
-	Metadata      map[string]any `json:"metadata"`
+	Producer      *storage.Producer `json:"producer,omitempty"`
+	AssetType     AssetType         `json:"asset_type"`
+	TypeSchema    string            `json:"type_schema"`
+	BaseVersionID ids.ID            `json:"base_version_id,omitempty"`
+	VersionNote   string            `json:"version_note,omitempty"`
+	Files         []File            `json:"files"`
+	Uses          []Use             `json:"uses"`
+	Rights        Rights            `json:"rights"`
+	Metadata      map[string]any    `json:"metadata"`
 }
 
 // Digest 返回 content 的规范化 SHA-256（manifest_digest）。
@@ -148,7 +150,7 @@ type Document struct {
 var documentOrder = map[string][]string{
 	"": {"contract", "instance_id", "project_id", "asset_id", "version_id", "version_number", "operation_id",
 		"created_by", "session_id", "manifest_digest", "content"},
-	"/content": {"asset_type", "type_schema", "base_version_id", "version_note", "files", "uses", "rights", "metadata"},
+	"/content": {"asset_type", "type_schema", "base_version_id", "version_note", "files", "uses", "rights", "metadata", "producer"},
 }
 
 func order(pointer string) []string {
@@ -225,13 +227,14 @@ type InputFile struct {
 
 // Input 是待冻结的版本内容；Uses 已由调用方解析为固定引用。
 type Input struct {
-	AssetType     AssetType      `json:"asset_type"`
-	BaseVersionID ids.ID         `json:"base_version_id,omitempty"`
-	VersionNote   string         `json:"version_note,omitempty"`
-	Files         []InputFile    `json:"files"`
-	Uses          []Use          `json:"uses,omitempty"`
-	Rights        Rights         `json:"rights"`
-	Metadata      map[string]any `json:"metadata,omitempty"`
+	Producer      *storage.Producer `json:"producer,omitempty"`
+	AssetType     AssetType         `json:"asset_type"`
+	BaseVersionID ids.ID            `json:"base_version_id,omitempty"`
+	VersionNote   string            `json:"version_note,omitempty"`
+	Files         []InputFile       `json:"files"`
+	Uses          []Use             `json:"uses,omitempty"`
+	Rights        Rights            `json:"rights"`
+	Metadata      map[string]any    `json:"metadata,omitempty"`
 }
 
 // reservedMetadata 是安全相关、只能在 rights 或专门命令中给出的字段名。
@@ -256,7 +259,7 @@ func Normalize(in Input) (Content, error) {
 	if len(in.Files) == 0 {
 		return Content{}, pointerErr(errcode.SchemaInvalid, "no_files", "/files", "a version needs at least one file")
 	}
-	c := Content{AssetType: in.AssetType, TypeSchema: TypesContract, BaseVersionID: in.BaseVersionID, VersionNote: in.VersionNote}
+	c := Content{Producer: in.Producer, AssetType: in.AssetType, TypeSchema: TypesContract, BaseVersionID: in.BaseVersionID, VersionNote: in.VersionNote}
 	if utf8.RuneCountInString(c.VersionNote) > 4000 {
 		return Content{}, pointerErr(errcode.SchemaInvalid, "version_note", "/version_note", "version_note is longer than 4000 characters")
 	}

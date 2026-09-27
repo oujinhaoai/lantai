@@ -19,6 +19,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/fileop"
 )
 
@@ -167,6 +168,7 @@ type DeclaredUse struct {
 // ContentInput 是待提交版本的内容。Rights 为空时沿用资产说明中的默认许可与
 // 敏感级别（追加版本）；新建资产必须给出。
 type ContentInput struct {
+	Producer    *storage.Producer    `json:"producer,omitempty"`
 	AssetType   manifest.AssetType   `json:"asset_type"`
 	VersionNote string               `json:"version_note,omitempty"`
 	Files       []manifest.InputFile `json:"files"`
@@ -408,7 +410,7 @@ func (s *Service) freezeInput(ctx context.Context, req VersionRequest, asset com
 		uses = append(uses, manifest.Use{InstanceID: s.instance, AssetID: res.AssetID, VersionID: res.VersionID, Relation: u.Relation, Declared: u.Ref})
 	}
 	return manifest.Input{AssetType: c.AssetType, BaseVersionID: req.BaseVersionID, VersionNote: c.VersionNote,
-		Files: c.Files, Uses: uses, Rights: *rightsIn, Metadata: c.Metadata}, nil
+		Files: c.Files, Uses: uses, Rights: *rightsIn, Metadata: c.Metadata, Producer: c.Producer}, nil
 }
 
 func usePurpose(relation, usage string) authz.Purpose {

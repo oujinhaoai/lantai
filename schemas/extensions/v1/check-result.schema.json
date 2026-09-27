@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/check-result.schema.json",
+  "title": "lantai.check-result/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "ref",
+    "manifest_digest",
+    "verdict",
+    "findings",
+    "producer"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.check-result/v1"
+    },
+    "ref": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+    },
+    "manifest_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "verdict": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/check_verdict"
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 1000,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "producer": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+    }
+  }
+}

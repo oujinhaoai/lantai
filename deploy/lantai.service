@@ -1,0 +1,24 @@
+[Unit]
+Description=Lantai core
+After=local-fs.target network.target
+
+[Service]
+Type=simple
+User=lantai
+Group=lantai
+ExecStart=/usr/local/bin/lantai serve --home /var/lib/lantai
+WorkingDirectory=/var/lib/lantai
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/lantai /var/lib/lantai-secrets
+PrivateTmp=true
+TimeoutStopSec=45
+# 恢复或迁移失败必须先诊断，不以重启风暴掩盖。
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -6,4 +6,6 @@ M1 只登记内置服务端/节点 processor、validator；M2 用文件协议 sp
 
 插件只接收获授权输入，输出结构化结果、摘要与证据，不能直接访问核心五库或规范素材目录。协议 schema 在 `schemas/`，宿主实现属于 `internal/`。大文件及第三方模型权重不随目录占位加入仓库。
 
-包清单只有 `extension.yaml`，schema 为 `lantai.extension/v1`，processor 字段并入其中，不另设 `plugin.yaml` 或 `module.yaml`。CLI/Web 字段在 M1 只预留；M2 接显式 CLI，M3 接官方/声明式 UI，第三方网页及跨插件服务依赖按需立项。网页宿主和首方应用组件在 web，不把整个网页应用放入插件目录。插件实现规则以[扩展设计](../docs/extensions.md)为唯一权威；开发仍待确认，本目录不自动安装或运行插件。
+包清单只有 `extension.yaml`，schema 为 `lantai.extension/v1`，processor 字段并入其中，不另设 `plugin.yaml` 或 `module.yaml`。CLI/Web 字段在 M1 只预留；M2 接显式 CLI，M3 接官方/声明式 UI，第三方网页及跨插件服务依赖按需立项。网页宿主和首方应用组件在 web，不把整个网页应用放入插件目录。插件实现规则以[扩展设计](../docs/extensions.md)为唯一权威，本目录不自动安装或运行插件。
+
+当前 `corecheck/` 是随核心编译的纯 manifest 结构校验器。`packages.go` 显式嵌入清单、配置 schema、许可证据和源制品，由 `internal/extensions` 在维护屏障内统一登记；它不扫描其他目录。修改包文件须更新清单中的文件 SHA256/大小并升级版本。包内容摘要与当前可执行制品摘要分别绑定，产物/证据带 `builtin_release` 和两个摘要；算法及接口见[内置登记契约](../docs/contracts/extensions.md)。合法检查不合格不会变成人审批准，M1 不执行外部 processor。

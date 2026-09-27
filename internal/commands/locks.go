@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sort"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"golang.org/x/sync/semaphore"
 )
@@ -84,8 +86,11 @@ type Coordinator struct {
 	barrier  *semaphore.Weighted
 	security *semaphore.Weighted
 
-	mu   sync.Mutex
-	keys map[string]*keyLock
+	mu        sync.Mutex
+	keys      map[string]*keyLock
+	waiters   atomic.Int64
+	waitCount atomic.Uint64
+	waitNanos atomic.Uint64
 }
 
 type keyLock struct {
@@ -117,6 +122,7 @@ type Held struct {
 	max      lockKey
 	parent   *Held
 	once     sync.Once
+	released atomic.Bool
 }
 
 // Acquire 按全局顺序取得 req 中的全部锁，等待期间遵守 ctx 取消。
@@ -125,6 +131,11 @@ type Held struct {
 // 与反向取锁的调用方死锁（只能等 ctx 超时解开）。
 func (c *Coordinator) Acquire(ctx context.Context, req Request) (context.Context, *Held, error) {
 	parent, _ := ctx.Value(heldKey{}).(*Held)
+	for p := parent; p != nil; p = p.parent {
+		if p.c != c || p.released.Load() {
+			return ctx, nil, fmt.Errorf("%w: foreign or released lock context", ErrLockOrder)
+		}
+	}
 	keys := req.keys()
 	if err := checkOrder(parent, req, keys); err != nil {
 		return ctx, nil, err
@@ -137,14 +148,14 @@ func (c *Coordinator) Acquire(ctx context.Context, req Request) (context.Context
 	}
 	release := func() { h.release() }
 	if req.Barrier != ModeNone {
-		if err := c.barrier.Acquire(ctx, weight(req.Barrier)); err != nil {
+		if err := c.acquireSemaphore(ctx, c.barrier, weight(req.Barrier)); err != nil {
 			return ctx, nil, err
 		}
 		h.barrier = req.Barrier
 		h.max = lockKey{level: levelBarrier}
 	}
 	if req.Security != ModeNone {
-		if err := c.security.Acquire(ctx, weight(req.Security)); err != nil {
+		if err := c.acquireSemaphore(ctx, c.security, weight(req.Security)); err != nil {
 			release()
 			return ctx, nil, err
 		}
@@ -216,6 +227,17 @@ func (c *Coordinator) lockKey(ctx context.Context, key string) error {
 	}
 	kl.refs++
 	c.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		c.dropRef(key, kl)
+		return err
+	}
+	select {
+	case kl.sem <- struct{}{}:
+		return nil
+	default:
+	}
+	done := c.beginWait()
+	defer done()
 	select {
 	case kl.sem <- struct{}{}:
 		return nil
@@ -223,6 +245,34 @@ func (c *Coordinator) lockKey(ctx context.Context, key string) error {
 		c.dropRef(key, kl)
 		return ctx.Err()
 	}
+}
+
+// LockStats contains only bounded aggregate counters, never resource identifiers.
+type LockStats struct {
+	Waiters   int64
+	WaitCount uint64
+	WaitNanos uint64
+}
+
+func (c *Coordinator) Stats() LockStats {
+	return LockStats{c.waiters.Load(), c.waitCount.Load(), c.waitNanos.Load()}
+}
+func (c *Coordinator) beginWait() func() {
+	c.waiters.Add(1)
+	c.waitCount.Add(1)
+	started := time.Now()
+	return func() { c.waitNanos.Add(uint64(time.Since(started).Nanoseconds())); c.waiters.Add(-1) }
+}
+func (c *Coordinator) acquireSemaphore(ctx context.Context, sem *semaphore.Weighted, n int64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if sem.TryAcquire(n) {
+		return nil
+	}
+	done := c.beginWait()
+	defer done()
+	return sem.Acquire(ctx, n)
 }
 
 func (c *Coordinator) dropRef(key string, kl *keyLock) {
@@ -250,6 +300,7 @@ func (h *Held) Release() { h.release() }
 
 func (h *Held) release() {
 	h.once.Do(func() {
+		h.released.Store(true)
 		for i := len(h.keys) - 1; i >= 0; i-- {
 			h.c.unlockKey(h.keys[i].key)
 		}
@@ -260,4 +311,24 @@ func (h *Held) release() {
 			h.c.barrier.Release(weight(h.barrier))
 		}
 	})
+}
+
+// RequireMaintenance verifies a live exclusive barrier on this coordinator.
+// The owner must keep every ancestor Held alive until all nested calls return.
+func RequireMaintenance(ctx context.Context, c *Coordinator) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	h, _ := ctx.Value(heldKey{}).(*Held)
+	found := false
+	for p := h; p != nil; p = p.parent {
+		if p.c != c || p.released.Load() {
+			return maintenanceErr("maintenance_context_required")
+		}
+		found = found || p.barrier == ModeExclusive
+	}
+	if !found {
+		return maintenanceErr("maintenance_context_required")
+	}
+	return nil
 }

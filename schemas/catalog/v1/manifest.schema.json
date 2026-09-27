@@ -5,81 +5,190 @@
   "description": "不可变版本的清单文件（版本目录中的 manifest.yaml）。content 是冻结的版本内容：类型、文件（相对路径、角色、哈希、大小）、固定的 uses 引用、许可声明与类型元数据；manifest_digest 等于 content 按 RFC 8785 规范化后的 SHA-256，因此可在台账分配版本 ID 之前冻结。其余字段是由台账分配的身份与提交者，写入文件便于在库丢失时由文件重建。清单由 catalog 规范化生成，客户端提交的 lantai.yaml 不直接写入。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract", "instance_id", "project_id", "asset_id", "version_id", "version_number", "operation_id", "created_by", "manifest_digest", "content"],
+  "required": [
+    "contract",
+    "instance_id",
+    "project_id",
+    "asset_id",
+    "version_id",
+    "version_number",
+    "operation_id",
+    "created_by",
+    "manifest_digest",
+    "content"
+  ],
   "properties": {
-    "contract": { "const": "lantai.manifest/v1" },
-    "instance_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "project_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "asset_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "version_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "version_number": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-    "operation_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "created_by": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "session_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "manifest_digest": { "$ref": "../../common/v1/defs.schema.json#/$defs/digest" },
-    "content": { "$ref": "#/$defs/content" }
+    "contract": {
+      "const": "lantai.manifest/v1"
+    },
+    "instance_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "project_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "asset_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "version_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "version_number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "operation_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "created_by": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "session_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "content": {
+      "$ref": "#/$defs/content"
+    }
   },
   "$defs": {
     "asset_type": {
       "description": "资产类型说“它是什么”；文件格式另由文件本身决定。",
       "type": "string",
-      "enum": ["image", "video", "audio", "doc", "config", "plugin", "model", "motion", "scene", "production"]
+      "enum": [
+        "image",
+        "video",
+        "audio",
+        "doc",
+        "config",
+        "plugin",
+        "model",
+        "motion",
+        "scene",
+        "production"
+      ]
     },
     "content": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["asset_type", "type_schema", "files", "uses", "rights", "metadata"],
+      "required": [
+        "asset_type",
+        "type_schema",
+        "files",
+        "uses",
+        "rights",
+        "metadata"
+      ],
       "properties": {
-        "asset_type": { "$ref": "#/$defs/asset_type" },
+        "asset_type": {
+          "$ref": "#/$defs/asset_type"
+        },
         "type_schema": {
           "description": "校验 metadata 所用的类型定义库契约，例如 lantai.asset-types/v1。",
           "$ref": "../../common/v1/defs.schema.json#/$defs/contract_id"
         },
-        "base_version_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-        "version_note": { "type": "string", "maxLength": 4000 },
+        "base_version_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "version_note": {
+          "type": "string",
+          "maxLength": 4000
+        },
         "files": {
           "description": "按 path 的字节序升序、不重复；path 已规范化为 NFC 且规范化后互不冲突。",
           "type": "array",
           "minItems": 1,
           "maxItems": 100000,
-          "items": { "$ref": "#/$defs/file" }
+          "items": {
+            "$ref": "#/$defs/file"
+          }
         },
         "uses": {
           "description": "声明的输入，已在冻结时解析为固定的永久引用；按 (asset_id, version_id, relation) 排序、不重复。",
           "type": "array",
           "maxItems": 10000,
-          "items": { "$ref": "#/$defs/use" }
+          "items": {
+            "$ref": "#/$defs/use"
+          }
         },
-        "rights": { "$ref": "#/$defs/rights" },
+        "rights": {
+          "$ref": "#/$defs/rights"
+        },
         "metadata": {
           "description": "类型元数据，按 type_schema 中对应类型的定义校验；未登记的字段放在 extra 中。",
           "type": "object"
+        },
+        "producer": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/producer_ref"
         }
       }
     },
     "file": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "role", "sha256", "size"],
+      "required": [
+        "path",
+        "role",
+        "sha256",
+        "size"
+      ],
       "properties": {
-        "path": { "$ref": "../../common/v1/defs.schema.json#/$defs/relative_path" },
+        "path": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/relative_path"
+        },
         "role": {
           "type": "string",
-          "enum": ["primary", "source", "interchange", "texture", "recipe", "record", "preview", "doc"]
+          "enum": [
+            "primary",
+            "source",
+            "interchange",
+            "texture",
+            "recipe",
+            "record",
+            "preview",
+            "doc"
+          ]
         },
-        "sha256": { "$ref": "../../common/v1/defs.schema.json#/$defs/sha256_hex" },
-        "size": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+        "sha256": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/sha256_hex"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
       }
     },
     "use": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["instance_id", "asset_id", "version_id", "relation"],
+      "required": [
+        "instance_id",
+        "asset_id",
+        "version_id",
+        "relation"
+      ],
       "properties": {
-        "instance_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-        "asset_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-        "version_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-        "relation": { "type": "string", "enum": ["uses", "derived_from", "reference"] },
+        "instance_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "asset_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "version_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "uses",
+            "derived_from",
+            "reference"
+          ]
+        },
         "declared": {
           "description": "提交时书写的引用（例如 pansi/storyboard/ch03@published），仅作快照；机器字段以 ID 为准。",
           "type": "string",
@@ -91,23 +200,46 @@
       "description": "提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。",
       "type": "object",
       "additionalProperties": false,
-      "required": ["usage", "license", "redistribute_raw", "noai", "sensitivity"],
+      "required": [
+        "usage",
+        "license",
+        "redistribute_raw",
+        "noai",
+        "sensitivity"
+      ],
       "properties": {
-        "usage": { "type": "string", "enum": ["production", "reference", "restricted"] },
+        "usage": {
+          "type": "string",
+          "enum": [
+            "production",
+            "reference",
+            "restricted"
+          ]
+        },
         "license": {
           "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
           "type": "string",
           "minLength": 1,
           "maxLength": 256
         },
-        "redistribute_raw": { "type": "boolean" },
-        "noai": { "type": "boolean" },
+        "redistribute_raw": {
+          "type": "boolean"
+        },
+        "noai": {
+          "type": "boolean"
+        },
         "digital_source_type": {
           "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$"
         },
-        "sensitivity": { "type": "string", "enum": ["normal", "personal"] }
+        "sensitivity": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "personal"
+          ]
+        }
       }
     }
   }

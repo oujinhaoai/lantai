@@ -1,0 +1,103 @@
+{
+  "description": "内置静态校验器清单；package_digest和发布来源由登记器计算，不由清单自报",
+  "schema": "lantai.extension/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.extension/v1",
+    "id": "org.lantai.corecheck",
+    "version": "0.1.0",
+    "compatibility": {
+      "host_api": ">=1.0.0 <2.0.0",
+      "required_points": [
+        {
+          "id": "asset.validator",
+          "version": 1
+        }
+      ]
+    },
+    "contributes": [
+      {
+        "id": "org.lantai.corecheck.manifest",
+        "point": "asset.validator",
+        "target": "server",
+        "input_schema": "lantai.check-input/v1",
+        "output_schema": "lantai.check-result/v1"
+      }
+    ],
+    "targets": {
+      "server": {
+        "runtime": "builtin",
+        "lifecycle": "builtin",
+        "entry": "check.go",
+        "protocol": "lantai.processor/v1",
+        "processor": {
+          "accepts": {
+            "extensions": [
+              "yaml",
+              "json"
+            ],
+            "asset_types": []
+          },
+          "requires": [],
+          "timeout": "1s",
+          "concurrency": 1,
+          "produces": {
+            "records": [
+              "lantai.check-result/v1"
+            ],
+            "files": false
+          }
+        }
+      }
+    },
+    "platform_artifacts": [
+      {
+        "platform": "builtin-source",
+        "path": "check.go",
+        "sha256": "6e2187c1e9ddbac05895621adf832721a44ddfc4885641d981b3225f68b46f49",
+        "size": 861
+      }
+    ],
+    "files": [
+      {
+        "path": "LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+        "size": 35149
+      },
+      {
+        "path": "check.go",
+        "sha256": "6e2187c1e9ddbac05895621adf832721a44ddfc4885641d981b3225f68b46f49",
+        "size": 861
+      },
+      {
+        "path": "config.schema.json",
+        "sha256": "67c0a3e017f62ab8fa45adf3782967e9fd83fd25da2b4cecd06cfb1ca77e2afa",
+        "size": 104
+      }
+    ],
+    "permissions": {
+      "api": [],
+      "network": [],
+      "filesystem": [
+        "granted-input:read"
+      ],
+      "secret_refs": []
+    },
+    "resource_limits": {
+      "max_input_bytes": 8388608,
+      "max_output_bytes": 1048576,
+      "max_output_files": 0,
+      "memory_bytes": 67108864,
+      "cpu_seconds": 1,
+      "timeout_seconds": 1
+    },
+    "dependencies": [],
+    "config_schema": "config.schema.json",
+    "license": {
+      "spdx": "GPL-3.0-only",
+      "files": [
+        "LICENSE"
+      ]
+    }
+  }
+}

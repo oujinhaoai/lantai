@@ -1,0 +1,19 @@
+{
+  "description": "未对账撤权不能解除恢复闩锁",
+  "schema": "lantai.recovery-review/v1",
+  "valid": false,
+  "expect": [{"pointer": "/revocations_reconciled", "keyword": "const"}],
+  "document": {
+    "contract": "lantai.recovery-review/v1",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recovery_epoch": 3,
+    "administrator": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "revocations_reconciled": false,
+    "deletions_reconciled": true,
+    "open_operations_reconciled": true,
+    "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "note": "Operator reconciled synthetic revocations, deletions and open operations."
+  }
+}

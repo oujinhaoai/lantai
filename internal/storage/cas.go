@@ -76,7 +76,10 @@ func (s *Service) VerifyBlob(ctx context.Context, sha string) error {
 	} else if !exists {
 		return errcode.New(errcode.OperationNeedsReconciliation, "stored content is missing")
 	}
-	got, _, err := fileop.HashFile(s.layout.BlobPath(sha))
+	if err := regularPath(s.layout.Home, s.layout.BlobPath(sha)); err != nil {
+		return err
+	}
+	got, _, err := hashMaintenanceFile(ctx, s.layout.BlobPath(sha))
 	if errors.Is(err, fs.ErrNotExist) {
 		return errcode.New(errcode.OperationNeedsReconciliation, "stored content is missing")
 	}

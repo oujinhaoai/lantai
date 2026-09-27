@@ -195,8 +195,33 @@
           "type": "string",
           "maxLength": 160,
           "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$"
+        },
+        "core_release_digest": {
+          "$ref": "#/$defs/digest",
+          "description": "内置组件的核心发布制品摘要；v1旧记录允许缺省以保持历史字节不变，新结果接受必须由登记器核验此绑定。"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "package"
+              }
+            },
+            "required": [
+              "source"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "core_release_digest"
+              ]
+            }
+          }
+        }
+      ]
     },
     "relative_path": {
       "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",

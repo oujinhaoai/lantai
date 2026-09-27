@@ -1,0 +1,19 @@
+{
+  "description": "producer-package-cannot-claim-release",
+  "schema": "lantai.common-defs/v1#/$defs/producer_ref",
+  "valid": false,
+  "document": {
+    "extension_id": "org.lantai.corecheck",
+    "extension_version": "0.1.0",
+    "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source": "package",
+    "contribution_id": "org.lantai.corecheck.manifest",
+    "core_release_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "not"
+    }
+  ]
+}

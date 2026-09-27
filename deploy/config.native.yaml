@@ -1,0 +1,23 @@
+contract: lantai.config/v1
+instance:
+  name: library
+secrets:
+  dir: /var/lib/lantai-secrets
+storage:
+  min_free_bytes: 5368709120
+listen:
+  api: 127.0.0.1:8080
+  transfer: 127.0.0.1:8081
+  operations: 127.0.0.1:9090
+  merged: false
+http:
+  max_json_bytes: 8388608
+  api_timeout_seconds: 30
+  allowed_origins:
+    - https://library.example
+transfer:
+  interactive_slots: 4
+  batch_slots: 8
+  batch_per_principal: 4
+  batch_bytes_per_second: 0
+  batch_bytes_per_second_while_interactive: 0

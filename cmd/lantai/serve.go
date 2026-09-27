@@ -48,7 +48,7 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	if *ops != "" {
 		cfg.Listen.Operations = *ops
 	}
-	s, err := a.StartHTTP(ctx, cfg)
+	s, err := a.StartHTTP(ctx, cfg, application.WithAccessLog(stderr))
 	if err == nil {
 		_ = json.NewEncoder(stdout).Encode(map[string]any{"ready": true, "instance_id": a.Instance.InstanceID(), "listeners": s.Addresses})
 		err = s.Wait(ctx)

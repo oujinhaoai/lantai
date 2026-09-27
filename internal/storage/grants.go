@@ -238,6 +238,10 @@ func (s *Service) GrantFromSource(ctx context.Context, req SourceGrantRequest) (
 		if err != nil {
 			return err
 		}
+		if _, err = tx.ExecContext(lctx, `INSERT OR IGNORE INTO storage_pin_blobs(pin_id,sha256)
+			SELECT pin_id,? FROM storage_pins WHERE owner_kind='upload_session' AND owner_id=?`, file.SHA256, u.UploadID); err != nil {
+			return err
+		}
 		return s.touch(lctx, tx, u.UploadID, s.now())
 	})
 	if err != nil {

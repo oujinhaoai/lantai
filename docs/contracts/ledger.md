@@ -41,6 +41,12 @@
 
 事件消费按 event ID 去重，再读取权威状态；登记修订与著录修订不是一个计数器，不能把同目标的登记事件 revision=1 当作已经消费了第一份著录。outbox 搬运采用共享 `commands.OutboxSource`，与 events 收录不共用跨库事务。`Operation` 的 projected 仅说明源事件已被收录，不代表查询索引已经追平。
 
+## 维护清单与 commit pin
+
+`RecoveryInventory` 只读枚举未终结 operation 的原始命令与 prepared 版本/说明意图、全部已提交版本、全部已提交说明修订历史及 commit pins。原命令的主体、会话与 recovery epoch 不在恢复时改写；application 经 identity 重新核对后，才调用 catalog/ledger 既有最终接受路径。原授权不可用的操作保持待对账，不换键重做。共同备份核对在同一维护屏障下组合各模块接口，不跨所有者查询业务表。
+
+`PinsFor` 从持久 prepared 文件清单与 operation 派生稳定的 child pin ID，不维护第二张可能过时的保留表。prepared、installed、blocked 持续保留且没有 TTL；已提交、取消、失败或明确隔离按操作终态时间释放。来源 intent 或 operation 缺失/不一致时失败关闭，不把读取失败当作无引用。已提交版本此后的长期引用仍由版本事实与不可变清单维持。
+
 ## 验证
 
-运行 `go test -race ./internal/ledger ./internal/contract/commit/committest`。真实 SQLite fixture 运行公共提交契约套件，另测 prepared/installed/committed 重开、事务故障回滚、同键并发、operation ID 碰撞、维护期重放、security guard、未知/停用项目、缺少验收依赖与孤立安装隔离。包内授权、安装和修订文件使用契约桩；真实身份、文件、台账、事件与查询接线由 [`tests/integration`](../../tests/integration) 验证。模块测试通过不能替代实例恢复、平台故障与完整 M1 验收。
+运行 `go test -race ./internal/ledger ./internal/contract/commit/committest`。真实 SQLite fixture 运行公共提交契约套件，另测 prepared/installed/committed 重开、事务故障回滚、同键并发、operation ID 碰撞、维护期重放、security guard、未知/停用项目、缺少验收依赖与孤立安装隔离；恢复清单保留历史说明修订，commit pin 覆盖 blocked 重开、并发提交、显式终态释放和损坏意图失败关闭。包内授权、安装和修订文件使用契约桩；真实身份、文件、台账、事件与查询接线由 [`tests/integration`](../../tests/integration) 验证。模块测试通过不能替代实例恢复、平台故障与完整 M1 验收。

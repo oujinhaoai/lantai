@@ -1,0 +1,18 @@
+{
+  "description": "缺少证据摘要",
+  "schema": "lantai.recovery-review/v1",
+  "valid": false,
+  "expect": [{"pointer": "", "keyword": "required"}],
+  "document": {
+    "contract": "lantai.recovery-review/v1",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recovery_epoch": 3,
+    "administrator": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "revocations_reconciled": true,
+    "deletions_reconciled": true,
+    "open_operations_reconciled": true,
+    "note": "Operator reconciled synthetic revocations, deletions and open operations."
+  }
+}

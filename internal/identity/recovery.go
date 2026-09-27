@@ -462,7 +462,7 @@ func (s *Service) ReconcileRecoverySessions(ctx context.Context) (int, error) {
 // BeginOfflineReset 为指定的人（必须是管理员）准备离线重置：新口令与新 TOTP
 // 种子只在内存中，确认前不写任何数据。
 func (s *Service) BeginOfflineReset(ctx context.Context, name, newPassword string) (*OfflineResetSession, error) {
-	if err := s.localOnly(); err != nil {
+	if err := s.localResetOnly(ctx); err != nil {
 		return nil, err
 	}
 	p, err := loadPrincipalByName(ctx, s.main, name)
@@ -508,7 +508,7 @@ func (o *OfflineResetSession) Principal() Principal { return o.principal }
 // 写入新口令与新因子、生成新恢复码，并写审计事件。
 func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([]string, error) {
 	s := o.s
-	if err := s.localOnly(); err != nil {
+	if err := s.localResetOnly(ctx); err != nil {
 		return nil, err
 	}
 	res, counter := totp.Verify(o.Enrollment.raw, code, s.now(), -1)
@@ -517,6 +517,17 @@ func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([
 	}
 	if !shortTextRE.MatchString(note) {
 		return nil, fixRequest("note must be short plain text")
+	}
+	// Restoring callers already hold the exclusive instance barrier. Serialize
+	// their reset against other maintenance-owned identity checks as well.
+	if s.gate.RequireMaintenance(ctx) == nil {
+		var release func()
+		var err error
+		ctx, release, err = s.write(ctx, true)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
 	}
 	var codes []string
 	err := inTx(ctx, s.main, func(tx *sql.Tx) error {
@@ -528,7 +539,7 @@ func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([
 			return errcode.New(errcode.PreconditionFailed, "the principal changed while the reset was being prepared; start again")
 		}
 		now := clock.Millis(s.now())
-		rev, _, err := bumpAuthEpoch(ctx, tx, p.ID, now)
+		rev, authEpoch, err := bumpAuthEpoch(ctx, tx, p.ID, now)
 		if err != nil {
 			return err
 		}
@@ -545,7 +556,8 @@ func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([
 		if err := setPassword(ctx, tx, p.ID, o.rec, now); err != nil {
 			return err
 		}
-		if _, err := s.insertFactor(ctx, tx, p.ID, o.Enrollment.raw, factorEnabled, counter); err != nil {
+		factor, err := s.insertFactor(ctx, tx, p.ID, o.Enrollment.raw, factorEnabled, counter)
+		if err != nil {
 			return err
 		}
 		if codes, err = s.issueRecoveryCodes(ctx, tx, p.ID); err != nil {
@@ -555,6 +567,12 @@ func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([
 			return err
 		}
 		if _, err := bumpPolicyRevision(ctx, tx); err != nil {
+			return err
+		}
+		if err := s.recordRestoreAdministratorReset(ctx, tx, p.ID, authEpoch, factor); err != nil {
+			return err
+		}
+		if err := s.localResetOnly(ctx); err != nil {
 			return err
 		}
 		op, err := s.newID()

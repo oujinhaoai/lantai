@@ -39,6 +39,10 @@
 
 CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actions/setup-go` v7.0.0、`actions/upload-artifact` v7.0.1。
 
+## 可选部署组件
+
+2026-09-28 核对：网关模板固定 Caddy 2.11.4（Apache-2.0），作为独立进程转发 API/传输，不链接进核心；[官方发布](https://github.com/caddyserver/caddy/releases/tag/v2.11.4)与[许可证](https://github.com/caddyserver/caddy/blob/v2.11.4/LICENSE)。隔离 HTTPS 验证使用官方 macOS arm64 二进制并核对发布 SHA-512 清单。兼容范围为模板已验证的该版本；更换版本须重跑网关测试。官方容器镜像和 systemd 模板的实际目标环境验收见[部署说明](deployment.md)。仓库不附带或自动安装第三方二进制。
+
 ## 选型依据
 
 - **Go 版本**：1.26.8 为当时 1.26 系列的最新补丁；x/sync v0.23.0 要求 Go ≥ 1.26.0，驱动要求 ≥ 1.25.0。升级工具链时整体重跑 `scripts/check.sh` 与平台验证。

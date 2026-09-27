@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v1/recovery-review.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "run_id",
+    "backup_id",
+    "manifest_digest",
+    "recovery_epoch",
+    "administrator",
+    "revocations_reconciled",
+    "deletions_reconciled",
+    "open_operations_reconciled",
+    "evidence_digest",
+    "note"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.recovery-review/v1"
+    },
+    "run_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "backup_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "recovery_epoch": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "administrator": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "revocations_reconciled": {
+      "const": true
+    },
+    "deletions_reconciled": {
+      "const": true
+    },
+    "open_operations_reconciled": {
+      "const": true
+    },
+    "evidence_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 2000
+    }
+  },
+  "title": "LocalRecoveryReview",
+  "description": "本机对已选恢复点之后撤权/删除/未决操作的明确对账记录，绑定精确恢复 run、备份和 epoch；不替代凭据更新、fsck 或索引重建。"
+}

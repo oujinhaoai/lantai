@@ -118,6 +118,24 @@ func (e OperationStatusStage) Valid() bool {
 	}
 }
 
+// Defines values for ProducerRefSource.
+const (
+	ProducerRefSourceBuiltinRelease ProducerRefSource = "builtin_release"
+	ProducerRefSourcePackage        ProducerRefSource = "package"
+)
+
+// Valid indicates whether the value is a known member of the ProducerRefSource enum.
+func (e ProducerRefSource) Valid() bool {
+	switch e {
+	case ProducerRefSourceBuiltinRelease:
+		return true
+	case ProducerRefSourcePackage:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ReadGrantRequestPurpose.
 const (
 	ReadGrantRequestPurposeArchiveReview   ReadGrantRequestPurpose = "archive_review"
@@ -661,6 +679,9 @@ type ContentInput struct {
 	Files     []VersionManifestFile    `json:"files"`
 	Metadata  *map[string]interface{}  `json:"metadata,omitempty"`
 
+	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
+	Producer *ProducerRef `json:"producer,omitempty"`
+
 	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
 	Rights *VersionManifestRights `json:"rights,omitempty"`
 	Uses   *[]struct {
@@ -767,6 +788,12 @@ type ExactVersionView struct {
 	Manifest *VersionManifest `json:"manifest,omitempty"`
 	Version  VersionView      `json:"version"`
 }
+
+// ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+type ExtensionId = string
+
+// ExtensionVersion 扩展包语义化版本。
+type ExtensionVersion = string
 
 // FileSpec defines model for FileSpec.
 type FileSpec struct {
@@ -966,6 +993,28 @@ type PrincipalView struct {
 	// UpdatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
 	UpdatedAt Timestamp `json:"updated_at"`
 }
+
+// ProducerRef 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
+type ProducerRef struct {
+	// ContributionId 包内贡献 ID，例如 org.example.asset-tools.check。
+	ContributionId *string `json:"contribution_id,omitempty"`
+
+	// CoreReleaseDigest 内置组件的核心发布制品摘要；v1旧记录允许缺省以保持历史字节不变，新结果接受必须由登记器核验此绑定。
+	CoreReleaseDigest *Digest `json:"core_release_digest,omitempty"`
+
+	// ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+	ExtensionId ExtensionId `json:"extension_id"`
+
+	// ExtensionVersion 扩展包语义化版本。
+	ExtensionVersion ExtensionVersion `json:"extension_version"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest            `json:"package_digest"`
+	Source        ProducerRefSource `json:"source"`
+}
+
+// ProducerRefSource defines model for ProducerRef.Source.
+type ProducerRefSource string
 
 // ProjectDescriptionView HTTP view omits the file contract marker; revision 0 denotes an authoritative derived description.
 type ProjectDescriptionView struct {
@@ -1305,6 +1354,9 @@ type VersionManifestContent struct {
 
 	// Metadata 类型元数据，按 type_schema 中对应类型的定义校验；未登记的字段放在 extra 中。
 	Metadata map[string]interface{} `json:"metadata"`
+
+	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
+	Producer *ProducerRef `json:"producer,omitempty"`
 
 	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
 	Rights VersionManifestRights `json:"rights"`

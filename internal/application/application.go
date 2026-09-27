@@ -15,6 +15,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
 	"github.com/oujinhaoai/lantai/internal/events"
+	"github.com/oujinhaoai/lantai/internal/extensions"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
 	"github.com/oujinhaoai/lantai/internal/ledger"
@@ -49,6 +50,7 @@ type App struct {
 	Catalog    *catalog.Service
 	Events     *events.Store
 	Query      *query.Service
+	Extensions *extensions.Registry
 	syncMu     sync.Mutex
 	healthMu   sync.RWMutex
 	syncFailed bool
@@ -56,7 +58,13 @@ type App struct {
 
 // Open 在任何监听开放前检查身份、收录 outbox、重建或追平查询投影。
 // 不迁移权威库；需要迁移的实例仍由显式 migrate 命令处理。
-func Open(ctx context.Context, opts Options) (_ *App, err error) {
+func Open(ctx context.Context, opts Options) (*App, error) { return open(ctx, opts, false) }
+
+// OpenOffline assembles domain owners without opening the gate, listeners or
+// background consumers. Local maintenance commands retain the instance lock.
+func OpenOffline(ctx context.Context, opts Options) (*App, error) { return open(ctx, opts, true) }
+
+func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	i, err := operations.Open(ctx, opts.Instance)
 	if err != nil {
 		return nil, err
@@ -73,6 +81,14 @@ func Open(ctx context.Context, opts Options) (_ *App, err error) {
 		return nil, err
 	}
 	a := &App{Instance: i}
+	release, err := extensions.CurrentReleaseDigest()
+	if err != nil {
+		return nil, err
+	}
+	a.Extensions, err = extensions.New(extensions.Deps{DB: i.DB(ownership.Main), Gate: i.Gate(), ReleaseDigest: release})
+	if err != nil {
+		return nil, err
+	}
 	a.Identity, err = identity.New(identity.Deps{Main: i.DB(ownership.Main), Runtime: i.DB(ownership.Runtime), Gate: i.Gate(), Epochs: i, Clock: i.Clock(), IDs: i.IDs(), Key: k, InstanceID: i.InstanceID(), InstanceName: i.Marker().Name}, opts.Identity)
 	if err != nil {
 		return nil, err
@@ -81,7 +97,7 @@ func Open(ctx context.Context, opts Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.Rights, err = provenance.New(provenance.Deps{DB: i.DB(ownership.Ledger), Gate: i.Gate(), Reader: a.Ledger, Authz: a.Identity, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
+	a.Rights, err = provenance.New(provenance.Deps{Producers: a.Extensions, DB: i.DB(ownership.Ledger), Gate: i.Gate(), Reader: a.Ledger, Authz: a.Identity, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +114,7 @@ func Open(ctx context.Context, opts Options) (_ *App, err error) {
 	}
 	a.Ledger.SetInstaller(a.Storage)
 	a.Rights.SetFiles(a.Storage)
-	a.Catalog, err = catalog.New(catalog.Deps{Home: i.Layout().Home, Gate: i.Gate(), Storage: a.Storage, Ledger: a.Ledger, Authz: a.Identity, Rights: a.Rights, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
+	a.Catalog, err = catalog.New(catalog.Deps{Producers: a.Extensions, Home: i.Layout().Home, Gate: i.Gate(), Storage: a.Storage, Ledger: a.Ledger, Authz: a.Identity, Rights: a.Rights, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +126,15 @@ func Open(ctx context.Context, opts Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = i.Start(ctx, operations.Hook{Name: "identity", Run: a.Identity.CheckStartup}); err != nil {
-		return nil, err
+	if offline {
+		return a, nil
 	}
-	// Sync 的各库写入自行经过 gate；这里尚未发布 App，也没有启动监听。
-	if err = a.sync(ctx, true); err != nil {
+	if err = i.Start(ctx,
+		operations.Hook{Name: "identity", Run: a.Identity.CheckStartup},
+		operations.Hook{Name: "extensions", Run: a.Extensions.RegisterBuiltins},
+		operations.Hook{Name: "recovery", Run: func(c context.Context) error { _, e := a.Recover(c); return e }},
+		operations.Hook{Name: "outbox-query-audit", Run: func(c context.Context) error { return a.sync(c, true) }},
+	); err != nil {
 		return nil, err
 	}
 	i.Go("outbox-query-audit", func(ctx context.Context) error {

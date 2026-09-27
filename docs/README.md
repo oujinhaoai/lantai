@@ -1,6 +1,6 @@
 # 文档导航 · Documentation
 
-状态：开发起步阶段，已有 Go 工程、公共契约、实例生命周期与身份模块。除项目 README 外，首轮工程文档以中文维护；协议字段与代码标识采用英文。
+状态：开发起步阶段，已有 Go 工程、公共契约、真实存取与身份服务、事件查询、共同备份恢复、运维模板和内置扩展登记。除项目 README 外，首轮工程文档以中文维护；协议字段与代码标识采用英文。
 
 The project overview is available in [English](../README.en.md). Engineering documents are initially maintained in Chinese; protocol fields and code identifiers use English.
 
@@ -10,6 +10,8 @@ The project overview is available in [English](../README.en.md). Engineering doc
 | [架构与一级目录](architecture.md) | 目录边界、服务模块、数据归属、协作规则 |
 | [开发任务基线](tasks/README.md) | T00–T09 的公开范围、职责、阶段、依赖与验收要求 |
 | [公共契约](contracts/README.md) | 标识、摘要与规范化、幂等回执、错误模型、事件、操作阶段、跨模块接口、所有权与版本规则；[错误码表](contracts/error-codes.md)、[所有权](contracts/ownership.md)、[执行与扩展宿主的公共约定](contracts/execution.md)、[实例生命周期与维护屏障](contracts/instance.md)、[身份与授权](contracts/identity.md)与[动作和策略登记](contracts/identity-actions.md) |
+| [共同备份与恢复](contracts/backup-restore.md) | 四库共同点、永久 pin、空目录恢复、凭据轮换与对账 |
+| [单网关部署与运维](deployment.md) | Caddy / 容器 / systemd 模板、内部监听和本机指标 |
 | [开发与验证](development.md) | 真实可运行的构建、测试、生成、检查命令与平台验证状态 |
 | [依赖与许可证](dependencies.md) | 锁定的依赖与工具版本、许可证核对与选型依据 |
 | [架构决策记录](adr/README.md) | 本轮基线、被替代的建议与支持边界 |

@@ -60,6 +60,9 @@ M1 只通过受控 Go 组装登记服务端/节点 processor、validator，记�
 
 M3 只承诺官方/声明式网页贡献。第三方网页按需另行验证独立 origin、与主站不同的可注册域及目标浏览器 site 隔离、无会话凭据及有界 broker；内网特殊后缀须实测，精确 Origin/CSRF 检查仍必需。仅有同站点子域或 host-only cookie 不能替代完整隔离验证。
 
+
+当前 M1 的组装由 `internal/application` 统一持有实例：启动在维护屏障内核对身份、登记官方内置扩展、恢复原操作、深度 fsck 并追平事件/查询。`operations` 拥有共同备份清单、backup pin、升级/恢复门闩和本机对账；各模块仅通过自己的恢复/盘点 API 提供领域事实。`index.db` 始终可重建，恢复后的旧凭据和旧接受代际不恢复授权。实现命令见[备份恢复](contracts/backup-restore.md)与[部署](deployment.md)。
+
 ## 模块之间如何协作
 
 1. T00 先定 ID、错误、命令回执、事件、授权检查与文件提交接口。协议变更由受影响模块一起审阅，版本与兼容性写入契约。

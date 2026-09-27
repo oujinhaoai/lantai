@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestEvidenceRecordsAreAppendOnlyAndBound(t *testing.T) {
 		RecordID: ids.New(), ProjectID: c.ProjectID, AssetID: c.AssetID, VersionID: c.VersionID, ManifestDigest: c.ManifestDigest,
 		Kind: "check_result", PayloadSchema: "lantai.synthetic-check/v1", Payload: json.RawMessage(`{"result":"pass","check":"decode"}`),
 		Producer: &Producer{ExtensionID: "org.lantai.builtin", ExtensionVersion: "0.1.0",
-			PackageDigest: digest.Of([]byte("core-release")), Source: "builtin_release", ContributionID: "org.lantai.builtin.probe"},
+			CoreReleaseDigest: digest.Of([]byte("core-release")), PackageDigest: digest.Of([]byte("core-release")), Source: "builtin_release", ContributionID: "org.lantai.builtin.probe"},
 		AuthorID: f.who.PrincipalID, SessionID: f.who.SessionID, CreatedAt: clock.Format(f.clk.Now()),
 	}
 	ref, err := f.svc.AppendRecord(t.Context(), rec)
@@ -70,7 +71,40 @@ func TestEvidenceRecordsAreAppendOnlyAndBound(t *testing.T) {
 	malformed := rec
 	malformed.RecordID = ids.New()
 	malformed.Producer = &Producer{ExtensionID: "org.lantai.builtin", ExtensionVersion: "version-\xff",
-		PackageDigest: digest.Of([]byte("core-release")), Source: "builtin_release"}
+		CoreReleaseDigest: digest.Of([]byte("core-release")), PackageDigest: digest.Of([]byte("core-release")), Source: "builtin_release"}
 	_, err = f.svc.AppendRecord(t.Context(), malformed)
 	wantCode(t, err, errcode.SchemaInvalid)
+}
+
+func TestLegacyProducerEvidencePreservesBytesAndDigest(t *testing.T) {
+	f := newFixture(t, testConfig(), nil)
+	c := f.commitVersion(f.who, f.project, "", "records/legacy", "", map[string][]byte{"a.txt": []byte("legacy")})
+	rec := Record{RecordID: ids.New(), ProjectID: c.ProjectID, AssetID: c.AssetID, VersionID: c.VersionID, ManifestDigest: c.ManifestDigest,
+		Kind: "check_result", Payload: json.RawMessage(`{"result":"pass"}`), AuthorID: f.who.PrincipalID, CreatedAt: clock.Format(f.clk.Now()),
+		Producer: &Producer{ExtensionID: "org.lantai.legacy", ExtensionVersion: "0.1.0", PackageDigest: digest.Of([]byte("legacy package")), Source: "builtin_release"}}
+	before, err := rec.canonical()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(before, []byte("core_release_digest")) {
+		t.Fatal("legacy source was silently upgraded")
+	}
+	// Storage is only the append-only byte adapter. New domain acceptance must
+	// separately call the trusted registry and reject an unbound producer.
+	written, err := f.svc.AppendRecord(t.Context(), rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := f.svc.ReadRecord(t.Context(), c.ProjectID, c.AssetID, c.VersionID, rec.RecordID)
+	if err != nil || !bytes.Equal(before, after) || digest.Of(before) != written.Digest {
+		t.Fatalf("historical record changed: %v", err)
+	}
+	var roundtrip Record
+	if err = json.Unmarshal(after, &roundtrip); err != nil {
+		t.Fatal(err)
+	}
+	again, err := roundtrip.canonical()
+	if err != nil || !bytes.Equal(before, again) {
+		t.Fatalf("new Go field changed old canonical representation: %v", err)
+	}
 }

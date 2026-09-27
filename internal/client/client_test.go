@@ -224,6 +224,7 @@ func TestDownloadRejectsUnsafeAndUnhonoredRange(t *testing.T) {
 }
 
 func TestPushResumesPartsAndLostCommitResponse(t *testing.T) {
+	producer := json.RawMessage(`{"extension_id":"io.github.oujinhaoai.lantai.manifest-check","extension_version":"1.0.0","package_digest":"sha256:abababababababababababababababababababababababababababababababab","source":"builtin_release","contribution_id":"io.github.oujinhaoai.lantai.manifest-check.structure","core_release_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}`)
 	dir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(dir, "a.bin"), []byte("abcdef"), 0600)
 	state := filepath.Join(dir, "state.json")
@@ -269,6 +270,14 @@ func TestPushResumesPartsAndLostCommitResponse(t *testing.T) {
 		case strings.HasSuffix(r.URL.Path, "/complete"):
 			writeJSON(w, map[string]bool{"ok": true})
 		case strings.HasSuffix(r.URL.Path, "/commit"):
+			var body struct {
+				Content struct {
+					Producer json.RawMessage `json:"producer"`
+				} `json:"content"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || string(body.Content.Producer) != string(producer) {
+				t.Errorf("producer changed in commit: %s %v", body.Content.Producer, err)
+			}
 			commits++
 			commitKeys = append(commitKeys, r.Header.Get("Idempotency-Key"))
 			if commits == 1 {
@@ -285,7 +294,7 @@ func TestPushResumesPartsAndLostCommitResponse(t *testing.T) {
 			w.WriteHeader(404)
 		}
 	})
-	in := PushInput{ProjectID: "project1", Slug: "first", Content: ContentInput{AssetType: "document", Files: []InputFile{{Path: "a.bin", Role: "original"}}}}
+	in := PushInput{ProjectID: "project1", Slug: "first", Content: ContentInput{AssetType: "document", Producer: producer, Files: []InputFile{{Path: "a.bin", Role: "original"}}}}
 	if _, err := c.Push(context.Background(), in, dir, state, false); err == nil {
 		t.Fatal("expected lost part response")
 	}
@@ -308,6 +317,11 @@ func TestPushResumesPartsAndLostCommitResponse(t *testing.T) {
 	}
 	if creates != 1 || commits != 2 || ops != 1 || !reflect.DeepEqual(partCalls, []int{1, 2}) || commitKeys[0] != commitKeys[1] {
 		t.Fatalf("creates=%d commits=%d ops=%d parts=%v keys=%v", creates, commits, ops, partCalls, commitKeys)
+	}
+	changedProducer := in
+	changedProducer.Content.Producer = json.RawMessage(strings.Replace(string(producer), "1.0.0", "2.0.0", 1))
+	if _, err = c.Push(context.Background(), changedProducer, dir, state, false); err == nil {
+		t.Fatal("changed producer reused committed state")
 	}
 	_ = os.WriteFile(filepath.Join(dir, "a.bin"), []byte("mutate"), 0600)
 	if _, err = c.Push(context.Background(), in, dir, state, false); err == nil {

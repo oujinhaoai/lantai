@@ -1,6 +1,6 @@
 # 实例生命周期、迁移与维护屏障
 
-状态：**M1 第一版，已实现并有自动化测试**（T08.1）。实现：[`internal/operations`](../../internal/operations/)、[`internal/commands/gate.go`](../../internal/commands/gate.go)、[`internal/platform/fsutil`](../../internal/platform/fsutil/)、[`internal/platform/sqlite/migrations`](../../internal/platform/sqlite/migrations/)。备份与恢复（T08.2/T08.3）尚未实现。T07 联调已由 `internal/application` 提供同进程的内部监听及本机健康端点；公网 TLS、部署管理和完整运维观测仍属 T08.4。
+状态：**M1 实例、备份恢复与本机运维已实现并有自动化测试**。实现：[`internal/operations`](../../internal/operations/)、[`internal/application`](../../internal/application/)、[`internal/commands/gate.go`](../../internal/commands/gate.go)、[`internal/platform/fsutil`](../../internal/platform/fsutil/)、[`internal/platform/sqlite/migrations`](../../internal/platform/sqlite/migrations/)。共同备份、空目录恢复和升级命令见[备份恢复](backup-restore.md)，单 HTTPS 网关模板与健康/指标见[部署](../deployment.md)。
 
 ## 数据根布局
 
@@ -8,12 +8,14 @@
 
 | 路径 | 写入者 | 内容 |
 |---|---|---|
-| `instance.json` | operations | 实例标记 [`lantai.instance/v1`](../../schemas/operations/v1/instance.schema.json)：实例 ID、名称、状态、数据格式版本、`recovery_epoch`、进行中的迁移 |
+| `instance.json` | operations | 实例标记 [`lantai.instance/v1`](../../schemas/operations/v1/instance.schema.json)：实例 ID、名称、状态、数据格式版本、`recovery_epoch`、进行中的迁移和恢复门闩 |
 | `lantai.lock` | operations | 单实例写锁；文件内容只是最近一次取锁的进程号与时间，用于诊断 |
 | `config.yaml` | 运维人员 | 可选配置 [`lantai.config/v1`](../../schemas/operations/v1/config.schema.json)，不放密钥；未知字段拒绝 |
 | `db/{main,ledger,runtime,events,index}.db` | 各所属模块 | 五库，目录权限 0700 |
 | `secrets/master.key` | identity | 主密钥（默认位置，可用 `secrets.dir` 移到单独受控的位置）；权限必须只允许本用户访问 |
 | `audit/` | events | 后台收录事件的审计导出与清单；未确认备份前不自动裁剪 |
+| `backups/records/` | operations | 备份清单、复制状态与永久 backup pin |
+| `logs/restore-<run_id>*` | operations | 已绑定的本机对账、原始证据与完成回执 |
 | `logs/offline-recovery.log` | identity（本机离线恢复） | 离线恢复的本机审计行 |
 
 ## 单实例锁
@@ -43,7 +45,7 @@
 - `schema_migrations` 记录每个已应用迁移的内容摘要（CRLF 先统一为 LF）。启动时核对：已应用的迁移必须连续、摘要与本构建一致；否则拒绝。
 - 每个迁移在所属库内单独成事务，与其版本记录一起提交；新建的每张表都必须按[所有权](ownership.md)登记在该迁移的所有者名下，否则迁移失败回滚。跨库没有共同事务。
 - 本构建的兼容矩阵 = 数据格式版本 `DataFormatVersion` + 每库最高迁移版本。全部库与标记满足矩阵才能开放写入。
-- 有待执行迁移时 `Open` 成功但实例为 `blocked`（`migration_required`），`Start` 拒绝。迁移只由 `lantai migrate`（`Instance.Migrate`）在维护屏障下显式执行：先把本次迁移写入标记（`migration`），再依库执行；中途失败标记保留，实例保持 `migration_incomplete`，重跑只补未完成的版本，不重复已提交的迁移，也不伪造成功。迁移不自动生成备份，升级真实数据前先按运维流程完成 complete 备份（T08.2）。
+- 有待执行迁移时 `Open` 成功但实例为 `blocked`（`migration_required`），`Start` 拒绝。迁移只由 `lantai migrate`（`Instance.Migrate`）在维护屏障下显式执行：先把本次迁移写入标记（`migration`），再依库执行；中途失败标记保留，实例保持 `migration_incomplete`，重跑只补未完成的版本，不重复已提交的迁移，也不伪造成功。新迁移强制要求已经完整核验的共同备份并绑定其 ID/摘要；中断继续沿用原绑定。恢复中的旧 schema 升级绑定其原始备份，详见[备份恢复](backup-restore.md)。
 
 ## 状态、就绪与维护屏障
 
@@ -59,7 +61,7 @@
 
 `Readiness()` 区分 `live`（进程与实例存活）与 `ready`（可安全接收写入），不就绪时给出机器可读原因；它是健康/就绪接口（T08.4）的数据来源。
 
-**维护屏障**（`commands.Gate`）：所有写入——前台命令与后台任务——都经 `Gate.Acquire` 进入写路径。实例未开放写入时立即返回 `MAINTENANCE_MODE`（503，`details.reason` 为 `starting`、`recovering`、`maintenance`、`migrating`、`stopping` 等），而不是排队到维护结束后继续；开放时先取屏障共享锁，再按统一顺序取其余锁，取锁后再核对一次状态与写入口代次——等锁期间经历过维护或停止的写入即使维护已结束也拒绝，写入不会跨过维护窗口。维护（`Instance.Maintain` / `Gate.Maintain`）先关闭写入，再取屏障独占锁等待在途写入结束；结束后没有其他阻止原因才重新开放。读取不经屏障。
+**维护屏障**（`commands.Gate`）：所有写入——前台命令与后台任务——都经 `Gate.Acquire` 进入写路径。实例未开放写入时立即返回 `MAINTENANCE_MODE`（503，`details.reason` 为 `starting`、`recovering`、`maintenance`、`migrating`、`stopping` 等），而不是排队到维护结束后继续；开放时先取屏障共享锁，再按统一顺序取其余锁，取锁后再核对一次状态与写入口代次——等锁期间经历过维护或停止的写入即使维护已结束也拒绝，写入不会跨过维护窗口。维护（`Instance.Maintain` / `Gate.Maintain`）先关闭写入，再取屏障独占锁等待在途写入结束；结束后没有其他阻止原因才重新开放。领域读取不经写屏障。持有同一协调器活跃独占维护上下文的所属模块可重入写入口，仍遵守其余锁顺序；伪造、异实例或已释放的维护上下文拒绝。
 
 **后台任务**用 `Instance.Go` 登记：就绪后启动，`Close` 时取消并等待；其写入同样经 `Gate`。
 
@@ -72,14 +74,14 @@
 | 命令 | 作用 |
 |---|---|
 | `lantai init -home <dir> -admin <name>` | 建立实例（写 `initializing` 标记、建五库并迁移、绑定），生成主密钥，交互式登记首个管理员（口令两次、验证器种子当场展示、以当前动态码确认、恢复码只展示一次），最后把标记改为 `active`。已初始化或存在无标记的库时拒绝；中断后重跑会继续同一次初始化 |
-| `lantai migrate -home <dir>` | 维护屏障下应用待执行的迁移；无事可做时报告 no-op |
+| `lantai migrate -home <dir> [-backup <complete-backup-dir>]` | 维护屏障下应用待执行的迁移；无事可做时报告 no-op |
 | `lantai doctor -home <dir> [-json]` | 只读诊断，不取锁、不修改任何文件；退出码 0 表示可以启动 |
 | `lantai recover-admin -home <dir> -admin <name>` | 单管理员的本机离线恢复，见[身份与授权](identity.md#恢复) |
 
-这些命令只能在服务端本机、服务停止时运行（它们需要数据根锁）。服务端监听、网关与健康接口随 T07.1/T08.4 加入。
+这些命令只能在服务端本机、服务停止时运行（它们需要数据根锁）。`serve` 使用同一锁运行服务；网关与运维端点见[部署](../deployment.md)。
 
 ## 已知限制
 
 - 断电与文件系统级故障演练、三平台实际文件语义属 TEST-M1-06/12，尚未执行；原子替换在 Windows 上不刷新目录。
 - 网络文件系统检测只识别已知类型；FUSE 等无法判断的类型只记提示。
-- 备份共同屏障、空目录恢复与 `recovery_epoch` 递增（T08.2/T08.3）尚未实现；`recovery_epoch` 目前只由实例标记提供给身份模块。
+- 恢复点之后的撤权、删除与未知副作用需要有证据的本机对账；无法证明时不清除恢复门闩。M1 不执行物理 GC。

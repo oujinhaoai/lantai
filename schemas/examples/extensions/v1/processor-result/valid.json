@@ -1,0 +1,43 @@
+{
+  "description": "processor-result/valid.json",
+  "schema": "lantai.processor-result/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.processor-result/v1",
+    "operation_id": "01K00000000000000000000009",
+    "status": "completed",
+    "files": [],
+    "records": [],
+    "checks": [
+      {
+        "contract": "lantai.check-result/v1",
+        "ref": {
+          "instance_id": "01K00000000000000000000000",
+          "asset_id": "01K00000000000000000000001",
+          "version_id": "01K00000000000000000000002"
+        },
+        "manifest_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "verdict": "fail",
+        "findings": [
+          "manifest_identity_or_content_invalid"
+        ],
+        "producer": {
+          "extension_id": "org.lantai.corecheck",
+          "extension_version": "0.1.0",
+          "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source": "builtin_release",
+          "contribution_id": "org.lantai.corecheck.manifest",
+          "core_release_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    ],
+    "producer": {
+      "extension_id": "org.lantai.corecheck",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "builtin_release",
+      "contribution_id": "org.lantai.corecheck.manifest",
+      "core_release_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  }
+}

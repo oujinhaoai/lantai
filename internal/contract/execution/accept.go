@@ -1,12 +1,27 @@
 package execution
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/schema"
 )
+
+// validShape also protects direct Go callers: equal zero values are not valid
+// credentials. Keep the field rules in the shared schema, not a second regex.
+func validShape(def string, value any) bool {
+	r, err := schema.Default()
+	if err != nil {
+		return false
+	}
+	raw, err := json.Marshal(value)
+	return err == nil && r.ValidateJSON("lantai.execution-common/v1#/$defs/"+def, raw) == nil
+}
+
+func validEpoch(n int64) bool { return n >= 1 && n <= 9007199254740991 }
 
 // Fence 是调用方出示的任务执行权凭据（线上字段 task_fence）。
 type Fence struct {
@@ -33,6 +48,7 @@ const (
 	ReasonFenceMismatch   = "fence_mismatch"
 	ReasonAttemptEnded    = "attempt_terminated"
 	ReasonLeaseExpired    = "lease_expired"
+	ReasonFenceInvalid    = "fence_invalid"
 )
 
 // errNoTime 表示调用方没有给出接受时间；按失败关闭处理，而不是放行。
@@ -49,6 +65,8 @@ func CheckFence(presented Fence, current LeaseState, now time.Time) error {
 	}
 	reason := ""
 	switch {
+	case !validShape("task_fence", presented) || !validShape("task_fence", Fence{AttemptID: current.AttemptID, LeaseFence: current.LeaseFence, RecoveryEpoch: current.RecoveryEpoch}):
+		reason = ReasonFenceInvalid
 	case presented.RecoveryEpoch != current.RecoveryEpoch:
 		reason = ReasonRecoveryEpoch
 	case presented.AttemptID != current.AttemptID:
@@ -95,11 +113,12 @@ type ActivationState struct {
 
 // 激活失效原因。
 const (
-	ReasonRevoked         = "revoked"
-	ReasonDisabled        = "disabled"
-	ReasonPackageMismatch = "package_mismatch"
-	ReasonGenerationStale = "generation_stale"
-	ReasonDrainExpired    = "drain_expired"
+	ReasonRevoked           = "revoked"
+	ReasonDisabled          = "disabled"
+	ReasonPackageMismatch   = "package_mismatch"
+	ReasonGenerationStale   = "generation_stale"
+	ReasonDrainExpired      = "drain_expired"
+	ReasonActivationInvalid = "activation_invalid"
 )
 
 // CheckActivation 核对扩展激活代次。撤权立即拒绝，排空中的调用也不例外；
@@ -114,6 +133,8 @@ func CheckActivation(presented Activation, state ActivationState, now time.Time)
 	switch {
 	case state.Revoked:
 		reason = ReasonRevoked
+	case !validShape("activation_ref", presented) || !validShape("activation_ref", state.Current):
+		reason = ReasonActivationInvalid
 	case presented.Generation == state.Current.Generation && presented != state.Current:
 		reason = ReasonPackageMismatch
 	case presented.Generation == state.Current.Generation && state.Enabled:
@@ -128,6 +149,8 @@ func CheckActivation(presented Activation, state ActivationState, now time.Time)
 				continue
 			}
 			switch {
+			case !validShape("activation_ref", d.Activation):
+				reason = ReasonActivationInvalid
 			case d.Activation != presented:
 				reason = ReasonPackageMismatch
 			case !now.Before(d.Deadline):
@@ -211,12 +234,17 @@ func EpochCode(s Subject) (errcode.Code, bool) {
 // CheckRecoveryEpoch 核对对象的恢复代次。整馆恢复后旧会话、旧执行轮次、
 // 旧授权都不能复活；未提交的旧操作需要对账，而不是直接继续。
 func CheckRecoveryEpoch(s Subject, presented, current int64) error {
-	if presented == current {
-		return nil
-	}
 	code, ok := epochCodes[s]
 	if !ok {
-		code = errcode.Forbidden
+		return errcode.New(errcode.Forbidden, "unknown recovery epoch subject").
+			WithDetails(errcode.Detail{Reason: "epoch_subject_unknown"})
+	}
+	if !validEpoch(presented) || !validEpoch(current) {
+		return errcode.New(code, "recovery epochs must be positive protocol integers").
+			WithDetails(errcode.Detail{Reason: "recovery_epoch_invalid"})
+	}
+	if presented == current {
+		return nil
 	}
 	return errcode.New(code, "issued before the current recovery epoch").
 		WithDetails(errcode.Detail{Reason: ReasonRecoveryEpoch, Data: map[string]any{
@@ -226,6 +254,10 @@ func CheckRecoveryEpoch(s Subject, presented, current int64) error {
 
 // CheckOperation 核对重复到达的 operation：同一 operation_id 只对应一个请求摘要。
 func CheckOperation(recorded, presented digest.Digest) error {
+	if !recorded.Valid() || !presented.Valid() {
+		return errcode.New(errcode.IdempotencyConflict, "operation request hashes must be valid digests").
+			WithDetails(errcode.Detail{Reason: "request_hash_invalid"})
+	}
 	if recorded == presented {
 		return nil
 	}
@@ -235,6 +267,10 @@ func CheckOperation(recorded, presented digest.Digest) error {
 // CheckStartKey 核对 adapter 启动键：同一 execution_key 只对应一个启动请求摘要；
 // 不同 Attempt 必须使用不同启动键。
 func CheckStartKey(recorded, presented digest.Digest) error {
+	if !recorded.Valid() || !presented.Valid() {
+		return errcode.New(errcode.StartKeyConflict, "start request hashes must be valid digests").
+			WithDetails(errcode.Detail{Reason: "request_hash_invalid"})
+	}
 	if recorded == presented {
 		return nil
 	}

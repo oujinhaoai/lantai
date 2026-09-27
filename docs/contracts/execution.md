@@ -29,6 +29,8 @@ M1 只交付契约与判定规则：**不启用任务服务、Agent 后端、一
 
 执行或作业结果在最终接受边界依次核对（与提交共用同一协调锁，时间取条件更新时的服务端时间；未给出时间时直接拒绝，不因零值时间放行）：
 
+公共 Go 守卫也自行检查凭据形状，不依赖调用方先经过 JSON schema。空 Attempt、非正规 ID、非正或超出协议整数范围的 fence/epoch、非法扩展身份或摘要，即使双方值相等也拒绝；权威当前状态同样不能以零值充当凭据。缺少有效凭据返回对应 `LEASE_STALE` / `EXTENSION_ACTIVATION_STALE`。
+
 1. **任务 fence**（`task_fence`：`attempt_id`、`lease_fence`、`recovery_epoch`，可带 `task_id`）。先比较 `recovery_epoch`，因为恢复后可能出现重复的 fence 数值；再比较 Attempt、fence、是否已终止、是否到期。
 2. **扩展激活**（`activation_ref`：扩展 ID、版本、包摘要、`activation_generation`）。撤权立即拒绝，排空中的调用也不例外；当前代次在启用时接受；正常升级后的旧代次、以及正常停用后的当前代次（停用时放入排空名单），只在排空名单内且未过期时接受；同版本换摘要一律拒绝。
 
@@ -36,18 +38,22 @@ M1 只交付契约与判定规则：**不启用任务服务、Agent 后端、一
 
 | 失败 | 错误码 | `details.reason` |
 |---|---|---|
+| fence 或当前租约形状非法 | `LEASE_STALE` | `fence_invalid` |
 | 恢复代次不同 | `LEASE_STALE` | `recovery_epoch_mismatch` |
 | Attempt 已被替代 | `LEASE_STALE` | `attempt_superseded` |
 | fence 不符 | `LEASE_STALE` | `fence_mismatch` |
 | Attempt 已终止（取消、超时回收） | `LEASE_STALE` | `attempt_terminated` |
 | 租约到期（`now >= expires_at`） | `LEASE_STALE` | `lease_expired` |
 | 扩展已撤权 | `EXTENSION_ACTIVATION_STALE` | `revoked` |
+| 激活身份形状非法 | `EXTENSION_ACTIVATION_STALE` | `activation_invalid` |
 | 扩展已停用且该代次不在排空名单 | `EXTENSION_ACTIVATION_STALE` | `disabled` |
 | 包 ID、版本或摘要与代次不符 | `EXTENSION_ACTIVATION_STALE` | `package_mismatch` |
 | 旧代次不在排空名单 | `EXTENSION_ACTIVATION_STALE` | `generation_stale` |
 | 排空期已过 | `EXTENSION_ACTIVATION_STALE` | `drain_expired` |
 
 同一 `operation_id` 携带不同请求摘要返回 `IDEMPOTENCY_CONFLICT`；同一 adapter `execution_key` 携带不同启动摘要返回 `START_KEY_CONFLICT`。不同 Attempt 必须使用不同启动键。
+
+摘要检查不把两个空串或畸形摘要视为同一已知请求；它们以相同冲突错误码和 `request_hash_invalid` 拒绝。恢复代次必须为协议范围内的正整数，非法值按对象类别的失效错误码拒绝；未知对象类别一律 `FORBIDDEN`，不能因代次相等而放行。
 
 ## 恢复代次的错误映射
 

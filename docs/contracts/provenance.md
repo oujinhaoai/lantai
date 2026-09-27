@@ -12,6 +12,10 @@ personal 读取另外要求 `personal.read`，其身份规则是普通项目读�
 
 启动时通过 `SetFiles(storage)` 与 `SetCatalog(catalog)` 接入权威文件及当前著录，在开放实例前完成接线；缺少 Catalog 时用途判断返回待核验。当前著录或冻结快照任一标记为 personal 都要求显式读取权。追加证据也同时要求当前目标读取权和 `provenance.append_evidence`，在写文件前及最终接受时复核。
 
-`ProducerVerifier` 是 T09 内置静态登记的只读接缝；没有登记时，带 producer 的证据明确拒绝，不信任自报 `builtin_release`，也不运行插件。T09 的完整登记实现仍由对应开发卡交付。M1 证据只记录未知外部输入和补充说明；RightsAssertion 的收紧/解除、安全用途确认和人审仍属于 M2，不通过普通证据接口启用。
+`ProducerVerifier` 接 T09 的可信内置静态登记，核对扩展 ID、版本、包摘要、贡献及来源，内置产物还绑定当前 `core_release_digest`；没有登记时，带 producer 的证据明确拒绝，不信任自报 `builtin_release`。该核对不执行插件。旧 v1 记录缺少核心发布摘要仍保持可读且摘要不变，但新接受必须具有当前可信登记。M1 证据只记录未知外部输入和补充说明；RightsAssertion 的收紧/解除、安全用途确认和人审仍属于 M2，不通过普通证据接口启用。
 
-所有写入调用使用实例的维护屏障；最终权威接受与撤权共享同一协调器。调用只读 `EvaluateUse` 的下载/提交/查询入口持有 security_guard 读锁，计算器不再次取得维护屏障或安全锁。测试使用临时目录和合成输入：`go test ./internal/provenance ./tests/integration`。这不等于整馆备份恢复、真实平台故障或 M1 总门禁通过。
+`RecoveryInventory` 只读列出尚未接受的持久 record intent，以及已接受记录的固定引用、摘要与修订链。它经 ledger reader 定位版本、经 storage 文件接口核对字节与身份，不联表读取其他所有者的数据。已落位但未接受的文件不进入 rights 判断；已接受文件缺失/损坏或修订链断裂作为权威异常报告。
+
+`RecoverOperation` 要求本实例有效维护上下文及原主体、会话、恢复代次，用原幂等键、operation/record ID 和冻结正文重放正常 `AppendEvidence` 接受流程，仍核对当前授权、目标清单与修订。application 先通过 identity `VerifySession` 取得可信上下文；旧代次、过期或撤权时保留待对账，不替换身份继续。
+
+所有写入调用使用实例的维护屏障；最终权威接受与撤权共享同一协调器。调用只读 `EvaluateUse` 的下载/提交/查询入口持有 security_guard 读锁，计算器不再次取得维护屏障或安全锁。测试使用临时目录和合成输入：`go test ./internal/provenance ./tests/integration`。新增恢复用例覆盖未接受文件不推进修订、同 record 恢复、旧代次拒绝与已接受证据损坏；完整平台与部署验收仍须使用对应环境的执行证据。

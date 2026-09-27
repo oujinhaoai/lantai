@@ -14,10 +14,13 @@ Lantai 管理图像、视频、音频、配置、文档，以及 3D 模型、动
 
 T05/T06 的 M1 交付为任务、流程与执行协议、状态判定、静态接口桩和正反例；没有启用任务租约服务、Flow 引擎或执行后端。T07 提供真实 REST 与薄 CLI：经会话完成项目/类型查询、可恢复上传与幂等提交、精确版本调阅/下载、条件著录更新、查询和 operation 状态。`lantai serve` 静态组装真实模块，提供分开的 API/传输内部监听、开发 merged 模式及仅本机运维端点；JSON 与文件传输采用独立连接池。
 
-本机命令包括 `init`、`migrate`、`doctor`、`recover-admin` 和 `serve`。对外 HTTPS 网关、安装包、生产部署与整馆备份恢复仍按 T08 单独交付；网页、MCP 和自动执行器尚未启用。下文描述设计目标，M1 整体流量、平台与恢复门禁以验收记录为准。
+T08 已提供共同备份与空目录恢复：四个权威库和可变文件在同一维护屏障捕获，持久 backup pin 保护原件复制，中断可续跑；恢复提升代际、撤销旧凭据、轮换主密钥，完成新管理员设置、索引重建及本机对账后才允许启动。`backup`、`backup-verify`、`restore`、`restore-complete`、`fsck`、`recover`、`reindex` 与既有 `init`、`migrate`、`doctor`、`recover-admin`、`serve` 构成本机命令；新升级要求完整备份。已提供单 HTTPS 网关、容器/systemd 通用模板、本机健康/就绪/指标与脱敏访问日志。T09 已实现统一清单和官方内置静态登记，可核验包及核心发布来源。
+
+网页、MCP、动态插件宿主和自动执行器尚未启用。生产部署、目标 NAS 流量、平台故障与整馆恢复的独立门禁仍须按实际环境验收；开发测试通过不等于 M1 整体门禁通过。
 
 - [架构与一级目录](docs/architecture.md)
 - [公共契约](docs/contracts/README.md)
+- [共同备份与恢复](docs/contracts/backup-restore.md) / [单网关部署模板](docs/deployment.md)
 - [开发与验证命令](docs/development.md)
 - [模块任务与开发顺序](docs/tasks/README.md)
 - [服务端、客户端与网页扩展设计](docs/extensions.md)
@@ -79,7 +82,7 @@ M1 预留协议，M2 先接手动 Agent 会话，M3 再接自动运行器与事�
 
 插件包统一使用 `extension.yaml`，schema 为 `lantai.extension/v1`，处理器字段也归入这份清单。M1 只实现统一清单、扩展点 ID、内置静态登记，以及产物和证据中的插件 ID、版本与包摘要；仅启用服务端/节点的 processor、validator 扩展点，CLI/Web 字段预留。通用依赖注入、跨插件依赖图与服务容器按实际需求另行建设。
 
-M2 通过文件协议运行一次性处理器（spawn/run/exit），补包治理、撤权、排空、熔断与显式 CLI 扩展；不要求常驻控制协议。M3 提供官方组件与声明式网页插槽，第三方网页隔离另按需求立项，不属于 M3 承诺。核心保留授权、提交、审定、发布与任务租约的最终判断，子进程不等于安全沙箱。[扩展设计](docs/extensions.md)是插件实现规格的唯一权威，[参考评估](docs/references/plugin-systems.md)提供依据，[T09 任务](docs/tasks/T09-extension-platform.md)记录实施范围；这些能力目前均未实现。
+M2 通过文件协议运行一次性处理器（spawn/run/exit），补包治理、撤权、排空、熔断与显式 CLI 扩展；不要求常驻控制协议。M3 提供官方组件与声明式网页插槽，第三方网页隔离另按需求立项，不属于 M3 承诺。核心保留授权、提交、审定、发布与任务租约的最终判断，子进程不等于安全沙箱。[扩展设计](docs/extensions.md)是插件实现规格的唯一权威，[参考评估](docs/references/plugin-systems.md)提供依据，[T09 任务](docs/tasks/T09-extension-platform.md)记录实施范围；M1 的清单与官方内置 `corecheck` 静态组件已实现；后续阶段的动态宿主与治理未启用。
 
 ## 一级目录
 
@@ -98,7 +101,7 @@ lantai/
 └── web/        # 独立构建和部署的网页工程
 ```
 
-源码随对应任务创建。目前已有 `cmd/lantai` 入口（含本机实例命令、服务启动与远程 CLI）、`internal/` 中的公共契约、命令组件、实例生命周期（`operations`）、身份模块（`identity`）、资源存储模块（`catalog`、`storage`）、台账与溯源（`ledger`、`provenance`）、事件与查询（`events`、`query`）、`internal/application` 的真实组装、`transport/httpapi` 与 `client`/`cli`、`tests/integration` 的跨模块集成测试、`schemas/` 的公共 schema 与正反例、`api/` 的公共 HTTP 契约和 `scripts/` 的生成与检查脚本；其余目录仍只有职责说明。生产数据、数据库、备份和本地配置放在仓库之外。具体边界见[目录说明](docs/architecture.md#top-level-layout)。
+源码随对应任务创建。目前已有 `cmd/lantai` 入口（含本机实例命令、服务启动与远程 CLI）、`internal/` 中的公共契约、命令组件、实例生命周期（`operations`）、身份模块（`identity`）、资源存储模块（`catalog`、`storage`）、台账与溯源（`ledger`、`provenance`）、事件与查询（`events`、`query`）、`extensions` 的内置登记、`operations` 的共同备份恢复、`internal/application` 的真实组装、`transport/httpapi` 与 `client`/`cli`、`tests/integration` 的跨模块集成测试、`schemas/` 的公共 schema 与正反例、`api/` 的公共 HTTP 契约和 `scripts/` 的生成与检查脚本；`deploy/` 含通用部署模板，`plugins/corecheck` 含官方静态组件；网页与 SDK 的后续实现按阶段加入。生产数据、数据库、备份和本地配置放在仓库之外。具体边界见[目录说明](docs/architecture.md#top-level-layout)。
 
 ## 路线
 

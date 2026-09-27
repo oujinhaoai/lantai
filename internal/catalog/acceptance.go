@@ -37,6 +37,14 @@ func (s *Service) VerifyAcceptance(ctx context.Context, who authz.Context, p com
 	if err != nil {
 		return err
 	}
+	if content.Producer != nil {
+		if s.producers == nil {
+			return errcode.New(errcode.SchemaInvalid, "producer has no trusted static registration")
+		}
+		if err := s.producers.VerifyProducer(ctx, *content.Producer); err != nil {
+			return err
+		}
+	}
 	if !slices.Equal(content.InstallFiles(), p.Files) {
 		return errcode.New(errcode.OperationNeedsReconciliation, "the frozen manifest files do not match the ledger reservation")
 	}

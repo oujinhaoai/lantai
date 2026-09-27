@@ -62,6 +62,7 @@ const (
 	CodeFileSystemUnknown   = "filesystem_unverified"
 	CodeDiskSpaceLow        = "disk_space_low"
 	CodeRecoveryFailed      = "recovery_failed"
+	CodeRestoreIncomplete   = "restore_incomplete"
 	CodeIndexRecreated      = "index_recreated"
 	CodeInvalidName         = "invalid_instance_name"
 )
@@ -144,12 +145,14 @@ type Instance struct {
 	notes    []Reason
 	statuses []DBStatus
 
-	bgCtx    context.Context
-	bgCancel context.CancelFunc
-	bgWG     sync.WaitGroup
-	bgTasks  []bgTask
-	bgErrs   []error
-	started  bool
+	bgCtx      context.Context
+	bgCancel   context.CancelFunc
+	bgWG       sync.WaitGroup
+	bgTasks    []bgTask
+	bgErrs     []error
+	started    bool
+	backupOnce sync.Once
+	backupLock chan struct{}
 }
 
 type bgTask struct {
@@ -474,6 +477,9 @@ func (i *Instance) assess(ctx context.Context) (fatal, blocking []Reason, status
 				run.RunID, clock.Format(run.StartedAt))})
 		}
 	}
+	if i.marker.Restore != nil {
+		blocking = append(blocking, Reason{CodeRestoreIncomplete, "backup restoration requires offline credential rotation and reconciliation before service can start"})
+	}
 	if r, ok := i.diskReason(); ok {
 		blocking = append(blocking, r)
 	}
@@ -563,7 +569,7 @@ type MigrationReport struct {
 // 标记；中途失败时标记保留，实例保持维护状态，重跑从各库未完成的版本继续，
 // 不重复已提交的迁移。全部库与格式满足兼容矩阵后才清除标记中的迁移记录。
 // 迁移不自动生成备份：升级真实数据前先按运维流程完成 complete 备份。
-func (i *Instance) Migrate(ctx context.Context) (MigrationReport, error) {
+func (i *Instance) migrate(ctx context.Context) (MigrationReport, error) {
 	rep := MigrationReport{Applied: map[ownership.Database][]int{}, Before: map[ownership.Database]int{},
 		After: map[ownership.Database]int{}, Matrix: i.src.matrix()}
 	i.mu.Lock()
@@ -825,6 +831,11 @@ func (i *Instance) Close(ctx context.Context) error {
 	i.mu.Unlock()
 	i.gate.Close(commands.ReasonStopping)
 	i.bgCancel()
+	releaseBackup, err := i.lockBackup(ctx)
+	if err != nil {
+		return fmt.Errorf("operations: backup copy did not drain; data root remains locked: %w", err)
+	}
+	defer releaseBackup()
 	var errs []error
 	done := make(chan struct{})
 	go func() {
@@ -925,7 +936,16 @@ func (i *Instance) InstanceID() ids.ID {
 func (i *Instance) Marker() Marker {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	return i.marker
+	m := i.marker
+	if m.Migration != nil {
+		r := *m.Migration
+		m.Migration = &r
+	}
+	if m.Restore != nil {
+		r := *m.Restore
+		m.Restore = &r
+	}
+	return m
 }
 
 // DB 返回某个库的连接；实例关闭后为 nil。

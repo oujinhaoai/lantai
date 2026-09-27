@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/processor-result.schema.json",
+  "title": "lantai.processor-result/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "status",
+    "files",
+    "records",
+    "checks",
+    "producer"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.processor-result/v1"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "unsupported"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 10000,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+          },
+          "sha256": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 1000,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "payload"
+        ],
+        "properties": {
+          "schema": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/contract_id"
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "maxItems": 1000,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/check-result.schema.json"
+      }
+    },
+    "producer": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+    }
+  }
+}

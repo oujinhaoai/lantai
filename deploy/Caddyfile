@@ -1,0 +1,57 @@
+{
+	admin off
+	persist_config off
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+	# 核心提供白名单 JSONL 访问日志。网关运行日志删除请求及可能含 URL 的错误。
+	log default {
+		output stderr
+		format filter {
+			wrap json
+			fields {
+				msg delete
+				request delete
+				uri delete
+				url delete
+				headers delete
+				resp_headers delete
+				error delete
+				err_trace delete
+			}
+		}
+	}
+}
+
+{$LANTAI_HTTPS_ADDRESS} {
+	bind {$LANTAI_GATEWAY_BIND:0.0.0.0}
+	tls {$LANTAI_TLS_CERT} {$LANTAI_TLS_KEY}
+	# 不启用网关访问日志；凭据、路径和签名 query 不能写入默认 access log。
+	log {
+		output discard
+	}
+	@api path /api/v1/*
+	handle @api {
+		reverse_proxy {$LANTAI_API_UPSTREAM:127.0.0.1:8080} {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 40s
+			}
+		}
+	}
+	@transfer path /xfer/v1/*
+	handle @transfer {
+		# 原样保留 Range、摘要、授权与幂等头；不剥离前缀、不缓冲完整请求。
+		reverse_proxy {$LANTAI_TRANSFER_UPSTREAM:127.0.0.1:8081} {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 2m
+			}
+		}
+	}
+	# 运维、pprof、未知 API 版本、未来路由均不公开。
+	handle {
+		respond 404
+	}
+}

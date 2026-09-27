@@ -276,7 +276,7 @@ func TestInterruptedMigrationResumes(t *testing.T) {
 		}
 		return nil
 	}})
-	if _, err := inst.Migrate(t.Context()); !errors.Is(err, boom) {
+	if _, err := inst.migrate(t.Context()); !errors.Is(err, boom) {
 		t.Fatalf("migrate = %v", err)
 	}
 	if got := appliedVersions(t, inst.DB(ownership.Main)); len(got) != migrations.Latest(ownership.Main) {
@@ -295,7 +295,7 @@ func TestInterruptedMigrationResumes(t *testing.T) {
 	if err := inst.Start(t.Context()); err == nil {
 		t.Fatal("must not start with an incomplete migration")
 	}
-	rep, err := inst.Migrate(t.Context())
+	rep, err := inst.migrate(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func hasReason(rs []Reason, code string) bool {
 func TestMigrateNoopAndRequiresUnstartedInstance(t *testing.T) {
 	home := createActive(t, Options{})
 	inst := open(t, home, Options{})
-	rep, err := inst.Migrate(t.Context())
+	rep, err := inst.migrate(t.Context())
 	if err != nil || !rep.Noop {
 		t.Fatalf("migrate up-to-date instance = %+v, %v", rep, err)
 	}
@@ -341,7 +341,7 @@ func TestMigrateNoopAndRequiresUnstartedInstance(t *testing.T) {
 	if err := inst.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := inst.Migrate(t.Context()); err == nil {
+	if _, err := inst.migrate(t.Context()); err == nil {
 		t.Fatal("migrating a running instance must be refused")
 	}
 }
@@ -667,7 +667,7 @@ func TestIncompleteMigrationFromNewerBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	inst := open(t, home, Options{})
-	if _, err := inst.Migrate(t.Context()); err != nil {
+	if _, err := inst.migrate(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if got := inst.Marker(); got.Migration != nil || got.DataFormatVersion != DataFormatVersion {

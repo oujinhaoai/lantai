@@ -1,6 +1,6 @@
 # 存储：内容库、上传、授权下载与安装
 
-状态：**M1 第一版，已实现并有自动化测试**（T02.2–T02.5 的 M1 部分）。实现：[`internal/storage`](../../internal/storage/)（子包 `fileop` 文件适配器、`transfer` 传输准入）。台账（T03）尚未实现，测试以 [`committest`](../../internal/contract/commit/committest/) 内存桩代替；用途与来源限制（T03.2）以 [`rightstest`](../../internal/contract/rights/rightstest/) 桩代替。接口面（创建上传会话、完成文件、签发读取授权）的 REST 接线属 T07；传输面处理器已实现，由 T07 挂到传输监听上。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。
+实现：[`internal/storage`](../../internal/storage/)（子包 `fileop` 文件适配器、`transfer` 传输准入）。应用组装接真实 ledger、provenance、identity；接口与传输面由 T07 复用同一服务，模块测试另保留契约桩。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。
 
 storage 只管字节与短期传输授权：版本是否提交由台账裁决，安装只产出 `installed` 证明。控制记录在 runtime.db 中本模块的表里（迁移 `runtime/0003.storage.transfers.sql`），字节在数据根下，只有服务进程写入；暂存接收、私有安装区组装、文件落位与持久记录均经实例写入口（维护屏障）。大文件传输与哈希不持有 `security_guard`；同分片、同操作的重试仍以局部互斥串行化，最终授权复核与短提交才取得 `security_guard`。
 
@@ -45,6 +45,8 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 - **到期不删除内容库中的原件**：已被 prepared 操作消费的内容由台账的提交 pin 保留，其余原件由 GC（M2，T02.6）按全部 pin 来源与引用核对后回收。storage 实现 `pin.Source`（`PinsFor`）供 GC 查询 upload pin。
 - 版本提交后 catalog 调用 `CompleteUpload` 关闭会话；本人可 `CancelUpload` 放弃。
 
+`ReconcilePins` 只在实际持有本实例维护屏障的上下文执行：依据 upload 的持久创建/关闭事实修复 pin，补齐已核验上传和来源复用的 Blob 集合；终态按原关闭时间释放，未知 owner 不删除，额外保留不缩减。失败同事务回滚。它不自动关闭上传、不调用 `SweepExpiredUploads`，也不删除暂存或 CAS。`PinsFor` 发现 owner 丢失或 pin 与 owner 不符时返回待对账错误，不能当作无保留；commit pin 由 ledger 派生，backup pin 由 operations 提供。
+
 ## 读取授权与下载
 
 - `IssueReadGrant` 按资产所在项目的当前 `storage.read_content` 权限（无权时 `NOT_FOUND`，不泄露版本或文件是否存在）、台账已提交状态、安装记录一致性与用途限制判定，签发绑定**主体、本人会话**、项目、资产、版本、文件路径、哈希、方法与用途的读取授权；默认 15 分钟且不超过会话有效期。返回的 `url` 是传输面的相对地址（`/xfer/v1/reads/{grant_id}?sig=…`），客户端不自行拼接内部监听地址。
@@ -65,9 +67,17 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 
 `Verify` 要求证明与签发的完全一致，并浅层核验清单文件哈希、文件存在与大小（适合在最终接受前调用）；`VerifyDeep` 逐字节复算，用于恢复对账与 fsck。`Quarantine` 把版本目录或私有安装区整体移入 `quarantine/<operation_id>/` 并记录原因，保留字节、之后不能再安装。`ScanOrphans` 只读列出没有匹配安装记录的版本目录与残留安装区；是否隔离由台账按操作证据决定，不能凭目录存在补记成功。`ReadManifest` 返回已提交版本的清单文件（核对哈希），供 catalog 读取。
 
+## 只读清单与 fsck
+
+`Inventory(ctx, deep)` 枚举全 CAS（包括未引用原件）、安装证明、上传状态、暂存区、追加记录和孤立安装目录。深度模式流式核对原件、安装文件及已接收分片摘要；已核验上传与安装文件的持久引用缺少 CAS 时报告异常。未知/不可读文件、符号链接及非普通文件列为 findings，不作为正常原件接受；坏安装记录不会触发按非法哈希寻址。所有引用均为实例内相对位置。
+
+`VerifyBlob`、`VerifyDeep`、`ReadManifest`、`ReadRecord` 拒绝不安全的文件位置；深哈希支持上下文取消，清单/记录读取有大小上限。只读核对不注册目录、不接受孤立证据、不释放 pin、不删文件。共同备份点由调用方持有维护屏障；application 将已提交事实损坏与未接受残留分开报告。
+
+`Stats` 只聚合 storage 所有的表，返回开放上传数、已持久接收的 pending 分片逻辑字节、活跃 upload pin 数与保留字节。未知暂存与未确认的在途字节不冒充精确磁盘统计；完整残留见 `Inventory`。M1 的 `GCSupported` 为 false。
+
 ## 证据追加适配器
 
-`AppendRecord` 把 [`lantai.evidence-record/v1`](../../schemas/storage/v1/evidence-record.schema.json) 记录以规范化 JSON 排他写入目标版本的记录区：目标必须是台账中已提交的版本，`manifest_digest` 必须与台账一致（否则 `PRECONDITION_FAILED`，防止把旧检查用于新版本）；`supersedes` 必须指向同一版本已有的记录（更正追加，不覆盖）；插件或内置处理器产出的记录带 `producer`（扩展 ID、版本与包摘要）。同一 `record_id` 同内容幂等、异内容 `IDEMPOTENCY_CONFLICT`。适配器只保证字节与目标绑定；谁能追加、记录是否被接受为证据由 provenance（T03）决定。
+`AppendRecord` 把 [`lantai.evidence-record/v1`](../../schemas/storage/v1/evidence-record.schema.json) 记录以规范化 JSON 排他写入目标版本的记录区：目标必须是台账中已提交的版本，`manifest_digest` 必须与台账一致（否则 `PRECONDITION_FAILED`，防止把旧检查用于新版本）；`supersedes` 必须指向同一版本已有的记录（更正追加，不覆盖）；插件或内置处理器产出的记录带 `producer`（扩展 ID、版本、包摘要、贡献与来源；新接受的 `builtin_release` 另固定 `core_release_digest`，旧 v1 记录按原字节与摘要读取）。同一 `record_id` 同内容幂等、异内容 `IDEMPOTENCY_CONFLICT`。适配器只保证字节与目标绑定；谁能追加、记录是否被接受为证据由 provenance（T03）决定。
 
 ## 传输准入（T02.5）
 
@@ -85,4 +95,4 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 - 自动化测试：`go test ./internal/storage/... ./tests/integration/`。其中安装器通过与内存桩相同的契约套件，集成测试接真实身份模块验证撤权后的下一个 Range 请求被拒。大文件续传测试默认 32 MiB；`LANTAI_TEST_LARGE_MB=1024 go test -run TestLargeResumableTransfer -v ./tests/integration/` 运行 1 GiB 规模（上传中途断开、只补缺的分片、分两段 Range 下载后整件哈希一致，并记录堆占用增长）。
 - 硬链接回退、空间不足、文件占用与改名失败通过故障注入验证；三个平台真实文件系统上的断电与占用演练属 TEST-M1-06，目标 NAS 上的吞吐与 p95 属 TEST-M1-04/10。
 - Windows 上删除只读硬链接会清除整份文件（含内容库原件）的只读属性；安装成功后重新设置。只读只是防误改的附加措施，完整性由哈希保证。
-- 台账、用途限制与 GC 是桩或未实现：真实台账接入后须通过同一契约套件，并与 T03 联测崩溃恢复（TEST-M1-03/06）。
+- 台账、用途限制与恢复分派已有真实集成测试；M1 不启用物理 GC。恢复/备份接口不代替目标设备断电演练。

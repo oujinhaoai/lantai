@@ -1,0 +1,22 @@
+{
+  "description": "形状有效的固定输入；内嵌manifest内容仍由validator复验",
+  "schema": "lantai.check-input/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.check-input/v1",
+    "ref": {
+      "instance_id": "01K00000000000000000000000",
+      "asset_id": "01K00000000000000000000001",
+      "version_id": "01K00000000000000000000002"
+    },
+    "manifest_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "profile_ref": {
+      "instance_id": "01K00000000000000000000000",
+      "asset_id": "01K00000000000000000000003",
+      "version_id": "01K00000000000000000000004"
+    },
+    "manifest": {
+      "contract": "lantai.manifest/v1"
+    }
+  }
+}

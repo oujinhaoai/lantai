@@ -35,6 +35,7 @@ type ContentInput struct {
 	Uses        json.RawMessage `json:"uses,omitempty"`
 	Rights      json.RawMessage `json:"rights,omitempty"`
 	Metadata    json.RawMessage `json:"metadata,omitempty"`
+	Producer    json.RawMessage `json:"producer,omitempty"`
 }
 type InputFile struct {
 	Path   string `json:"path"`

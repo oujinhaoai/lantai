@@ -1,6 +1,6 @@
 # 目录：路径规则、清单、引用与说明修订
 
-状态：**M1 第一版，已实现并有自动化测试**（T02.1 与 T02.4 的说明修订部分）。实现：[`internal/catalog`](../../internal/catalog/)（子包 `pathrule` 跨平台路径规则、`manifest` 清单与类型）。台账（T03）尚未实现，测试以 [`committest`](../../internal/contract/commit/committest/) 内存桩代替，真实台账须通过同一契约套件。REST/CLI 接线属 T07。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。
+实现：[`internal/catalog`](../../internal/catalog/)（子包 `pathrule` 跨平台路径规则、`manifest` 清单与类型）。应用组装接真实台账、身份与来源限制模块，REST/CLI 通过 T07 调用同一领域服务；模块单测保留 [`committest`](../../internal/contract/commit/committest/) 桩，真实 SQLite 与跨模块恢复另有集成测试。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。
 
 catalog 没有数据库表：说明与别名历史是数据根下的文件（内容真源）；哪个修订生效、路径由谁占用、版本是否提交由台账裁决（[`commit`](../../internal/contract/commit/commit.go) 接口）；字节由 [storage](storage.md) 管理。catalog 的文件写入与业务写入一样经实例写入口，服从维护屏障。
 
@@ -20,10 +20,12 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 [`lantai.manifest/v1`](../../schemas/catalog/v1/manifest.schema.json) 是版本目录中的 `manifest.yaml`：
 
 - `content` 是冻结的版本内容：类型、`type_schema`（类型定义库 `lantai.asset-types/v1`）、可选的 `base_version_id` 与版本说明、文件（相对路径、角色、哈希、大小，按路径字节序）、固定的 `uses` 永久引用（带实例 ID 与关系，`declared` 保留书写的引用作快照）、许可声明 `rights`（用途、SPDX 许可表达式、`redistribute_raw`、`noai`、IPTC 数字来源类型、敏感级别）与类型元数据。
-- **`manifest_digest` = content 按 RFC 8785 规范化后的 SHA-256**，不含台账分配的版本 ID 与版本号，因此能在台账保留版本之前冻结并交给 `Prepare`。文件其余字段是台账分配的身份与提交者，写入文件便于库丢失时由文件重建；读取时核对摘要与身份和台账一致。
+- **`manifest_digest` = content 按 RFC 8785 规范化后的 SHA-256**，不含台账分配的版本 ID 与版本号，因此能在台账保留版本之前冻结并交给 `Prepare`。文件其余字段是台账分配的身份与提交者，写入文件供恢复核对；文件本身不能补造 committed 事实。读取时核对摘要与身份和台账一致。
 - 渲染为确定性 YAML：同一内容总是得到相同字节，读回后的规范化 JSON 与原值相同。
 - 规范化（`manifest.Normalize`）：路径按上节规则处理；角色取 `primary`、`source`、`interchange`、`texture`、`recipe`、`record`、`preview`、`doc`；许可表达式只核对语法，不推导法律兼容性；元数据按类型定义校验，**未登记的顶层字段移入 `extra`、不拒收**，与 `extra` 中的同名不同值冲突时拒绝；许可、用途、敏感级别等安全字段出现在元数据中一律拒绝（`reserved_metadata_field`），必须在 `rights` 中声明。
 - 资产类型：`image`、`video`、`audio`、`doc`、`config`、`plugin`、`model`、`motion`、`scene`、`production`；类型建立后不变，追加版本换类型返回 `SCHEMA_INVALID`（`asset_type_immutable`）。
+
+`content.producer` 可选，固定扩展 ID、版本、包摘要、贡献 ID 与来源。新接受的内置来源 `builtin_release` 还必须固定核心发布摘要 `core_release_digest`；旧 v1 文件缺少该字段仍按原字节与摘要读取，不能自动补值或用于新接受。来源身份进入请求摘要与冻结清单摘要。`Deps.Producers` / 启动时 `SetProducers` 注入 T09 的可信静态登记，最终 `VerifyAcceptance` 核对冻结的身份与当前登记，不执行第三方同步钩子；缺少登记时拒绝带 producer 的提交。
 
 ## 入藏：CommitVersion
 
@@ -34,7 +36,7 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 3. 规范化并冻结清单，冻结内容按操作与摘要暂存到 `staging/frozen/`；首版说明补丁在保留之前校验。
 4. 台账 `Prepare`：保留资产与版本身份、版本号与新资产的占名（代次）。
 5. storage `Install`，失败时：清单与已上传内容不符（`HASH_MISMATCH` 等）同一请求重试也不会成功，放弃操作以释放保留；缺少授权（`BLOB_GRANT_REQUIRED`）、空间不足、文件占用等保留 prepared，补救后以**同一幂等键**重试。
-6. 台账 `Commit`：在统一维护屏障与 `security_guard` 共享锁内调用本地只读 `AcceptanceVerifier`，复验当前项目状态、调用者权限、冻结内容中的每个输入版本及其用途限制、BlobGrant；保持同一锁直到提交，版本此时对外可见。这是核心模块间接口，不是插件或网络钩子。
+6. 台账 `Commit`：在统一维护屏障与 `security_guard` 共享锁内调用本地只读 `AcceptanceVerifier`，复验当前项目状态、调用者权限、冻结内容中的每个输入版本及其用途限制、BlobGrant 与生产者静态登记；保持同一锁直到提交，版本此时对外可见。这是核心模块间接口，不是插件或网络钩子。
 7. 提交后（各自幂等，失败不改变已提交的结果）：关闭上传会话、删除冻结内容、新建资产时写别名历史与第一个说明修订（由提交操作派生的子操作；失败时结果标 `description_pending`，重试补完）。
 
 同一幂等键重放返回同一版本，不会产生第二个版本；已提交的操作直接返回原结果。若崩溃发生在 prepared 之后，而其间浮动引用（如 `@latest`）已解析到新版本，重试时还原冻结时的内容，不采用重新解析的结果。`CancelVersion` 由本人放弃尚未提交的入藏：台账释放保留（新资产的占名不消耗代次），上传会话关闭。
@@ -70,8 +72,14 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 
 `GetProject`、`GetAsset`（登记、当前说明、占名与最新版本）、`GetVersion`（已提交版本与冻结清单）都不依赖检索索引；无权读取时 `NOT_FOUND`。
 
+## 恢复与文件核对
+
+- `CheckFiles(ctx, metadata)` 使用 ledger 提供的全部已提交修订历史，核对项目/资产不可变修订的摘要、schema 与身份，检查当前快照、冻结文件及别名历史。未接受修订文件只作为残留列出，不切换生效指针。证据文件由 storage/provenance 各自核对。
+- `RecoverVersion` 只从原 operation 的冻结内容恢复安装与提交，`RecoverMetadata` 只接受已经写出且摘要相符的原修订；两者要求仍有效的维护上下文，最终授权与原 recovery epoch 仍由台账复验。缺失修订不能从当前快照猜测重建。
+- `RepairSnapshots` 在维护屏障下只用当前已提交且已核验的历史修订补快照；`RepairAliasHistory` 按已提交资产补缺失别名历史。损坏的权威历史或冲突的别名记录不被覆盖。
+- application 恢复分派先通过 identity 验证原会话与主体/代次，再调用这些入口；失效会话只报告待对账，保持原 operation 与 pin。深度 fsck 发现已提交权威证据损坏时拒绝启动/备份。
+
 ## 限制
 
-- 台账、用途限制是桩：占名、版本号保留、说明修订生效、项目登记与已提交读取的真实实现属 T03（DEV-T03-01/02）；接入后须通过 [`committest.RunLedgerContract`](../../internal/contract/commit/committest/contract.go)。
 - 资产移动、名称释放、回收站与发布别名属 M2；`@published`、`@approved` 在 M1 没有提供者。
 - 目标 NAS 上的规模、三平台文件语义与故障矩阵属 TEST-M1-03/06/07。

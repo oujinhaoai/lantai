@@ -1,0 +1,25 @@
+{
+  "description": "兼容v1旧builtin来源记录的形状；缺少发布绑定只能历史读取，Registry.VerifyProducer拒绝新的接受",
+  "schema": "lantai.check-result/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.check-result/v1",
+    "ref": {
+      "instance_id": "01K00000000000000000000000",
+      "asset_id": "01K00000000000000000000001",
+      "version_id": "01K00000000000000000000002"
+    },
+    "manifest_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "verdict": "fail",
+    "findings": [
+      "manifest_identity_or_content_invalid"
+    ],
+    "producer": {
+      "extension_id": "org.lantai.corecheck",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "builtin_release",
+      "contribution_id": "org.lantai.corecheck.manifest"
+    }
+  }
+}

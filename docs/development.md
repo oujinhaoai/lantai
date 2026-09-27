@@ -31,7 +31,13 @@
 | REST 与 CLI 纵向联调（merged / split、身份管理、提交丢响应后重启恢复） | `go test -run 'TestRemoteCLIStorage\|TestRemoteIdentityAdministration' -v ./tests/integration/` |
 | HTTPS 客户端 1 GiB 上传/下载双向中断续传 | `LANTAI_TEST_LARGE_MB=1024 go test -run TestRemoteResumableTransfer -v ./tests/integration/` |
 | 只读诊断数据根 | `go run ./cmd/lantai doctor -home <数据根> [-json]` |
-| 应用待执行的迁移 | `go run ./cmd/lantai migrate -home <数据根>` |
+| 应用待执行的迁移 | `go run ./cmd/lantai migrate -home <数据根> -backup <完整备份>` |
+| 共同备份与完整校验 | `go run ./cmd/lantai backup -home <数据根> -destination <空备份目录>`；`go run ./cmd/lantai backup-verify -backup <备份目录>` |
+| 空目录恢复（保持维护状态） | `go run ./cmd/lantai restore -home <空目录> -backup <完整备份> -key-dir <单独恢复的原密钥目录>` |
+| 领域核验 / 恢复分派 / 索引重建 | `go run ./cmd/lantai fsck -home <数据根>`；`recover`；`reindex` |
+| 完成恢复对账 | `go run ./cmd/lantai restore-complete -home <数据根> -review review.json -evidence review.txt` |
+| 共同备份恢复与 CLI 集成 | `go test -run TestCommonBackup ./tests/integration/`；`go test -run TestLocalBackupRestoreCommandLifecycle ./cmd/lantai/` |
+| 真实 Caddy HTTPS 模板隔离验证 | `LANTAI_TEST_CADDY=<已校验的caddy绝对路径> go test -run TestCaddySingleHTTPSGateway -v ./deploy/` |
 | 单管理员本机离线恢复（交互式） | `go run ./cmd/lantai recover-admin -home <数据根> -admin <名称>` |
 | Argon2id 默认参数在本机的耗时 | `go test -run '^$' -bench Default ./internal/identity/password/` |
 | 跨模块集成测试（真实实例、身份、存储、目录、台账、来源限制、事件与查询） | `go test ./tests/integration/` |
@@ -43,11 +49,11 @@
 
 本机实例/schema 命令退出码：0 成功；1 校验或实例状态拒绝；2 用法错误；3 读写或内部错误。远程 CLI 以 JSON 输出，0 成功，1 领域拒绝，2 输入错误，3 读写/协议错误，4 冲突或旧 ETag，5 认证失败，6 可重试/限流，130 取消。详见[薄 CLI](contracts/client.md)。
 
-初始化、迁移与离线恢复命令只能在服务端本机、服务停止时对数据根运行（`doctor` 只读，运行中也可用；`serve` 持有同一数据根锁运行服务）；`-home` 缺省时取环境变量 `LANTAI_HOME`。数据根、主密钥与口令都是真实凭据相关资料，开发与测试只用临时目录。`init` 与 `recover-admin` 在终端上不回显口令，验证器种子与恢复码只展示一次；输入不是终端时（例如脚本化测试）会给出提示。规则见[实例生命周期](contracts/instance.md)与[身份与授权](contracts/identity.md)。
+初始化、迁移与离线恢复命令只能在服务端本机、服务停止时对数据根运行（`doctor` 只读，运行中也可用；`serve` 持有同一数据根锁运行服务）；`-home` 缺省时取环境变量 `LANTAI_HOME`。数据根、主密钥与口令都是真实凭据相关资料，开发与测试只用临时目录。`init` 与 `recover-admin` 在终端上不回显口令，验证器种子与恢复码只展示一次；输入不是终端时（例如脚本化测试）会给出提示。备份、恢复阶段与升级步骤见[备份恢复](contracts/backup-restore.md)。规则见[实例生命周期](contracts/instance.md)与[身份与授权](contracts/identity.md)。
 
 ## 服务与远程 CLI
 
-先使用本机 `init` 完成首个管理员的口令/TOTP 设置，再运行 `serve`。启动检查身份状态，收录持久 outbox 并重建/追平索引，成功后才开放监听；后台继续推进 outbox、查询与审计导出，不自动迁移、确认备份或裁剪。关闭时停止 HTTP、取消并排空后台任务，再关闭五库并释放锁。
+先使用本机 `init` 完成首个管理员的口令/TOTP 设置，再运行 `serve`。启动在共同维护上下文中检查身份状态、登记内置扩展、恢复原操作并深度核验领域文件，收录持久 outbox 并重建/追平索引，成功后才开放监听；后台继续推进 outbox、查询与审计导出，不自动迁移或裁剪；完成备份的命令会确认其冻结水位。关闭时停止 HTTP、取消并排空后台任务，再关闭五库并释放锁。
 
 数据根的可选 `config.yaml`（不含任何凭据）：
 
@@ -70,11 +76,11 @@ transfer:
   batch_bytes_per_second_while_interactive: 0
 ```
 
-这些是核心内部地址。对外只通过一个 HTTPS 网关路由 `/api/` 与 `/xfer/`，运维 `/healthz`、`/readyz` 只在数字 loopback 地址开放；核心不提供 TLS 证书安装或网关部署命令。开发 `-merged` 共用 API 监听，客户端只有在显式 `--allow-http` 时才接受本机 loopback HTTP。API 的 JSON 限额不限制分片流；文件传输使用逐次 I/O 空闲超时。带宽 0 代表不限，具体限额须在目标环境实测。
+这些是核心内部地址。对外只通过一个 HTTPS 网关路由 `/api/` 与 `/xfer/`，运维 `/healthz`、`/readyz`、`/metrics` 只在数字 loopback 地址开放；[部署模板](deployment.md)提供 Caddy、容器和 systemd 配置，实际证书安装与目标环境部署由运维执行。开发 `-merged` 共用 API 监听，客户端只有在显式 `--allow-http` 时才接受本机 loopback HTTP。API 的 JSON 限额不限制分片流；文件传输使用逐次 I/O 空闲超时。带宽 0 代表不限，具体限额须在目标环境实测。
 
 CLI 会话保存在显式选择的私有文件中（Unix 0600、Windows 仅当前用户 ACL），凭据、口令和验证码不经命令行参数或普通输出。使用 `login --credentials-file` 或 `session exchange --token-file`，后续命令指定同一个 `--session-file`；通过 `meta` 查询能力。项目角色及 Agent 凭据通过 `identity challenge → verify → execute` 复用服务端 HumanGrant；管理员不会自动获得新项目的读取角色。`push` 固定原 create/commit 键到 `--state`，中断后重复同一命令；`pull` 只搬运清单声明文件并逐件验证 SHA-256。完整输入示例和命令见[客户端契约](contracts/client.md)，REST 见[HTTP 契约](contracts/http.md)。
 
-T05/T06 的 M1 仅为协议与静态桩；没有任务/执行运行服务。外部 TLS/网关部署、整馆备份恢复、目标 NAS 流量 p95 和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
+T05/T06 的 M1 仅为协议与静态桩；没有任务/执行运行服务。共同备份/空目录恢复、内置扩展登记和单 HTTPS 网关模板已经实现；目标 NAS 流量 p95、Docker/systemd 实际部署和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
 
 ## 生成物
 

@@ -1220,6 +1220,8 @@ components:
         metadata:
           additionalProperties: true
           type: object
+        producer:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/producer_ref
         rights:
           $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/rights
         uses:

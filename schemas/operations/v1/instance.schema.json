@@ -16,12 +16,21 @@
     "updated_at"
   ],
   "properties": {
-    "contract": { "const": "lantai.instance/v1" },
-    "instance_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-    "name": { "$ref": "#/$defs/instance_name" },
+    "contract": {
+      "const": "lantai.instance/v1"
+    },
+    "instance_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "name": {
+      "$ref": "#/$defs/instance_name"
+    },
     "state": {
       "description": "initializing：初始化尚未完成，只能由 lantai init 继续；active：已完成初始化。",
-      "enum": ["initializing", "active"]
+      "enum": [
+        "initializing",
+        "active"
+      ]
     },
     "data_format_version": {
       "description": "数据目录与各库满足的数据格式版本（实例兼容矩阵的版本号）。",
@@ -29,19 +38,98 @@
       "minimum": 1,
       "maximum": 1000000
     },
-    "recovery_epoch": { "$ref": "../../common/v1/defs.schema.json#/$defs/epoch" },
-    "created_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
-    "updated_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
+    "recovery_epoch": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "created_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "updated_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    },
     "migration": {
       "description": "进行中或中断的迁移；全部库与格式满足兼容矩阵后移除。",
       "type": "object",
       "additionalProperties": false,
-      "required": ["run_id", "started_at", "from_format_version", "target_format_version"],
+      "required": [
+        "run_id",
+        "started_at",
+        "from_format_version",
+        "target_format_version"
+      ],
       "properties": {
-        "run_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
-        "started_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" },
-        "from_format_version": { "type": "integer", "minimum": 1, "maximum": 1000000 },
-        "target_format_version": { "type": "integer", "minimum": 1, "maximum": 1000000 }
+        "run_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "started_at": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+        },
+        "from_format_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "target_format_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "backup_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "backup_digest": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+        }
+      },
+      "dependentRequired": {
+        "backup_id": [
+          "backup_digest"
+        ],
+        "backup_digest": [
+          "backup_id"
+        ]
+      }
+    },
+    "restore": {
+      "description": "恢复中持久关闸，凭据轮换、领域核验、索引重建和本机对账完成前禁止启动。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "backup_id",
+        "manifest_digest",
+        "stage",
+        "source_epoch",
+        "started_at",
+        "source_key_id"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "backup_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "manifest_digest": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+        },
+        "stage": {
+          "enum": [
+            "copying",
+            "credentials_required",
+            "key_required",
+            "reconciliation_required"
+          ]
+        },
+        "source_epoch": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+        },
+        "started_at": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+        },
+        "source_key_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        }
       }
     }
   },

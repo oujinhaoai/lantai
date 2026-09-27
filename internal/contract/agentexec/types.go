@@ -125,11 +125,12 @@ type ArtifactFile struct {
 	Size   int64  `json:"size"`
 }
 type Producer struct {
-	ExtensionID      string        `json:"extension_id"`
-	ExtensionVersion string        `json:"extension_version"`
-	PackageDigest    digest.Digest `json:"package_digest"`
-	Source           string        `json:"source"`
-	ContributionID   string        `json:"contribution_id,omitempty"`
+	CoreReleaseDigest digest.Digest `json:"core_release_digest,omitempty"`
+	ExtensionID       string        `json:"extension_id"`
+	ExtensionVersion  string        `json:"extension_version"`
+	PackageDigest     digest.Digest `json:"package_digest"`
+	Source            string        `json:"source"`
+	ContributionID    string        `json:"contribution_id,omitempty"`
 }
 type ArtifactCandidate struct {
 	Contract            string         `json:"contract"`

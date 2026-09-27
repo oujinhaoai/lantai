@@ -1,0 +1,23 @@
+{
+  "description": "check-input/missing-profile.json",
+  "schema": "lantai.check-input/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.check-input/v1",
+    "ref": {
+      "instance_id": "01K00000000000000000000000",
+      "asset_id": "01K00000000000000000000001",
+      "version_id": "01K00000000000000000000002"
+    },
+    "manifest_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "manifest": {
+      "contract": "lantai.manifest/v1"
+    }
+  },
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ]
+}

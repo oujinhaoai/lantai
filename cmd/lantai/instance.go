@@ -185,9 +185,10 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	fs := flag.NewFlagSet("migrate", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	home := homeFlag(fs)
+	backup := fs.String("backup", "", "升级前已验证的共同备份目录；已绑定的中断迁移可省略")
 	asJSON := fs.Bool("json", false, "输出 JSON")
 	if err := fs.Parse(args); err != nil || fs.NArg() != 0 || *home == "" {
-		fmt.Fprintln(stderr, "usage: lantai migrate -home <data root> [-json]")
+		fmt.Fprintln(stderr, "usage: lantai migrate -home <data root> [-backup <complete backup>] [-json]")
 		return exitUsage
 	}
 	inst, err := operations.Open(ctx, operations.Options{Home: *home})
@@ -195,7 +196,7 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		return reportStartup(stderr, "migrate", err)
 	}
 	defer inst.Close(context.Background())
-	rep, err := inst.Migrate(ctx)
+	rep, err := inst.Migrate(ctx, *backup)
 	if err != nil {
 		reportStartup(stderr, "migrate", err)
 		fmt.Fprintln(stderr, "the instance stays in maintenance; run lantai migrate again after fixing the cause")
@@ -329,24 +330,40 @@ func runRecoverAdmin(ctx context.Context, args []string, stdout, stderr io.Write
 		fmt.Fprintln(stderr, "lantai recover-admin:", err)
 		return exitInternal
 	}
+	if r := inst.Marker().Restore; r != nil && r.Stage != "reconciliation_required" {
+		fmt.Fprintln(stderr, "lantai recover-admin: finish the restore credential invalidation/key step first")
+		return exitInvalid
+	}
+	code := exitInternal
+	err = inst.OfflineMaintenance(ctx, func(c context.Context) error {
+		code = resetAdministrator(c, inst, svc, *admin, *note, stdout, stderr)
+		return nil
+	})
+	if err != nil {
+		return reportStartup(stderr, "recover-admin", err)
+	}
+	return code
+}
+
+func resetAdministrator(ctx context.Context, inst *operations.Instance, svc *identity.Service, admin, note string, stdout, stderr io.Writer) int {
 	p := newPrompter(stderr)
-	fmt.Fprintf(stderr, "This resets the password and authenticator of administrator %s on instance %s.\n", *admin, inst.InstanceID())
+	fmt.Fprintf(stderr, "This resets the password and authenticator of administrator %s on instance %s.\n", admin, inst.InstanceID())
 	fmt.Fprintln(stderr, "All of their sessions, pending authorizations and recovery codes stop working.")
-	confirm, err := p.line(fmt.Sprintf("Type \"RESET %s\" to continue: ", *admin))
-	if err != nil || confirm != "RESET "+*admin {
+	confirm, err := p.line(fmt.Sprintf("Type \"RESET %s\" to continue: ", admin))
+	if err != nil || confirm != "RESET "+admin {
 		fmt.Fprintln(stderr, "lantai recover-admin: not confirmed; nothing was changed")
 		return exitInvalid
 	}
-	pw, err := p.newPassword(*admin)
+	pw, err := p.newPassword(admin)
 	if err != nil {
 		fmt.Fprintln(stderr, "lantai recover-admin:", err)
 		return exitInvalid
 	}
-	o, err := svc.BeginOfflineReset(ctx, *admin, pw)
+	o, err := svc.BeginOfflineReset(ctx, admin, pw)
 	if err != nil {
 		return reportStartup(stderr, "recover-admin", err)
 	}
-	showEnrollment(stdout, *admin, o.Enrollment)
+	showEnrollment(stdout, admin, o.Enrollment)
 	var codes []string
 	for attempt := 1; ; attempt++ {
 		code, err := p.line("Enter the current 6-digit code from the new authenticator: ")
@@ -354,7 +371,7 @@ func runRecoverAdmin(ctx context.Context, args []string, stdout, stderr io.Write
 			fmt.Fprintln(stderr, "lantai recover-admin:", err)
 			return exitInvalid
 		}
-		codes, err = o.Confirm(ctx, code, *note)
+		codes, err = o.Confirm(ctx, code, note)
 		if err == nil {
 			break
 		}
@@ -363,11 +380,11 @@ func runRecoverAdmin(ctx context.Context, args []string, stdout, stderr io.Write
 		}
 		fmt.Fprintln(stderr, "that code did not match; enter the current code")
 	}
-	if err := appendLocalAudit(inst.Layout().Home, inst.InstanceID(), o.Principal(), *note); err != nil {
+	if err := appendLocalAudit(inst.Layout().Home, inst.InstanceID(), o.Principal(), note); err != nil {
 		fmt.Fprintln(stderr, "lantai recover-admin: the reset is committed but the local audit line could not be written:", err)
 	}
 	showRecoveryCodes(stdout, codes)
-	fmt.Fprintf(stdout, "\n%s can sign in again with the new password and authenticator once the server is started.\n", *admin)
+	fmt.Fprintf(stdout, "\n%s can sign in again with the new password and authenticator once the server is started.\n", admin)
 	return exitOK
 }
 

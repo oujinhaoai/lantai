@@ -41,6 +41,13 @@
     { "contract": "lantai.execution-capabilities/v1", "path": "agent-execution/v1/execution-capabilities.schema.json", "kind": "document", "owner": "T06" },
     { "contract": "lantai.agent-request/v1", "path": "agent-execution/v1/agent-request.schema.json", "kind": "document", "owner": "T06" },
     { "contract": "lantai.agent-result/v1", "path": "agent-execution/v1/agent-result.schema.json", "kind": "document", "owner": "T06" },
-    { "contract": "lantai.agent-response/v1", "path": "agent-execution/v1/agent-response.schema.json", "kind": "document", "owner": "T06" }
+    { "contract": "lantai.agent-response/v1", "path": "agent-execution/v1/agent-response.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.extension/v1", "path": "extensions/v1/extension.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.check-input/v1", "path": "extensions/v1/check-input.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.check-result/v1", "path": "extensions/v1/check-result.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.processor-input/v1", "path": "extensions/v1/processor-input.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.processor-result/v1", "path": "extensions/v1/processor-result.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.backup/v1", "path": "operations/v1/backup.schema.json", "kind": "document", "owner": "T08" },
+    { "contract": "lantai.recovery-review/v1", "path": "operations/v1/recovery-review.schema.json", "kind": "document", "owner": "T08" }
   ]
 }

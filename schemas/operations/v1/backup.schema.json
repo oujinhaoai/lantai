@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v1/backup.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "backup_id",
+    "instance_id",
+    "recovery_epoch",
+    "state",
+    "created_at",
+    "matrix",
+    "key_id",
+    "watermarks",
+    "files",
+    "blobs"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.backup/v1"
+    },
+    "backup_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "instance_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "recovery_epoch": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "state": {
+      "enum": [
+        "copying",
+        "complete"
+      ]
+    },
+    "created_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "completed_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_format_version",
+        "databases"
+      ],
+      "properties": {
+        "data_format_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "databases": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "main",
+            "ledger",
+            "runtime",
+            "events"
+          ],
+          "properties": {
+            "main": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "ledger": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "runtime": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "events": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            }
+          }
+        }
+      }
+    },
+    "key_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "watermarks": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "stored",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "stored": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "sha256": {
+            "$ref": "../../common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "blobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "stored",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "stored": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "sha256": {
+            "$ref": "../../common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    }
+  },
+  "title": "CommonPointBackup",
+  "description": "仅 copying/complete 是已冻结的共同恢复点。capturing 是本机私有工作记录，不可恢复。COMPLETE 绑定清单摘要且全部文件/数据库复核成功才可 restore。密钥只记录单独恢复引用。",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "completed_at"
+        ]
+      }
+    }
+  ]
+}

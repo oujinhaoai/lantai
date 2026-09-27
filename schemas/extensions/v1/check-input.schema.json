@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/check-input.schema.json",
+  "title": "lantai.check-input/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "ref",
+    "manifest_digest",
+    "profile_ref",
+    "manifest"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.check-input/v1"
+    },
+    "ref": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+    },
+    "manifest_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "profile_ref": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+    },
+    "manifest": {
+      "type": "object"
+    }
+  }
+}

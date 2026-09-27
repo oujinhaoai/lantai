@@ -1,0 +1,61 @@
+{
+  "description": "完整共同恢复点清单；数据字节由VerifyBackup另行核验",
+  "schema": "lantai.backup/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.backup/v1",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "recovery_epoch": 2,
+    "state": "complete",
+    "created_at": "2026-09-28T00:00:00.000Z",
+    "completed_at": "2026-09-28T00:01:00.000Z",
+    "matrix": {
+      "data_format_version": 1,
+      "databases": {
+        "main": 1,
+        "ledger": 1,
+        "runtime": 1,
+        "events": 1
+      }
+    },
+    "key_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "watermarks": {
+      "events": 7,
+      "audit": 7
+    },
+    "files": [
+      {
+        "path": "instance.json",
+        "stored": "instance.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 64
+      },
+      {
+        "path": "db/main.db",
+        "stored": "db/main.db",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 64
+      },
+      {
+        "path": "db/ledger.db",
+        "stored": "db/ledger.db",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 64
+      },
+      {
+        "path": "db/runtime.db",
+        "stored": "db/runtime.db",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 64
+      },
+      {
+        "path": "db/events.db",
+        "stored": "db/events.db",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 64
+      }
+    ],
+    "blobs": []
+  }
+}

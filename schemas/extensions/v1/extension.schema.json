@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/extension.schema.json",
+  "title": "lantai.extension/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "version",
+    "compatibility",
+    "contributes",
+    "targets",
+    "platform_artifacts",
+    "files",
+    "permissions",
+    "resource_limits",
+    "dependencies",
+    "config_schema",
+    "license"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.extension/v1"
+    },
+    "id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_id"
+    },
+    "version": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_version"
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host_api",
+        "required_points"
+      ],
+      "properties": {
+        "host_api": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "required_points": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_point_id"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            }
+          }
+        }
+      }
+    },
+    "contributes": {
+      "type": "array",
+      "maxItems": 100,
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "point",
+          "target",
+          "input_schema",
+          "output_schema"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_id"
+          },
+          "point": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_point_id"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "server",
+              "node",
+              "cli",
+              "web"
+            ]
+          },
+          "input_schema": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/contract_id"
+          },
+          "output_schema": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/contract_id"
+          }
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "server": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime",
+            "lifecycle",
+            "entry",
+            "protocol",
+            "processor"
+          ],
+          "properties": {
+            "runtime": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "exec",
+                "module",
+                "declarative"
+              ]
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "oneshot",
+                "view"
+              ]
+            },
+            "entry": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+            },
+            "protocol": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/protocol_id"
+            },
+            "processor": {
+              "$ref": "#/$defs/processor"
+            }
+          }
+        },
+        "node": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime",
+            "lifecycle",
+            "entry",
+            "protocol",
+            "processor"
+          ],
+          "properties": {
+            "runtime": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "exec",
+                "module",
+                "declarative"
+              ]
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "oneshot",
+                "view"
+              ]
+            },
+            "entry": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+            },
+            "protocol": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/protocol_id"
+            },
+            "processor": {
+              "$ref": "#/$defs/processor"
+            }
+          }
+        },
+        "cli": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime",
+            "lifecycle",
+            "entry",
+            "protocol",
+            "processor"
+          ],
+          "properties": {
+            "runtime": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "exec",
+                "module",
+                "declarative"
+              ]
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "oneshot",
+                "view"
+              ]
+            },
+            "entry": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+            },
+            "protocol": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/protocol_id"
+            },
+            "processor": {
+              "$ref": "#/$defs/processor"
+            }
+          }
+        },
+        "web": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime",
+            "lifecycle",
+            "entry",
+            "protocol",
+            "processor"
+          ],
+          "properties": {
+            "runtime": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "exec",
+                "module",
+                "declarative"
+              ]
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": [
+                "builtin",
+                "oneshot",
+                "view"
+              ]
+            },
+            "entry": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+            },
+            "protocol": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/protocol_id"
+            },
+            "processor": {
+              "$ref": "#/$defs/processor"
+            }
+          }
+        }
+      },
+      "minProperties": 1
+    },
+    "platform_artifacts": {
+      "type": "array",
+      "maxItems": 100,
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform",
+          "path",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "pattern": "^(builtin-source|(linux|darwin|windows)/(amd64|arm64))$"
+          },
+          "path": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+          },
+          "sha256": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 10000,
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+          },
+          "sha256": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api",
+        "network",
+        "filesystem",
+        "secret_refs"
+      ],
+      "properties": {
+        "api": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/command_type"
+          }
+        },
+        "network": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          }
+        },
+        "filesystem": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "granted-input:read",
+              "run-output:write"
+            ]
+          }
+        },
+        "secret_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._/-]{0,127}$"
+          }
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_input_bytes",
+        "max_output_bytes",
+        "max_output_files",
+        "memory_bytes",
+        "cpu_seconds",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "max_input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_output_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "cpu_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "maxItems": 100,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_id"
+          },
+          "version": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_version"
+          }
+        }
+      }
+    },
+    "config_schema": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spdx",
+        "files"
+      ],
+      "properties": {
+        "spdx": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "files": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "processor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepts",
+        "requires",
+        "timeout",
+        "concurrency",
+        "produces"
+      ],
+      "properties": {
+        "accepts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "extensions",
+            "asset_types"
+          ],
+          "properties": {
+            "extensions": {
+              "type": "array",
+              "maxItems": 100,
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24
+              }
+            },
+            "asset_types": {
+              "type": "array",
+              "maxItems": 100,
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          }
+        },
+        "requires": {
+          "type": "array",
+          "maxItems": 100,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(ms|s|m)$"
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "produces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "records",
+            "files"
+          ],
+          "properties": {
+            "records": {
+              "type": "array",
+              "maxItems": 100,
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/contract_id"
+              }
+            },
+            "files": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "description": "唯一包清单extension.yaml。包摘要由外部对实际包文件计算，不在自身递归保存；CLI/Web为声明保留，M1登记拒绝激活。"
+}

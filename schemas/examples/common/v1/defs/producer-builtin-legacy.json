@@ -1,0 +1,12 @@
+{
+  "description": "兼容v1旧builtin来源记录的形状；缺少发布绑定只能历史读取，Registry.VerifyProducer拒绝新的接受",
+  "schema": "lantai.common-defs/v1#/$defs/producer_ref",
+  "valid": true,
+  "document": {
+    "extension_id": "org.lantai.corecheck",
+    "extension_version": "0.1.0",
+    "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source": "builtin_release",
+    "contribution_id": "org.lantai.corecheck.manifest"
+  }
+}

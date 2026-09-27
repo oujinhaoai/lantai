@@ -2,12 +2,12 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -53,7 +53,13 @@ func validateAddress(addr string, loopback bool) error {
 
 // StartHTTP 先绑定所有内部监听，失败时全部释放。网关、TLS 与真实部署仍由
 // T08 的部署方案负责；传输地址由领域层返回为同一外部 origin 的路径。
-func (a *App) StartHTTP(ctx context.Context, cfg operations.Config) (*HTTPServers, error) {
+func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...HTTPOption) (*HTTPServers, error) {
+	o := httpOptions{accessLog: os.Stderr}
+	for _, option := range options {
+		option(&o)
+	}
+	logger := &accessLogger{out: o.accessLog}
+	businessReady := func() bool { return a.Instance.Readiness().Ready }
 	if !a.Ready() {
 		return nil, errors.New("application: instance is not ready")
 	}
@@ -80,25 +86,16 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config) (*HTTPServer
 	if cfg.Listen.Merged {
 		api = httpapi.TransferConfig(cfg.Listen.API, h.Merged(xfer))
 	}
+	surface := "api"
+	if cfg.Listen.Merged {
+		surface = "merged"
+	}
+	api.Handler = logger.wrap(surface, readinessGuard(businessReady, api.Handler))
 	r.servers = append(r.servers, api)
 	if !cfg.Listen.Merged {
-		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, xfer))
+		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, logger.wrap("transfer", readinessGuard(businessReady, xfer))))
 	}
-	ops := http.NewServeMux()
-	ops.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]bool{"live": a.Instance.Readiness().Live})
-	})
-	ops.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
-		ready := a.Ready()
-		if !ready {
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"ready": ready, "transfer": scheduler.Stats()})
-	})
-	r.servers = append(r.servers, httpapi.APIConfig(cfg.Listen.Operations, ops))
+	r.servers = append(r.servers, httpapi.APIConfig(cfg.Listen.Operations, logger.wrap("operations", a.operationsHandler(scheduler))))
 	var listeners []net.Listener
 	for _, srv := range r.servers {
 		lc := net.ListenConfig{}

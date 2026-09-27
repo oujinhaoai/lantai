@@ -1,0 +1,43 @@
+services:
+  core:
+    # 使用本地审查构建的镜像；不隐式拉取未知 Lantai 镜像。
+    image: ${LANTAI_IMAGE:?set the reviewed local Lantai image}
+    pull_policy: never
+    command: [serve, --home, /var/lib/lantai]
+    init: true
+    read_only: true
+    user: "65532:65532"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=64m]
+    volumes:
+      - ${LANTAI_DATA_DIR:?set an external local data directory}:/var/lib/lantai
+      - ${LANTAI_SECRETS_DIR:?set a separate secrets directory}:/var/lib/lantai-secrets
+      - ${LANTAI_CONFIG_FILE:?set the reviewed config.container.yaml}:/var/lib/lantai/config.yaml:ro
+    networks: [backend]
+    stop_grace_period: 45s
+    restart: "no"
+  gateway:
+    image: caddy:2.11.4
+    # 环境值只有公开域名与路径；证书私钥只从只读文件读取。
+    environment:
+      LANTAI_HTTPS_ADDRESS: https://${LANTAI_DOMAIN:?set the TLS domain}:443
+      LANTAI_TLS_CERT: /run/tls/cert.pem
+      LANTAI_TLS_KEY: /run/tls/key.pem
+      LANTAI_API_UPSTREAM: core:8080
+      LANTAI_TRANSFER_UPSTREAM: core:8081
+      XDG_DATA_HOME: /tmp/caddy-data
+      XDG_CONFIG_HOME: /tmp/caddy-config
+    ports: ["${LANTAI_HTTPS_PORT:-443}:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${LANTAI_TLS_DIR:?set an external TLS directory}:/run/tls:ro
+    read_only: true
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=64m]
+    security_opt: [no-new-privileges:true]
+    networks: [backend]
+    stop_grace_period: 15s
+    restart: "no"
+networks:
+  backend:
+    internal: true

@@ -203,3 +203,104 @@ func TestGateRejectsBadReason(t *testing.T) {
 	}()
 	NewGate(NewCoordinator()).Close("Not Valid")
 }
+
+func TestMaintenanceContextReentryIsBoundAndCannotBeReused(t *testing.T) {
+	g := NewGate(NewCoordinator())
+	ctx, h, err := g.Maintain(t.Context(), ReasonStarting)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = g.RequireMaintenance(ctx); err != nil {
+		t.Fatal(err)
+	}
+	child, ch, err := g.Acquire(ctx, Request{Security: ModeShared})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = g.RequireMaintenance(child); err != nil {
+		t.Fatal(err)
+	}
+	foreign := NewGate(NewCoordinator())
+	if err = foreign.RequireMaintenance(ctx); err == nil {
+		t.Fatal("foreign coordinator trusted")
+	}
+	if _, _, err = foreign.Acquire(ctx, Request{}); err == nil {
+		t.Fatal("foreign gate opened")
+	}
+	ch.Release()
+	if err = g.RequireMaintenance(child); err == nil {
+		t.Fatal("released child reused")
+	}
+	if _, _, err = g.Acquire(child, Request{}); err == nil {
+		t.Fatal("released child entered")
+	}
+	h.Release()
+	if err = g.RequireMaintenance(ctx); err == nil {
+		t.Fatal("released barrier reused")
+	}
+	if _, _, err = g.Acquire(ctx, Request{}); err == nil {
+		t.Fatal("released barrier entered")
+	}
+	g.Open()
+	if _, _, err = g.Acquire(ctx, Request{}); err == nil {
+		t.Fatal("old context revived after reopening")
+	}
+	_, fresh, err := g.Acquire(t.Context(), Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fresh.Release()
+}
+func TestSharedBarrierIsNotMaintenanceAuthority(t *testing.T) {
+	g := NewGate(NewCoordinator())
+	g.Open()
+	ctx, h, err := g.Acquire(t.Context(), Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Release()
+	if err = g.RequireMaintenance(ctx); err == nil {
+		t.Fatal("shared scope granted maintenance")
+	}
+	g.Close(ReasonMaintenance)
+	if _, _, err = g.Acquire(ctx, Request{}); err == nil {
+		t.Fatal("shared scope bypassed gate")
+	}
+}
+
+func TestLockStatsOnlyCountContention(t *testing.T) {
+	g := NewGate(NewCoordinator())
+	g.Open()
+	_, held, err := g.Acquire(t.Context(), Request{Assets: []string{"a"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats := g.Stats(); stats.WaitCount != 0 || stats.Waiters != 0 {
+		t.Fatal(stats)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		_, h, e := g.Acquire(ctx, Request{Assets: []string{"a"}})
+		if h != nil {
+			h.Release()
+		}
+		done <- e
+	}()
+	deadline := time.Now().Add(time.Second)
+	for g.Stats().Waiters == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if g.Stats().Waiters != 1 {
+		t.Fatal("missing waiter")
+	}
+	cancel()
+	if !errors.Is(<-done, context.Canceled) {
+		t.Fatal("expected cancellation")
+	}
+	held.Release()
+	stats := g.Stats()
+	if stats.Waiters != 0 || stats.WaitCount != 1 || stats.WaitNanos == 0 {
+		t.Fatal(stats)
+	}
+}

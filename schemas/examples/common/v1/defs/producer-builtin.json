@@ -7,6 +7,7 @@
     "extension_version": "1.0.0",
     "package_digest": "sha256:abababababababababababababababababababababababababababababababab",
     "source": "builtin_release",
-    "contribution_id": "io.github.oujinhaoai.lantai.manifest-check.structure"
+    "contribution_id": "io.github.oujinhaoai.lantai.manifest-check.structure",
+    "core_release_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
   }
 }

@@ -3,8 +3,10 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/pin"
 )
@@ -42,11 +44,28 @@ func (s *Service) PinsFor(ctx context.Context, sha256 string) ([]pin.Pin, error)
 		return nil, err
 	}
 	for i := range out {
+		// Drift is not permission to collect bytes. Maintenance can repair known
+		// upload facts; a missing owner must remain an explicit reconciliation.
+		var created, expires int64
+		var closed sql.NullInt64
+		err := s.db.QueryRowContext(ctx, `SELECT created_at,expires_at,closed_at FROM storage_uploads WHERE upload_id=?`, out[i].Owner.ID).Scan(&created, &expires, &closed)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errcode.New(errcode.OperationNeedsReconciliation, "upload pin owner is missing")
+		}
+		if err != nil {
+			return nil, err
+		}
+		if clock.Millis(out[i].CreatedAt) != created || clock.Millis(out[i].ExpiresAt) != expires || out[i].ReleasedAt.IsZero() == closed.Valid || (closed.Valid && clock.Millis(out[i].ReleasedAt) != closed.Int64) {
+			return nil, errcode.New(errcode.OperationNeedsReconciliation, "upload pin disagrees with its owner")
+		}
 		blobs, err := s.pinBlobs(ctx, out[i].PinID)
 		if err != nil {
 			return nil, err
 		}
 		out[i].Blobs = blobs
+		if err = out[i].Validate(); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }

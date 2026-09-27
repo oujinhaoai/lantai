@@ -464,7 +464,7 @@ func (s *Service) recordInstall(lctx context.Context, req install.Request, rd di
 // checkTree 浅层核验版本目录：清单文件的 SHA-256、每个文件存在且大小相符。
 // 返回文件的落位方式（与内容库原件是否为同一文件）。
 func (s *Service) checkTree(dir string, files []install.File, manifestSHA string) (fileop.Mode, error) {
-	raw, err := os.ReadFile(filepath.Join(dir, ManifestFile))
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(dir, ManifestFile), int64(s.cfg.MaxManifestBytes))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return "", errcode.New(errcode.HashMismatch, "the manifest file is missing")
@@ -476,6 +476,12 @@ func (s *Service) checkTree(dir string, files []install.File, manifestSHA string
 	}
 	var modes []fileop.Mode
 	for _, f := range files {
+		if err := regularPath(s.layout.Home, filepath.Join(dir, FilesDir, filepath.FromSlash(f.Path))); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return "", errcode.New(errcode.HashMismatch, "an installed file is missing")
+			}
+			return "", err
+		}
 		st, err := os.Stat(filepath.Join(dir, FilesDir, filepath.FromSlash(f.Path)))
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -541,6 +547,14 @@ func (s *Service) VerifyDeep(ctx context.Context, op ids.ID) error {
 		return err
 	}
 	dir := s.layout.VersionDir(row.ProjectID, row.AssetID, row.VersionNumber)
+	if err := regularPath(s.layout.Home, filepath.Join(dir, ManifestFile)); err != nil {
+		return err
+	}
+	for _, f := range files {
+		if err := regularPath(s.layout.Home, filepath.Join(dir, FilesDir, filepath.FromSlash(f.Path))); err != nil {
+			return err
+		}
+	}
 	if _, err := s.checkTree(dir, files, row.ManifestSHA256); err != nil {
 		return err
 	}
@@ -548,7 +562,7 @@ func (s *Service) VerifyDeep(ctx context.Context, op ids.ID) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		got, n, err := fileop.HashFile(filepath.Join(dir, FilesDir, filepath.FromSlash(f.Path)))
+		got, n, err := hashMaintenanceFile(ctx, filepath.Join(dir, FilesDir, filepath.FromSlash(f.Path)))
 		if err != nil {
 			return err
 		}
@@ -758,7 +772,7 @@ func (s *Service) ScanOrphans(ctx context.Context) ([]Orphan, error) {
 
 func (s *Service) orphanCheck(ctx context.Context, dir string) (*Orphan, error) {
 	ref := s.layout.ref(dir)
-	raw, err := os.ReadFile(filepath.Join(dir, installMarker))
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(dir, installMarker), MaxRecordBytes)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, fileop.Wrap("reading an install marker", err)
@@ -792,7 +806,7 @@ func (s *Service) ReadManifest(ctx context.Context, v commit.Committed) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	raw, err := os.ReadFile(filepath.Join(s.layout.VersionDir(row.ProjectID, row.AssetID, row.VersionNumber), ManifestFile))
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(s.layout.VersionDir(row.ProjectID, row.AssetID, row.VersionNumber), ManifestFile), int64(s.cfg.MaxManifestBytes))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, errcode.New(errcode.OperationNeedsReconciliation, "the manifest file of a committed version is missing")

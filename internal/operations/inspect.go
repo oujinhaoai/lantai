@@ -87,6 +87,9 @@ func Inspect(ctx context.Context, home string) (Report, error) {
 		return rep, err
 	}
 	rep.Marker = &marker
+	if marker.Restore != nil {
+		add(CodeRestoreIncomplete, "restore %s is in stage %s; complete offline recovery before serving", marker.Restore.RunID, marker.Restore.Stage)
+	}
 	rep.Initialized = marker.State == MarkerActive
 	if !rep.Initialized {
 		add(CodeInitIncomplete, "initialization has not completed; run lantai init to resume")

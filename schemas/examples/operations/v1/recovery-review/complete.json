@@ -1,0 +1,18 @@
+{
+  "description": "绑定恢复点、epoch及操作者的明确对账",
+  "schema": "lantai.recovery-review/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.recovery-review/v1",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recovery_epoch": 3,
+    "administrator": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "revocations_reconciled": true,
+    "deletions_reconciled": true,
+    "open_operations_reconciled": true,
+    "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "note": "Operator reconciled synthetic revocations, deletions and open operations."
+  }
+}

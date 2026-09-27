@@ -44,11 +44,12 @@ type Record struct {
 
 // Producer 是产出记录的扩展或内置处理器的身份（defs 中的 producer_ref）。
 type Producer struct {
-	ExtensionID      string        `json:"extension_id"`
-	ExtensionVersion string        `json:"extension_version"`
-	PackageDigest    digest.Digest `json:"package_digest"`
-	Source           string        `json:"source"`
-	ContributionID   string        `json:"contribution_id,omitempty"`
+	CoreReleaseDigest digest.Digest `json:"core_release_digest,omitempty"`
+	ExtensionID       string        `json:"extension_id"`
+	ExtensionVersion  string        `json:"extension_version"`
+	PackageDigest     digest.Digest `json:"package_digest"`
+	Source            string        `json:"source"`
+	ContributionID    string        `json:"contribution_id,omitempty"`
 }
 
 // RecordRef 是写入结果。
@@ -145,7 +146,7 @@ func (s *Service) ReadRecord(ctx context.Context, project, asset, version, recor
 	if !project.Valid() || !asset.Valid() || !version.Valid() || !record.Valid() {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
-	raw, err := os.ReadFile(filepath.Join(s.layout.recordsDir(project, asset, version), string(record)+".json"))
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(s.layout.recordsDir(project, asset, version), string(record)+".json"), MaxRecordBytes)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, errcode.New(errcode.NotFound, "")
 	}

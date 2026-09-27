@@ -1,6 +1,6 @@
 # 服务端、客户端与网页扩展设计 v2.1
 
-状态：**设计补全，待实现验证**。本篇细化插件机制，不启动开发、安装插件或启用自动化。现行目录、Go 单核心进程、五库和核心裁决规则保持不变。参考证据见[插件系统调研](references/plugin-systems.md)，实施拆分见 [T09 扩展平台](tasks/T09-extension-platform.md)。
+状态：**M1 清单、扩展点与官方内置静态登记已实现；后续宿主与治理按阶段建设**。本篇细化插件机制，不自动授权安装外部插件或启用自动化。现行目录、Go 单核心进程、五库和核心裁决规则保持不变。参考证据见[插件系统调研](references/plugin-systems.md)，实施拆分见 [T09 扩展平台](tasks/T09-extension-platform.md)。
 
 本篇是插件实现规格的唯一权威入口，随代码评审和版本演进；`schemas/` 在实现时承载机器可校验契约，本篇引用它而不复制第二套字段定义。知识库只保留摘要、私有背景、设计决策与执行追踪。2026-09-26 的 v2.1 收敛 M1 范围，明确一次性/常驻协议、统一包文件与熔断默认值；通用依赖框架和第三方网页代码改为按需。
 
@@ -112,6 +112,8 @@ SameSite 仅作纵深防护，不能替代上述校验，也不能从跨站推�
 
 唯一包清单文件为根目录的 **`extension.yaml`**，契约标识为 **`contract: lantai.extension/v1`**。原 `plugin.yaml` 的处理器字段并入对应 target 的 `processor`；服务模块也使用此文件，不另设 `module.yaml`。旧格式仅可由未来显式迁移工具转换；新宿主拒绝双清单或含义冲突，不按读取顺序决定优先级。
 
+M1 的机器字段见 [`lantai.extension/v1`](../schemas/extensions/v1/extension.schema.json)，内置组件见 [`plugins/corecheck`](../plugins/corecheck/)，实现与校验示例见[扩展契约](contracts/extensions.md)。`package_digest` 固定清单及组件源制品的文件清单（路径、大小、SHA-256）的 JCS 摘要；`core_release_digest` 固定正在运行的可执行制品。相同 ID/版本不能更换包摘要；同一不可变包可绑定多个核心发布摘要，重新构建不改写旧包身份或历史证据。
+
 一个发布包可包含多个 target，但各 target 独立审查权限、激活与故障处理；服务器启用不等于在用户电脑或网页自动执行。以下为 **M2 一次性校验器的结构草案**，省略平台制品、各文件摘要等完整字段，不是可安装包；M1 定 schema 和官方内置登记，不启动示例中的外部入口：
 
 ```yaml
@@ -176,6 +178,9 @@ M1 用 Go 显式组装与静态表登记内置组件，检查 ID、版本/摘要
 多层配置也需明确需求才引入。拟采用包默认值→管理员→项目→节点/用户的可覆盖字段规则，安全策略始终独立取交集，不参与普通深合并。作用域、依赖服务、通用配置容器都不列入 M1/M2 的必交范围。
 
 ## 8. 控制数据与权威来源
+
+M1 新接受的内置产物/证据必须由 registry 核验包身份与当前 `core_release_digest`，不能从外部自报 `builtin_release` 获权。旧 v1 证据缺少发布摘要时可按原字节读取和校验历史摘要，但不能用作新结果的可信来源证明；不自动补写历史记录。
+
 
 | 数据 | 唯一来源/所有者 |
 |---|---|
@@ -307,6 +312,6 @@ closed 时业务成功不清空尚在滚动窗内的故障；达到阈值原子�
 | 按需 | 跨插件服务依赖/DI、常驻宿主；或独立来源第三方 UI，分别有真实需求、部署方案与验证任务 | 未立项前保持未支持，不因预留而自动进入 M3 |
 | M4–M8 | 导入导出、更多查看器/标注、检索服务、推送连接器和官方存储驱动 | WebAssembly 沙箱及公开市场按真实需求另定 |
 
-保持 11 个一级目录。`plugins/` 承载官方扩展包源码及分 target 示例，`internal/` 放服务端 registry/manager/broker/host，`cmd/` 只组装入口，`web/` 放 UI registry/broker/首方组件，`schemas/` 放协议，`sdk/` 放客户端和插件 SDK，`tests/` 放兼容性与故障场景。当前只更新文档，不预建这些二级实现目录。
+保持 11 个一级目录。`plugins/` 承载官方扩展包源码及分 target 示例，`internal/` 放服务端 registry/manager/broker/host，`cmd/` 只组装入口，`web/` 放 UI registry/broker/首方组件，`schemas/` 放协议，`sdk/` 放客户端和插件 SDK，`tests/` 放兼容性与故障场景。M1 已建立 `internal/extensions`、`schemas/extensions` 与 `plugins/corecheck`；未启用阶段不预建通用管理器、broker 或进程容器。
 
-`lantai plugin` 用于包治理；`lantai ext` 用于调用已启用的客户端贡献。两者是同一扩展身份体系的管理面与执行面，不维护两套插件库。
+后续 `lantai plugin` 用于包治理；`lantai ext` 用于调用已启用的客户端贡献。两者是同一扩展身份体系的管理面与执行面，不维护两套插件库。

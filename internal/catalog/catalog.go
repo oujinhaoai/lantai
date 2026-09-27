@@ -63,8 +63,14 @@ type Ledger interface {
 	commit.Projects
 }
 
+// ProducerVerifier validates a declared producer against the trusted static registry.
+type ProducerVerifier interface {
+	VerifyProducer(context.Context, storage.Producer) error
+}
+
 // Deps 是 catalog 依赖的实例资源与其他模块接口。
 type Deps struct {
+	Producers ProducerVerifier
 	// Home 是数据根目录（绝对路径）；Gate 是实例写入口，文件写入同样经它进入。
 	Home string
 	Gate *commands.Gate
@@ -84,18 +90,19 @@ type Deps struct {
 
 // Service 是 catalog 的应用服务。
 type Service struct {
-	home     string
-	layout   storage.Layout
-	gate     *commands.Gate
-	storage  *storage.Service
-	ledger   Ledger
-	authz    authz.Authorizer
-	rights   rights.Evaluator
-	pubs     Publications
-	clock    clock.Clock
-	ids      *ids.Generator
-	instance ids.ID
-	fs       fileop.FS
+	producers ProducerVerifier
+	home      string
+	layout    storage.Layout
+	gate      *commands.Gate
+	storage   *storage.Service
+	ledger    Ledger
+	authz     authz.Authorizer
+	rights    rights.Evaluator
+	pubs      Publications
+	clock     clock.Clock
+	ids       *ids.Generator
+	instance  ids.ID
+	fs        fileop.FS
 }
 
 var _ commit.RevisionVerifier = (*Service)(nil)
@@ -118,9 +125,12 @@ func New(d Deps) (*Service, error) {
 	home := filepath.Clean(d.Home)
 	return &Service{
 		home: home, layout: storage.Layout{Home: home}, gate: d.Gate, storage: d.Storage, ledger: d.Ledger,
-		authz: d.Authz, rights: d.Rights, pubs: d.Publications, clock: d.Clock, ids: d.IDs, instance: d.InstanceID, fs: d.FS,
+		producers: d.Producers, authz: d.Authz, rights: d.Rights, pubs: d.Publications, clock: d.Clock, ids: d.IDs, instance: d.InstanceID, fs: d.FS,
 	}, nil
 }
+
+// SetProducers is startup-only wiring before the instance accepts requests.
+func (s *Service) SetProducers(p ProducerVerifier) { s.producers = p }
 
 func (s *Service) now() time.Time { return clock.Truncate(s.clock.Now()) }
 

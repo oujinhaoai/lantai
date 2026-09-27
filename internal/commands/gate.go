@@ -50,6 +50,9 @@ func NewGate(c *Coordinator) *Gate {
 // Coordinator 返回底层协调器；取锁时仍须经 Gate，避免绕过维护屏障。
 func (g *Gate) Coordinator() *Coordinator { return g.c }
 
+// Stats returns aggregate lock contention without resource names.
+func (g *Gate) Stats() LockStats { return g.c.Stats() }
+
 // ErrExclusiveViaGate 表示试图经 Acquire 取屏障独占锁；维护必须用 Maintain。
 var ErrExclusiveViaGate = errors.New("commands: exclusive barrier must be taken with Gate.Maintain")
 
@@ -59,6 +62,20 @@ var ErrExclusiveViaGate = errors.New("commands: exclusive barrier must be taken 
 func (g *Gate) Acquire(ctx context.Context, req Request) (context.Context, *Held, error) {
 	if req.Barrier == ModeExclusive {
 		return ctx, nil, ErrExclusiveViaGate
+	}
+	// A trusted startup/recovery hook may call normal domain writes while its
+	// parent owns this gate's exclusive barrier. Do not reacquire that barrier.
+	if RequireMaintenance(ctx, g.c) == nil {
+		req.Barrier = ModeNone
+		lctx, h, err := g.c.Acquire(ctx, req)
+		if err != nil {
+			return ctx, nil, err
+		}
+		if err = RequireMaintenance(lctx, g.c); err != nil {
+			h.Release()
+			return ctx, nil, err
+		}
+		return lctx, h, nil
 	}
 	gen, err := g.check(0, false)
 	if err != nil {
@@ -75,6 +92,9 @@ func (g *Gate) Acquire(ctx context.Context, req Request) (context.Context, *Held
 	}
 	return lctx, h, nil
 }
+
+// RequireMaintenance binds maintenance checks to this gate's coordinator.
+func (g *Gate) RequireMaintenance(ctx context.Context) error { return RequireMaintenance(ctx, g.c) }
 
 func (g *Gate) check(gen uint64, compare bool) (uint64, error) {
 	g.mu.Lock()

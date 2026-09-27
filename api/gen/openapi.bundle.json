@@ -551,6 +551,9 @@
             "additionalProperties": true,
             "type": "object"
           },
+          "producer": {
+            "$ref": "#/components/schemas/ProducerRef"
+          },
           "rights": {
             "$ref": "#/components/schemas/VersionManifestRights"
           },
@@ -796,6 +799,18 @@
           "version"
         ],
         "type": "object"
+      },
+      "ExtensionId": {
+        "description": "扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。",
+        "maxLength": 128,
+        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+        "type": "string"
+      },
+      "ExtensionVersion": {
+        "description": "扩展包语义化版本。",
+        "maxLength": 64,
+        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+        "type": "string"
       },
       "FileSpec": {
         "additionalProperties": false,
@@ -1266,6 +1281,66 @@
           "revision",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "ProducerRef": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source": {
+                  "const": "package"
+                }
+              },
+              "required": [
+                "source"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "core_release_digest"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。",
+        "properties": {
+          "contribution_id": {
+            "description": "包内贡献 ID，例如 org.example.asset-tools.check。",
+            "maxLength": 160,
+            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+            "type": "string"
+          },
+          "core_release_digest": {
+            "$ref": "#/components/schemas/Digest",
+            "description": "内置组件的核心发布制品摘要；v1旧记录允许缺省以保持历史字节不变，新结果接受必须由登记器核验此绑定。"
+          },
+          "extension_id": {
+            "$ref": "#/components/schemas/ExtensionId"
+          },
+          "extension_version": {
+            "$ref": "#/components/schemas/ExtensionVersion"
+          },
+          "package_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "source": {
+            "enum": [
+              "builtin_release",
+              "package"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "extension_id",
+          "extension_version",
+          "package_digest",
+          "source"
         ],
         "type": "object"
       },
@@ -2112,6 +2187,9 @@
           "metadata": {
             "description": "类型元数据，按 type_schema 中对应类型的定义校验；未登记的字段放在 extra 中。",
             "type": "object"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/ProducerRef"
           },
           "rights": {
             "$ref": "#/components/schemas/VersionManifestRights"

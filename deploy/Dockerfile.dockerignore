@@ -1,0 +1,8 @@
+# Dockerfile 专用 allowlist；运行数据、Git 历史与本机配置不进入构建上下文。
+**
+!go.mod
+!go.sum
+!cmd/**
+!internal/**
+!schemas/**
+!plugins/**

@@ -23,7 +23,8 @@
       "extension_id": "org.example.runner",
       "extension_version": "1.0.0",
       "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "source": "builtin_release"
+      "source": "builtin_release",
+      "core_release_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     }
   },
   "expect": [

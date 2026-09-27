@@ -1,0 +1,30 @@
+{
+  "description": "processor-input/invalid-fence.json",
+  "schema": "lantai.processor-input/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.processor-input/v1",
+    "operation_id": "01K00000000000000000000009",
+    "job_fence": {
+      "job_id": "01K00000000000000000000020",
+      "job_attempt_id": "01K00000000000000000000019",
+      "lease_fence": 0,
+      "recovery_epoch": 1
+    },
+    "input_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ],
+    "input_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "deadline": "2026-09-28T12:00:00.000Z"
+  },
+  "expect": [
+    {
+      "pointer": "/job_fence/lease_fence",
+      "keyword": "minimum"
+    }
+  ]
+}

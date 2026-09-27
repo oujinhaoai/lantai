@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/processor-input.schema.json",
+  "title": "lantai.processor-input/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "job_fence",
+    "input_refs",
+    "input_digest",
+    "deadline"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.processor-input/v1"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "job_fence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/job_fence"
+    },
+    "input_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+      }
+    },
+    "input_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "deadline": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    }
+  }
+}
