@@ -168,7 +168,9 @@ func TestLedgerEventsQueryWithAuthoritativeRights(t *testing.T) {
 	hold.Release()
 	e.inst.Gate().Open()
 	// 损坏已接受的证据绝不能被忽略。
-	path := filepath.Join(e.inst.Layout().Home, filepath.FromSlash(accepted.Ref))
+	// Ref 是小写逻辑引用；磁盘路径保留 ID 大写，不能由 Ref 反推。
+	assetDir := (storage.Layout{Home: e.inst.Layout().Home}).AssetDir(e.project.ProjectID, original.AssetID)
+	path := filepath.Join(assetDir, "records", string(original.VersionID), string(accepted.RecordID)+".json")
 	if err = os.Chmod(path, 0600); err != nil {
 		t.Fatal(err)
 	}
