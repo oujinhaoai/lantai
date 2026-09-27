@@ -96,27 +96,51 @@ func (w *deadlineWriter) SetWriteDeadline(t time.Time) error {
 func (w *deadlineWriter) Flush() { w.flushed = true }
 
 func TestTransferWriterDeadlinesAndUnwrap(t *testing.T) {
-	w := &deadlineWriter{ResponseRecorder: httptest.NewRecorder()}
+	recorded := &deadlineWriter{ResponseRecorder: httptest.NewRecorder()}
 	r := httptest.NewRequest("GET", "/", nil)
+	const timeout = time.Second
 	h := idleTransfer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte("a"))
-		time.Sleep(time.Millisecond)
-		_, _ = w.Write([]byte("b"))
-		if err := http.NewResponseController(w).Flush(); err != nil {
-			t.Fatal(err)
+		controller := http.NewResponseController(w)
+		for _, action := range []struct {
+			name string
+			run  func()
+		}{
+			{"header", func() { w.WriteHeader(200) }},
+			{"first write", func() { _, _ = w.Write([]byte("a")) }},
+			{"next write", func() { _, _ = w.Write([]byte("b")) }},
+			{"flush", func() {
+				if err := controller.Flush(); err != nil {
+					t.Fatal(err)
+				}
+			}},
+		} {
+			// A controller must reach the connection through Unwrap. Seed an
+			// expired deadline so every I/O must actively replace it; merely
+			// retaining a deadline from the previous I/O cannot satisfy this test.
+			expired := time.Now().Add(-time.Hour)
+			if err := controller.SetWriteDeadline(expired); err != nil {
+				t.Fatal(err)
+			}
+			beforeCount := len(recorded.writes)
+			if beforeCount == 0 || recorded.writes[beforeCount-1] != expired {
+				t.Fatal("controller did not reach the underlying writer")
+			}
+			earliest := time.Now().Add(timeout)
+			action.run()
+			latest := time.Now().Add(timeout)
+			if len(recorded.writes) != beforeCount+1 {
+				t.Fatalf("%s did not refresh exactly one deadline", action.name)
+			}
+			deadline := recorded.writes[beforeCount]
+			// Equal readings are valid on platforms with coarser clocks.
+			if deadline.Before(earliest) || deadline.After(latest) {
+				t.Fatalf("%s deadline %v is outside [%v, %v]", action.name, deadline, earliest, latest)
+			}
 		}
-		// The wrapper exposes the underlying controller; no opaque wrapper breaks it.
-		if err := http.NewResponseController(w).SetWriteDeadline(time.Now()); err != nil {
-			t.Fatal(err)
-		}
-	}), time.Second)
-	h.ServeHTTP(w, r)
-	if !w.flushed || len(w.writes) < 6 || w.writes[len(w.writes)-1].IsZero() || len(w.reads) == 0 || w.reads[len(w.reads)-1].IsZero() {
-		t.Fatalf("deadlines not refreshed/retained: %+v", w)
-	}
-	if !w.writes[2].After(w.writes[1]) {
-		t.Fatal("progress did not renew write deadline")
+	}), timeout)
+	h.ServeHTTP(recorded, r)
+	if !recorded.flushed || len(recorded.reads) == 0 || recorded.reads[len(recorded.reads)-1].IsZero() || recorded.writes[len(recorded.writes)-1].IsZero() {
+		t.Fatalf("deadlines not retained through net/http finalization: %+v", recorded)
 	}
 }
 

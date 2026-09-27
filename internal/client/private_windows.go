@@ -53,7 +53,7 @@ func privateTemp(dir string) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	sd, err := windows.SecurityDescriptorFromString("D:P(A;;FA;;;" + user.User.Sid.String() + ")")
+	sd, err := privateSecurityDescriptor(user.User.Sid)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +79,15 @@ func privateTemp(dir string) (*os.File, error) {
 	}
 	return nil, errors.New("client: cannot allocate private state file")
 }
+
+func privateSecurityDescriptor(user *windows.SID) (*windows.SECURITY_DESCRIPTOR, error) {
+	// TokenOwner can be an enabled group (for example Administrators), even
+	// though TokenUser identifies the individual creating the file. Specify the
+	// user as owner at creation; never broaden checkPrivate to accept that group.
+	sid := user.String()
+	return windows.SecurityDescriptorFromString("O:" + sid + "D:P(A;;FA;;;" + sid + ")")
+}
+
 func syncDirectory(string) error { return nil }
 func lockFile(f *os.File) error {
 	return windows.LockFileEx(windows.Handle(f.Fd()), windows.LOCKFILE_EXCLUSIVE_LOCK|windows.LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &windows.Overlapped{})
