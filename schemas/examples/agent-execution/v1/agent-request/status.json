@@ -1,0 +1,10 @@
+{
+  "description": "status",
+  "schema": "lantai.agent-request/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "status",
+    "execution_id": "01K00000000000000000000021"
+  }
+}

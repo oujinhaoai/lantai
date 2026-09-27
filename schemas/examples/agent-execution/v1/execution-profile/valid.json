@@ -1,0 +1,59 @@
+{
+  "description": "valid",
+  "schema": "lantai.execution-profile/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.execution-profile/v1",
+    "id": "01K00000000000000000000012",
+    "revision": 1,
+    "adapter_kind": "manual_cli",
+    "adapter_version": "1.0.0",
+    "activation_snapshot": {
+      "contract": "lantai.activation-snapshot/v1",
+      "activation": {
+        "extension_id": "org.example.runner",
+        "extension_version": "1.0.0",
+        "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "activation_generation": 1
+      },
+      "entry": {
+        "extension_id": "org.example.runner",
+        "extension_version": "1.0.0",
+        "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "target": "server",
+        "entry": "bin/adapter",
+        "entry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "effective_config_revision": 1,
+      "enablement_policy_revision": 1
+    },
+    "playbook_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ],
+    "skill_digests": [
+      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    "required_capabilities": [
+      "artifact.delivery"
+    ],
+    "allowed_tools": [
+      "catalog.create_version"
+    ],
+    "network_policy": "none",
+    "network_allowlist": [],
+    "budget_limits": {
+      "wall_time_ms": 600000,
+      "model_calls": 100,
+      "tool_calls": 200,
+      "subagent_depth": 0,
+      "subagent_count": 0,
+      "concurrency": 1,
+      "artifact_bytes": 1048576
+    },
+    "result_schema": "lantai.agent-result/v1"
+  }
+}

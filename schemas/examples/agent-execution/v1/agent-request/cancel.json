@@ -1,0 +1,26 @@
+{
+  "description": "cancel",
+  "schema": "lantai.agent-request/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "cancel",
+    "operation_id": "01K00000000000000000000009",
+    "request_hash": "sha256:01c69a93b3b7ba27acc70c56f4c2c7b4802e8cd4a564ad30b6416948e541acaa",
+    "fence": {
+      "task_id": "01K00000000000000000000003",
+      "attempt_id": "01K00000000000000000000005",
+      "lease_fence": 1,
+      "recovery_epoch": 1
+    },
+    "activation": {
+      "extension_id": "org.example.runner",
+      "extension_version": "1.0.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "activation_generation": 1
+    },
+    "execution_id": "01K00000000000000000000021",
+    "reason": "synthetic cancellation",
+    "requested_cancel_mode": "revoke_only"
+  }
+}

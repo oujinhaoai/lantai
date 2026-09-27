@@ -83,6 +83,11 @@ func (s *Service) assetDescription(ctx context.Context, a commit.Asset) (AssetDe
 
 // GetProject 按 key 读取项目登记与当前说明。
 func (s *Service) GetProject(ctx context.Context, who authz.Context, key string) (Project, error) {
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return Project{}, err
+	}
+	defer held.Release()
 	p, err := s.ledger.ProjectByKey(ctx, key)
 	if err != nil {
 		return Project{}, notFoundIfMissing(err)
@@ -95,6 +100,62 @@ func (s *Service) GetProject(ctx context.Context, who authz.Context, key string)
 		return Project{}, err
 	}
 	return Project{Project: p, Description: d}, nil
+}
+
+type ProjectPage struct {
+	Items      []Project `json:"items"`
+	NextCursor string    `json:"next_cursor,omitempty"`
+}
+
+// ListProjects 只枚举当前可读项目，游标不包含隐藏项目的 ID 或计数。
+func (s *Service) ListProjects(ctx context.Context, who authz.Context, after ids.ID, limit int) (ProjectPage, error) {
+	out := ProjectPage{Items: []Project{}}
+	if limit < 1 || limit > 100 || (after != "" && !after.Valid()) {
+		return out, invalid("invalid project pagination")
+	}
+	enumerator, ok := s.ledger.(interface {
+		Projects(context.Context, ids.ID, int) ([]commit.Project, error)
+	})
+	if !ok {
+		return out, errcode.New(errcode.Internal, "project enumeration is unavailable")
+	}
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return out, err
+	}
+	defer held.Release()
+	for {
+		batch, err := enumerator.Projects(ctx, after, 100)
+		if err != nil {
+			return out, err
+		}
+		for _, p := range batch {
+			after = p.ProjectID
+			decision, err := s.authz.Authorize(ctx, who, ActionRead, authz.Resource{ProjectID: p.ProjectID, Kind: "project", ID: p.ProjectID})
+			if err != nil {
+				return out, err
+			}
+			if !decision.Allowed {
+				switch decision.Code {
+				case errcode.AuthRequired, errcode.TokenExpired, errcode.TokenRevoked:
+					return out, decision.Err()
+				}
+				continue
+			}
+			if len(out.Items) == limit {
+				out.NextCursor = string(out.Items[len(out.Items)-1].ProjectID)
+				return out, nil
+			}
+			d, err := s.projectDescription(ctx, p)
+			if err != nil {
+				return out, err
+			}
+			out.Items = append(out.Items, Project{Project: p, Description: d})
+		}
+		if len(batch) < 100 {
+			return out, nil
+		}
+	}
 }
 
 // AssetInfo 是资产登记、当前说明、当前占名与最新版本。

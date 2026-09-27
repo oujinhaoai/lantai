@@ -1,0 +1,19 @@
+{
+  "description": "start key conflict",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "START_KEY_CONFLICT",
+      "message": "合成契约失败样例",
+      "retryable": false,
+      "recovery_action": "fix_request",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "request_hash_mismatch"
+        }
+      ]
+    }
+  }
+}

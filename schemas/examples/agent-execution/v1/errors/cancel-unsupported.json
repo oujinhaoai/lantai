@@ -1,0 +1,19 @@
+{
+  "description": "cancel unsupported",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "UNSUPPORTED_CAPABILITY",
+      "message": "合成契约失败样例",
+      "retryable": false,
+      "recovery_action": "fix_request",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "cancel_mode_unsupported"
+        }
+      ]
+    }
+  }
+}

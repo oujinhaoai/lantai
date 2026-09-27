@@ -1,0 +1,45 @@
+{
+  "description": "agent step kind rejected",
+  "schema": "lantai.step-run/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.step-run/v1",
+    "id": "01K00000000000000000000011",
+    "flow_id": "01K00000000000000000000010",
+    "revision": 1,
+    "operation_id": "01K00000000000000000000009",
+    "step_key": "produce",
+    "round": 1,
+    "kind": "tool",
+    "state": "running",
+    "definition": {
+      "ref": {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      },
+      "definition_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "input_snapshot": {
+      "refs": [
+        {
+          "instance_id": "01K00000000000000000000000",
+          "asset_id": "01K00000000000000000000001",
+          "version_id": "01K00000000000000000000002"
+        }
+      ],
+      "digest": "sha256:49c8aba057192e4d11dd16d46a6bce8aaef7e7150eef7b076167480450578375"
+    },
+    "task_ids": [
+      "01K00000000000000000000003"
+    ],
+    "job_ids": [],
+    "output_refs": []
+  },
+  "expect": [
+    {
+      "pointer": "/kind",
+      "keyword": "enum"
+    }
+  ]
+}

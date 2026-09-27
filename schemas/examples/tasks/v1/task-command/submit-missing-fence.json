@@ -1,0 +1,29 @@
+{
+  "description": "submit missing fence",
+  "schema": "lantai.task-command/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.task-command/v1",
+    "operation_id": "01K00000000000000000000009",
+    "request_hash": "sha256:26cb9da248e06027eb67e93aa5bcc67766d1be7a2cab6be44226aca24994f825",
+    "command_type": "tasks.submit",
+    "project_id": "01K00000000000000000000000",
+    "target_id": "01K00000000000000000000005",
+    "expected_revision": 1,
+    "recovery_epoch": 1,
+    "session_id": "01K00000000000000000000007",
+    "output_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ]
+}

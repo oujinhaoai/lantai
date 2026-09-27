@@ -1,0 +1,32 @@
+{
+  "description": "revision zero",
+  "schema": "lantai.task-receipt/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.task-receipt/v1",
+    "operation_id": "01K00000000000000000000009",
+    "request_hash": "sha256:26cb9da248e06027eb67e93aa5bcc67766d1be7a2cab6be44226aca24994f825",
+    "target_id": "01K00000000000000000000005",
+    "revision": 0,
+    "attempt_id": "01K00000000000000000000005",
+    "fence": {
+      "task_id": "01K00000000000000000000003",
+      "attempt_id": "01K00000000000000000000005",
+      "lease_fence": 1,
+      "recovery_epoch": 1
+    },
+    "output_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "pointer": "/revision",
+      "keyword": "minimum"
+    }
+  ]
+}

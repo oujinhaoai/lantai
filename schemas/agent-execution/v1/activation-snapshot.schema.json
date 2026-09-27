@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/activation-snapshot.schema.json",
+  "title": "lantai.activation-snapshot/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "activation",
+    "entry",
+    "effective_config_revision",
+    "enablement_policy_revision"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.activation-snapshot/v1"
+    },
+    "activation": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/activation_ref"
+    },
+    "entry": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/package_entry"
+    },
+    "effective_config_revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "enablement_policy_revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    }
+  }
+}

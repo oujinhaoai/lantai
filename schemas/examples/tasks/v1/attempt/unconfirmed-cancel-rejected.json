@@ -1,0 +1,35 @@
+{
+  "description": "unconfirmed cancel rejected",
+  "schema": "lantai.attempt/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.attempt/v1",
+    "id": "01K00000000000000000000005",
+    "task_id": "01K00000000000000000000003",
+    "seat_id": "01K00000000000000000000004",
+    "revision": 1,
+    "operation_id": "01K00000000000000000000009",
+    "principal_id": "01K00000000000000000000006",
+    "session_id": "01K00000000000000000000007",
+    "state": "cancelled",
+    "fence": {
+      "task_id": "01K00000000000000000000003",
+      "attempt_id": "01K00000000000000000000005",
+      "lease_fence": 1,
+      "recovery_epoch": 1
+    },
+    "issued_at": "2026-09-27T08:00:00.000Z",
+    "expires_at": "2026-09-27T08:30:00.000Z",
+    "reconciliation": {
+      "termination_confirmed": false,
+      "unresolved_effects": 0,
+      "evidence_refs": []
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/reconciliation/termination_confirmed",
+      "keyword": "const"
+    }
+  ]
+}

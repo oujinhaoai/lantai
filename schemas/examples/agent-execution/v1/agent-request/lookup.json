@@ -1,0 +1,10 @@
+{
+  "description": "lookup",
+  "schema": "lantai.agent-request/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "lookup",
+    "execution_key": "run:01K00000000000000000000013:attempt:01K00000000000000000000005"
+  }
+}

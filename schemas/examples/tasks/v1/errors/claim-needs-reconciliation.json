@@ -1,0 +1,19 @@
+{
+  "description": "claim needs reconciliation",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "OPERATION_NEEDS_RECONCILIATION",
+      "message": "合成契约失败样例",
+      "retryable": false,
+      "recovery_action": "reconcile",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "prior_execution_unresolved"
+        }
+      ]
+    }
+  }
+}

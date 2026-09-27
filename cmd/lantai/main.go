@@ -1,6 +1,5 @@
-// lantai 是兰台的统一入口。当前构建只包含已实现的子命令：version、schema，
-// 以及只能在服务端本机运行的实例命令 init、migrate、doctor、recover-admin；
-// 服务端、CLI 业务命令、MCP 与节点子命令在对应模块实现后再接入，这里不预留空命令。
+// lantai 是兰台统一入口：本机实例命令、服务启动与经 REST 的薄 CLI。
+// MCP、任务引擎与节点尚未启用，不注册占位命令。
 //
 // 退出码：0 成功；1 文档未通过校验，或实例状态不允许该操作；2 用法错误；
 // 3 读写或内部错误。
@@ -12,7 +11,10 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
+
+	"github.com/oujinhaoai/lantai/internal/cli"
 )
 
 const (
@@ -35,6 +37,7 @@ var commands = []command{
 	{"migrate", "本机在维护屏障下应用待执行的数据库迁移", runMigrate},
 	{"doctor", "只读诊断数据根：实例标记、五库版本、兼容矩阵与就绪原因", runDoctor},
 	{"recover-admin", "本机离线重置单个管理员的口令与验证器（恢复码也丢失时）", runRecoverAdmin},
+	{"serve", "启动真实 REST 与流式传输服务（内部监听；TLS 由外部网关负责）", runServe},
 }
 
 func main() {
@@ -57,6 +60,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return c.run(ctx, args[1:], stdout, stderr)
 		}
 	}
+	if slices.Contains(cli.Names(), args[0]) {
+		return cli.Run(ctx, args, stdout, stderr)
+	}
 	fmt.Fprintf(stderr, "lantai: unknown command %q\n\n", args[0])
 	usage(stderr)
 	return exitUsage
@@ -69,6 +75,7 @@ func usage(w io.Writer) {
 	for _, c := range commands {
 		fmt.Fprintf(w, "  %-14s %s\n", c.name, c.summary)
 	}
+	fmt.Fprintln(w, cli.Help())
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "run 'lantai <command> -h' for command options")
 }

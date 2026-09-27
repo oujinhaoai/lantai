@@ -1,0 +1,16 @@
+{
+  "description": "lookup",
+  "schema": "lantai.agent-response/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "lookup",
+    "execution_id": "01K00000000000000000000021",
+    "execution_key": "run:01K00000000000000000000013:attempt:01K00000000000000000000005",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000005",
+    "accepted_request_hash": "sha256:b3065a4722715afcc7289d98ffa6513b571908afdfc676182aa5a57e2938d57b",
+    "revision": 1,
+    "state": "starting"
+  }
+}

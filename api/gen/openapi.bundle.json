@@ -134,10 +134,541 @@
       }
     },
     "schemas": {
+      "AssetDescriptionView": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "defaults": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "extra": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sensitivity": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "project_id",
+          "asset_type",
+          "slug",
+          "title",
+          "tags",
+          "subjects",
+          "sensitivity",
+          "revision",
+          "updated_by"
+        ],
+        "type": "object"
+      },
+      "AssetPatch": {
+        "additionalProperties": false,
+        "description": "sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.",
+        "properties": {
+          "defaults": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "extra": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "sensitivity": {
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AssetView": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/AssetDescriptionView"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/VersionView"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "asset_id",
+          "project_id",
+          "asset_type",
+          "description",
+          "latest"
+        ],
+        "type": "object"
+      },
+      "BlobGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "type": "string"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "issued_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256Hex"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/PermanentRef"
+          },
+          "source_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_id",
+          "project_id",
+          "operation_id",
+          "sha256",
+          "size",
+          "basis",
+          "purpose",
+          "issued_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "BlobStatusPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "sha256": {
+                  "$ref": "#/components/schemas/Sha256Hex"
+                },
+                "size": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "granted",
+                    "upload_required"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sha256",
+                "size",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Challenge": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "challenge_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "request_hash": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "target_set_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "targets": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "expected_revision": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "expected_revision"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "operation_id",
+          "action",
+          "targets",
+          "summary",
+          "request_hash",
+          "target_set_digest",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "CheckBlobsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileSpec"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "type": "object"
+      },
+      "CodeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
       "CommandType": {
         "description": "命令类型，<module>.<command>，例如 ledger.commit_version。",
         "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
         "type": "string"
+      },
+      "CommitRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "base_version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentInput"
+          },
+          "describe": {
+            "$ref": "#/components/schemas/AssetPatch"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "type": "object"
+      },
+      "CommitResult": {
+        "additionalProperties": false,
+        "properties": {
+          "alias_generation": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "committed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "description": {
+            "$ref": "#/components/schemas/AssetDescriptionView"
+          },
+          "description_error": {
+            "type": "string"
+          },
+          "description_pending": {
+            "type": "boolean"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/PermanentRef"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_number": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation_id",
+          "project_id",
+          "asset_id",
+          "version_id",
+          "version_number",
+          "manifest_digest",
+          "committed_at",
+          "ref",
+          "uri",
+          "slug"
+        ],
+        "type": "object"
+      },
+      "ContentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_type": {
+            "$ref": "#/components/schemas/VersionManifestAssetType"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/VersionManifestFile"
+            },
+            "type": "array"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "rights": {
+            "$ref": "#/components/schemas/VersionManifestRights"
+          },
+          "uses": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "alias_generation": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "asset_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "ref": {
+                  "type": "string"
+                },
+                "relation": {
+                  "type": "string"
+                },
+                "version_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                }
+              },
+              "required": [
+                "relation"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "version_note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "files"
+        ],
+        "type": "object"
+      },
+      "ContractId": {
+        "description": "契约标识 lantai.<name>/v<major>。",
+        "pattern": "^lantai\\.[a-z0-9]+(?:[.-][a-z0-9]+)*/v[1-9][0-9]*$",
+        "type": "string"
+      },
+      "CreateProjectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[a-z][a-z0-9-]{0,62}$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_type": {
+            "enum": [
+              "production",
+              "library",
+              "reference",
+              "sandbox"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "CreateUploadRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileSpec"
+            },
+            "type": "array"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "project_id",
+          "files"
+        ],
+        "type": "object"
+      },
+      "Digest": {
+        "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "EmptyRequest": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "Enrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "secret": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret",
+          "uri"
+        ],
+        "type": "object"
       },
       "ErrorEnvelope": {
         "additionalProperties": false,
@@ -251,10 +782,104 @@
         ],
         "type": "object"
       },
+      "ExactVersionView": {
+        "additionalProperties": false,
+        "properties": {
+          "manifest": {
+            "$ref": "#/components/schemas/VersionManifest"
+          },
+          "version": {
+            "$ref": "#/components/schemas/VersionView"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "FileSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256Hex"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sha256",
+          "size"
+        ],
+        "type": "object"
+      },
+      "HumanGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "challenge_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "grant_id",
+          "challenge_id",
+          "operation_id",
+          "action",
+          "expires_at"
+        ],
+        "type": "object"
+      },
       "IdempotencyKey": {
         "description": "客户端提供的幂等键；作用域为 (actor, project, command_type)。",
         "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
         "type": "string"
+      },
+      "IdentityView": {
+        "additionalProperties": false,
+        "properties": {
+          "factor_state": {
+            "type": "string"
+          },
+          "principal": {
+            "$ref": "#/components/schemas/PrincipalView"
+          },
+          "project_roles": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionInfo"
+          },
+          "system_roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "principal",
+          "session"
+        ],
+        "type": "object"
       },
       "JsonPointer": {
         "description": "RFC 6901 JSON Pointer。",
@@ -265,6 +890,128 @@
         "description": "永久引用的外部 URI 形式。",
         "pattern": "^lantai://[0-7][0-9A-HJKMNP-TV-Z]{25}/assets/[0-7][0-9A-HJKMNP-TV-Z]{25}/versions/[0-7][0-9A-HJKMNP-TV-Z]{25}$",
         "type": "string"
+      },
+      "MemberPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "principal_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "roles": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "principal_id",
+                "name",
+                "kind",
+                "roles"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "Meta": {
+        "additionalProperties": false,
+        "properties": {
+          "api_version": {
+            "enum": [
+              "v1"
+            ],
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "max_json_bytes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_page_size": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "stage": {
+            "enum": [
+              "M1"
+            ],
+            "type": "string"
+          },
+          "transfer": {
+            "additionalProperties": false,
+            "properties": {
+              "class_source": {
+                "type": "string"
+              },
+              "range": {
+                "type": "boolean"
+              },
+              "resumable_parts": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "resumable_parts",
+              "range",
+              "class_source"
+            ],
+            "type": "object"
+          },
+          "unsupported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "views": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "api_version",
+          "instance_id",
+          "stage",
+          "capabilities",
+          "views",
+          "max_json_bytes",
+          "max_page_size",
+          "transfer",
+          "unsupported"
+        ],
+        "type": "object"
       },
       "Module": {
         "description": "服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。",
@@ -438,6 +1185,374 @@
         ],
         "type": "object"
       },
+      "PasswordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "PermanentRef": {
+        "additionalProperties": false,
+        "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "instance_id",
+          "asset_id",
+          "version_id"
+        ],
+        "type": "object"
+      },
+      "PrincipalView": {
+        "additionalProperties": false,
+        "properties": {
+          "auth_epoch": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "profile": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "principal_id",
+          "kind",
+          "name",
+          "state",
+          "auth_epoch",
+          "profile",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "ProjectDescriptionView": {
+        "additionalProperties": false,
+        "description": "HTTP view omits the file contract marker; revision 0 denotes an authoritative derived description.",
+        "properties": {
+          "extra": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_type": {
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "key",
+          "name",
+          "project_type",
+          "revision",
+          "updated_by"
+        ],
+        "type": "object"
+      },
+      "ProjectPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectView"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ProjectView": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "description": {
+            "$ref": "#/components/schemas/ProjectDescriptionView"
+          },
+          "description_error": {
+            "type": "string"
+          },
+          "description_pending": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "key",
+          "state",
+          "description"
+        ],
+        "type": "object"
+      },
+      "QueryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_number": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asset_id",
+          "project_id",
+          "version_id",
+          "version_number",
+          "asset_type",
+          "slug",
+          "title",
+          "tags",
+          "subjects",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "QueryPage": {
+        "additionalProperties": false,
+        "description": "Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QueryItem"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": "string"
+          },
+          "state": {
+            "additionalProperties": false,
+            "properties": {
+              "generation": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "high_water": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "rebuild_start": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "generation",
+              "high_water",
+              "rebuild_start"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "items",
+          "state"
+        ],
+        "type": "object"
+      },
+      "ReadGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "issued_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "range": {
+            "type": "boolean"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256Hex"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "grant_id",
+          "project_id",
+          "asset_id",
+          "version_id",
+          "path",
+          "sha256",
+          "size",
+          "purpose",
+          "issued_at",
+          "expires_at",
+          "method",
+          "url",
+          "range"
+        ],
+        "type": "object"
+      },
+      "ReadGrantRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "archive_review",
+              "reference",
+              "production",
+              "generative_input",
+              "raw_export"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "purpose"
+        ],
+        "type": "object"
+      },
       "RecoveryAction": {
         "description": "调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。",
         "enum": [
@@ -454,11 +1569,254 @@
         ],
         "type": "string"
       },
+      "RecoveryCodes": {
+        "additionalProperties": false,
+        "properties": {
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "recovery_codes"
+        ],
+        "type": "object"
+      },
+      "RelativePath": {
+        "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",
+        "maxLength": 200,
+        "minLength": 1,
+        "pattern": "^([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+)(/([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+))*$",
+        "type": "string"
+      },
       "Revision": {
         "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
         "maximum": 9007199254740991,
         "minimum": 1,
         "type": "integer"
+      },
+      "SensitiveRequest": {
+        "additionalProperties": false,
+        "description": "Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.",
+        "properties": {
+          "action": {
+            "enum": [
+              "identity.register_principal",
+              "identity.issue_credential",
+              "identity.revoke_credential",
+              "identity.grant_project_role",
+              "identity.revoke_project_role"
+            ],
+            "type": "string"
+          },
+          "command": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "action",
+          "command"
+        ],
+        "type": "object"
+      },
+      "SensitiveResult": {
+        "additionalProperties": false,
+        "description": "Secret is returned once after first execution only. If that response is lost, revoke and reissue; polling/replay cannot recover the secret.",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "replayed",
+          "result"
+        ],
+        "type": "object"
+      },
+      "SessionInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "delegated_by": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "model": {
+            "type": "string"
+          },
+          "parent_session_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "principal_kind": {
+            "type": "string"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "type": "array"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "session_kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "principal_id",
+          "principal_kind",
+          "session_kind",
+          "channel",
+          "scopes",
+          "created_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "SessionRequest": {
+        "additionalProperties": false,
+        "description": "exchange requires token; login requires name/password/code; allowed channels are checked by identity. Credentials are never logged.",
+        "properties": {
+          "channel": {
+            "enum": [
+              "cli",
+              "api",
+              "browser"
+            ],
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "type": "array"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token": {
+            "type": "string"
+          },
+          "ttl_seconds": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SessionResponse": {
+        "additionalProperties": false,
+        "description": "Browser sessions use a Secure HttpOnly SameSite=Strict cookie; no token is included. CSRF token is returned separately.",
+        "properties": {
+          "csrf_token": {
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionInfo"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "type": "object"
+      },
+      "SetupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "cli",
+              "browser"
+            ],
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "code"
+        ],
+        "type": "object"
       },
       "Sha256Hex": {
         "description": "64 位小写十六进制 SHA-256，用于名为 sha256 的字段。",
@@ -471,10 +1829,480 @@
         "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
         "type": "string"
       },
+      "TypeDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_type": {
+            "type": "string"
+          },
+          "schema": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "schema_pointer": {
+            "type": "string"
+          },
+          "type_schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "type_schema",
+          "schema_pointer",
+          "schema"
+        ],
+        "type": "object"
+      },
+      "TypeEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_type": {
+            "type": "string"
+          },
+          "metadata_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type_schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "type_schema",
+          "metadata_fields"
+        ],
+        "type": "object"
+      },
+      "TypePage": {
+        "additionalProperties": false,
+        "properties": {
+          "file_roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TypeEntry"
+            },
+            "type": "array"
+          },
+          "project_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "relations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "file_roles",
+          "relations",
+          "project_types"
+        ],
+        "type": "object"
+      },
       "Ulid": {
         "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
         "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
         "type": "string"
+      },
+      "UploadFileView": {
+        "additionalProperties": false,
+        "properties": {
+          "part_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "part_size": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "part_url_template": {
+            "type": "string"
+          },
+          "received_parts": {
+            "items": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256Hex"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256",
+          "size",
+          "part_size",
+          "part_count",
+          "state",
+          "received_parts",
+          "part_url_template"
+        ],
+        "type": "object"
+      },
+      "UploadView": {
+        "additionalProperties": false,
+        "properties": {
+          "close_reason": {
+            "type": "string"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/UploadFileView"
+            },
+            "type": "array"
+          },
+          "idle_expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "parts_url": {
+            "type": "string"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "total_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "upload_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "upload_id",
+          "operation_id",
+          "project_id",
+          "principal_id",
+          "state",
+          "files",
+          "total_bytes",
+          "created_at",
+          "idle_expires_at",
+          "expires_at",
+          "parts_url"
+        ],
+        "type": "object"
+      },
+      "VersionManifest": {
+        "additionalProperties": false,
+        "description": "不可变版本的清单文件（版本目录中的 manifest.yaml）。content 是冻结的版本内容：类型、文件（相对路径、角色、哈希、大小）、固定的 uses 引用、许可声明与类型元数据；manifest_digest 等于 content 按 RFC 8785 规范化后的 SHA-256，因此可在台账分配版本 ID 之前冻结。其余字段是由台账分配的身份与提交者，写入文件便于在库丢失时由文件重建。清单由 catalog 规范化生成，客户端提交的 lantai.yaml 不直接写入。",
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "content": {
+            "$ref": "#/components/schemas/VersionManifestContent"
+          },
+          "contract": {
+            "const": "lantai.manifest/v1"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_number": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contract",
+          "instance_id",
+          "project_id",
+          "asset_id",
+          "version_id",
+          "version_number",
+          "operation_id",
+          "created_by",
+          "manifest_digest",
+          "content"
+        ],
+        "title": "VersionManifest",
+        "type": "object"
+      },
+      "VersionManifestAssetType": {
+        "description": "资产类型说“它是什么”；文件格式另由文件本身决定。",
+        "enum": [
+          "image",
+          "video",
+          "audio",
+          "doc",
+          "config",
+          "plugin",
+          "model",
+          "motion",
+          "scene",
+          "production"
+        ],
+        "type": "string"
+      },
+      "VersionManifestContent": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_type": {
+            "$ref": "#/components/schemas/VersionManifestAssetType"
+          },
+          "base_version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "files": {
+            "description": "按 path 的字节序升序、不重复；path 已规范化为 NFC 且规范化后互不冲突。",
+            "items": {
+              "$ref": "#/components/schemas/VersionManifestFile"
+            },
+            "maxItems": 100000,
+            "minItems": 1,
+            "type": "array"
+          },
+          "metadata": {
+            "description": "类型元数据，按 type_schema 中对应类型的定义校验；未登记的字段放在 extra 中。",
+            "type": "object"
+          },
+          "rights": {
+            "$ref": "#/components/schemas/VersionManifestRights"
+          },
+          "type_schema": {
+            "$ref": "#/components/schemas/ContractId",
+            "description": "校验 metadata 所用的类型定义库契约，例如 lantai.asset-types/v1。"
+          },
+          "uses": {
+            "description": "声明的输入，已在冻结时解析为固定的永久引用；按 (asset_id, version_id, relation) 排序、不重复。",
+            "items": {
+              "$ref": "#/components/schemas/VersionManifestUse"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "version_note": {
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "type_schema",
+          "files",
+          "uses",
+          "rights",
+          "metadata"
+        ],
+        "type": "object"
+      },
+      "VersionManifestFile": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/RelativePath"
+          },
+          "role": {
+            "enum": [
+              "primary",
+              "source",
+              "interchange",
+              "texture",
+              "recipe",
+              "record",
+              "preview",
+              "doc"
+            ],
+            "type": "string"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/Sha256Hex"
+          },
+          "size": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "role",
+          "sha256",
+          "size"
+        ],
+        "type": "object"
+      },
+      "VersionManifestRights": {
+        "additionalProperties": false,
+        "description": "提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。",
+        "properties": {
+          "digital_source_type": {
+            "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$",
+            "type": "string"
+          },
+          "license": {
+            "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "noai": {
+            "type": "boolean"
+          },
+          "redistribute_raw": {
+            "type": "boolean"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "personal"
+            ],
+            "type": "string"
+          },
+          "usage": {
+            "enum": [
+              "production",
+              "reference",
+              "restricted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "usage",
+          "license",
+          "redistribute_raw",
+          "noai",
+          "sensitivity"
+        ],
+        "type": "object"
+      },
+      "VersionManifestUse": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "declared": {
+            "description": "提交时书写的引用（例如 pansi/storyboard/ch03@published），仅作快照；机器字段以 ID 为准。",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "relation": {
+            "enum": [
+              "uses",
+              "derived_from",
+              "reference"
+            ],
+            "type": "string"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "instance_id",
+          "asset_id",
+          "version_id",
+          "relation"
+        ],
+        "type": "object"
+      },
+      "VersionView": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "committed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/PermanentRef"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_number": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation_id",
+          "project_id",
+          "asset_id",
+          "version_id",
+          "version_number",
+          "manifest_digest",
+          "committed_at",
+          "ref",
+          "uri"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -492,17 +2320,622 @@
     }
   },
   "info": {
-    "description": "兰台只有一套 REST 接口，CLI、MCP、SDK 与网页都经它访问。本文件维护\nHTTP 层的公共约定：认证方式、幂等键、请求编号、错误模型、202 响应与\n操作查询。数据结构引用 schemas/ 中的权威 JSON Schema，不在这里复制；\nscripts/gen/openapi 将其打包为自包含文档 api/gen/openapi.bundle.json。\n\n约定：/api/v1 内只加不改；写请求必须带 Idempotency-Key；著录修改带\nIf-Match；时间为 UTC 毫秒。业务端点由各模块在实现时按此约定加入。\n",
+    "description": "兰台只有一套 REST 接口。HTTP 路由、请求和视图由本文件定义，共享数据、清单与错误引用 schemas/ 权威定义。scripts/gen/openapi 打包为 api/gen/openapi.bundle.json；内部 handler 使用相同契约。\n\n/api/v1 仅加不改；持久业务创建、提交、著录和敏感命令执行要求 Idempotency-Key。会话/挑战/短时授权签发以及绑定既有上传的续传、完成、取消依各路由语义重试。著录修改要求带 If-Match。所有服务端时间为固定 UTC 毫秒。默认 JSON 上限 8 MiB，超限返回 SCHEMA_INVALID（request_body_too_large）；错误码的 HTTP 状态由统一注册表决定。\n",
     "license": {
       "identifier": "GPL-3.0-only",
       "name": "GPL-3.0-only"
     },
-    "summary": "兰台 HTTP 契约（公共部分）",
+    "summary": "兰台 M1 REST 与传输契约",
     "title": "Lantai API",
     "version": "1.0.0-draft"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assets": {
+      "get": {
+        "operationId": "searchAssets",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "brief",
+              "enum": [
+                "brief",
+                "full"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asset_type",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/VersionManifestAssetType"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "searchAssets"
+      }
+    },
+    "/api/v1/assets/{asset_id}": {
+      "get": {
+        "operationId": "getAsset",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "brief",
+              "enum": [
+                "brief",
+                "full"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getAsset"
+      }
+    },
+    "/api/v1/assets/{asset_id}/metadata": {
+      "patch": {
+        "description": "If-Match is required and must be a quoted nonnegative revision, e.g. \"0\". Success returns the new revision in ETag.",
+        "operationId": "patchAssetMetadata",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDescriptionView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "patchAssetMetadata"
+      }
+    },
+    "/api/v1/assets/{asset_id}/versions/{version_id}": {
+      "get": {
+        "description": "Authority-backed exact read. Full includes the frozen manifest; brief omits it.",
+        "operationId": "getVersion",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "brief",
+              "enum": [
+                "brief",
+                "full"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExactVersionView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getVersion"
+      }
+    },
+    "/api/v1/assets/{asset_id}/versions/{version_id}/read-grants": {
+      "post": {
+        "description": "Creates a fresh short-lived session-bound capability. It is not a persisted business command and does not require Idempotency-Key. Follow returned url with the same session; every new GET/Range is authorized again.",
+        "operationId": "issueReadGrant",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadGrant"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "issueReadGrant"
+      }
+    },
+    "/api/v1/identity/challenges": {
+      "post": {
+        "description": "Creates an expiring challenge, or rechallenges the same immutable operation. Display the server summary and targets before asking the person for a code.",
+        "operationId": "createIdentityChallenge",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensitiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Challenge"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "createIdentityChallenge"
+      }
+    },
+    "/api/v1/identity/challenges/{challenge_id}/verify": {
+      "post": {
+        "operationId": "verifyIdentityChallenge",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "challenge_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanGrant"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "verifyIdentityChallenge"
+      }
+    },
+    "/api/v1/identity/commands": {
+      "post": {
+        "operationId": "executeIdentityCommand",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensitiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitiveResult"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "executeIdentityCommand"
+      }
+    },
+    "/api/v1/identity/factor/confirm": {
+      "post": {
+        "operationId": "confirmFactor",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodes"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "confirmFactor"
+      }
+    },
+    "/api/v1/identity/factor/enroll": {
+      "post": {
+        "operationId": "enrollFactor",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enrollment"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "enrollFactor"
+      }
+    },
+    "/api/v1/identity/password": {
+      "put": {
+        "operationId": "setSetupPassword",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "setSetupPassword"
+      }
+    },
+    "/api/v1/identity/principals/{principal_id}": {
+      "get": {
+        "operationId": "getPrincipal",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "principal_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getPrincipal"
+      }
+    },
+    "/api/v1/identity/projects/{project_id}/members": {
+      "get": {
+        "operationId": "getProjectMembers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getProjectMembers"
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "operationId": "getMeta",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "getMeta"
+      }
+    },
     "/api/v1/operations/{operation_id}": {
       "get": {
         "description": "返回操作阶段、结果引用、是否可重试与下一步建议。结果引用按调用者\n当前读取权限过滤；无权知道的操作返回 404，不泄露存在性。\n",
@@ -551,6 +2984,609 @@
         "tags": [
           "operations"
         ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "brief",
+              "enum": [
+                "brief",
+                "full"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "listProjects"
+      },
+      "post": {
+        "operationId": "createProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "createProject"
+      }
+    },
+    "/api/v1/projects/{key}": {
+      "get": {
+        "operationId": "getProject",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "brief",
+              "enum": [
+                "brief",
+                "full"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getProject"
+      }
+    },
+    "/api/v1/sessions/current": {
+      "delete": {
+        "operationId": "endCurrentSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "endCurrentSession"
+      }
+    },
+    "/api/v1/sessions/exchange": {
+      "post": {
+        "operationId": "exchangeSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "exchangeSession"
+      }
+    },
+    "/api/v1/sessions/login": {
+      "post": {
+        "description": "Human password plus current authenticator code. Browser channel requires an exact configured Origin and refuses cross-site Fetch metadata. Source rate limit uses the direct peer, never an untrusted forwarding header.",
+        "operationId": "loginSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "loginSession"
+      }
+    },
+    "/api/v1/sessions/setup": {
+      "post": {
+        "operationId": "startSetup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "startSetup"
+      }
+    },
+    "/api/v1/types": {
+      "get": {
+        "operationId": "listTypes",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TypePage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "listTypes"
+      }
+    },
+    "/api/v1/types/{type}": {
+      "get": {
+        "operationId": "getAssetType",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TypeDetail"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getAssetType"
+      }
+    },
+    "/api/v1/uploads": {
+      "post": {
+        "description": "Persistently fixes operation_id. Use each file part_url_template, substituting only {part_number}; do not construct transfer routes.",
+        "operationId": "createUpload",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "createUpload"
+      }
+    },
+    "/api/v1/uploads/{upload_id}": {
+      "delete": {
+        "description": "Cancel the existing upload/commit operation through catalog. The existing upload identity is the retry key; no new business intent is created.",
+        "operationId": "cancelUpload",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "cancelUpload"
+      },
+      "get": {
+        "operationId": "getUpload",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "getUpload"
+      }
+    },
+    "/api/v1/uploads/{upload_id}/check": {
+      "post": {
+        "operationId": "checkUploadBlobs",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckBlobsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlobStatusPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "checkUploadBlobs"
+      }
+    },
+    "/api/v1/uploads/{upload_id}/commit": {
+      "post": {
+        "description": "Committed is visible. Description_pending means only the first description remains to be completed; retry with the same key. No synthetic success or 202 is created by transport.",
+        "operationId": "commitUpload",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommitResult"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "commitUpload"
+      }
+    },
+    "/api/v1/uploads/{upload_id}/files/{sha256}/complete": {
+      "post": {
+        "operationId": "completeUploadFile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Sha256Hex"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlobGrant"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "completeUploadFile"
+      }
+    },
+    "/api/v1/whoami": {
+      "get": {
+        "operationId": "whoAmI",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "whoAmI"
       }
     },
     "/xfer/v1/reads/{grant_id}": {

@@ -1,0 +1,16 @@
+{
+  "description": "cancel",
+  "schema": "lantai.agent-response/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "cancel",
+    "execution_id": "01K00000000000000000000021",
+    "state": "needs_reconciliation",
+    "cancel_mode": "revoke_only",
+    "termination": {
+      "termination_confirmed": false,
+      "unresolved_effects": 1
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/job-attempt.schema.json",
+  "title": "lantai.job-attempt/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "job_id",
+    "operation_id",
+    "revision",
+    "protocol",
+    "job_fence",
+    "activation_snapshot",
+    "input_snapshot",
+    "state",
+    "termination"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.job-attempt/v1"
+    },
+    "id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "job_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "protocol": {
+      "const": "lantai.processor/v1"
+    },
+    "job_fence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/job_fence"
+    },
+    "activation_snapshot": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/activation-snapshot.schema.json"
+    },
+    "input_snapshot": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/defs.schema.json#/$defs/input_snapshot"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "cancelling",
+        "needs_reconciliation",
+        "completed"
+      ]
+    },
+    "termination": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/termination"
+    },
+    "outcome": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/invocation_outcome"
+    },
+    "verdict": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/check_verdict"
+    },
+    "result_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "completed"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "outcome",
+          "verdict"
+        ],
+        "properties": {
+          "termination": {
+            "properties": {
+              "termination_confirmed": {
+                "const": true
+              },
+              "unresolved_effects": {
+                "const": 0
+              }
+            }
+          },
+          "outcome": {
+            "not": {
+              "const": "unresolved"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "completed"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "result_digest"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "not_dispatched",
+              "cancelled",
+              "runtime_fault",
+              "unresolved"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "completed",
+              "not_dispatched",
+              "cancelled",
+              "runtime_fault"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "completed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "unresolved"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "needs_reconciliation"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "verdict"
+        ]
+      },
+      "then": {
+        "required": [
+          "outcome"
+        ]
+      }
+    }
+  ]
+}

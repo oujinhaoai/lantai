@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/task-receipt.schema.json",
+  "title": "lantai.task-receipt/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "request_hash",
+    "target_id",
+    "revision",
+    "output_refs"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.task-receipt/v1"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "request_hash": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "target_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "attempt_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "fence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_fence"
+    },
+    "output_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+      },
+      "uniqueItems": true
+    }
+  }
+}

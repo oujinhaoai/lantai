@@ -7,6 +7,78 @@ import (
 	"time"
 )
 
+// Defines values for BlobStatusPageItemsStatus.
+const (
+	BlobStatusPageItemsStatusGranted        BlobStatusPageItemsStatus = "granted"
+	BlobStatusPageItemsStatusUploadRequired BlobStatusPageItemsStatus = "upload_required"
+)
+
+// Valid indicates whether the value is a known member of the BlobStatusPageItemsStatus enum.
+func (e BlobStatusPageItemsStatus) Valid() bool {
+	switch e {
+	case BlobStatusPageItemsStatusGranted:
+		return true
+	case BlobStatusPageItemsStatusUploadRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateProjectRequestProjectType.
+const (
+	CreateProjectRequestProjectTypeLibrary    CreateProjectRequestProjectType = "library"
+	CreateProjectRequestProjectTypeProduction CreateProjectRequestProjectType = "production"
+	CreateProjectRequestProjectTypeReference  CreateProjectRequestProjectType = "reference"
+	CreateProjectRequestProjectTypeSandbox    CreateProjectRequestProjectType = "sandbox"
+)
+
+// Valid indicates whether the value is a known member of the CreateProjectRequestProjectType enum.
+func (e CreateProjectRequestProjectType) Valid() bool {
+	switch e {
+	case CreateProjectRequestProjectTypeLibrary:
+		return true
+	case CreateProjectRequestProjectTypeProduction:
+		return true
+	case CreateProjectRequestProjectTypeReference:
+		return true
+	case CreateProjectRequestProjectTypeSandbox:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MetaApiVersion.
+const (
+	MetaApiVersionV1 MetaApiVersion = "v1"
+)
+
+// Valid indicates whether the value is a known member of the MetaApiVersion enum.
+func (e MetaApiVersion) Valid() bool {
+	switch e {
+	case MetaApiVersionV1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MetaStage.
+const (
+	MetaStageM1 MetaStage = "M1"
+)
+
+// Valid indicates whether the value is a known member of the MetaStage enum.
+func (e MetaStage) Valid() bool {
+	switch e {
+	case MetaStageM1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OperationStatusStage.
 const (
 	OperationStatusStageBlocked     OperationStatusStage = "blocked"
@@ -40,6 +112,33 @@ func (e OperationStatusStage) Valid() bool {
 	case OperationStatusStageQuarantined:
 		return true
 	case OperationStatusStageReceiving:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReadGrantRequestPurpose.
+const (
+	ReadGrantRequestPurposeArchiveReview   ReadGrantRequestPurpose = "archive_review"
+	ReadGrantRequestPurposeGenerativeInput ReadGrantRequestPurpose = "generative_input"
+	ReadGrantRequestPurposeProduction      ReadGrantRequestPurpose = "production"
+	ReadGrantRequestPurposeRawExport       ReadGrantRequestPurpose = "raw_export"
+	ReadGrantRequestPurposeReference       ReadGrantRequestPurpose = "reference"
+)
+
+// Valid indicates whether the value is a known member of the ReadGrantRequestPurpose enum.
+func (e ReadGrantRequestPurpose) Valid() bool {
+	switch e {
+	case ReadGrantRequestPurposeArchiveReview:
+		return true
+	case ReadGrantRequestPurposeGenerativeInput:
+		return true
+	case ReadGrantRequestPurposeProduction:
+		return true
+	case ReadGrantRequestPurposeRawExport:
+		return true
+	case ReadGrantRequestPurposeReference:
 		return true
 	default:
 		return false
@@ -88,8 +187,529 @@ func (e RecoveryAction) Valid() bool {
 	}
 }
 
+// Defines values for SensitiveRequestAction.
+const (
+	SensitiveRequestActionIdentityGrantProjectRole  SensitiveRequestAction = "identity.grant_project_role"
+	SensitiveRequestActionIdentityIssueCredential   SensitiveRequestAction = "identity.issue_credential"
+	SensitiveRequestActionIdentityRegisterPrincipal SensitiveRequestAction = "identity.register_principal"
+	SensitiveRequestActionIdentityRevokeCredential  SensitiveRequestAction = "identity.revoke_credential"
+	SensitiveRequestActionIdentityRevokeProjectRole SensitiveRequestAction = "identity.revoke_project_role"
+)
+
+// Valid indicates whether the value is a known member of the SensitiveRequestAction enum.
+func (e SensitiveRequestAction) Valid() bool {
+	switch e {
+	case SensitiveRequestActionIdentityGrantProjectRole:
+		return true
+	case SensitiveRequestActionIdentityIssueCredential:
+		return true
+	case SensitiveRequestActionIdentityRegisterPrincipal:
+		return true
+	case SensitiveRequestActionIdentityRevokeCredential:
+		return true
+	case SensitiveRequestActionIdentityRevokeProjectRole:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SessionRequestChannel.
+const (
+	SessionRequestChannelApi     SessionRequestChannel = "api"
+	SessionRequestChannelBrowser SessionRequestChannel = "browser"
+	SessionRequestChannelCli     SessionRequestChannel = "cli"
+)
+
+// Valid indicates whether the value is a known member of the SessionRequestChannel enum.
+func (e SessionRequestChannel) Valid() bool {
+	switch e {
+	case SessionRequestChannelApi:
+		return true
+	case SessionRequestChannelBrowser:
+		return true
+	case SessionRequestChannelCli:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupRequestChannel.
+const (
+	SetupRequestChannelBrowser SetupRequestChannel = "browser"
+	SetupRequestChannelCli     SetupRequestChannel = "cli"
+)
+
+// Valid indicates whether the value is a known member of the SetupRequestChannel enum.
+func (e SetupRequestChannel) Valid() bool {
+	switch e {
+	case SetupRequestChannelBrowser:
+		return true
+	case SetupRequestChannelCli:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VersionManifestAssetType.
+const (
+	VersionManifestAssetTypeAudio      VersionManifestAssetType = "audio"
+	VersionManifestAssetTypeConfig     VersionManifestAssetType = "config"
+	VersionManifestAssetTypeDoc        VersionManifestAssetType = "doc"
+	VersionManifestAssetTypeImage      VersionManifestAssetType = "image"
+	VersionManifestAssetTypeModel      VersionManifestAssetType = "model"
+	VersionManifestAssetTypeMotion     VersionManifestAssetType = "motion"
+	VersionManifestAssetTypePlugin     VersionManifestAssetType = "plugin"
+	VersionManifestAssetTypeProduction VersionManifestAssetType = "production"
+	VersionManifestAssetTypeScene      VersionManifestAssetType = "scene"
+	VersionManifestAssetTypeVideo      VersionManifestAssetType = "video"
+)
+
+// Valid indicates whether the value is a known member of the VersionManifestAssetType enum.
+func (e VersionManifestAssetType) Valid() bool {
+	switch e {
+	case VersionManifestAssetTypeAudio:
+		return true
+	case VersionManifestAssetTypeConfig:
+		return true
+	case VersionManifestAssetTypeDoc:
+		return true
+	case VersionManifestAssetTypeImage:
+		return true
+	case VersionManifestAssetTypeModel:
+		return true
+	case VersionManifestAssetTypeMotion:
+		return true
+	case VersionManifestAssetTypePlugin:
+		return true
+	case VersionManifestAssetTypeProduction:
+		return true
+	case VersionManifestAssetTypeScene:
+		return true
+	case VersionManifestAssetTypeVideo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VersionManifestFileRole.
+const (
+	VersionManifestFileRoleDoc         VersionManifestFileRole = "doc"
+	VersionManifestFileRoleInterchange VersionManifestFileRole = "interchange"
+	VersionManifestFileRolePreview     VersionManifestFileRole = "preview"
+	VersionManifestFileRolePrimary     VersionManifestFileRole = "primary"
+	VersionManifestFileRoleRecipe      VersionManifestFileRole = "recipe"
+	VersionManifestFileRoleRecord      VersionManifestFileRole = "record"
+	VersionManifestFileRoleSource      VersionManifestFileRole = "source"
+	VersionManifestFileRoleTexture     VersionManifestFileRole = "texture"
+)
+
+// Valid indicates whether the value is a known member of the VersionManifestFileRole enum.
+func (e VersionManifestFileRole) Valid() bool {
+	switch e {
+	case VersionManifestFileRoleDoc:
+		return true
+	case VersionManifestFileRoleInterchange:
+		return true
+	case VersionManifestFileRolePreview:
+		return true
+	case VersionManifestFileRolePrimary:
+		return true
+	case VersionManifestFileRoleRecipe:
+		return true
+	case VersionManifestFileRoleRecord:
+		return true
+	case VersionManifestFileRoleSource:
+		return true
+	case VersionManifestFileRoleTexture:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VersionManifestRightsSensitivity.
+const (
+	VersionManifestRightsSensitivityNormal   VersionManifestRightsSensitivity = "normal"
+	VersionManifestRightsSensitivityPersonal VersionManifestRightsSensitivity = "personal"
+)
+
+// Valid indicates whether the value is a known member of the VersionManifestRightsSensitivity enum.
+func (e VersionManifestRightsSensitivity) Valid() bool {
+	switch e {
+	case VersionManifestRightsSensitivityNormal:
+		return true
+	case VersionManifestRightsSensitivityPersonal:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VersionManifestRightsUsage.
+const (
+	VersionManifestRightsUsageProduction VersionManifestRightsUsage = "production"
+	VersionManifestRightsUsageReference  VersionManifestRightsUsage = "reference"
+	VersionManifestRightsUsageRestricted VersionManifestRightsUsage = "restricted"
+)
+
+// Valid indicates whether the value is a known member of the VersionManifestRightsUsage enum.
+func (e VersionManifestRightsUsage) Valid() bool {
+	switch e {
+	case VersionManifestRightsUsageProduction:
+		return true
+	case VersionManifestRightsUsageReference:
+		return true
+	case VersionManifestRightsUsageRestricted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VersionManifestUseRelation.
+const (
+	VersionManifestUseRelationDerivedFrom VersionManifestUseRelation = "derived_from"
+	VersionManifestUseRelationReference   VersionManifestUseRelation = "reference"
+	VersionManifestUseRelationUses        VersionManifestUseRelation = "uses"
+)
+
+// Valid indicates whether the value is a known member of the VersionManifestUseRelation enum.
+func (e VersionManifestUseRelation) Valid() bool {
+	switch e {
+	case VersionManifestUseRelationDerivedFrom:
+		return true
+	case VersionManifestUseRelationReference:
+		return true
+	case VersionManifestUseRelationUses:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchAssetsParamsView.
+const (
+	SearchAssetsParamsViewBrief SearchAssetsParamsView = "brief"
+	SearchAssetsParamsViewFull  SearchAssetsParamsView = "full"
+)
+
+// Valid indicates whether the value is a known member of the SearchAssetsParamsView enum.
+func (e SearchAssetsParamsView) Valid() bool {
+	switch e {
+	case SearchAssetsParamsViewBrief:
+		return true
+	case SearchAssetsParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetAssetParamsView.
+const (
+	GetAssetParamsViewBrief GetAssetParamsView = "brief"
+	GetAssetParamsViewFull  GetAssetParamsView = "full"
+)
+
+// Valid indicates whether the value is a known member of the GetAssetParamsView enum.
+func (e GetAssetParamsView) Valid() bool {
+	switch e {
+	case GetAssetParamsViewBrief:
+		return true
+	case GetAssetParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetVersionParamsView.
+const (
+	GetVersionParamsViewBrief GetVersionParamsView = "brief"
+	GetVersionParamsViewFull  GetVersionParamsView = "full"
+)
+
+// Valid indicates whether the value is a known member of the GetVersionParamsView enum.
+func (e GetVersionParamsView) Valid() bool {
+	switch e {
+	case GetVersionParamsViewBrief:
+		return true
+	case GetVersionParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListProjectsParamsView.
+const (
+	ListProjectsParamsViewBrief ListProjectsParamsView = "brief"
+	ListProjectsParamsViewFull  ListProjectsParamsView = "full"
+)
+
+// Valid indicates whether the value is a known member of the ListProjectsParamsView enum.
+func (e ListProjectsParamsView) Valid() bool {
+	switch e {
+	case ListProjectsParamsViewBrief:
+		return true
+	case ListProjectsParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetProjectParamsView.
+const (
+	GetProjectParamsViewBrief GetProjectParamsView = "brief"
+	GetProjectParamsViewFull  GetProjectParamsView = "full"
+)
+
+// Valid indicates whether the value is a known member of the GetProjectParamsView enum.
+func (e GetProjectParamsView) Valid() bool {
+	switch e {
+	case GetProjectParamsViewBrief:
+		return true
+	case GetProjectParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// AssetDescriptionView defines model for AssetDescriptionView.
+type AssetDescriptionView struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId   Ulid                    `json:"asset_id"`
+	AssetType string                  `json:"asset_type"`
+	Defaults  *map[string]interface{} `json:"defaults,omitempty"`
+	Extra     *map[string]interface{} `json:"extra,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId   Ulid     `json:"project_id"`
+	Revision    int      `json:"revision"`
+	Sensitivity string   `json:"sensitivity"`
+	Slug        string   `json:"slug"`
+	Subjects    []string `json:"subjects"`
+	Summary     *string  `json:"summary,omitempty"`
+	Tags        []string `json:"tags"`
+	Title       string   `json:"title"`
+	UpdatedBy   string   `json:"updated_by"`
+}
+
+// AssetPatch sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
+type AssetPatch struct {
+	Defaults    *map[string]interface{} `json:"defaults,omitempty"`
+	Extra       *map[string]interface{} `json:"extra,omitempty"`
+	Sensitivity *string                 `json:"sensitivity,omitempty"`
+	Subjects    *[]string               `json:"subjects,omitempty"`
+	Summary     *string                 `json:"summary,omitempty"`
+	Tags        *[]string               `json:"tags,omitempty"`
+	Title       *string                 `json:"title,omitempty"`
+}
+
+// AssetView defines model for AssetView.
+type AssetView struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId     Ulid                 `json:"asset_id"`
+	AssetType   string               `json:"asset_type"`
+	Description AssetDescriptionView `json:"description"`
+	Latest      VersionView          `json:"latest"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+}
+
+// BlobGrant defines model for BlobGrant.
+type BlobGrant struct {
+	Basis string `json:"basis"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId Ulid `json:"grant_id"`
+
+	// IssuedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	IssuedAt Timestamp `json:"issued_at"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Purpose   string `json:"purpose"`
+
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+
+	// Source 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Source     *PermanentRef `json:"source,omitempty"`
+	SourcePath *string       `json:"source_path,omitempty"`
+}
+
+// BlobStatusPage defines model for BlobStatusPage.
+type BlobStatusPage struct {
+	Items []struct {
+		// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+		Sha256 Sha256Hex                 `json:"sha256"`
+		Size   int                       `json:"size"`
+		Status BlobStatusPageItemsStatus `json:"status"`
+	} `json:"items"`
+}
+
+// BlobStatusPageItemsStatus defines model for BlobStatusPage.Items.Status.
+type BlobStatusPageItemsStatus string
+
+// Challenge defines model for Challenge.
+type Challenge struct {
+	Action string `json:"action"`
+
+	// ChallengeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ChallengeId Ulid `json:"challenge_id"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId *Ulid `json:"project_id,omitempty"`
+
+	// RequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	RequestHash Digest `json:"request_hash"`
+	Summary     string `json:"summary"`
+
+	// TargetSetDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	TargetSetDigest Digest `json:"target_set_digest"`
+	Targets         []struct {
+		ExpectedRevision int    `json:"expected_revision"`
+		Id               string `json:"id"`
+		Kind             string `json:"kind"`
+	} `json:"targets"`
+}
+
+// CheckBlobsRequest defines model for CheckBlobsRequest.
+type CheckBlobsRequest struct {
+	Files []FileSpec `json:"files"`
+}
+
+// CodeRequest defines model for CodeRequest.
+type CodeRequest struct {
+	Code *string `json:"code,omitempty"`
+}
+
 // CommandType 命令类型，<module>.<command>，例如 ledger.commit_version。
 type CommandType = string
+
+// CommitRequest defines model for CommitRequest.
+type CommitRequest struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId *Ulid `json:"asset_id,omitempty"`
+
+	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BaseVersionId *Ulid        `json:"base_version_id,omitempty"`
+	Content       ContentInput `json:"content"`
+
+	// Describe sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
+	Describe *AssetPatch `json:"describe,omitempty"`
+	Slug     *string     `json:"slug,omitempty"`
+}
+
+// CommitResult defines model for CommitResult.
+type CommitResult struct {
+	AliasGeneration *int `json:"alias_generation,omitempty"`
+
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// CommittedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CommittedAt        Timestamp             `json:"committed_at"`
+	Description        *AssetDescriptionView `json:"description,omitempty"`
+	DescriptionError   *string               `json:"description_error,omitempty"`
+	DescriptionPending *bool                 `json:"description_pending,omitempty"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref  PermanentRef `json:"ref"`
+	Slug string       `json:"slug"`
+	Uri  string       `json:"uri"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId     Ulid `json:"version_id"`
+	VersionNumber int  `json:"version_number"`
+}
+
+// ContentInput defines model for ContentInput.
+type ContentInput struct {
+	// AssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
+	AssetType VersionManifestAssetType `json:"asset_type"`
+	Files     []VersionManifestFile    `json:"files"`
+	Metadata  *map[string]interface{}  `json:"metadata,omitempty"`
+
+	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
+	Rights *VersionManifestRights `json:"rights,omitempty"`
+	Uses   *[]struct {
+		AliasGeneration *int `json:"alias_generation,omitempty"`
+
+		// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		AssetId  *Ulid   `json:"asset_id,omitempty"`
+		Ref      *string `json:"ref,omitempty"`
+		Relation string  `json:"relation"`
+
+		// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		VersionId *Ulid `json:"version_id,omitempty"`
+	} `json:"uses,omitempty"`
+	VersionNote *string `json:"version_note,omitempty"`
+}
+
+// ContractId 契约标识 lantai.<name>/v<major>。
+type ContractId = string
+
+// CreateProjectRequest defines model for CreateProjectRequest.
+type CreateProjectRequest struct {
+	Key         string                           `json:"key"`
+	Name        *string                          `json:"name,omitempty"`
+	ProjectType *CreateProjectRequestProjectType `json:"project_type,omitempty"`
+	Summary     *string                          `json:"summary,omitempty"`
+}
+
+// CreateProjectRequestProjectType defines model for CreateProjectRequest.ProjectType.
+type CreateProjectRequestProjectType string
+
+// CreateUploadRequest defines model for CreateUploadRequest.
+type CreateUploadRequest struct {
+	Files []FileSpec `json:"files"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+}
+
+// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+type Digest = string
+
+// EmptyRequest defines model for EmptyRequest.
+type EmptyRequest = map[string]interface{}
+
+// Enrollment defines model for Enrollment.
+type Enrollment struct {
+	Secret string `json:"secret"`
+	Uri    string `json:"uri"`
+}
 
 // ErrorEnvelope 所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。
 type ErrorEnvelope struct {
@@ -141,14 +761,92 @@ type ErrorEnvelopeErrorDetail struct {
 	Ref    *string `json:"ref,omitempty"`
 }
 
+// ExactVersionView defines model for ExactVersionView.
+type ExactVersionView struct {
+	// Manifest 不可变版本的清单文件（版本目录中的 manifest.yaml）。content 是冻结的版本内容：类型、文件（相对路径、角色、哈希、大小）、固定的 uses 引用、许可声明与类型元数据；manifest_digest 等于 content 按 RFC 8785 规范化后的 SHA-256，因此可在台账分配版本 ID 之前冻结。其余字段是由台账分配的身份与提交者，写入文件便于在库丢失时由文件重建。清单由 catalog 规范化生成，客户端提交的 lantai.yaml 不直接写入。
+	Manifest *VersionManifest `json:"manifest,omitempty"`
+	Version  VersionView      `json:"version"`
+}
+
+// FileSpec defines model for FileSpec.
+type FileSpec struct {
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+}
+
+// HumanGrant defines model for HumanGrant.
+type HumanGrant struct {
+	Action string `json:"action"`
+
+	// ChallengeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ChallengeId Ulid `json:"challenge_id"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId Ulid `json:"grant_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+}
+
 // IdempotencyKey 客户端提供的幂等键；作用域为 (actor, project, command_type)。
 type IdempotencyKey = string
+
+// IdentityView defines model for IdentityView.
+type IdentityView struct {
+	FactorState  *string              `json:"factor_state,omitempty"`
+	Principal    PrincipalView        `json:"principal"`
+	ProjectRoles *map[string][]string `json:"project_roles,omitempty"`
+	Session      SessionInfo          `json:"session"`
+	SystemRoles  *[]string            `json:"system_roles,omitempty"`
+}
 
 // JsonPointer RFC 6901 JSON Pointer。
 type JsonPointer = string
 
 // LantaiUri 永久引用的外部 URI 形式。
 type LantaiUri = string
+
+// MemberPage defines model for MemberPage.
+type MemberPage struct {
+	Items []struct {
+		Kind string `json:"kind"`
+		Name string `json:"name"`
+
+		// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		PrincipalId Ulid     `json:"principal_id"`
+		Roles       []string `json:"roles"`
+	} `json:"items"`
+	Revision int `json:"revision"`
+}
+
+// Meta defines model for Meta.
+type Meta struct {
+	ApiVersion   MetaApiVersion `json:"api_version"`
+	Capabilities []string       `json:"capabilities"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId   Ulid      `json:"instance_id"`
+	MaxJsonBytes int       `json:"max_json_bytes"`
+	MaxPageSize  int       `json:"max_page_size"`
+	Stage        MetaStage `json:"stage"`
+	Transfer     struct {
+		ClassSource    string `json:"class_source"`
+		Range          bool   `json:"range"`
+		ResumableParts bool   `json:"resumable_parts"`
+	} `json:"transfer"`
+	Unsupported []string `json:"unsupported"`
+	Views       []string `json:"views"`
+}
+
+// MetaApiVersion defines model for Meta.ApiVersion.
+type MetaApiVersion string
+
+// MetaStage defines model for Meta.Stage.
+type MetaStage string
 
 // Module 服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。
 type Module = string
@@ -232,11 +930,259 @@ type PartResult struct {
 	ReceivedParts int `json:"received_parts"`
 }
 
+// PasswordRequest defines model for PasswordRequest.
+type PasswordRequest struct {
+	Password *string `json:"password,omitempty"`
+}
+
+// PermanentRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+type PermanentRef struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId Ulid `json:"instance_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// PrincipalView defines model for PrincipalView.
+type PrincipalView struct {
+	AuthEpoch int `json:"auth_epoch"`
+
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt   Timestamp `json:"created_at"`
+	DisplayName *string   `json:"display_name,omitempty"`
+	Kind        string    `json:"kind"`
+	Name        string    `json:"name"`
+
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId Ulid                   `json:"principal_id"`
+	Profile     map[string]interface{} `json:"profile"`
+	Revision    int                    `json:"revision"`
+	State       string                 `json:"state"`
+
+	// UpdatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// ProjectDescriptionView HTTP view omits the file contract marker; revision 0 denotes an authoritative derived description.
+type ProjectDescriptionView struct {
+	Extra *map[string]interface{} `json:"extra,omitempty"`
+	Key   string                  `json:"key"`
+	Name  string                  `json:"name"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId   Ulid    `json:"project_id"`
+	ProjectType string  `json:"project_type"`
+	Revision    int     `json:"revision"`
+	Summary     *string `json:"summary,omitempty"`
+	UpdatedBy   string  `json:"updated_by"`
+}
+
+// ProjectPage defines model for ProjectPage.
+type ProjectPage struct {
+	Items      []ProjectView `json:"items"`
+	NextCursor *string       `json:"next_cursor,omitempty"`
+}
+
+// ProjectView defines model for ProjectView.
+type ProjectView struct {
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt *Timestamp `json:"created_at,omitempty"`
+
+	// CreatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CreatedBy *Ulid `json:"created_by,omitempty"`
+
+	// Description HTTP view omits the file contract marker; revision 0 denotes an authoritative derived description.
+	Description        ProjectDescriptionView `json:"description"`
+	DescriptionError   *string                `json:"description_error,omitempty"`
+	DescriptionPending *bool                  `json:"description_pending,omitempty"`
+	Key                string                 `json:"key"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId *Ulid `json:"operation_id,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	State     string `json:"state"`
+}
+
+// QueryItem defines model for QueryItem.
+type QueryItem struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId   Ulid   `json:"asset_id"`
+	AssetType string `json:"asset_type"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid     `json:"project_id"`
+	Revision  int      `json:"revision"`
+	Slug      string   `json:"slug"`
+	Subjects  []string `json:"subjects"`
+	Summary   *string  `json:"summary,omitempty"`
+	Tags      []string `json:"tags"`
+	Title     string   `json:"title"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId     Ulid `json:"version_id"`
+	VersionNumber int  `json:"version_number"`
+}
+
+// QueryPage Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.
+type QueryPage struct {
+	Items      []QueryItem `json:"items"`
+	NextCursor *string     `json:"next_cursor,omitempty"`
+	State      struct {
+		Generation   int `json:"generation"`
+		HighWater    int `json:"high_water"`
+		RebuildStart int `json:"rebuild_start"`
+	} `json:"state"`
+}
+
+// ReadGrant defines model for ReadGrant.
+type ReadGrant struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId Ulid `json:"grant_id"`
+
+	// IssuedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	IssuedAt Timestamp `json:"issued_at"`
+	Method   string    `json:"method"`
+	Path     string    `json:"path"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Purpose   string `json:"purpose"`
+	Range     bool   `json:"range"`
+
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+	Url    string    `json:"url"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// ReadGrantRequest defines model for ReadGrantRequest.
+type ReadGrantRequest struct {
+	Path    string                  `json:"path"`
+	Purpose ReadGrantRequestPurpose `json:"purpose"`
+}
+
+// ReadGrantRequestPurpose defines model for ReadGrantRequest.Purpose.
+type ReadGrantRequestPurpose string
+
 // RecoveryAction 调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。
 type RecoveryAction string
 
+// RecoveryCodes defines model for RecoveryCodes.
+type RecoveryCodes struct {
+	RecoveryCodes []string `json:"recovery_codes"`
+}
+
+// RelativePath 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+type RelativePath = string
+
 // Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
 type Revision = int
+
+// SensitiveRequest Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
+type SensitiveRequest struct {
+	Action  SensitiveRequestAction `json:"action"`
+	Command map[string]interface{} `json:"command"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId *Ulid `json:"grant_id,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId *Ulid `json:"operation_id,omitempty"`
+}
+
+// SensitiveRequestAction defines model for SensitiveRequest.Action.
+type SensitiveRequestAction string
+
+// SensitiveResult Secret is returned once after first execution only. If that response is lost, revoke and reissue; polling/replay cannot recover the secret.
+type SensitiveResult struct {
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid                   `json:"operation_id"`
+	Replayed    bool                   `json:"replayed"`
+	Result      map[string]interface{} `json:"result"`
+	Secret      *string                `json:"secret,omitempty"`
+}
+
+// SessionInfo defines model for SessionInfo.
+type SessionInfo struct {
+	Actions *[]string `json:"actions,omitempty"`
+	Channel string    `json:"channel"`
+
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt Timestamp `json:"created_at"`
+
+	// CredentialId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CredentialId *Ulid `json:"credential_id,omitempty"`
+
+	// DelegatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	DelegatedBy *Ulid `json:"delegated_by,omitempty"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+	Model     *string   `json:"model,omitempty"`
+
+	// ParentSessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ParentSessionId *Ulid `json:"parent_session_id,omitempty"`
+
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId   Ulid     `json:"principal_id"`
+	PrincipalKind string   `json:"principal_kind"`
+	Projects      *[]Ulid  `json:"projects,omitempty"`
+	Purpose       *string  `json:"purpose,omitempty"`
+	Scopes        []string `json:"scopes"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId   Ulid   `json:"session_id"`
+	SessionKind string `json:"session_kind"`
+}
+
+// SessionRequest exchange requires token; login requires name/password/code; allowed channels are checked by identity. Credentials are never logged.
+type SessionRequest struct {
+	Channel    *SessionRequestChannel `json:"channel,omitempty"`
+	Code       *string                `json:"code,omitempty"`
+	Model      *string                `json:"model,omitempty"`
+	Name       *string                `json:"name,omitempty"`
+	Password   *string                `json:"password,omitempty"`
+	Projects   *[]Ulid                `json:"projects,omitempty"`
+	Purpose    *string                `json:"purpose,omitempty"`
+	Scopes     *[]string              `json:"scopes,omitempty"`
+	Token      *string                `json:"token,omitempty"`
+	TtlSeconds *int                   `json:"ttl_seconds,omitempty"`
+}
+
+// SessionRequestChannel defines model for SessionRequest.Channel.
+type SessionRequestChannel string
+
+// SessionResponse Browser sessions use a Secure HttpOnly SameSite=Strict cookie; no token is included. CSRF token is returned separately.
+type SessionResponse struct {
+	CsrfToken *string     `json:"csrf_token,omitempty"`
+	Session   SessionInfo `json:"session"`
+	Token     *string     `json:"token,omitempty"`
+}
+
+// SetupRequest defines model for SetupRequest.
+type SetupRequest struct {
+	Channel *SetupRequestChannel `json:"channel,omitempty"`
+	Code    *string              `json:"code,omitempty"`
+	Name    string               `json:"name"`
+}
+
+// SetupRequestChannel defines model for SetupRequest.Channel.
+type SetupRequestChannel string
 
 // Sha256Hex 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
 type Sha256Hex = string
@@ -244,8 +1190,210 @@ type Sha256Hex = string
 // Timestamp UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
 type Timestamp = time.Time
 
+// TypeDetail defines model for TypeDetail.
+type TypeDetail struct {
+	AssetType     string                 `json:"asset_type"`
+	Schema        map[string]interface{} `json:"schema"`
+	SchemaPointer string                 `json:"schema_pointer"`
+	TypeSchema    string                 `json:"type_schema"`
+}
+
+// TypeEntry defines model for TypeEntry.
+type TypeEntry struct {
+	AssetType      string   `json:"asset_type"`
+	MetadataFields []string `json:"metadata_fields"`
+	TypeSchema     string   `json:"type_schema"`
+}
+
+// TypePage defines model for TypePage.
+type TypePage struct {
+	FileRoles    []string    `json:"file_roles"`
+	Items        []TypeEntry `json:"items"`
+	ProjectTypes []string    `json:"project_types"`
+	Relations    []string    `json:"relations"`
+}
+
 // Ulid 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 type Ulid = string
+
+// UploadFileView defines model for UploadFileView.
+type UploadFileView struct {
+	PartCount       int    `json:"part_count"`
+	PartSize        int    `json:"part_size"`
+	PartUrlTemplate string `json:"part_url_template"`
+	ReceivedParts   []int  `json:"received_parts"`
+
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+	State  string    `json:"state"`
+}
+
+// UploadView defines model for UploadView.
+type UploadView struct {
+	CloseReason *string `json:"close_reason,omitempty"`
+
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt Timestamp `json:"created_at"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp        `json:"expires_at"`
+	Files     []UploadFileView `json:"files"`
+
+	// IdleExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	IdleExpiresAt Timestamp `json:"idle_expires_at"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid   `json:"operation_id"`
+	PartsUrl    string `json:"parts_url"`
+
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId Ulid `json:"principal_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId  Ulid   `json:"project_id"`
+	State      string `json:"state"`
+	TotalBytes int    `json:"total_bytes"`
+
+	// UploadId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	UploadId Ulid `json:"upload_id"`
+}
+
+// VersionManifest 不可变版本的清单文件（版本目录中的 manifest.yaml）。content 是冻结的版本内容：类型、文件（相对路径、角色、哈希、大小）、固定的 uses 引用、许可声明与类型元数据；manifest_digest 等于 content 按 RFC 8785 规范化后的 SHA-256，因此可在台账分配版本 ID 之前冻结。其余字段是由台账分配的身份与提交者，写入文件便于在库丢失时由文件重建。清单由 catalog 规范化生成，客户端提交的 lantai.yaml 不直接写入。
+type VersionManifest struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId  Ulid                   `json:"asset_id"`
+	Content  VersionManifestContent `json:"content"`
+	Contract interface{}            `json:"contract"`
+
+	// CreatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CreatedBy Ulid `json:"created_by"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId Ulid `json:"instance_id"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId *Ulid `json:"session_id,omitempty"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId     Ulid `json:"version_id"`
+	VersionNumber int  `json:"version_number"`
+}
+
+// VersionManifestAssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
+type VersionManifestAssetType string
+
+// VersionManifestContent defines model for VersionManifestContent.
+type VersionManifestContent struct {
+	// AssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
+	AssetType VersionManifestAssetType `json:"asset_type"`
+
+	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BaseVersionId *Ulid `json:"base_version_id,omitempty"`
+
+	// Files 按 path 的字节序升序、不重复；path 已规范化为 NFC 且规范化后互不冲突。
+	Files []VersionManifestFile `json:"files"`
+
+	// Metadata 类型元数据，按 type_schema 中对应类型的定义校验；未登记的字段放在 extra 中。
+	Metadata map[string]interface{} `json:"metadata"`
+
+	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
+	Rights VersionManifestRights `json:"rights"`
+
+	// TypeSchema 校验 metadata 所用的类型定义库契约，例如 lantai.asset-types/v1。
+	TypeSchema ContractId `json:"type_schema"`
+
+	// Uses 声明的输入，已在冻结时解析为固定的永久引用；按 (asset_id, version_id, relation) 排序、不重复。
+	Uses        []VersionManifestUse `json:"uses"`
+	VersionNote *string              `json:"version_note,omitempty"`
+}
+
+// VersionManifestFile defines model for VersionManifestFile.
+type VersionManifestFile struct {
+	// Path 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+	Path RelativePath            `json:"path"`
+	Role VersionManifestFileRole `json:"role"`
+
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+}
+
+// VersionManifestFileRole defines model for VersionManifestFile.Role.
+type VersionManifestFileRole string
+
+// VersionManifestRights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
+type VersionManifestRights struct {
+	// DigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
+	DigitalSourceType *string `json:"digital_source_type,omitempty"`
+
+	// License SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
+	License         string                           `json:"license"`
+	Noai            bool                             `json:"noai"`
+	RedistributeRaw bool                             `json:"redistribute_raw"`
+	Sensitivity     VersionManifestRightsSensitivity `json:"sensitivity"`
+	Usage           VersionManifestRightsUsage       `json:"usage"`
+}
+
+// VersionManifestRightsSensitivity defines model for VersionManifestRights.Sensitivity.
+type VersionManifestRightsSensitivity string
+
+// VersionManifestRightsUsage defines model for VersionManifestRights.Usage.
+type VersionManifestRightsUsage string
+
+// VersionManifestUse defines model for VersionManifestUse.
+type VersionManifestUse struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// Declared 提交时书写的引用（例如 pansi/storyboard/ch03@published），仅作快照；机器字段以 ID 为准。
+	Declared *string `json:"declared,omitempty"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId Ulid                       `json:"instance_id"`
+	Relation   VersionManifestUseRelation `json:"relation"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// VersionManifestUseRelation defines model for VersionManifestUse.Relation.
+type VersionManifestUseRelation string
+
+// VersionView defines model for VersionView.
+type VersionView struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// CommittedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CommittedAt Timestamp `json:"committed_at"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+	Uri string       `json:"uri"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId     Ulid `json:"version_id"`
+	VersionNumber int  `json:"version_number"`
+}
 
 // GrantID 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 type GrantID = Ulid
@@ -268,8 +1416,243 @@ type Accepted = OperationStatusAccepted
 // Error 所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。
 type Error = ErrorEnvelope
 
+// SearchAssetsParams defines parameters for SearchAssets.
+type SearchAssetsParams struct {
+	View      *SearchAssetsParamsView   `form:"view,omitempty" json:"view,omitempty"`
+	Limit     *int                      `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor    *string                   `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Q         *string                   `form:"q,omitempty" json:"q,omitempty"`
+	ProjectId *Ulid                     `form:"project_id,omitempty" json:"project_id,omitempty"`
+	AssetType *VersionManifestAssetType `form:"asset_type,omitempty" json:"asset_type,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// SearchAssetsParamsView defines parameters for SearchAssets.
+type SearchAssetsParamsView string
+
+// GetAssetParams defines parameters for GetAsset.
+type GetAssetParams struct {
+	View *GetAssetParamsView `form:"view,omitempty" json:"view,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetAssetParamsView defines parameters for GetAsset.
+type GetAssetParamsView string
+
+// PatchAssetMetadataParams defines parameters for PatchAssetMetadata.
+type PatchAssetMetadataParams struct {
+	// IfMatch 条件写入的预期 ETag；缺少必需的基线时返回 428 PRECONDITION_REQUIRED。
+	IfMatch *IfMatch `json:"If-Match,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetVersionParams defines parameters for GetVersion.
+type GetVersionParams struct {
+	View *GetVersionParamsView `form:"view,omitempty" json:"view,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetVersionParamsView defines parameters for GetVersion.
+type GetVersionParamsView string
+
+// IssueReadGrantParams defines parameters for IssueReadGrant.
+type IssueReadGrantParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// CreateIdentityChallengeParams defines parameters for CreateIdentityChallenge.
+type CreateIdentityChallengeParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// VerifyIdentityChallengeParams defines parameters for VerifyIdentityChallenge.
+type VerifyIdentityChallengeParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ExecuteIdentityCommandParams defines parameters for ExecuteIdentityCommand.
+type ExecuteIdentityCommandParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ConfirmFactorParams defines parameters for ConfirmFactor.
+type ConfirmFactorParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// EnrollFactorParams defines parameters for EnrollFactor.
+type EnrollFactorParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// SetSetupPasswordParams defines parameters for SetSetupPassword.
+type SetSetupPasswordParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetPrincipalParams defines parameters for GetPrincipal.
+type GetPrincipalParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetProjectMembersParams defines parameters for GetProjectMembers.
+type GetProjectMembersParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetMetaParams defines parameters for GetMeta.
+type GetMetaParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
 // GetOperationParams defines parameters for GetOperation.
 type GetOperationParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ListProjectsParams defines parameters for ListProjects.
+type ListProjectsParams struct {
+	View   *ListProjectsParamsView `form:"view,omitempty" json:"view,omitempty"`
+	Limit  *int                    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string                 `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ListProjectsParamsView defines parameters for ListProjects.
+type ListProjectsParamsView string
+
+// CreateProjectParams defines parameters for CreateProject.
+type CreateProjectParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetProjectParams defines parameters for GetProject.
+type GetProjectParams struct {
+	View *GetProjectParamsView `form:"view,omitempty" json:"view,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetProjectParamsView defines parameters for GetProject.
+type GetProjectParamsView string
+
+// EndCurrentSessionParams defines parameters for EndCurrentSession.
+type EndCurrentSessionParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ExchangeSessionParams defines parameters for ExchangeSession.
+type ExchangeSessionParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// LoginSessionParams defines parameters for LoginSession.
+type LoginSessionParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// StartSetupParams defines parameters for StartSetup.
+type StartSetupParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ListTypesParams defines parameters for ListTypes.
+type ListTypesParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetAssetTypeParams defines parameters for GetAssetType.
+type GetAssetTypeParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// CreateUploadParams defines parameters for CreateUpload.
+type CreateUploadParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CancelUploadParams defines parameters for CancelUpload.
+type CancelUploadParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetUploadParams defines parameters for GetUpload.
+type GetUploadParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// CheckUploadBlobsParams defines parameters for CheckUploadBlobs.
+type CheckUploadBlobsParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// CommitUploadParams defines parameters for CommitUpload.
+type CommitUploadParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CompleteUploadFileParams defines parameters for CompleteUploadFile.
+type CompleteUploadFileParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// WhoAmIParams defines parameters for WhoAmI.
+type WhoAmIParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
@@ -300,3 +1683,51 @@ type PutUploadPartParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// PatchAssetMetadataJSONRequestBody defines body for PatchAssetMetadata for application/json ContentType.
+type PatchAssetMetadataJSONRequestBody = AssetPatch
+
+// IssueReadGrantJSONRequestBody defines body for IssueReadGrant for application/json ContentType.
+type IssueReadGrantJSONRequestBody = ReadGrantRequest
+
+// CreateIdentityChallengeJSONRequestBody defines body for CreateIdentityChallenge for application/json ContentType.
+type CreateIdentityChallengeJSONRequestBody = SensitiveRequest
+
+// VerifyIdentityChallengeJSONRequestBody defines body for VerifyIdentityChallenge for application/json ContentType.
+type VerifyIdentityChallengeJSONRequestBody = CodeRequest
+
+// ExecuteIdentityCommandJSONRequestBody defines body for ExecuteIdentityCommand for application/json ContentType.
+type ExecuteIdentityCommandJSONRequestBody = SensitiveRequest
+
+// ConfirmFactorJSONRequestBody defines body for ConfirmFactor for application/json ContentType.
+type ConfirmFactorJSONRequestBody = CodeRequest
+
+// EnrollFactorJSONRequestBody defines body for EnrollFactor for application/json ContentType.
+type EnrollFactorJSONRequestBody = EmptyRequest
+
+// SetSetupPasswordJSONRequestBody defines body for SetSetupPassword for application/json ContentType.
+type SetSetupPasswordJSONRequestBody = PasswordRequest
+
+// CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
+type CreateProjectJSONRequestBody = CreateProjectRequest
+
+// ExchangeSessionJSONRequestBody defines body for ExchangeSession for application/json ContentType.
+type ExchangeSessionJSONRequestBody = SessionRequest
+
+// LoginSessionJSONRequestBody defines body for LoginSession for application/json ContentType.
+type LoginSessionJSONRequestBody = SessionRequest
+
+// StartSetupJSONRequestBody defines body for StartSetup for application/json ContentType.
+type StartSetupJSONRequestBody = SetupRequest
+
+// CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
+type CreateUploadJSONRequestBody = CreateUploadRequest
+
+// CheckUploadBlobsJSONRequestBody defines body for CheckUploadBlobs for application/json ContentType.
+type CheckUploadBlobsJSONRequestBody = CheckBlobsRequest
+
+// CommitUploadJSONRequestBody defines body for CommitUpload for application/json ContentType.
+type CommitUploadJSONRequestBody = CommitRequest
+
+// CompleteUploadFileJSONRequestBody defines body for CompleteUploadFile for application/json ContentType.
+type CompleteUploadFileJSONRequestBody = EmptyRequest

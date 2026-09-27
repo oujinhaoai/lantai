@@ -1,0 +1,17 @@
+{
+  "description": "review completion with authority operation",
+  "schema": "lantai.task-command/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.task-command/v1",
+    "operation_id": "01K00000000000000000000009",
+    "request_hash": "sha256:4be93a43eb454be2cee16d2fbb58a5ed1da96acbae3bd3ed552248e5ebbc2963",
+    "command_type": "tasks.complete",
+    "project_id": "01K00000000000000000000000",
+    "target_id": "01K00000000000000000000003",
+    "expected_revision": 1,
+    "recovery_epoch": 1,
+    "session_id": "01K00000000000000000000007",
+    "authority_operation_id": "01K00000000000000000000025"
+  }
+}

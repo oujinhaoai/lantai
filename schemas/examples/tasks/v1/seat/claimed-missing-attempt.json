@@ -1,0 +1,22 @@
+{
+  "description": "claimed missing attempt",
+  "schema": "lantai.seat/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.seat/v1",
+    "id": "01K00000000000000000000004",
+    "task_id": "01K00000000000000000000003",
+    "revision": 1,
+    "ordinal": 1,
+    "state": "claimed",
+    "last_lease_fence": 1,
+    "recovery_epoch": 1,
+    "current_attempt_id": null
+  },
+  "expect": [
+    {
+      "pointer": "/current_attempt_id",
+      "keyword": "type"
+    }
+  ]
+}

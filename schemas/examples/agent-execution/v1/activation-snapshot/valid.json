@@ -1,0 +1,24 @@
+{
+  "description": "valid",
+  "schema": "lantai.activation-snapshot/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.activation-snapshot/v1",
+    "activation": {
+      "extension_id": "org.example.runner",
+      "extension_version": "1.0.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "activation_generation": 1
+    },
+    "entry": {
+      "extension_id": "org.example.runner",
+      "extension_version": "1.0.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target": "server",
+      "entry": "bin/adapter",
+      "entry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "effective_config_revision": 1,
+    "enablement_policy_revision": 1
+  }
+}

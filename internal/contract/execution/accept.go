@@ -10,10 +10,10 @@ import (
 
 // Fence 是调用方出示的任务执行权凭据（线上字段 task_fence）。
 type Fence struct {
-	TaskID        ids.ID
-	AttemptID     ids.ID
-	LeaseFence    int64
-	RecoveryEpoch int64
+	TaskID        ids.ID `json:"task_id,omitempty"`
+	AttemptID     ids.ID `json:"attempt_id"`
+	LeaseFence    int64  `json:"lease_fence"`
+	RecoveryEpoch int64  `json:"recovery_epoch"`
 }
 
 // LeaseState 是 tasks 模块在最终接受边界读到的当前权威租约。
@@ -70,10 +70,10 @@ func CheckFence(presented Fence, current LeaseState, now time.Time) error {
 
 // Activation 是调用绑定的扩展激活身份（线上字段 activation_ref）。
 type Activation struct {
-	ExtensionID      string
-	ExtensionVersion string
-	PackageDigest    digest.Digest
-	Generation       int64
+	ExtensionID      string        `json:"extension_id"`
+	ExtensionVersion string        `json:"extension_version"`
+	PackageDigest    digest.Digest `json:"package_digest"`
+	Generation       int64         `json:"activation_generation"`
 }
 
 // Draining 是正常升级或停用后仍允许在期限内收尾的激活；停用时当前代次

@@ -1,0 +1,42 @@
+{
+  "description": "unconfirmed cancel rejected",
+  "schema": "lantai.task-run/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.task-run/v1",
+    "id": "01K00000000000000000000013",
+    "task_id": "01K00000000000000000000003",
+    "seat_id": "01K00000000000000000000004",
+    "revision": 1,
+    "operation_id": "01K00000000000000000000009",
+    "state": "cancelled",
+    "input_snapshot": {
+      "refs": [
+        {
+          "instance_id": "01K00000000000000000000000",
+          "asset_id": "01K00000000000000000000001",
+          "version_id": "01K00000000000000000000002"
+        }
+      ],
+      "digest": "sha256:49c8aba057192e4d11dd16d46a6bce8aaef7e7150eef7b076167480450578375"
+    },
+    "profile": {
+      "profile_id": "01K00000000000000000000012",
+      "revision": 1,
+      "profile_digest": "sha256:fb382737e0f9a979df1fb9ba4ae24277fb21ff5be727357d26350ced65970cd1"
+    },
+    "budget_id": "01K00000000000000000000014",
+    "created_by": "01K00000000000000000000006",
+    "current_attempt_id": "01K00000000000000000000005",
+    "termination": {
+      "termination_confirmed": false,
+      "unresolved_effects": 0
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/termination/termination_confirmed",
+      "keyword": "const"
+    }
+  ]
+}

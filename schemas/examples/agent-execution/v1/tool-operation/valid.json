@@ -1,0 +1,21 @@
+{
+  "description": "valid",
+  "schema": "lantai.tool-operation/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.tool-operation/v1",
+    "id": "01K00000000000000000000016",
+    "task_run_id": "01K00000000000000000000013",
+    "agent_step_run_id": "01K00000000000000000000015",
+    "attempt_id": "01K00000000000000000000005",
+    "sequence": 1,
+    "tool": "catalog.create_version",
+    "tool_version": "1.0.0",
+    "request_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "effect_class": "lantai_command",
+    "state": "completed",
+    "idempotency_key": "synthetic-tool-1",
+    "receipt_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "reconciliation_evidence_refs": []
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "description": "status",
+  "schema": "lantai.agent-response/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "status",
+    "execution_id": "01K00000000000000000000021",
+    "revision": 2,
+    "state": "running",
+    "observed_at": "2026-09-27T08:00:00.000Z",
+    "budget_usage": {
+      "wall_time_ms": 1000,
+      "model_calls": 1,
+      "tool_calls": 1,
+      "artifact_bytes": 42
+    },
+    "termination": {
+      "termination_confirmed": false,
+      "unresolved_effects": 0
+    }
+  }
+}

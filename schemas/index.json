@@ -20,6 +20,27 @@
     { "contract": "lantai.manifest/v1", "path": "catalog/v1/manifest.schema.json", "kind": "document", "owner": "T02" },
     { "contract": "lantai.asset-types/v1", "path": "catalog/v1/asset-types.schema.json", "kind": "library", "owner": "T02" },
     { "contract": "lantai.asset/v1", "path": "catalog/v1/asset.schema.json", "kind": "document", "owner": "T02" },
-    { "contract": "lantai.project/v1", "path": "catalog/v1/project.schema.json", "kind": "document", "owner": "T02" }
+    { "contract": "lantai.project/v1", "path": "catalog/v1/project.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.tasks-defs/v1", "path": "tasks/v1/defs.schema.json", "kind": "library", "owner": "T05" },
+    { "contract": "lantai.task/v1", "path": "tasks/v1/task.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.seat/v1", "path": "tasks/v1/seat.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.attempt/v1", "path": "tasks/v1/attempt.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.flow/v1", "path": "tasks/v1/flow.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.step-run/v1", "path": "tasks/v1/step-run.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.task-command/v1", "path": "tasks/v1/task-command.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.task-receipt/v1", "path": "tasks/v1/task-receipt.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.agent-execution-defs/v1", "path": "agent-execution/v1/defs.schema.json", "kind": "library", "owner": "T06" },
+    { "contract": "lantai.activation-snapshot/v1", "path": "agent-execution/v1/activation-snapshot.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.execution-profile/v1", "path": "agent-execution/v1/execution-profile.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.task-run/v1", "path": "agent-execution/v1/task-run.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.agent-step-run/v1", "path": "agent-execution/v1/agent-step-run.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.checkpoint/v1", "path": "agent-execution/v1/checkpoint.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.artifact-candidate/v1", "path": "agent-execution/v1/artifact-candidate.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.tool-operation/v1", "path": "agent-execution/v1/tool-operation.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.job-attempt/v1", "path": "agent-execution/v1/job-attempt.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.execution-capabilities/v1", "path": "agent-execution/v1/execution-capabilities.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.agent-request/v1", "path": "agent-execution/v1/agent-request.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.agent-result/v1", "path": "agent-execution/v1/agent-result.schema.json", "kind": "document", "owner": "T06" },
+    { "contract": "lantai.agent-response/v1", "path": "agent-execution/v1/agent-response.schema.json", "kind": "document", "owner": "T06" }
   ]
 }

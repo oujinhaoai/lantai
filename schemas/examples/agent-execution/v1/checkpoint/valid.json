@@ -1,0 +1,29 @@
+{
+  "description": "valid",
+  "schema": "lantai.checkpoint/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.checkpoint/v1",
+    "id": "01K00000000000000000000017",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000005",
+    "sequence": 1,
+    "input_snapshot_digest": "sha256:49c8aba057192e4d11dd16d46a6bce8aaef7e7150eef7b076167480450578375",
+    "profile_digest": "sha256:fb382737e0f9a979df1fb9ba4ae24277fb21ff5be727357d26350ced65970cd1",
+    "backend_version": "1.0.0",
+    "format_version": "progress-v1",
+    "resume_class": "portable_artifacts",
+    "artifact_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ],
+    "completed_step_ids": [
+      "01K00000000000000000000015"
+    ],
+    "side_effect_watermark": 1,
+    "created_at": "2026-09-27T08:00:00.000Z"
+  }
+}

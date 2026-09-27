@@ -12,6 +12,10 @@
 - `storage/`：存储（T02 的 M1 部分）——内容库、上传会话与分片续传、内容复用授权、读取授权与逐请求核验的下载、版本文件安装与隔离、证据追加、upload pin 与到期清理、传输面 HTTP 处理器；子包 `fileop`（文件适配器与错误归类）、`transfer`（交互/批量传输准入）。规则见[存储](../docs/contracts/storage.md)。
 - `ledger/`、`provenance/`：M1 持久版本登记、占名、说明生效修订、恢复核对与权威来源限制，见[台账](../docs/contracts/ledger.md)及[溯源](../docs/contracts/provenance.md)。
 - `events/`、`query/`：M1 多源收录、事务消费与持久后续命令、审计/保留水位，以及受当前权限过滤的可重建目录、文本和关联投影，见[事件](../docs/contracts/events.md)及[查询](../docs/contracts/query.md)。
+- `contract/tasks`、`contract/agentexec`：T05/T06 的 M1 数据协议、纯状态规则、稳定执行键与静态桩；不运行任务/执行服务。
+- `application/`：真实模块静态组装、实例启动与 HTTP 关闭顺序、outbox/查询/审计后台推进、按当前权限过滤的 operation 聚合；没有业务 SQL 或跨库事务。
+- `transport/httpapi/`：统一认证、严格 JSON 输入、错误与 DTO、分面/merged 路由和 HTTP server 配置。
+- `client/`、`cli/`：独立 JSON/传输连接池、私有凭据与恢复状态、分片/Range 流式传输、薄 REST 命令。
 - `apiv1/`：由 `api/` 契约生成的 Go 传输类型，不手改。
 
 规则见[公共契约](../docs/contracts/README.md)。

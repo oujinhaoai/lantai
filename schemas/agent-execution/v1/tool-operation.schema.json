@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/tool-operation.schema.json",
+  "title": "lantai.tool-operation/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "task_run_id",
+    "agent_step_run_id",
+    "attempt_id",
+    "sequence",
+    "tool",
+    "tool_version",
+    "request_hash",
+    "effect_class",
+    "state",
+    "reconciliation_evidence_refs"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.tool-operation/v1"
+    },
+    "id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "task_run_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "agent_step_run_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "attempt_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "sequence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "tool": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/command_type"
+    },
+    "tool_version": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_version"
+    },
+    "request_hash": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "effect_class": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/effect_class"
+    },
+    "state": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/effect_state"
+    },
+    "idempotency_key": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/idempotency_key"
+    },
+    "external_request_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "receipt_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "reconciliation_evidence_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+      },
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "effect_class": {
+            "enum": [
+              "lantai_command",
+              "external_idempotent"
+            ]
+          }
+        },
+        "required": [
+          "effect_class"
+        ]
+      },
+      "then": {
+        "required": [
+          "idempotency_key"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "effect_class": {
+            "enum": [
+              "external_queryable"
+            ]
+          }
+        },
+        "required": [
+          "effect_class"
+        ]
+      },
+      "then": {
+        "required": [
+          "external_request_ref"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "completed"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "receipt_digest"
+        ]
+      }
+    }
+  ]
+}

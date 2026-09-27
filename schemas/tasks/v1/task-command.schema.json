@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/task-command.schema.json",
+  "title": "lantai.task-command/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "request_hash",
+    "command_type",
+    "project_id",
+    "target_id",
+    "expected_revision",
+    "recovery_epoch",
+    "session_id"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.task-command/v1"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "request_hash": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "command_type": {
+      "type": "string",
+      "enum": [
+        "tasks.claim",
+        "tasks.renew",
+        "tasks.release",
+        "tasks.submit",
+        "tasks.cancel",
+        "tasks.requeue",
+        "workflow.advance",
+        "tasks.complete"
+      ]
+    },
+    "project_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "target_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "expected_revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "recovery_epoch": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "session_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "fence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_fence"
+    },
+    "output_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+      },
+      "uniqueItems": true
+    },
+    "authority_operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "enum": [
+              "tasks.renew",
+              "tasks.release",
+              "tasks.submit"
+            ]
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "fence"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "enum": [
+              "tasks.submit"
+            ]
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "output_refs"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "enum": [
+              "tasks.claim",
+              "tasks.requeue",
+              "workflow.advance"
+            ]
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "fence"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "not": {
+              "const": "tasks.submit"
+            }
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "output_refs"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "const": "tasks.complete"
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "authority_operation_id"
+        ],
+        "not": {
+          "required": [
+            "fence"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_type": {
+            "not": {
+              "const": "tasks.complete"
+            }
+          }
+        },
+        "required": [
+          "command_type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "authority_operation_id"
+          ]
+        }
+      }
+    }
+  ]
+}

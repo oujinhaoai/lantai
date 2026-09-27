@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/checkpoint.schema.json",
+  "title": "lantai.checkpoint/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "task_run_id",
+    "attempt_id",
+    "sequence",
+    "input_snapshot_digest",
+    "profile_digest",
+    "backend_version",
+    "format_version",
+    "resume_class",
+    "artifact_refs",
+    "completed_step_ids",
+    "side_effect_watermark",
+    "created_at"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.checkpoint/v1"
+    },
+    "id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "task_run_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "attempt_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "sequence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "input_snapshot_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "profile_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "backend_version": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/extension_version"
+    },
+    "format_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "resume_class": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/resume_class"
+    },
+    "artifact_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+      },
+      "uniqueItems": true
+    },
+    "completed_step_ids": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+      },
+      "uniqueItems": true
+    },
+    "side_effect_watermark": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/expected_revision"
+    },
+    "backend_checkpoint_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "created_at": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "resume_class": {
+            "enum": [
+              "backend_checkpoint"
+            ]
+          }
+        },
+        "required": [
+          "resume_class"
+        ]
+      },
+      "then": {
+        "required": [
+          "backend_checkpoint_ref"
+        ]
+      }
+    }
+  ]
+}

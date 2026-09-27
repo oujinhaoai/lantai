@@ -1,0 +1,19 @@
+{
+  "description": "revision conflict",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "PRECONDITION_FAILED",
+      "message": "合成契约失败样例",
+      "retryable": false,
+      "recovery_action": "refresh_state",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "revision_mismatch"
+        }
+      ]
+    }
+  }
+}

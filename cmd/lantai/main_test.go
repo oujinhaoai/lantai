@@ -24,7 +24,7 @@ func TestUsageAndUnknownCommand(t *testing.T) {
 		t.Fatalf("help: %d %q", code, out)
 	}
 	// 未实现的子命令不会被当作空命令接受。
-	for _, c := range []string{"serve", "node", "mcp", "task"} {
+	for _, c := range []string{"node", "mcp", "task"} {
 		if code, _, _ := runCLI(t, c); code != exitUsage {
 			t.Errorf("%s: exit %d, want usage error", c, code)
 		}

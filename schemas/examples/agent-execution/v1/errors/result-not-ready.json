@@ -1,0 +1,19 @@
+{
+  "description": "result not ready",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "RESULT_NOT_READY",
+      "message": "合成契约失败样例",
+      "retryable": true,
+      "recovery_action": "poll_operation",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "result_unsealed"
+        }
+      ]
+    }
+  }
+}

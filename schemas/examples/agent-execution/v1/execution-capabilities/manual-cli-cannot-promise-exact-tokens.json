@@ -1,0 +1,37 @@
+{
+  "description": "manual cli cannot promise exact tokens",
+  "schema": "lantai.execution-capabilities/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.execution-capabilities/v1",
+    "protocol_versions": [
+      "lantai.agent-execution/v1"
+    ],
+    "adapter_kind": "manual_cli",
+    "backend_version": "1.0.0",
+    "supports_idempotent_start": true,
+    "supports_lookup_by_key": true,
+    "resume_classes": [
+      "portable_artifacts",
+      "manual_only"
+    ],
+    "cancel_mode": "revoke_only",
+    "artifact_mode": "candidate_manifest",
+    "capabilities": [
+      "artifact.delivery"
+    ],
+    "budget_meters": [
+      "wall_time",
+      "tool_calls",
+      "artifact_bytes",
+      "tokens"
+    ],
+    "checkpoint_format_versions": []
+  },
+  "expect": [
+    {
+      "pointer": "/budget_meters",
+      "keyword": "not"
+    }
+  ]
+}

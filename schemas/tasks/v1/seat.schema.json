@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/seat.schema.json",
+  "title": "lantai.seat/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "task_id",
+    "revision",
+    "ordinal",
+    "state",
+    "last_lease_fence",
+    "recovery_epoch"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.seat/v1"
+    },
+    "id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "task_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "revision": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "ordinal": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "state": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/defs.schema.json#/$defs/seat_state"
+    },
+    "last_lease_fence": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/expected_revision"
+    },
+    "recovery_epoch": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "current_attempt_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "claimed",
+              "reconciling",
+              "submitted"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "current_attempt_id"
+        ],
+        "properties": {
+          "last_lease_fence": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/epoch"
+          }
+        }
+      }
+    }
+  ]
+}

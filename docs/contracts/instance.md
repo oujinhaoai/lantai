@@ -1,6 +1,6 @@
 # 实例生命周期、迁移与维护屏障
 
-状态：**M1 第一版，已实现并有自动化测试**（T08.1）。实现：[`internal/operations`](../../internal/operations/)、[`internal/commands/gate.go`](../../internal/commands/gate.go)、[`internal/platform/fsutil`](../../internal/platform/fsutil/)、[`internal/platform/sqlite/migrations`](../../internal/platform/sqlite/migrations/)。备份与恢复（T08.2/T08.3）、监听与健康接口（T08.4、T07.1）尚未实现，这里只定义它们要接入的边界。
+状态：**M1 第一版，已实现并有自动化测试**（T08.1）。实现：[`internal/operations`](../../internal/operations/)、[`internal/commands/gate.go`](../../internal/commands/gate.go)、[`internal/platform/fsutil`](../../internal/platform/fsutil/)、[`internal/platform/sqlite/migrations`](../../internal/platform/sqlite/migrations/)。备份与恢复（T08.2/T08.3）尚未实现。T07 联调已由 `internal/application` 提供同进程的内部监听及本机健康端点；公网 TLS、部署管理和完整运维观测仍属 T08.4。
 
 ## 数据根布局
 
@@ -13,6 +13,7 @@
 | `config.yaml` | 运维人员 | 可选配置 [`lantai.config/v1`](../../schemas/operations/v1/config.schema.json)，不放密钥；未知字段拒绝 |
 | `db/{main,ledger,runtime,events,index}.db` | 各所属模块 | 五库，目录权限 0700 |
 | `secrets/master.key` | identity | 主密钥（默认位置，可用 `secrets.dir` 移到单独受控的位置）；权限必须只允许本用户访问 |
+| `audit/` | events | 后台收录事件的审计导出与清单；未确认备份前不自动裁剪 |
 | `logs/offline-recovery.log` | identity（本机离线恢复） | 离线恢复的本机审计行 |
 
 ## 单实例锁

@@ -1,0 +1,38 @@
+{
+  "description": "execution is not review",
+  "schema": "lantai.agent-result/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.agent-result/v1",
+    "execution_id": "01K00000000000000000000021",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000005",
+    "accepted_request_hash": "sha256:b3065a4722715afcc7289d98ffa6513b571908afdfc676182aa5a57e2938d57b",
+    "result_digest": "sha256:29617c7b800c36f0ed5542d6132e257207b1e782ccdc7c2235668e26a6a46625",
+    "outcome": "approved",
+    "candidate_ids": [
+      "01K00000000000000000000018"
+    ],
+    "evidence_refs": [],
+    "budget_usage": {
+      "wall_time_ms": 1000,
+      "model_calls": 1,
+      "tool_calls": 1,
+      "artifact_bytes": 42
+    },
+    "limitations": [
+      "合成测试，不运行后端"
+    ],
+    "sealed_at": "2026-09-27T08:00:00.000Z",
+    "termination": {
+      "termination_confirmed": true,
+      "unresolved_effects": 0
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/outcome",
+      "keyword": "enum"
+    }
+  ]
+}

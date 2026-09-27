@@ -1,0 +1,15 @@
+{
+  "description": "processor has no control actions",
+  "schema": "lantai.agent-request/v1",
+  "valid": false,
+  "document": {
+    "protocol": "lantai.processor/v1",
+    "action": "describe"
+  },
+  "expect": [
+    {
+      "pointer": "/protocol",
+      "keyword": "const"
+    }
+  ]
+}

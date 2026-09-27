@@ -26,6 +26,36 @@ func (s *Service) Project(ctx context.Context, id ids.ID) (commit.Project, error
 func (s *Service) ProjectByKey(ctx context.Context, key string) (commit.Project, error) {
 	return readJSON[commit.Project](ctx, s.db, `SELECT record FROM ledger_projects WHERE project_key = ?`, key)
 }
+
+// Projects 是受信任的权威枚举；面向用户的授权和分页由 catalog 完成。
+func (s *Service) Projects(ctx context.Context, after ids.ID, limit int) ([]commit.Project, error) {
+	if limit < 1 || limit > 1000 || (after != "" && !after.Valid()) {
+		return nil, invalid("invalid project enumeration")
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT record FROM ledger_projects WHERE project_id > ? ORDER BY project_id LIMIT ?`, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []commit.Project{}
+	for rows.Next() {
+		var raw string
+		var p commit.Project
+		if err := rows.Scan(&raw); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(raw), &p); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// VersionByID 是内部精确定位，不执行调用者授权。
+func (s *Service) VersionByID(ctx context.Context, id ids.ID) (commit.Committed, error) {
+	return readJSON[commit.Committed](ctx, s.db, `SELECT record FROM ledger_versions WHERE version_id = ?`, id)
+}
 func (s *Service) Asset(ctx context.Context, id ids.ID) (commit.Asset, error) {
 	return readJSON[commit.Asset](ctx, s.db, `SELECT record FROM ledger_assets WHERE asset_id = ? AND record IS NOT NULL`, id)
 }

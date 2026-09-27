@@ -2,15 +2,11 @@ openapi: 3.1.0
 info:
   title: Lantai API
   version: 1.0.0-draft
-  summary: 兰台 HTTP 契约（公共部分）
+  summary: 兰台 M1 REST 与传输契约
   description: |
-    兰台只有一套 REST 接口，CLI、MCP、SDK 与网页都经它访问。本文件维护
-    HTTP 层的公共约定：认证方式、幂等键、请求编号、错误模型、202 响应与
-    操作查询。数据结构引用 schemas/ 中的权威 JSON Schema，不在这里复制；
-    scripts/gen/openapi 将其打包为自包含文档 api/gen/openapi.bundle.json。
+    兰台只有一套 REST 接口。HTTP 路由、请求和视图由本文件定义，共享数据、清单与错误引用 schemas/ 权威定义。scripts/gen/openapi 打包为 api/gen/openapi.bundle.json；内部 handler 使用相同契约。
 
-    约定：/api/v1 内只加不改；写请求必须带 Idempotency-Key；著录修改带
-    If-Match；时间为 UTC 毫秒。业务端点由各模块在实现时按此约定加入。
+    /api/v1 仅加不改；持久业务创建、提交、著录和敏感命令执行要求 Idempotency-Key。会话/挑战/短时授权签发以及绑定既有上传的续传、完成、取消依各路由语义重试。著录修改要求带 If-Match。所有服务端时间为固定 UTC 毫秒。默认 JSON 上限 8 MiB，超限返回 SCHEMA_INVALID（request_body_too_large）；错误码的 HTTP 状态由统一注册表决定。
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
@@ -173,6 +169,727 @@ paths:
           description: 与 GET 相同的响应头，没有响应体
         default:
           description: 与 GET 相同的错误状态（HEAD 没有响应体）
+  /api/v1/assets:
+    get:
+      operationId: searchAssets
+      parameters:
+        - in: query
+          name: view
+          required: false
+          schema:
+            default: brief
+            enum:
+              - brief
+              - full
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: project_id
+          required: false
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: asset_type
+          required: false
+          schema:
+            $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/asset_type
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryPage'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: searchAssets
+  /api/v1/assets/{asset_id}:
+    get:
+      operationId: getAsset
+      parameters:
+        - in: query
+          name: view
+          required: false
+          schema:
+            default: brief
+            enum:
+              - brief
+              - full
+            type: string
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: asset_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getAsset
+  /api/v1/assets/{asset_id}/metadata:
+    patch:
+      description: If-Match is required and must be a quoted nonnegative revision, e.g. "0". Success returns the new revision in ETag.
+      operationId: patchAssetMetadata
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: asset_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetPatch'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetDescriptionView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: patchAssetMetadata
+  /api/v1/assets/{asset_id}/versions/{version_id}:
+    get:
+      description: Authority-backed exact read. Full includes the frozen manifest; brief omits it.
+      operationId: getVersion
+      parameters:
+        - in: query
+          name: view
+          required: false
+          schema:
+            default: brief
+            enum:
+              - brief
+              - full
+            type: string
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: asset_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: path
+          name: version_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExactVersionView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getVersion
+  /api/v1/assets/{asset_id}/versions/{version_id}/read-grants:
+    post:
+      description: Creates a fresh short-lived session-bound capability. It is not a persisted business command and does not require Idempotency-Key. Follow returned url with the same session; every new GET/Range is authorized again.
+      operationId: issueReadGrant
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: asset_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: path
+          name: version_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadGrantRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadGrant'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: issueReadGrant
+  /api/v1/identity/challenges:
+    post:
+      description: Creates an expiring challenge, or rechallenges the same immutable operation. Display the server summary and targets before asking the person for a code.
+      operationId: createIdentityChallenge
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensitiveRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: createIdentityChallenge
+  /api/v1/identity/challenges/{challenge_id}/verify:
+    post:
+      operationId: verifyIdentityChallenge
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: challenge_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanGrant'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: verifyIdentityChallenge
+  /api/v1/identity/commands:
+    post:
+      operationId: executeIdentityCommand
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensitiveRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensitiveResult'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: executeIdentityCommand
+  /api/v1/identity/factor/confirm:
+    post:
+      operationId: confirmFactor
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodes'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: confirmFactor
+  /api/v1/identity/factor/enroll:
+    post:
+      operationId: enrollFactor
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enrollment'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: enrollFactor
+  /api/v1/identity/password:
+    put:
+      operationId: setSetupPassword
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordRequest'
+        required: true
+      responses:
+        "204":
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: setSetupPassword
+  /api/v1/identity/principals/{principal_id}:
+    get:
+      operationId: getPrincipal
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: principal_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrincipalView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getPrincipal
+  /api/v1/identity/projects/{project_id}/members:
+    get:
+      operationId: getProjectMembers
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPage'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getProjectMembers
+  /api/v1/meta:
+    get:
+      operationId: getMeta
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meta'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      summary: getMeta
+  /api/v1/projects:
+    get:
+      operationId: listProjects
+      parameters:
+        - in: query
+          name: view
+          required: false
+          schema:
+            default: brief
+            enum:
+              - brief
+              - full
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectPage'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: listProjects
+    post:
+      operationId: createProject
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: createProject
+  /api/v1/projects/{key}:
+    get:
+      operationId: getProject
+      parameters:
+        - in: query
+          name: view
+          required: false
+          schema:
+            default: brief
+            enum:
+              - brief
+              - full
+            type: string
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getProject
+  /api/v1/sessions/current:
+    delete:
+      operationId: endCurrentSession
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "204":
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: endCurrentSession
+  /api/v1/sessions/exchange:
+    post:
+      operationId: exchangeSession
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      summary: exchangeSession
+  /api/v1/sessions/login:
+    post:
+      description: Human password plus current authenticator code. Browser channel requires an exact configured Origin and refuses cross-site Fetch metadata. Source rate limit uses the direct peer, never an untrusted forwarding header.
+      operationId: loginSession
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      summary: loginSession
+  /api/v1/sessions/setup:
+    post:
+      operationId: startSetup
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      summary: startSetup
+  /api/v1/types:
+    get:
+      operationId: listTypes
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypePage'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: listTypes
+  /api/v1/types/{type}:
+    get:
+      operationId: getAssetType
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeDetail'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getAssetType
+  /api/v1/uploads:
+    post:
+      description: Persistently fixes operation_id. Use each file part_url_template, substituting only {part_number}; do not construct transfer routes.
+      operationId: createUpload
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUploadRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: createUpload
+  /api/v1/uploads/{upload_id}:
+    delete:
+      description: Cancel the existing upload/commit operation through catalog. The existing upload identity is the retry key; no new business intent is created.
+      operationId: cancelUpload
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: upload_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "204":
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: cancelUpload
+    get:
+      operationId: getUpload
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: upload_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: getUpload
+  /api/v1/uploads/{upload_id}/check:
+    post:
+      operationId: checkUploadBlobs
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: upload_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckBlobsRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlobStatusPage'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: checkUploadBlobs
+  /api/v1/uploads/{upload_id}/commit:
+    post:
+      description: Committed is visible. Description_pending means only the first description remains to be completed; retry with the same key. No synthetic success or 202 is created by transport.
+      operationId: commitUpload
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: upload_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitResult'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: commitUpload
+  /api/v1/uploads/{upload_id}/files/{sha256}/complete:
+    post:
+      operationId: completeUploadFile
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: upload_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: path
+          name: sha256
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlobGrant'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: completeUploadFile
+  /api/v1/whoami:
+    get:
+      operationId: whoAmI
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentityView'
+          description: 成功
+        default:
+          $ref: '#/components/responses/Error'
+      summary: whoAmI
 components:
   securitySchemes:
     bearerSession:
@@ -209,6 +926,1112 @@ components:
         part_count:
           type: integer
           minimum: 1
+    AssetDescriptionView:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asset_type:
+          type: string
+        defaults:
+          additionalProperties: true
+          type: object
+        extra:
+          additionalProperties: true
+          type: object
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          minimum: 0
+          type: integer
+        sensitivity:
+          type: string
+        slug:
+          type: string
+        subjects:
+          items:
+            type: string
+          type: array
+        summary:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        title:
+          type: string
+        updated_by:
+          type: string
+      required:
+        - asset_id
+        - project_id
+        - asset_type
+        - slug
+        - title
+        - tags
+        - subjects
+        - sensitivity
+        - revision
+        - updated_by
+      type: object
+    AssetPatch:
+      additionalProperties: false
+      description: sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
+      properties:
+        defaults:
+          additionalProperties: true
+          type: object
+        extra:
+          additionalProperties: true
+          type: object
+        sensitivity:
+          type: string
+        subjects:
+          items:
+            type: string
+          type: array
+        summary:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        title:
+          type: string
+      type: object
+    AssetView:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asset_type:
+          type: string
+        description:
+          $ref: '#/components/schemas/AssetDescriptionView'
+        latest:
+          $ref: '#/components/schemas/VersionView'
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - asset_id
+        - project_id
+        - asset_type
+        - description
+        - latest
+      type: object
+    BlobGrant:
+      additionalProperties: false
+      properties:
+        basis:
+          type: string
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        grant_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        issued_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        purpose:
+          type: string
+        sha256:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+        size:
+          minimum: 0
+          type: integer
+        source:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        source_path:
+          type: string
+      required:
+        - grant_id
+        - project_id
+        - operation_id
+        - sha256
+        - size
+        - basis
+        - purpose
+        - issued_at
+        - expires_at
+      type: object
+    BlobStatusPage:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            additionalProperties: false
+            properties:
+              sha256:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+              size:
+                minimum: 0
+                type: integer
+              status:
+                enum:
+                  - granted
+                  - upload_required
+                type: string
+            required:
+              - sha256
+              - size
+              - status
+            type: object
+          type: array
+      required:
+        - items
+      type: object
+    Challenge:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        challenge_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        request_hash:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        summary:
+          type: string
+        target_set_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        targets:
+          items:
+            additionalProperties: false
+            properties:
+              expected_revision:
+                minimum: 0
+                type: integer
+              id:
+                type: string
+              kind:
+                type: string
+            required:
+              - kind
+              - id
+              - expected_revision
+            type: object
+          type: array
+      required:
+        - challenge_id
+        - operation_id
+        - action
+        - targets
+        - summary
+        - request_hash
+        - target_set_digest
+        - expires_at
+      type: object
+    CheckBlobsRequest:
+      additionalProperties: false
+      properties:
+        files:
+          items:
+            $ref: '#/components/schemas/FileSpec'
+          type: array
+      required:
+        - files
+      type: object
+    CodeRequest:
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          writeOnly: true
+      required:
+        - code
+      type: object
+    CommitRequest:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        base_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        content:
+          $ref: '#/components/schemas/ContentInput'
+        describe:
+          $ref: '#/components/schemas/AssetPatch'
+        slug:
+          type: string
+      required:
+        - content
+      type: object
+    CommitResult:
+      additionalProperties: false
+      properties:
+        alias_generation:
+          minimum: 1
+          type: integer
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        committed_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        description:
+          $ref: '#/components/schemas/AssetDescriptionView'
+        description_error:
+          type: string
+        description_pending:
+          type: boolean
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        slug:
+          type: string
+        uri:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_number:
+          minimum: 1
+          type: integer
+      required:
+        - operation_id
+        - project_id
+        - asset_id
+        - version_id
+        - version_number
+        - manifest_digest
+        - committed_at
+        - ref
+        - uri
+        - slug
+      type: object
+    ContentInput:
+      additionalProperties: false
+      properties:
+        asset_type:
+          $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/asset_type
+        files:
+          items:
+            $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/file
+          type: array
+        metadata:
+          additionalProperties: true
+          type: object
+        rights:
+          $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/rights
+        uses:
+          items:
+            additionalProperties: false
+            properties:
+              alias_generation:
+                minimum: 1
+                type: integer
+              asset_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              ref:
+                type: string
+              relation:
+                type: string
+              version_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+            required:
+              - relation
+            type: object
+          type: array
+        version_note:
+          type: string
+      required:
+        - asset_type
+        - files
+      type: object
+    CreateProjectRequest:
+      additionalProperties: false
+      properties:
+        key:
+          pattern: ^[a-z][a-z0-9-]{0,62}$
+          type: string
+        name:
+          type: string
+        project_type:
+          enum:
+            - production
+            - library
+            - reference
+            - sandbox
+          type: string
+        summary:
+          type: string
+      required:
+        - key
+      type: object
+    CreateUploadRequest:
+      additionalProperties: false
+      properties:
+        files:
+          items:
+            $ref: '#/components/schemas/FileSpec'
+          type: array
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - project_id
+        - files
+      type: object
+    EmptyRequest:
+      additionalProperties: false
+      properties: {}
+      type: object
+    Enrollment:
+      additionalProperties: false
+      properties:
+        secret:
+          type: string
+        uri:
+          type: string
+      required:
+        - secret
+        - uri
+      type: object
+    ExactVersionView:
+      additionalProperties: false
+      properties:
+        manifest:
+          $ref: ../schemas/catalog/v1/manifest.schema.json
+        version:
+          $ref: '#/components/schemas/VersionView'
+      required:
+        - version
+      type: object
+    FileSpec:
+      additionalProperties: false
+      properties:
+        sha256:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+        size:
+          minimum: 0
+          type: integer
+      required:
+        - sha256
+        - size
+      type: object
+    HumanGrant:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        challenge_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        grant_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - grant_id
+        - challenge_id
+        - operation_id
+        - action
+        - expires_at
+      type: object
+    IdentityView:
+      additionalProperties: false
+      properties:
+        factor_state:
+          type: string
+        principal:
+          $ref: '#/components/schemas/PrincipalView'
+        project_roles:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+        session:
+          $ref: '#/components/schemas/SessionInfo'
+        system_roles:
+          items:
+            type: string
+          type: array
+      required:
+        - principal
+        - session
+      type: object
+    MemberPage:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            additionalProperties: false
+            properties:
+              kind:
+                type: string
+              name:
+                type: string
+              principal_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              roles:
+                items:
+                  type: string
+                type: array
+            required:
+              - principal_id
+              - name
+              - kind
+              - roles
+            type: object
+          type: array
+        revision:
+          minimum: 0
+          type: integer
+      required:
+        - items
+        - revision
+      type: object
+    Meta:
+      additionalProperties: false
+      properties:
+        api_version:
+          enum:
+            - v1
+          type: string
+        capabilities:
+          items:
+            type: string
+          type: array
+        instance_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        max_json_bytes:
+          minimum: 1
+          type: integer
+        max_page_size:
+          minimum: 1
+          type: integer
+        stage:
+          enum:
+            - M1
+          type: string
+        transfer:
+          additionalProperties: false
+          properties:
+            class_source:
+              type: string
+            range:
+              type: boolean
+            resumable_parts:
+              type: boolean
+          required:
+            - resumable_parts
+            - range
+            - class_source
+          type: object
+        unsupported:
+          items:
+            type: string
+          type: array
+        views:
+          items:
+            type: string
+          type: array
+      required:
+        - api_version
+        - instance_id
+        - stage
+        - capabilities
+        - views
+        - max_json_bytes
+        - max_page_size
+        - transfer
+        - unsupported
+      type: object
+    PasswordRequest:
+      additionalProperties: false
+      properties:
+        password:
+          type: string
+          writeOnly: true
+      required:
+        - password
+      type: object
+    PrincipalView:
+      additionalProperties: false
+      properties:
+        auth_epoch:
+          minimum: 1
+          type: integer
+        created_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        display_name:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        principal_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        profile:
+          additionalProperties: true
+          type: object
+        revision:
+          minimum: 1
+          type: integer
+        state:
+          type: string
+        updated_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+      required:
+        - principal_id
+        - kind
+        - name
+        - state
+        - auth_epoch
+        - profile
+        - revision
+        - created_at
+        - updated_at
+      type: object
+    ProjectDescriptionView:
+      additionalProperties: false
+      description: HTTP view omits the file contract marker; revision 0 denotes an authoritative derived description.
+      properties:
+        extra:
+          additionalProperties: true
+          type: object
+        key:
+          type: string
+        name:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_type:
+          type: string
+        revision:
+          minimum: 0
+          type: integer
+        summary:
+          type: string
+        updated_by:
+          type: string
+      required:
+        - project_id
+        - key
+        - name
+        - project_type
+        - revision
+        - updated_by
+      type: object
+    ProjectPage:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectView'
+          type: array
+        next_cursor:
+          type: string
+      required:
+        - items
+      type: object
+    ProjectView:
+      additionalProperties: false
+      properties:
+        created_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        created_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        description:
+          $ref: '#/components/schemas/ProjectDescriptionView'
+        description_error:
+          type: string
+        description_pending:
+          type: boolean
+        key:
+          type: string
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        state:
+          type: string
+      required:
+        - project_id
+        - key
+        - state
+        - description
+      type: object
+    QueryItem:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asset_type:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          minimum: 0
+          type: integer
+        slug:
+          type: string
+        subjects:
+          items:
+            type: string
+          type: array
+        summary:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        title:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_number:
+          minimum: 1
+          type: integer
+      required:
+        - asset_id
+        - project_id
+        - version_id
+        - version_number
+        - asset_type
+        - slug
+        - title
+        - tags
+        - subjects
+        - revision
+      type: object
+    QueryPage:
+      additionalProperties: false
+      description: Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/QueryItem'
+          type: array
+        next_cursor:
+          type: string
+        state:
+          additionalProperties: false
+          properties:
+            generation:
+              minimum: 0
+              type: integer
+            high_water:
+              minimum: 0
+              type: integer
+            rebuild_start:
+              minimum: 0
+              type: integer
+          required:
+            - generation
+            - high_water
+            - rebuild_start
+          type: object
+      required:
+        - items
+        - state
+      type: object
+    ReadGrant:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        grant_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        issued_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        method:
+          type: string
+        path:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        purpose:
+          type: string
+        range:
+          type: boolean
+        sha256:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+        size:
+          minimum: 0
+          type: integer
+        url:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - grant_id
+        - project_id
+        - asset_id
+        - version_id
+        - path
+        - sha256
+        - size
+        - purpose
+        - issued_at
+        - expires_at
+        - method
+        - url
+        - range
+      type: object
+    ReadGrantRequest:
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+        purpose:
+          enum:
+            - archive_review
+            - reference
+            - production
+            - generative_input
+            - raw_export
+          type: string
+      required:
+        - path
+        - purpose
+      type: object
+    RecoveryCodes:
+      additionalProperties: false
+      properties:
+        recovery_codes:
+          items:
+            type: string
+          type: array
+      required:
+        - recovery_codes
+      type: object
+    SensitiveRequest:
+      additionalProperties: false
+      description: Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
+      properties:
+        action:
+          enum:
+            - identity.register_principal
+            - identity.issue_credential
+            - identity.revoke_credential
+            - identity.grant_project_role
+            - identity.revoke_project_role
+          type: string
+        command:
+          additionalProperties: true
+          type: object
+        grant_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - action
+        - command
+      type: object
+    SensitiveResult:
+      additionalProperties: false
+      description: Secret is returned once after first execution only. If that response is lost, revoke and reissue; polling/replay cannot recover the secret.
+      properties:
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        replayed:
+          type: boolean
+        result:
+          additionalProperties: true
+          type: object
+        secret:
+          type: string
+      required:
+        - operation_id
+        - replayed
+        - result
+      type: object
+    SessionInfo:
+      additionalProperties: false
+      properties:
+        actions:
+          items:
+            type: string
+          type: array
+        channel:
+          type: string
+        created_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        credential_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        delegated_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        model:
+          type: string
+        parent_session_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        principal_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        principal_kind:
+          type: string
+        projects:
+          items:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+          type: array
+        purpose:
+          type: string
+        scopes:
+          items:
+            type: string
+          type: array
+        session_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        session_kind:
+          type: string
+      required:
+        - session_id
+        - principal_id
+        - principal_kind
+        - session_kind
+        - channel
+        - scopes
+        - created_at
+        - expires_at
+      type: object
+    SessionRequest:
+      additionalProperties: false
+      description: exchange requires token; login requires name/password/code; allowed channels are checked by identity. Credentials are never logged.
+      properties:
+        channel:
+          enum:
+            - cli
+            - api
+            - browser
+          type: string
+        code:
+          type: string
+          writeOnly: true
+        model:
+          type: string
+        name:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+        projects:
+          items:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+          type: array
+        purpose:
+          type: string
+        scopes:
+          items:
+            type: string
+          type: array
+        token:
+          type: string
+        ttl_seconds:
+          maximum: 86400
+          minimum: 0
+          type: integer
+      type: object
+    SessionResponse:
+      additionalProperties: false
+      description: Browser sessions use a Secure HttpOnly SameSite=Strict cookie; no token is included. CSRF token is returned separately.
+      properties:
+        csrf_token:
+          type: string
+        session:
+          $ref: '#/components/schemas/SessionInfo'
+        token:
+          type: string
+      required:
+        - session
+      type: object
+    SetupRequest:
+      additionalProperties: false
+      properties:
+        channel:
+          enum:
+            - cli
+            - browser
+          type: string
+        code:
+          type: string
+          writeOnly: true
+        name:
+          type: string
+      required:
+        - name
+        - code
+      type: object
+    TypeDetail:
+      additionalProperties: false
+      properties:
+        asset_type:
+          type: string
+        schema:
+          additionalProperties: true
+          type: object
+        schema_pointer:
+          type: string
+        type_schema:
+          type: string
+      required:
+        - asset_type
+        - type_schema
+        - schema_pointer
+        - schema
+      type: object
+    TypeEntry:
+      additionalProperties: false
+      properties:
+        asset_type:
+          type: string
+        metadata_fields:
+          items:
+            type: string
+          type: array
+        type_schema:
+          type: string
+      required:
+        - asset_type
+        - type_schema
+        - metadata_fields
+      type: object
+    TypePage:
+      additionalProperties: false
+      properties:
+        file_roles:
+          items:
+            type: string
+          type: array
+        items:
+          items:
+            $ref: '#/components/schemas/TypeEntry'
+          type: array
+        project_types:
+          items:
+            type: string
+          type: array
+        relations:
+          items:
+            type: string
+          type: array
+      required:
+        - items
+        - file_roles
+        - relations
+        - project_types
+      type: object
+    UploadFileView:
+      additionalProperties: false
+      properties:
+        part_count:
+          minimum: 1
+          type: integer
+        part_size:
+          minimum: 1
+          type: integer
+        part_url_template:
+          type: string
+        received_parts:
+          items:
+            minimum: 1
+            type: integer
+          type: array
+        sha256:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/sha256_hex
+        size:
+          minimum: 0
+          type: integer
+        state:
+          type: string
+      required:
+        - sha256
+        - size
+        - part_size
+        - part_count
+        - state
+        - received_parts
+        - part_url_template
+      type: object
+    UploadView:
+      additionalProperties: false
+      properties:
+        close_reason:
+          type: string
+        created_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        files:
+          items:
+            $ref: '#/components/schemas/UploadFileView'
+          type: array
+        idle_expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        parts_url:
+          type: string
+        principal_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        state:
+          type: string
+        total_bytes:
+          minimum: 0
+          type: integer
+        upload_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - upload_id
+        - operation_id
+        - project_id
+        - principal_id
+        - state
+        - files
+        - total_bytes
+        - created_at
+        - idle_expires_at
+        - expires_at
+        - parts_url
+      type: object
+    VersionView:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        committed_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        uri:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_number:
+          minimum: 1
+          type: integer
+      required:
+        - operation_id
+        - project_id
+        - asset_id
+        - version_id
+        - version_number
+        - manifest_digest
+        - committed_at
+        - ref
+        - uri
+      type: object
   parameters:
     GrantID:
       name: grant_id

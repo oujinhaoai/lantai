@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/agent-result.schema.json",
+  "title": "lantai.agent-result/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "execution_id",
+    "task_run_id",
+    "attempt_id",
+    "accepted_request_hash",
+    "result_digest",
+    "outcome",
+    "candidate_ids",
+    "evidence_refs",
+    "budget_usage",
+    "limitations",
+    "sealed_at",
+    "termination"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.agent-result/v1"
+    },
+    "execution_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "task_run_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "attempt_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "accepted_request_hash": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "result_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "execution_succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "candidate_ids": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+      },
+      "uniqueItems": true
+    },
+    "evidence_refs": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+      },
+      "uniqueItems": true
+    },
+    "budget_usage": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/budget_usage"
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "sealed_at": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "termination": {
+      "allOf": [
+        {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/termination"
+        },
+        {
+          "properties": {
+            "termination_confirmed": {
+              "const": true
+            },
+            "unresolved_effects": {
+              "const": 0
+            }
+          }
+        }
+      ]
+    }
+  }
+}

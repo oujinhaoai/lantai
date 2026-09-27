@@ -30,7 +30,33 @@ type Config struct {
 	// MinFreeBytes 低于它时实例不开放写入。
 	MinFreeBytes uint64
 	// Present 表示 config.yaml 存在。
-	Present bool
+	Present  bool
+	Listen   ListenConfig
+	HTTP     HTTPConfig
+	Transfer TransferConfig
+}
+
+// ListenConfig 的地址都是核心内部监听，不是客户端传输 URL。公网 TLS 与路径
+// 转发由网关负责；默认只绑定本机。Merged 仅供开发时复用 API 监听。
+type ListenConfig struct {
+	API        string `json:"api"`
+	Transfer   string `json:"transfer"`
+	Operations string `json:"operations"`
+	Merged     bool   `json:"merged"`
+}
+
+type HTTPConfig struct {
+	AllowedOrigins    []string `json:"allowed_origins"`
+	MaxJSONBytes      int64    `json:"max_json_bytes"`
+	APITimeoutSeconds int      `json:"api_timeout_seconds"`
+}
+
+type TransferConfig struct {
+	InteractiveSlots                    int   `json:"interactive_slots"`
+	BatchSlots                          int   `json:"batch_slots"`
+	BatchPerPrincipal                   int   `json:"batch_per_principal"`
+	BatchBytesPerSecond                 int64 `json:"batch_bytes_per_second"`
+	BatchBytesPerSecondWhileInteractive int64 `json:"batch_bytes_per_second_while_interactive"`
 }
 
 type configWire struct {
@@ -44,6 +70,9 @@ type configWire struct {
 	Storage struct {
 		MinFreeBytes *uint64 `json:"min_free_bytes"`
 	} `json:"storage"`
+	Listen   ListenConfig   `json:"listen"`
+	HTTP     HTTPConfig     `json:"http"`
+	Transfer TransferConfig `json:"transfer"`
 }
 
 // LoadConfig 读取并校验数据根下的 config.yaml；文件不存在时返回默认配置。
@@ -52,6 +81,9 @@ func LoadConfig(l Layout) (Config, error) {
 		InstanceName: DefaultInstanceName,
 		SecretsDir:   filepath.Join(l.Home, "secrets"),
 		MinFreeBytes: DefaultMinFreeBytes,
+		Listen:       ListenConfig{API: "127.0.0.1:8080", Transfer: "127.0.0.1:8081", Operations: "127.0.0.1:9090"},
+		HTTP:         HTTPConfig{MaxJSONBytes: 8 << 20, APITimeoutSeconds: 30},
+		Transfer:     TransferConfig{InteractiveSlots: 4, BatchSlots: 8, BatchPerPrincipal: 4},
 	}
 	raw, err := os.ReadFile(l.ConfigPath())
 	if errors.Is(err, fs.ErrNotExist) {
@@ -75,7 +107,7 @@ func LoadConfig(l Layout) (Config, error) {
 	if err != nil {
 		return cfg, err
 	}
-	var w configWire
+	w := configWire{Listen: cfg.Listen, HTTP: cfg.HTTP, Transfer: cfg.Transfer}
 	if err := json.Unmarshal(b, &w); err != nil {
 		return cfg, fmt.Errorf("operations: %s: %w", l.ConfigPath(), err)
 	}
@@ -93,5 +125,6 @@ func LoadConfig(l Layout) (Config, error) {
 	if w.Storage.MinFreeBytes != nil {
 		cfg.MinFreeBytes = *w.Storage.MinFreeBytes
 	}
+	cfg.Listen, cfg.HTTP, cfg.Transfer = w.Listen, w.HTTP, w.Transfer
 	return cfg, nil
 }

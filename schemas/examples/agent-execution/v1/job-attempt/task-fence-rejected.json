@@ -1,0 +1,62 @@
+{
+  "description": "task fence rejected",
+  "schema": "lantai.job-attempt/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.job-attempt/v1",
+    "id": "01K00000000000000000000019",
+    "job_id": "01K00000000000000000000020",
+    "operation_id": "01K00000000000000000000009",
+    "revision": 1,
+    "protocol": "lantai.processor/v1",
+    "job_fence": {
+      "task_id": "01K00000000000000000000003",
+      "attempt_id": "01K00000000000000000000005",
+      "lease_fence": 1,
+      "recovery_epoch": 1
+    },
+    "activation_snapshot": {
+      "contract": "lantai.activation-snapshot/v1",
+      "activation": {
+        "extension_id": "org.example.runner",
+        "extension_version": "1.0.0",
+        "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "activation_generation": 1
+      },
+      "entry": {
+        "extension_id": "org.example.runner",
+        "extension_version": "1.0.0",
+        "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "target": "server",
+        "entry": "bin/adapter",
+        "entry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "effective_config_revision": 1,
+      "enablement_policy_revision": 1
+    },
+    "input_snapshot": {
+      "refs": [
+        {
+          "instance_id": "01K00000000000000000000000",
+          "asset_id": "01K00000000000000000000001",
+          "version_id": "01K00000000000000000000002"
+        }
+      ],
+      "digest": "sha256:49c8aba057192e4d11dd16d46a6bce8aaef7e7150eef7b076167480450578375"
+    },
+    "state": "completed",
+    "termination": {
+      "termination_confirmed": true,
+      "unresolved_effects": 0
+    },
+    "outcome": "completed",
+    "verdict": "fail",
+    "result_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "expect": [
+    {
+      "pointer": "/job_fence",
+      "keyword": "required"
+    }
+  ]
+}

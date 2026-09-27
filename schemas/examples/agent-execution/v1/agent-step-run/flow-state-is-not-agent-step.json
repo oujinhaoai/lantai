@@ -1,0 +1,32 @@
+{
+  "description": "flow state is not agent step",
+  "schema": "lantai.agent-step-run/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.agent-step-run/v1",
+    "id": "01K00000000000000000000015",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000005",
+    "revision": 1,
+    "plan_revision": 1,
+    "kind": "tool",
+    "state": "ready",
+    "input_refs": [
+      {
+        "instance_id": "01K00000000000000000000000",
+        "asset_id": "01K00000000000000000000001",
+        "version_id": "01K00000000000000000000002"
+      }
+    ],
+    "tool_operation_ids": [
+      "01K00000000000000000000016"
+    ],
+    "output_refs": []
+  },
+  "expect": [
+    {
+      "pointer": "/state",
+      "keyword": "enum"
+    }
+  ]
+}

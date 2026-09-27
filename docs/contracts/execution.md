@@ -102,3 +102,59 @@ M1 只交付契约与判定规则：**不启用任务服务、Agent 后端、一
 - 检查点只在稳定边界保存：固定输入、结构化计划摘要、已完成步骤、产物清单、工具回执水位和后端恢复指针；不保存模型隐藏思维与秘密。
 - `resume_class`：`portable_artifacts`（换后端读摘要与产物继续）、`backend_checkpoint`（同一兼容后端恢复）、`restart_safe`、`manual_only`，由 adapter 实测声明，不能因后端框架自带检查点就推断可恢复。恢复前先对账副作用、产物与预算，再建立新 Attempt；旧检查点不恢复授权。
 - 有效工具集合 = 项目策略 ∩ 身份权限 ∩ ExecutionProfile ∩ 本轮授权；子 Agent 只能进一步收窄。审定、发布、清除、发令牌、改策略永不进入 Agent 工具清单。预算跨重试、续跑、换模型与子 Agent 累计；无法精确计费时只声明可执行的调用或 token 上限。
+
+## T06 M1 领域对象与 adapter 端口
+
+[T06.1](../tasks/T06-execution-nodes.md) 的完整形态位于 [`schemas/agent-execution/v1`](../../schemas/agent-execution/v1/)，类型和纯语义校验位于 [`internal/contract/agentexec`](../../internal/contract/agentexec/)。所有状态、task fence、activation、effect、resume/cancel 分类继续引用本篇公共 schema。任务与业务流程的独立契约见[任务与业务流程](tasks.md)。M1 只交付 schema、值类型、端口、纯判定与样例；没有 adapter 实现、假后端服务、Agent 调度器、Job 队列或 processor 宿主。
+
+| 文档 | 所有者 | 必需绑定 |
+|---|---|---|
+| ExecutionProfile | agent_execution | 修订、adapter 类型/版本、固定 playbook 与 skills、能力、工具/网络限制、预算、结果 schema、激活快照 |
+| TaskRun | agent_execution | Task/Seat、固定输入、profile ID/修订/摘要、跨重试不变的 budget_id、当前 tasks Attempt；可引用业务 Flow/StepRun |
+| AgentStepRun | agent_execution | TaskRun、Attempt、plan_revision、父步骤、工具操作与产物；不同于业务 StepRun |
+| Checkpoint | agent_execution | 固定输入/profile 摘要、旧 Attempt、顺序、后端版本与格式、已接受产物、完成步骤、工具回执水位、恢复类别 |
+| ArtifactCandidate | agent_execution | 运行/Attempt、清单摘要、相对路径/文件摘要/大小、用途、来源/许可证据、验证状态及 producer |
+| ToolOperation | agent_execution | 稳定操作 ID、全 TaskRun 单调 sequence、请求摘要、工具版本、副作用类别与进度、外部幂等键/请求引用/回执摘要 |
+| JobAttempt | jobs | `lantai.processor/v1`、独立 `job_fence`、固定输入与激活快照、运行结论和检查结论 |
+
+TaskRun 的执行成功只表示结果与候选已交回。修改任务验收或固定输入时新建 TaskRun，并通过 `supersedes_run_id` 关联历史；重试/恢复在同 TaskRun 下建立新的 tasks Attempt，保留累计预算。Agent 不能生成自己的 Task Attempt 或 JobAttempt 来冒充授权。
+
+`package_entry` 固定扩展 ID、版本、包摘要、server/node target、相对入口与入口摘要。`lantai.activation-snapshot/v1` 同时保存公共 `activation_ref`、该入口、有效配置修订、启用策略修订；`ActivationSnapshot.Validate` 拒绝包身份不一致。快照由 extensions 负责，T06 只引用并复验。快照不带任务 fence，`job_fence` 也不能替换 task fence。M1 schema 不表示动态包已获启用：现阶段仍仅遵守[扩展设计](../extensions.md)的内置静态登记范围。
+
+## 七个执行动作的机器形态
+
+请求使用 `lantai.agent-request/v1`，成功响应及公共错误使用 `lantai.agent-response/v1`，七个 action 各有严格分支。字段名采用现有公共协议的 `protocol` 和嵌套 `fence`，不再同时维护平铺 attempt/fence 或 `protocol_version` 变体。描述和查询动作不创建写权限；所有读取须按当前身份权限过滤。
+
+| 动作 | 输入 | 响应/语义 |
+|---|---|---|
+| describe | protocol、action | `lantai.execution-capabilities/v1`，协议版本、幂等 start/lookup 能力、后端版本、checkpoint_format_versions、resume 类别、cancel 模式、artifact 模式、可用能力及预算计量 |
+| start | 公共执行头、execution_key、TaskRun、固定输入、完整 profile 快照、budget_id | 持久接受后返回稳定 execution_id、accepted_request_hash、TaskRun/Attempt、状态及修订；backend_run_ref 仅作诊断 |
+| lookup | execution_key | 原 admission；响应丢失先查此键，不生成新键 |
+| status | execution_id | revision、状态、observed_at、可选 heartbeat/checkpoint、累计用量、停止确认和未决副作用数 |
+| resume | start 字段与 resume_from Checkpoint | 新 Attempt/新 execution_key 下的 admission；旧检查点不恢复授权 |
+| cancel | 公共头、execution_id、reason、requested_cancel_mode | 真实 cancel_mode、cancelling/needs_reconciliation/cancelled 和停止事实；不能兑现的方式为 `UNSUPPORTED_CAPABILITY` |
+| result | execution_id | 指定运行的封存 `lantai.agent-result/v1`；尚未封存为 `RESULT_NOT_READY` |
+
+Go `agentexec.Adapter` 定义这七个方法，不含启动模型或宿主控制的方法实现。错误一律复用公共错误注册表；恢复方式不支持为 `RESUME_UNSUPPORTED`，host-control 动作与 processor 控制动作被请求 schema 拒绝。
+
+稳定 `execution_key` 的规范形式为 `run:<task_run_id>:attempt:<attempt_id>`。`RequestHash` 对请求 JCS 求 SHA-256，排除 `operation_id` 与 `request_hash`；固定输入、profile、fence、activation、budget_id、resume_from 和 action 参与摘要。adapter 应先持久化键/摘要/execution_id 映射，再接触外部进程；同键同摘要返回原 ID，同键异摘要为 `START_KEY_CONFLICT`。`ReplayStart` 只验证并返回已有 admission，不执行后端。新的 Attempt 使用新键，但旧进程仍未知时不得启动。
+
+`agent-result.result_digest` 覆盖结果 JCS 除摘要本身外的全部字段，包含指定 execution/TaskRun/Attempt、accepted_request_hash、候选/证据、用量、限制和封存时间。结果不能读取某个会话的“最新文本”代替。`AcceptResult` 绑定原已接受请求和 admission，再验证内容摘要以及当前任务 fence/扩展激活。原 profile 的旧激活不能被另一个当前合法激活替换；已撤权或恢复后旧执行的结果只能隔离为证据。结果 schema 不接受 approved/published/done 等领域终态，也不接受未确认停止的封存终态。
+
+## 恢复、能力和预算的边界
+
+`CheckStartForRun` 限定 start 只接受 pending/starting，resume 只接受 paused 并强制调用 `CheckResume` 验证完整工具日志，不能以 start 绕过恢复检查。`CheckResume` 要求同 TaskRun、固定输入和 profile 摘要相同、新 Attempt、adapter 明确支持该恢复类别。backend_checkpoint 必须有后端恢复引用并使用兼容后端版本（M1 纯规则要求版本相等），且 format_version 必须在 describe 声明的 checkpoint_format_versions 内，否则返回 `RESUME_UNSUPPORTED`；manual_only 不能自动 resume。工具日志按 TaskRun 从 1 连续编号，调用方提供完整权威日志；水位超过日志或序号缺失/重复都拒绝。
+
+恢复前按公共 `execution.Recover` 分类。未知的外部幂等效果仍须先用原键完成回执对账；未知可查询动作先查询；不可幂等且未知的动作阻塞。`CheckResume` 在这些对账完成前返回 `OPERATION_NEEDS_RECONCILIATION`，不把 checkpoint 回滚当成副作用撤销。产物、许可、输入可读性、预算和新的身份权限仍由各 owner 在实际接受时复验，纯 schema 不提供这些事实。
+
+manual_cli 仅描述未来 M2 对已获授权会话的登记：不能冒充宿主强制终止，也不能承诺无法测量的 token/费用硬限额。其 capability schema 固定 `cancel_mode=revoke_only`，禁止声明精确 tokens/cost 计量；managed_runner 仅是未来能力形态。一次性确定作业仍为 processor 文件协议，不通过 Agent adapter 调度。JobAttempt 用 `completed + verdict=fail` 表达合法检查失败，运行故障的 verdict 必为 unknown；未决调用不能伪装 completed。
+
+profile 预算绑定跨所有重试与子 Agent 累计的 `budget_id`。缺少 token 计量时 `tokens` 字段省略，不能用零谎报已知用量；请求精确 token 限额而后端没有计量能力时拒绝派发。`CheckStartForRun` 拒绝换 budget_id、输入或 profile 快照。`EffectiveTools` 计算项目/身份/profile/Attempt 四者交集，再排除 identity 权威动作表的 human-only 集合，子 Agent 只能继续收窄；审定、发布、清除、发令牌、改策略不能因 profile 配置而获得权限。
+
+正反例覆盖所有对象及七个动作，位于 [`schemas/examples/agent-execution/v1`](../../schemas/examples/agent-execution/v1/)。验证命令：
+
+```sh
+GOCACHE=/tmp/lantai-go-cache go test -race ./internal/contract/agentexec ./internal/contract/execution ./internal/contract/tasks/... ./internal/contract/schema
+```
+
+测试覆盖响应丢失重放、换 hash、旧 fence/恢复代次、撤销激活、替换封存结果、固定预算/输入/profile、未知工具效果和不支持的 resume/cancel；不代表 M2 的真实 adapter、手动会话登记、进程停止或预算计量已实现。

@@ -1,0 +1,19 @@
+{
+  "description": "resume unsupported",
+  "schema": "lantai.error/v1",
+  "valid": true,
+  "document": {
+    "error": {
+      "code": "RESUME_UNSUPPORTED",
+      "message": "合成契约失败样例",
+      "retryable": false,
+      "recovery_action": "none",
+      "operation_id": "01K00000000000000000000009",
+      "details": [
+        {
+          "reason": "resume_class_unsupported"
+        }
+      ]
+    }
+  }
+}

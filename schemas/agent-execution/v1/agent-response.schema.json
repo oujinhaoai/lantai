@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/agent-response.schema.json",
+  "title": "lantai.agent-response/v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "capabilities"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "describe"
+        },
+        "capabilities": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/execution-capabilities.schema.json"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "execution_id",
+        "execution_key",
+        "task_run_id",
+        "attempt_id",
+        "accepted_request_hash",
+        "revision",
+        "state"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "start"
+        },
+        "execution_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "execution_key": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/idempotency_key"
+        },
+        "task_run_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "attempt_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "accepted_request_hash": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+        },
+        "revision": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+        },
+        "state": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_run_state"
+        },
+        "backend_run_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "execution_id",
+        "execution_key",
+        "task_run_id",
+        "attempt_id",
+        "accepted_request_hash",
+        "revision",
+        "state"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "lookup"
+        },
+        "execution_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "execution_key": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/idempotency_key"
+        },
+        "task_run_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "attempt_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "accepted_request_hash": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+        },
+        "revision": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+        },
+        "state": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_run_state"
+        },
+        "backend_run_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "execution_id",
+        "execution_key",
+        "task_run_id",
+        "attempt_id",
+        "accepted_request_hash",
+        "revision",
+        "state"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "resume"
+        },
+        "execution_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "execution_key": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/idempotency_key"
+        },
+        "task_run_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "attempt_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "accepted_request_hash": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+        },
+        "revision": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+        },
+        "state": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_run_state"
+        },
+        "backend_run_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "execution_id",
+        "revision",
+        "state",
+        "observed_at",
+        "budget_usage",
+        "termination"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "status"
+        },
+        "execution_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "revision": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+        },
+        "state": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/task_run_state"
+        },
+        "observed_at": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+        },
+        "heartbeat_at": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+        },
+        "budget_usage": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/budget_usage"
+        },
+        "termination": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/termination"
+        },
+        "checkpoint_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "execution_succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "termination": {
+                "properties": {
+                  "termination_confirmed": {
+                    "const": true
+                  },
+                  "unresolved_effects": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "execution_id",
+        "state",
+        "cancel_mode",
+        "termination"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "cancel"
+        },
+        "execution_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "cancelling",
+            "needs_reconciliation",
+            "cancelled"
+          ]
+        },
+        "cancel_mode": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/cancel_mode"
+        },
+        "termination": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/execution.schema.json#/$defs/termination"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "execution_succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "termination": {
+                "properties": {
+                  "termination_confirmed": {
+                    "const": true
+                  },
+                  "unresolved_effects": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "action",
+        "result"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "lantai.agent-execution/v1"
+        },
+        "action": {
+          "const": "result"
+        },
+        "result": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/agent-result.schema.json"
+        }
+      }
+    },
+    {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/error.schema.json"
+    }
+  ]
+}

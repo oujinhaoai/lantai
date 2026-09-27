@@ -1,0 +1,16 @@
+{
+  "description": "resume",
+  "schema": "lantai.agent-response/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "resume",
+    "execution_id": "01K00000000000000000000021",
+    "execution_key": "run:01K00000000000000000000013:attempt:01K00000000000000000000022",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000022",
+    "accepted_request_hash": "sha256:2b3dbd93935749104b778bd3ade112af75c5c906783f206ef605041e8993cdd1",
+    "revision": 1,
+    "state": "starting"
+  }
+}

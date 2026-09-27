@@ -1,0 +1,35 @@
+{
+  "description": "path traversal rejected",
+  "schema": "lantai.artifact-candidate/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.artifact-candidate/v1",
+    "id": "01K00000000000000000000018",
+    "task_run_id": "01K00000000000000000000013",
+    "attempt_id": "01K00000000000000000000005",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "files": [
+      {
+        "path": "../secret",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 42
+      }
+    ],
+    "purpose": "合成候选",
+    "provenance_refs": [],
+    "license_evidence_refs": [],
+    "validation_state": "pending",
+    "producer": {
+      "extension_id": "org.example.runner",
+      "extension_version": "1.0.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "builtin_release"
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/files/0/path",
+      "keyword": "pattern"
+    }
+  ]
+}

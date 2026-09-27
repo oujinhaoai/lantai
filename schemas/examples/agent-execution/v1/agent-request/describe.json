@@ -1,0 +1,9 @@
+{
+  "description": "describe",
+  "schema": "lantai.agent-request/v1",
+  "valid": true,
+  "document": {
+    "protocol": "lantai.agent-execution/v1",
+    "action": "describe"
+  }
+}
