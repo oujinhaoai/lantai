@@ -45,6 +45,8 @@
 | `outbox` | `commands` | `main`、`ledger`、`runtime` | 源事件，与业务变更同事务写入 |
 | `processed_events` | `events` | `main`、`ledger`、`runtime`、`index` | 消费者去重记录，与消费者状态同事务 |
 | `pending_commands` | `events` | `main`、`ledger`、`runtime`、`index` | 消费者待执行的跨模块命令 |
+| `consumer_offsets` | `events` | `main`、`ledger`、`runtime`、`index` | 消费者事务水位 |
+| `consumer_failures` | `events` | `main`、`ledger`、`runtime`、`index` | 消费者分类失败与重试时间 |
 | `schema_migrations` | `operations` | `main`、`ledger`、`runtime`、`events`、`index` | 各库迁移版本 |
 | `instance_binding` | `operations` | `main`、`ledger`、`runtime`、`events`、`index` | 库所属实例：启动时核对，防止混用其他实例的库文件（同一实例旧副本的混用由备份清单与恢复流程核对） |
 
@@ -86,6 +88,7 @@
 | `human_grant.*` | `identity` |
 | `instance.*` | `operations` |
 | `job.*` | `jobs` |
+| `ledger.*` | `ledger` |
 | `lock.*` | `ledger` |
 | `namespace.*` | `ledger` |
 | `node.*` | `node` |

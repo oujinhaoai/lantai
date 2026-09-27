@@ -42,7 +42,7 @@ func (s *Service) VerifyAcceptance(ctx context.Context, who authz.Context, p com
 	}
 	for _, use := range content.Uses {
 		ref := ids.PermanentRef{InstanceID: use.InstanceID, AssetID: use.AssetID, VersionID: use.VersionID}
-		if _, err := s.ResolvePermanent(ctx, who, ref); err != nil {
+		if _, err := s.resolvePermanent(ctx, who, ref); err != nil {
 			return err
 		}
 		decision, err := s.rights.EvaluateUse(ctx, who, ref, usePurpose(use.Relation, content.Rights.Usage))

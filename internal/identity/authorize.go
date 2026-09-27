@@ -2,11 +2,13 @@ package identity
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
 
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
 )
 
 // decide 按权限矩阵判定已核对会话能否对资源执行动作；返回空表示允许。
@@ -77,6 +79,17 @@ func (s *Service) decide(ctx context.Context, q commands.DBTX, v verified, spec 
 			if !slices.ContainsFunc(roles, func(r Role) bool { return slices.Contains(spec.Roles, r) }) {
 				return errcode.Forbidden, nil
 			}
+		}
+	}
+	if spec.Action == ActPersonalRead {
+		policies, err := resolvePolicies(ctx, q, res.ProjectID)
+		if err != nil {
+			return "", err
+		}
+		policy := policies["personal.readers"]
+		var readers []ids.ID
+		if policy.Source != "project" || json.Unmarshal(policy.Value, &readers) != nil || !slices.Contains(readers, p.ID) {
+			return errcode.Forbidden, nil
 		}
 	}
 	return "", nil

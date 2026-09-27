@@ -1,6 +1,6 @@
 # internal · Go 核心与内部适配器
 
-领域模块目前只有[职责与任务](../docs/architecture.md)，具体子包随实现创建。已建立的公共部分（T00）：
+模块边界见[职责与任务](../docs/architecture.md)，具体子包随实现创建。已建立的模块：
 
 - `contract/`：公共契约的 Go 实现——`ids`、`clock`、`digest`、`canonjson`、`yamljson`、`schema`（加载 `schemas/` 并校验）、`errcode`（由注册表生成）、`event`、`execution`（执行与扩展宿主的公共判定）、`ownership`（表/文件/事件所有权登记），以及跨模块接口 `authz`、`install`、`commit`、`pin`、`rights` 与各自的 `…test` 桩和契约套件。
 - `commands/`：命令上下文、请求摘要、操作阶段、幂等判定、业务所属库内的回执/operations/outbox 组件、统一锁顺序协调器与维护屏障写入口（`Gate`）；不拥有任何业务表。
@@ -10,6 +10,8 @@
 - `identity/`：身份与安全（T01 的 M1 部分）——主体与角色、本机初始化、口令与 TOTP、会话与委托、实时授权与最终接受协调、Challenge/HumanGrant 与凭据/策略管理命令、受限因子恢复；子包 `masterkey`、`totp`、`password`、`httpauth`（浏览器与 CLI 凭据的服务端防护）。规则见[身份与授权](../docs/contracts/identity.md)。
 - `catalog/`：资源目录（T02 的 M1 部分）——项目与资产说明的条件修订、路径别名代次与引用解析、清单冻结与入藏组装；子包 `pathrule`（跨平台路径与名称规则）、`manifest`（版本清单、类型登记、确定性 YAML）。规则见[目录](../docs/contracts/catalog.md)。
 - `storage/`：存储（T02 的 M1 部分）——内容库、上传会话与分片续传、内容复用授权、读取授权与逐请求核验的下载、版本文件安装与隔离、证据追加、upload pin 与到期清理、传输面 HTTP 处理器；子包 `fileop`（文件适配器与错误归类）、`transfer`（交互/批量传输准入）。规则见[存储](../docs/contracts/storage.md)。
+- `ledger/`、`provenance/`：M1 持久版本登记、占名、说明生效修订、恢复核对与权威来源限制，见[台账](../docs/contracts/ledger.md)及[溯源](../docs/contracts/provenance.md)。
+- `events/`、`query/`：M1 多源收录、事务消费与持久后续命令、审计/保留水位，以及受当前权限过滤的可重建目录、文本和关联投影，见[事件](../docs/contracts/events.md)及[查询](../docs/contracts/query.md)。
 - `apiv1/`：由 `api/` 契约生成的 Go 传输类型，不手改。
 
 规则见[公共契约](../docs/contracts/README.md)。

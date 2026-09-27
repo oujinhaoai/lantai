@@ -31,6 +31,9 @@ type Harness struct {
 	Installer *installtest.Memory
 	Revisions *Revisions
 	Clock     *clock.Fake
+	// NewProject lets a persistent implementation register an actual project
+	// before the suite creates its project-scoped actor. Memory fixtures may omit it.
+	NewProject func() ids.ID
 	// Cancel 可选：放弃尚未提交的操作。
 	Cancel func(op ids.ID) error
 	// CancelMetadata 可选：放弃尚未生效的说明修订。
@@ -58,8 +61,11 @@ type actor struct {
 
 func newActor(h Harness) actor {
 	p, project := ids.New(), ids.New()
+	if h.NewProject != nil {
+		project = h.NewProject()
+	}
 	h.Authz.AddPrincipal(p, authz.Agent)
-	h.Authz.Grant(p, project, commit.ActionCommitVersion, commit.ActionReadVersion)
+	h.Authz.Grant(p, project, commit.ActionCommitVersion, commit.ActionReadVersion, "catalog.read")
 	return actor{who: h.Authz.OpenSession(p, time.Hour), project: project}
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
+	"github.com/oujinhaoai/lantai/internal/events"
 )
 
 //go:embed sql
@@ -52,6 +53,11 @@ var builtin = []Migration{
 	{DB: ownership.Main, Version: 1, Owner: "commands", Name: "infra", SQL: commands.SchemaSQL},
 	{DB: ownership.Ledger, Version: 1, Owner: "commands", Name: "infra", SQL: commands.SchemaSQL},
 	{DB: ownership.Runtime, Version: 1, Owner: "commands", Name: "infra", SQL: commands.SchemaSQL},
+	{DB: ownership.Main, Version: 4, Owner: "events", Name: "consumers", SQL: events.ConsumerSchemaSQL},
+	{DB: ownership.Ledger, Version: 4, Owner: "events", Name: "consumers", SQL: events.ConsumerSchemaSQL},
+	{DB: ownership.Runtime, Version: 4, Owner: "events", Name: "consumers", SQL: events.ConsumerSchemaSQL},
+	{DB: ownership.Events, Version: 1, Owner: "events", Name: "event-store", SQL: events.SchemaSQL},
+	{DB: ownership.Index, Version: 2, Owner: "events", Name: "consumers", SQL: events.ConsumerSchemaSQL},
 }
 
 var fileRE = regexp.MustCompile(`^([0-9]{4})\.([a-z][a-z0-9_]*)\.([a-z0-9][a-z0-9_-]*)\.sql$`)

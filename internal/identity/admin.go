@@ -640,6 +640,9 @@ func (c *SetPolicy) targets() []Target {
 }
 func (c *SetPolicy) body() any { return c }
 func (c *SetPolicy) check() error {
+	if c.Key == "personal.readers" && c.ProjectID == "" {
+		return fmt.Errorf("personal.readers requires an explicit project")
+	}
 	if c.ProjectID != "" && !c.ProjectID.Valid() {
 		return fmt.Errorf("project_id is not valid")
 	}

@@ -1,0 +1,1 @@
+{"description":"未知外部来源保留为待核验","schema":"lantai.provenance-evidence/v1","valid":true,"document":{"note":"来源尚待核验","external_inputs":[{"rights_status":"unknown","source_url":"https://example.test/source"}]}}

@@ -1,0 +1,19 @@
+{
+  "description": "M1 普通证据不能自行确认许可",
+  "schema": "lantai.provenance-evidence/v1",
+  "valid": false,
+  "document": {
+    "note": "声明",
+    "external_inputs": [
+      {
+        "rights_status": "confirmed"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "pointer": "/external_inputs/0/rights_status",
+      "keyword": "const"
+    }
+  ]
+}

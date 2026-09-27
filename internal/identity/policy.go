@@ -23,6 +23,7 @@ const (
 	policyInt
 	policyEnum
 	policyList
+	policyPrincipalList
 )
 
 // PolicySpec 是一项策略的类型、默认值与取值范围。策略分三级（系统默认 →
@@ -41,6 +42,7 @@ type PolicySpec struct {
 var listItemRE = regexp.MustCompile(`^[a-z0-9][a-z0-9._:/@-]{0,127}$`)
 
 var policyList_ = []PolicySpec{
+	{Key: "personal.readers", kind: policyPrincipalList, Default: []string{}},
 	{Key: "review.require_human", kind: policyBool, Default: true},
 	{Key: "review.allow_self", kind: policyBool, Default: false},
 	{Key: "review.allow_self_human", kind: policyBool, Default: true},
@@ -123,14 +125,14 @@ func normalizePolicy(key string, raw json.RawMessage) (string, error) {
 		if !ok || !slices.Contains(spec.enum, v) {
 			return "", fmt.Errorf("policy %s must be one of %v", key, spec.enum)
 		}
-	case policyList:
+	case policyList, policyPrincipalList:
 		items, ok := doc.([]any)
 		if !ok || len(items) > 256 {
 			return "", fmt.Errorf("policy %s must be a list of at most 256 identifiers", key)
 		}
 		for _, it := range items {
 			v, ok := it.(string)
-			if !ok || !listItemRE.MatchString(v) {
+			if !ok || (spec.kind == policyList && !listItemRE.MatchString(v)) || (spec.kind == policyPrincipalList && !ids.ID(v).Valid()) {
 				return "", fmt.Errorf("policy %s items must be identifiers", key)
 			}
 		}
@@ -251,6 +253,8 @@ func PolicyCatalog() []PolicyInfo {
 			info.Allowed = strings.Join(p.enum, " / ")
 		case p.kind == policyList:
 			info.Allowed = "identifier list (≤256)"
+		case p.kind == policyPrincipalList:
+			info.Allowed = "explicit principal ID list (≤256); project policy only"
 		}
 		out = append(out, info)
 	}

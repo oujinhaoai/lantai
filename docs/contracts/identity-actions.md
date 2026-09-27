@@ -51,6 +51,8 @@
 | `identity.update_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.whoami` | 实例 | `self` | 本人 | 恢复会话可用 |
 | `ledger.commit_version` | 项目 | `ingest` | owner、contributor |  |
+| `personal.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `provenance.append_evidence` | 项目 | `organize` | owner、curator |  |
 | `query.search` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.read_content` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.upload` | 项目 | `ingest` | owner、contributor |  |
@@ -64,6 +66,7 @@
 | `destructive.require_human` | `true` | fixed |
 | `ingest.final_only` | `true` | true / false |
 | `lock.by_flow` | `false` | true / false |
+| `personal.readers` | `[]` | explicit principal ID list (≤256); project policy only |
 | `plugins.allowed` | `[]` | identifier list (≤256) |
 | `plugins.breaker_cooldown_seconds` | `900` | 10–86400 |
 | `plugins.breaker_failures` | `5` | 1–1000 |

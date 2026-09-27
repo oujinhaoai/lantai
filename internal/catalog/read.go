@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
+	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
@@ -108,6 +109,11 @@ type AssetInfo struct {
 
 // GetAsset 读取资产。无权读取时 NOT_FOUND。
 func (s *Service) GetAsset(ctx context.Context, who authz.Context, assetID ids.ID) (AssetInfo, error) {
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return AssetInfo{}, err
+	}
+	defer held.Release()
 	a, err := s.ledger.Asset(ctx, assetID)
 	if err != nil {
 		return AssetInfo{}, notFoundIfMissing(err)
@@ -127,6 +133,18 @@ func (s *Service) GetAsset(ctx context.Context, who authz.Context, assetID ids.I
 	if err != nil {
 		return AssetInfo{}, err
 	}
+	if err := s.canReadRights(ctx, who, latest); err != nil {
+		return AssetInfo{}, err
+	}
+	if d.Sensitivity == "personal" {
+		decision, err := s.authz.Authorize(ctx, who, "personal.read", authz.Resource{ProjectID: a.ProjectID, Kind: "asset", ID: a.AssetID})
+		if err != nil {
+			return AssetInfo{}, err
+		}
+		if !decision.Allowed {
+			return AssetInfo{}, errcode.New(errcode.NotFound, "")
+		}
+	}
 	return AssetInfo{Asset: a, Description: d, Claim: claim, Latest: latest}, nil
 }
 
@@ -139,6 +157,11 @@ type VersionInfo struct {
 // GetVersion 精确读取已提交版本及其清单（不依赖检索索引）。版本不属于资产时
 // REF_MISMATCH；无权读取时 NOT_FOUND。
 func (s *Service) GetVersion(ctx context.Context, who authz.Context, assetID, versionID ids.ID) (VersionInfo, error) {
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return VersionInfo{}, err
+	}
+	defer held.Release()
 	a, err := s.ledger.Asset(ctx, assetID)
 	if err != nil {
 		return VersionInfo{}, notFoundIfMissing(err)
@@ -150,9 +173,23 @@ func (s *Service) GetVersion(ctx context.Context, who authz.Context, assetID, ve
 	if err != nil {
 		return VersionInfo{}, err
 	}
+	if err := s.canReadRights(ctx, who, v); err != nil {
+		return VersionInfo{}, err
+	}
 	doc, err := s.readManifest(ctx, v)
 	if err != nil {
 		return VersionInfo{}, err
 	}
 	return VersionInfo{Version: v, Manifest: doc}, nil
+}
+
+func (s *Service) canReadRights(ctx context.Context, who authz.Context, v commit.Committed) error {
+	d, err := s.rights.EvaluateUse(ctx, who, v.Ref(s.instance), authz.PurposeArchiveReview)
+	if err != nil {
+		return err
+	}
+	if !d.Allowed {
+		return errcode.New(errcode.NotFound, "")
+	}
+	return nil
 }

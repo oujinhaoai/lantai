@@ -20,30 +20,29 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
-	"github.com/oujinhaoai/lantai/internal/contract/commit/committest"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
-	"github.com/oujinhaoai/lantai/internal/contract/rights/rightstest"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/httpauth"
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
 	"github.com/oujinhaoai/lantai/internal/identity/password"
 	"github.com/oujinhaoai/lantai/internal/identity/totp"
+	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/operations"
+	"github.com/oujinhaoai/lantai/internal/provenance"
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 )
 
 // 集成夹具：真实实例（operations）、真实身份模块（identity，含 HumanGrant 管理
-// 命令与实时撤权）、真实存储与目录模块；台账（T03）用契约内存桩，用途限制
-// （T03.2）用可编程桩。台账接入真实实现后，同一批测试必须照样通过。
+// 命令与实时撤权）、真实存储、目录、SQLite 台账和来源限制模块。
 
 const adminPassword = "correct horse battery staple"
 
 // fastPassword 是测试用的低成本口令参数；生产参数见 password.Default。
 var fastPassword = password.Params{Algorithm: "argon2id", Version: password.Default.Version, Memory: 64, Time: 1, Threads: 1, KeyLen: 32}
 
-// authority 把身份模块的实时授权与实例的恢复代次组合成台账桩需要的接口。
+// authority 把身份模块的实时授权与实例的恢复代次组合成台账需要的接口。
 type authority struct {
 	*identity.Service
 	epochs authz.EpochSource
@@ -58,8 +57,8 @@ type env struct {
 	inst    *operations.Instance
 	clk     *clock.Fake
 	id      *identity.Service
-	ledger  *committest.Memory
-	rights  *rightstest.Static
+	ledger  *ledger.Service
+	rights  *provenance.Service
 	storage *storage.Service
 	catalog *catalog.Service
 	sched   *transfer.Scheduler
@@ -116,8 +115,14 @@ func newEnv(t *testing.T, cfg storage.Config, limits transfer.Limits) *env {
 		t.Fatal(err)
 	}
 
-	e.rights = rightstest.New()
-	e.ledger = committest.New(clk, authority{Service: e.id, epochs: inst}, nil)
+	e.ledger, err = ledger.New(ledger.Deps{DB: inst.DB(ownership.Ledger), Gate: inst.Gate(), Authority: authority{Service: e.id, epochs: inst}, Clock: clk, IDs: gen})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.rights, err = provenance.New(provenance.Deps{DB: inst.DB(ownership.Ledger), Gate: inst.Gate(), Reader: e.ledger, Authz: e.id, Clock: clk, IDs: gen, InstanceID: inst.InstanceID()})
+	if err != nil {
+		t.Fatal(err)
+	}
 	grantKey, err := key.Derive("storage/read-grant/v1")
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +134,7 @@ func newEnv(t *testing.T, cfg storage.Config, limits transfer.Limits) *env {
 		t.Fatal(err)
 	}
 	e.ledger.SetInstaller(e.storage)
-	e.ledger.SetGate(inst.Gate())
+	e.rights.SetFiles(e.storage)
 	e.catalog, err = catalog.New(catalog.Deps{Home: inst.Layout().Home, Gate: inst.Gate(), Storage: e.storage, Ledger: e.ledger,
 		Authz: e.id, Rights: e.rights, Clock: clk, IDs: gen, InstanceID: inst.InstanceID()})
 	if err != nil {
@@ -137,6 +142,7 @@ func newEnv(t *testing.T, cfg storage.Config, limits transfer.Limits) *env {
 	}
 	e.ledger.SetRevisionVerifier(e.catalog)
 	e.ledger.SetAcceptanceVerifier(e.catalog)
+	e.rights.SetCatalog(e.catalog)
 
 	guard, err := httpauth.NewGuard(e.id, httpauth.Policy{AllowedOrigins: []string{"https://lantai.example.test"}})
 	if err != nil {

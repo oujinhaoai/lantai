@@ -30,8 +30,10 @@
 | 应用待执行的迁移 | `go run ./cmd/lantai migrate -home <数据根>` |
 | 单管理员本机离线恢复（交互式） | `go run ./cmd/lantai recover-admin -home <数据根> -admin <名称>` |
 | Argon2id 默认参数在本机的耗时 | `go test -run '^$' -bench Default ./internal/identity/password/` |
-| 跨模块集成测试（真实实例、身份、存储与目录；台账为契约桩） | `go test ./tests/integration/` |
+| 跨模块集成测试（真实实例、身份、存储、目录、台账、来源限制、事件与查询） | `go test ./tests/integration/` |
 | 1 GiB 分片续传与流式内存（默认 32 MiB） | `LANTAI_TEST_LARGE_MB=1024 go test -run TestLargeResumableTransfer -v ./tests/integration/` |
+| 台账/事件/查询单元与故障验证 | `go test ./internal/ledger ./internal/provenance ./internal/events ./internal/query` |
+| T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 

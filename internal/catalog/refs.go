@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/oujinhaoai/lantai/internal/catalog/pathrule"
+	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
 	"github.com/oujinhaoai/lantai/internal/contract/commit"
@@ -112,6 +113,14 @@ func (s *Service) resolved(c commit.Committed, slug string, generation, claimRev
 // 固定版本可以直接解析，复用过则返回 REF_AMBIGUOUS；浮动引用只解析当前
 // 代次，不接受代次参数。调用者须能读取项目，否则一律 NOT_FOUND。
 func (s *Service) Resolve(ctx context.Context, who authz.Context, ref string, generation int64) (Resolved, error) {
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return Resolved{}, err
+	}
+	defer held.Release()
+	return s.resolve(ctx, who, ref, generation)
+}
+func (s *Service) resolve(ctx context.Context, who authz.Context, ref string, generation int64) (Resolved, error) {
 	if strings.HasPrefix(ref, ids.URIScheme+"://") {
 		if generation != 0 {
 			return Resolved{}, invalid("alias_generation does not apply to a permanent reference")
@@ -120,7 +129,7 @@ func (s *Service) Resolve(ctx context.Context, who authz.Context, ref string, ge
 		if err != nil {
 			return Resolved{}, invalid("invalid permanent reference: %v", err)
 		}
-		return s.ResolvePermanent(ctx, who, permanent)
+		return s.resolvePermanent(ctx, who, permanent)
 	}
 	r, err := ParseRef(ref)
 	if err != nil {
@@ -152,6 +161,9 @@ func (s *Service) Resolve(ctx context.Context, who authz.Context, ref string, ge
 		if err != nil {
 			return Resolved{}, err
 		}
+		if err := s.canReadRights(ctx, who, v); err != nil {
+			return Resolved{}, err
+		}
 		return s.resolved(v, claim.Slug, claim.Generation, claim.Revision, r.Selector), nil
 	}
 	asset := claim.AssetID
@@ -173,6 +185,9 @@ func (s *Service) Resolve(ctx context.Context, who authz.Context, ref string, ge
 	v, err := s.ledger.VersionByNumber(ctx, asset, r.Number)
 	if err != nil {
 		return Resolved{}, notFoundIfMissing(err)
+	}
+	if err := s.canReadRights(ctx, who, v); err != nil {
+		return Resolved{}, err
 	}
 	return s.resolved(v, r.Slug, gen, claim.Revision, r.Selector), nil
 }
@@ -205,6 +220,14 @@ func (s *Service) selectVersion(ctx context.Context, asset ids.ID, selector stri
 // ResolvePermanent 精确解析永久引用：版本必须属于该资产（REF_MISMATCH），无权
 // 读取时 NOT_FOUND。别的馆的引用（M8）明确拒绝。
 func (s *Service) ResolvePermanent(ctx context.Context, who authz.Context, ref ids.PermanentRef) (Resolved, error) {
+	ctx, held, err := s.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return Resolved{}, err
+	}
+	defer held.Release()
+	return s.resolvePermanent(ctx, who, ref)
+}
+func (s *Service) resolvePermanent(ctx context.Context, who authz.Context, ref ids.PermanentRef) (Resolved, error) {
 	if ref.InstanceID != "" && ref.InstanceID != s.instance {
 		return Resolved{}, reasonErr(errcode.SchemaInvalid, "federation_unsupported", "references to other instances are not supported yet")
 	}
@@ -220,6 +243,9 @@ func (s *Service) ResolvePermanent(ctx context.Context, who authz.Context, ref i
 	}
 	v, err := s.ledger.Version(ctx, ref.AssetID, ref.VersionID)
 	if err != nil {
+		return Resolved{}, err
+	}
+	if err := s.canReadRights(ctx, who, v); err != nil {
 		return Resolved{}, err
 	}
 	return s.resolved(v, asset.Slug, asset.Generation, 0, "v"+fmt.Sprintf("%03d", v.VersionNumber)), nil

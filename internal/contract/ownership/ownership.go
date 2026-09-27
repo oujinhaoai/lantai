@@ -66,6 +66,8 @@ var InfraTables = []InfraTable{
 	{"outbox", "commands", []Database{Main, Ledger, Runtime}, "源事件，与业务变更同事务写入"},
 	{"processed_events", "events", []Database{Main, Ledger, Runtime, Index}, "消费者去重记录，与消费者状态同事务"},
 	{"pending_commands", "events", []Database{Main, Ledger, Runtime, Index}, "消费者待执行的跨模块命令"},
+	{"consumer_offsets", "events", []Database{Main, Ledger, Runtime, Index}, "消费者事务水位"},
+	{"consumer_failures", "events", []Database{Main, Ledger, Runtime, Index}, "消费者分类失败与重试时间"},
 	{"schema_migrations", "operations", []Database{Main, Ledger, Runtime, Events, Index}, "各库迁移版本"},
 	{"instance_binding", "operations", []Database{Main, Ledger, Runtime, Events, Index}, "库所属实例：启动时核对，防止混用其他实例的库文件（同一实例旧副本的混用由备份清单与恢复流程核对）"},
 }
@@ -119,6 +121,7 @@ var EventPrefixes = map[string]string{
 	"upload": "storage", "blob_grant": "storage",
 	"version": "ledger", "review": "ledger", "publication": "ledger", "lock": "ledger", "trash": "ledger", "comment": "ledger",
 	"rights": "provenance",
+	"ledger": "ledger",
 	"task":   "tasks", "attempt": "tasks", "checkout": "tasks",
 	"flow": "workflow", "step_run": "workflow",
 	"task_run": "agent_execution", "job": "jobs", "node": "node",

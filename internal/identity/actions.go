@@ -86,7 +86,10 @@ const (
 	// ActCatalogCreateProject 登记新项目（稳定 ID 与不可变 key）；只有系统管理员本人。
 	ActCatalogCreateProject authz.Action = "catalog.create_project"
 	// ActCatalogPatchProject 修改项目说明（project.yaml）。
-	ActCatalogPatchProject authz.Action = "catalog.patch_project"
+	ActCatalogPatchProject      authz.Action = "catalog.patch_project"
+	ActProvenanceAppendEvidence authz.Action = "provenance.append_evidence"
+	// personal.read 仍需项目 personal.readers 中的显式主体授权。
+	ActPersonalRead authz.Action = "personal.read"
 )
 
 var adminOnly = []SystemRole{RoleAdmin}
@@ -118,6 +121,8 @@ var actionList = []ActionSpec{
 	{Action: ActRecoverySetPassword, Scope: ScopeRecovery, RecoveryOnly: true},
 
 	{Action: ActCatalogRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActPersonalRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActProvenanceAppendEvidence, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCurator}},
 	{Action: ActStorageReadContent, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActQuerySearch, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActEventsRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},

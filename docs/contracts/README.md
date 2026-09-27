@@ -1,6 +1,6 @@
 # 公共契约
 
-状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)；实例生命周期、迁移与维护屏障见 [instance.md](instance.md)（T08.1）；身份、会话、授权与人类授权见 [identity.md](identity.md)（T01），动作与策略登记见 [identity-actions.md](identity-actions.md)；路径规则、清单、引用与说明修订见 [catalog.md](catalog.md)，内容库、上传、授权下载、安装与传输准入见 [storage.md](storage.md)（T02）。
+状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)；实例生命周期、迁移与维护屏障见 [instance.md](instance.md)（T08.1）；身份、会话、授权与人类授权见 [identity.md](identity.md)（T01），动作与策略登记见 [identity-actions.md](identity-actions.md)；路径规则、清单、引用与说明修订见 [catalog.md](catalog.md)，内容库、上传、授权下载、安装与传输准入见 [storage.md](storage.md)（T02）；持久版本提交见 [ledger.md](ledger.md)，来源证据与用途判定见 [provenance.md](provenance.md)（T03），事件收录/消费/审计见 [events.md](events.md)，投影与重同步见 [query.md](query.md)（T04）。
 
 契约通过测试只说明规则被编码并可重复校验，不代表依赖它们的业务模块已经实现；各模块最终接线须换成真实实现并通过对应验收。
 
@@ -84,8 +84,8 @@
 |---|---|---|
 | [`authz`](../../internal/contract/authz/authz.go)：可信调用者上下文、`Authorizer`、`SessionVerifier`、`EpochSource`；传输档位由主体类别推导，不信客户端自报，委托上下文一律为批量档 | identity（T01，已实现：[`identity.Service`](../../internal/identity/identity.go)；`EpochSource` 由 [`operations.Instance`](../../internal/operations/instance.go) 提供） | `authztest.Static`：授予、撤权、会话、整馆恢复；`RunAuthorizerContract`（桩与 identity 都通过） |
 | [`install`](../../internal/contract/install/install.go)：安装请求（含 catalog 渲染的清单文件）与 [`lantai.install-proof/v1`](../../schemas/common/v1/install-proof.schema.json) 证明、`Installer`（按 operation 幂等、只证明 installed） | storage（T02，已实现：[`storage.Service`](../../internal/storage/install.go)） | `installtest.Memory`、`RunInstallerContract`（桩与 storage 都通过） |
-| [`commit`](../../internal/contract/commit/commit.go)：`Ledger`（Prepare → Commit、Cancel，最终接受边界复验当前授权与证明）、`Reader`（只读已提交版本与资产登记，按号与最新版本，不依赖索引）、`Namespace`（带代次的占名）、`Metadata`（说明修订的保留与生效，文件由 `RevisionVerifier` 复核）、`Projects`（项目登记） | ledger（T03） | `committest.Memory`、`committest.Revisions`、`RunLedgerContract` |
-| [`rights`](../../internal/contract/rights/rights.go)：`Evaluator`（按当前证据判定版本能否用于某用途；无法完成核验返回 `RIGHTS_PENDING`，不默认放行） | provenance（T03.2） | `rightstest.Static` |
+| [`commit`](../../internal/contract/commit/commit.go)：`Ledger`（Prepare → Commit、Cancel，最终接受边界复验当前授权与证明）、`Reader`（只读已提交版本与资产登记，按号与最新版本，不依赖索引）、`Namespace`（带代次的占名）、`Metadata`（说明修订的保留与生效，文件由 `RevisionVerifier` 复核）、`Projects`（项目登记） | ledger（T03，已实现：[`ledger.Service`](../../internal/ledger/ledger.go)） | `committest.Memory`、`committest.Revisions`、`RunLedgerContract` |
+| [`rights`](../../internal/contract/rights/rights.go)：`Evaluator`（按当前证据判定版本能否用于某用途；无法完成核验返回 `RIGHTS_PENDING`，不默认放行） | provenance（T03.2，已实现：[`provenance.Service`](../../internal/provenance/provenance.go)） | `rightstest.Static` |
 | [`pin`](../../internal/contract/pin/pin.go)：[`lantai.pin/v1`](../../schemas/common/v1/pin.schema.json) 保留记录与 `Held`（任一来源出错即视为仍被保留） | storage / ledger / operations | `pintest.Memory` |
 
 T02 接入后契约有三处变化：安装请求带清单文件、证明记录其 `manifest_sha256`，路径长度按码点计（与 schema 一致）；台账契约补齐上表中的读取、占名、说明修订、项目登记与取消；新增用途限制查询。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。

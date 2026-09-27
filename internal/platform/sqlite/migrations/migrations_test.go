@@ -53,7 +53,15 @@ func TestLoadRejectsBadLayouts(t *testing.T) {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	good := fstest.MapFS{"sql/main/0002.identity.x.sql": {Data: []byte("CREATE TABLE identity_x (id TEXT)\r\n")}}
+	good := fstest.MapFS{
+		"sql/main/0002.identity.x.sql":     {Data: []byte("CREATE TABLE identity_x (id TEXT)\r\n")},
+		"sql/main/0003.identity.x.sql":     {Data: []byte(ok)},
+		"sql/ledger/0002.ledger.x.sql":     {Data: []byte(ok)},
+		"sql/ledger/0003.provenance.x.sql": {Data: []byte(ok)},
+		"sql/runtime/0002.identity.x.sql":  {Data: []byte(ok)},
+		"sql/runtime/0003.storage.x.sql":   {Data: []byte(ok)},
+		"sql/index/0001.query.x.sql":       {Data: []byte(ok)},
+	}
 	r, err := load(good)
 	if err != nil {
 		t.Fatal(err)

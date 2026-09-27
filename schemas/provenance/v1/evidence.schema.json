@@ -1,0 +1,18 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "$id":"https://github.com/oujinhaoai/lantai/raw/main/schemas/provenance/v1/evidence.schema.json",
+ "title":"ProvenanceEvidence",
+ "description":"M1 追加来源证据。更正不擦除旧证据；外部未知输入不自动获得生产许可。限制解除另走 M2 安全命令。",
+ "type":"object","additionalProperties":false,"required":["note","external_inputs"],
+ "properties":{
+  "note":{"type":"string","maxLength":4000},
+  "external_inputs":{"type":"array","maxItems":1000,"items":{
+   "type":"object","additionalProperties":false,"required":["rights_status"],
+   "properties":{
+    "sha256":{"$ref":"../../common/v1/defs.schema.json#/$defs/sha256_hex"},
+    "source_url":{"type":"string","maxLength":2048},
+    "rights_status":{"const":"unknown"}
+   }
+  }}
+ }
+}
