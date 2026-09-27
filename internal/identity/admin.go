@@ -743,6 +743,11 @@ func (c *ResetHumanFactor) apply(ctx context.Context, e *applyEnv) (any, error) 
 	if err := e.s.invalidateRecoveryCodes(ctx, e.tx, p.ID); err != nil {
 		return nil, err
 	}
+	// 管理员设置流程必须重新设置口令，历史记录不能冒充本次已完成。
+	// 自助恢复仍保留已由口令和恢复码验证过的原口令。
+	if _, err := e.tx.ExecContext(ctx, `DELETE FROM identity_passwords WHERE principal_id = ?`, p.ID); err != nil {
+		return nil, err
+	}
 	revoked, err := e.s.revokeGrants(ctx, e.tx, p.ID, "factor_reset")
 	if err != nil {
 		return nil, err

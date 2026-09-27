@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/asset-types.schema.json",
+  "title": "Lantai asset types v1",
+  "description": "各资产类型的版本元数据（manifest content.metadata）定义，按类型名在 $defs 中查找。所有字段都可选；catalog 把未登记的顶层字段移入 extra，不拒收。许可、用途、敏感级别等安全相关字段不属于元数据，必须在 rights 中声明。类型定义演进时发布新的库版本，旧版本数据按其 type_schema 解释。",
+  "$defs": {
+    "dimensions": {
+      "properties": {
+        "width": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 1000000 }
+      }
+    },
+    "timing": {
+      "properties": {
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "fps": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000 }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "$ref": "#/$defs/dimensions/properties/width" },
+        "height": { "$ref": "#/$defs/dimensions/properties/height" },
+        "color_space": { "type": "string", "maxLength": 64 },
+        "extra": { "type": "object" }
+      }
+    },
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "$ref": "#/$defs/dimensions/properties/width" },
+        "height": { "$ref": "#/$defs/dimensions/properties/height" },
+        "duration_ms": { "$ref": "#/$defs/timing/properties/duration_ms" },
+        "fps": { "$ref": "#/$defs/timing/properties/fps" },
+        "codec": { "type": "string", "maxLength": 64 },
+        "extra": { "type": "object" }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": { "$ref": "#/$defs/timing/properties/duration_ms" },
+        "sample_rate": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "extra": { "type": "object" }
+      }
+    },
+    "doc": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "type": "string", "maxLength": 35 },
+        "extra": { "type": "object" }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "maxLength": 128 },
+        "tool_version": { "type": "string", "maxLength": 64 },
+        "extra": { "type": "object" }
+      }
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extension_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/extension_id" },
+        "extension_version": { "$ref": "../../common/v1/defs.schema.json#/$defs/extension_version" },
+        "extra": { "type": "object" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "triangle_count": { "type": "integer", "minimum": 0 },
+        "units": { "type": "string", "enum": ["m", "cm", "mm", "in", "ft"] },
+        "up_axis": { "type": "string", "enum": ["x", "y", "z", "-x", "-y", "-z"] },
+        "skeleton_family": { "type": "string", "maxLength": 64 },
+        "extra": { "type": "object" }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fps": { "$ref": "#/$defs/timing/properties/fps" },
+        "frame_count": { "type": "integer", "minimum": 0 },
+        "duration_ms": { "$ref": "#/$defs/timing/properties/duration_ms" },
+        "bone_count": { "type": "integer", "minimum": 0 },
+        "skeleton_family": { "type": "string", "maxLength": 64 },
+        "body_model": {
+          "description": "NPZ 等参数化动作所依赖的人体模型（例如 SMPL），其许可另行核对。",
+          "type": "string",
+          "maxLength": 64
+        },
+        "source_product_id": { "type": "string", "maxLength": 128 },
+        "extra": { "type": "object" }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "maxLength": 128 },
+        "camera_count": { "type": "integer", "minimum": 0 },
+        "extra": { "type": "object" }
+      }
+    },
+    "production": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chapter": { "type": "string", "maxLength": 64 },
+        "shot": { "type": "string", "maxLength": 64 },
+        "subjects": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+        "fps": { "$ref": "#/$defs/timing/properties/fps" },
+        "extra": { "type": "object" }
+      }
+    }
+  }
+}

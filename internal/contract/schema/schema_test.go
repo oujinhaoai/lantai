@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,6 +107,61 @@ func TestYAMLInput(t *testing.T) {
 	}
 	if err := r.ValidateYAML("lantai.error/v1", []byte("error: &a {}\nx: *a\n")); err == nil {
 		t.Fatal("anchors must be rejected before schema validation")
+	}
+}
+
+func TestExtremeNumbersAreRejectedBeforeValidation(t *testing.T) {
+	r := mustDefault(t)
+	for _, literal := range []string{"1e-100000000", "0e-100000000", "1e-99999999999999999999999999999", "1e-1025"} {
+		for _, format := range []string{"json", "yaml"} {
+			t.Run(format+"/"+literal, func(t *testing.T) {
+				// 21 个元素会走 uniqueItems 哈希分支；极端指数不得到达
+				// big.Rat 的指数展开，即便浮点解码把它下溢成 0。
+				items := literal + ",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19"
+				var err error
+				if format == "json" {
+					err = r.ValidateJSON("lantai.pin/v1", []byte(`{"blobs":[`+items+`]}`))
+				} else {
+					err = r.ValidateYAML("lantai.pin/v1", []byte("blobs: ["+items+"]\n"))
+				}
+				var ve *ValidationError
+				if !errors.As(err, &ve) || ve.Err().Code != errcode.SchemaInvalid || ve.Issues[0].Pointer != "/blobs/0" {
+					t.Fatalf("want bounded SCHEMA_INVALID at the number, got %v", err)
+				}
+			})
+		}
+	}
+	for _, value := range []any{json.Number("1e100000000"), json.Number("1e-100000000"),
+		json.Number(strings.Repeat("1", maxNumberLiteralBytes+1)), json.Number("1 "), json.Number("NaN"),
+		math.Inf(1), math.NaN(), float32(math.Inf(-1))} {
+		err := r.Validate("lantai.common-defs/v1#/$defs/expected_revision", value)
+		var ve *ValidationError
+		if !errors.As(err, &ve) || ve.Issues[0].Keyword != "number" {
+			t.Fatalf("direct Validate(%v) bypassed the number guard: %v", value, err)
+		}
+	}
+}
+
+func TestNumberGuardPreservesExactSchemaArithmetic(t *testing.T) {
+	r := mustDefault(t)
+	for _, test := range []struct {
+		literal string
+		valid   bool
+	}{
+		{"9007199254740991", true},
+		{"9007199254740991.0", true},
+		{"9007199254740992", false},
+		{"9007199254740991.1", false}, // 不能舍入到合法整数。
+		{"1.0000000000000001", false},
+		{"1e-400", false}, // 不能将原始非零小数当作浮点下溢后的整数 0。
+		{"0e-400", true},
+	} {
+		t.Run(test.literal, func(t *testing.T) {
+			err := r.Validate("lantai.common-defs/v1#/$defs/expected_revision", json.Number(test.literal))
+			if (err == nil) != test.valid {
+				t.Fatalf("valid=%v: %v", test.valid, err)
+			}
+		})
 	}
 }
 

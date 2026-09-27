@@ -215,10 +215,11 @@ func (s *Service) recoveryEpoch(ctx context.Context) (int64, error) {
 	return e, nil
 }
 
-// write 经实例写入口取锁；security 为 true 时取 security_guard 写锁（撤权、
-// 角色与策略变更、因子重置等改变授权结论的写入）。
+// write 经实例写入口取锁；普通接受取得 security_guard 读锁，保持最终身份
+// 复验与写入相对撤权原子。security 为 true 时取写锁（撤权、角色与策略变更、
+// 因子重置等改变授权结论的写入）。网络与慢口令计算须在调用前完成。
 func (s *Service) write(ctx context.Context, security bool) (context.Context, func(), error) {
-	req := commands.Request{}
+	req := commands.Request{Security: commands.ModeShared}
 	if security {
 		req.Security = commands.ModeExclusive
 	}

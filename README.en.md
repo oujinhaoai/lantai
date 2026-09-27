@@ -10,7 +10,7 @@ The name comes from Lantai, an imperial archive in the Han dynasty. Agents act a
 
 ## Project status
 
-The project is in **early development**. The Go project and the shared contracts are in place: identifiers, digests and canonicalization, request idempotency and receipts, the error model, the event envelope, operation stages, cross-module interfaces with stubs, and the shared execution and extension-host rules. The M1 instance foundation and identity module are implemented as well: a single-writer data-root lock, per-database migrations with a compatibility matrix, the maintenance barrier and readiness gate, one-time local initialization (password, TOTP, and recovery codes), sessions and delegation, live authorization with a defined revocation order, action-bound human authorization for credential and policy management, and restricted factor recovery. All of this is covered by automated tests.
+The project is in **early development**. The Go project and the shared contracts are in place: identifiers, digests and canonicalization, request idempotency and receipts, the error model, the event envelope, operation stages, cross-module interfaces with stubs, and the shared execution and extension-host rules. The M1 instance foundation and identity module are implemented as well: a single-writer data-root lock, per-database migrations with a compatibility matrix, the maintenance barrier and readiness gate, one-time local initialization (password, TOTP, and recovery codes), sessions and delegation, live authorization with a defined revocation order, action-bound human authorization for credential and policy management, and restricted factor recovery. The M1 part of resources and storage (T02) is implemented too: cross-platform path rules, manifest normalization and freezing, path aliases with generations and reference resolution, conditional description revisions, a content-addressed blob store, multipart uploads with resume, operation-bound content reuse grants, read grants bound to the holder's own session and re-checked on every GET/Range request, idempotent version installs with quarantine, append-only evidence records, and interactive/batch transfer admission. The ledger (T03) is not implemented yet and is wired through contract stubs. All of this is covered by automated tests.
 
 There is still no runnable service, installation package, or verified deployment command: locally there are only the instance commands `lantai init`, `migrate`, `doctor`, and `recover-admin`; the REST interface, business commands, and web app are wired up task by task. The capabilities below are design targets; features, performance, and platform behavior are claimed only with recorded acceptance results.
 
@@ -96,7 +96,7 @@ lantai/
 └── web/        # Independently built and deployed web application
 ```
 
-Source code is added with the corresponding tasks. So far this includes the `cmd/lantai` entry point (with the local instance commands), the shared contracts, command components, instance lifecycle (`operations`), and identity module (`identity`) in `internal/`, the shared schemas and examples in `schemas/`, the shared HTTP contract in `api/`, and the generation and check scripts in `scripts/`; the other directories still contain responsibility notes only. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
+Source code is added with the corresponding tasks. So far this includes the `cmd/lantai` entry point (with the local instance commands), the shared contracts, command components, instance lifecycle (`operations`), identity module (`identity`), and resource and storage modules (`catalog`, `storage`) in `internal/`, the cross-module integration tests in `tests/integration`, the shared schemas and examples in `schemas/`, the shared HTTP contract in `api/`, and the generation and check scripts in `scripts/`; the other directories still contain responsibility notes only. Production data, databases, backups, and local configuration belong outside the repository. See the [layout boundaries](docs/architecture.md#top-level-layout).
 
 ## Roadmap
 
@@ -108,7 +108,7 @@ Source code is added with the corresponding tasks. So far this includes the `cmd
 | M4 Migration | Validate and import under a separate migration plan after the M2 gate; may run alongside M3 |
 | M5–M8 Extensions | Rich previews, semantic search and DCC integration, push and IM, storage expansion, and inter-instance collaboration |
 
-Development starts with **T00 Engineering and contracts**, followed by the M1 [task dependencies](docs/tasks/README.md); the instance foundation (T08.1) and the M1 part of identity and security (T01) are now implemented. Feature, performance, and recovery claims require recorded acceptance results.
+Development starts with **T00 Engineering and contracts**, followed by the M1 [task dependencies](docs/tasks/README.md); the instance foundation (T08.1), the M1 part of identity and security (T01), and the M1 part of resources and storage (T02) are now implemented. Feature, performance, and recovery claims require recorded acceptance results.
 
 ## Contributing
 

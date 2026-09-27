@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/asset.schema.json",
+  "title": "AssetDescription",
+  "description": "资产说明的一个修订（asset.yaml 与 .history/ 中的修订文件）。文件决定内容，台账的当前修订指针决定哪一个修订生效；修订以 expected_revision 条件写入，旧修订保留不覆盖。类型与路径是登记事实的快照；敏感级别与新版本默认许可只能在建立资产时给出，普通著录修改不能改动它们。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "asset_id", "project_id", "asset_type", "slug", "title", "tags", "subjects", "sensitivity", "revision", "updated_by"],
+  "properties": {
+    "contract": { "const": "lantai.asset/v1" },
+    "asset_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "project_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "asset_type": { "$ref": "manifest.schema.json#/$defs/asset_type" },
+    "slug": { "$ref": "../../common/v1/defs.schema.json#/$defs/normalized_slug" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "summary": { "type": "string", "maxLength": 4000 },
+    "tags": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+    "subjects": {
+      "description": "受控词：角色、场景、章节等。",
+      "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+    },
+    "sensitivity": { "type": "string", "enum": ["normal", "personal"] },
+    "defaults": {
+      "description": "新版本的默认许可声明；不追溯改写已提交版本的许可快照。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "usage": { "type": "string", "enum": ["production", "reference", "restricted"] },
+        "license": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "revision": { "$ref": "../../common/v1/defs.schema.json#/$defs/revision" },
+    "updated_by": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "extra": { "type": "object" }
+  }
+}

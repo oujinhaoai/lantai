@@ -355,6 +355,9 @@ func (s *Service) ConfirmFactor(ctx context.Context, who authz.Context, code str
 		if err != nil {
 			return err
 		}
+		if err := s.checkRate(ctx, tx, v.principal.ID, "", bucketProof); err != nil {
+			return err
+		}
 		secret, err := s.openFactor(f)
 		if err != nil {
 			return err
@@ -400,10 +403,60 @@ func (s *Service) ConfirmFactor(ctx context.Context, who authz.Context, code str
 	if err != nil {
 		return nil, err
 	}
-	if err := s.endSession(ctx, v.sess, "factor_enrolled", v.principal.ID, v.sess.ID); err != nil {
-		return nil, err
-	}
+	// 主库已经完成恢复，enrolled 状态使该操作的全部受限会话立即无效。
+	// runtime 的结束标记失败不能丢弃只在此响应交付的新恢复码；遗留会话
+	// 由 ReconcileRecoverySessions 依据持久的账户状态安全重试清理。
+	_ = s.endSession(ctx, v.sess, "factor_enrolled", v.principal.ID, v.sess.ID)
 	return codes, nil
+}
+
+// ReconcileRecoverySessions 补记已完成或被替换恢复操作的会话结束状态。
+// 它是可重复调用的内部维护入口：主库账户状态已经使这些会话失效，runtime
+// 清理失败不影响该安全事实；下次调用从两库各自的持久记录继续，不跨库联表。
+// 本方法只关闭不再对应当前待完成恢复操作的会话，保留新恢复操作的会话。
+func (s *Service) ReconcileRecoverySessions(ctx context.Context) (int, error) {
+	ctx, release, err := s.write(ctx, true)
+	if err != nil {
+		return 0, err
+	}
+	defer release()
+	rows, err := s.runtime.QueryContext(ctx, `SELECT session_id FROM identity_sessions
+		WHERE session_kind = 'recovery' AND ended_at IS NULL ORDER BY session_id`)
+	if err != nil {
+		return 0, err
+	}
+	var sessions []ids.ID
+	for rows.Next() {
+		var id ids.ID
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		sessions = append(sessions, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	closed := 0
+	for _, id := range sessions {
+		sess, err := loadSession(ctx, s.runtime, id)
+		if err != nil {
+			return closed, err
+		}
+		acct, err := loadAccount(ctx, s.main, sess.PrincipalID)
+		if err != nil {
+			return closed, err
+		}
+		if acct.FactorState != factorEnrolled && acct.PendingOperation == sess.OperationID {
+			continue
+		}
+		if err := s.endSession(ctx, sess, "recovery_operation_closed", sess.PrincipalID, sess.ID); err != nil {
+			return closed, err
+		}
+		closed++
+	}
+	return closed, nil
 }
 
 // BeginOfflineReset 为指定的人（必须是管理员）准备离线重置：新口令与新 TOTP

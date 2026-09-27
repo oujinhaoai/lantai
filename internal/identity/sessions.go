@@ -70,6 +70,13 @@ const maxSessionDepth = 2
 // auth_epoch 仍是当前值、主体仍为同一类别且未停用、换取它的长期凭据未吊销、
 // 父会话仍有效、委托方仍有效；恢复会话还要求其恢复操作仍在进行。
 func (s *Service) verifyRow(ctx context.Context, r sessionRow, depth int) (verified, error) {
+	return s.verifyRowIn(ctx, s.runtime, r, depth)
+}
+
+// verifyRowIn 允许签发配额检查复用当前 runtime 事务。配额调用方已持有
+// security_guard 共享锁以稳定主库授权事实；这里不跨库联表，也不另开
+// 一个 runtime 连接读父会话。
+func (s *Service) verifyRowIn(ctx context.Context, runtime commands.DBTX, r sessionRow, depth int) (verified, error) {
 	v := verified{sess: r}
 	now := s.now()
 	if !r.EndedAt.IsZero() {
@@ -121,7 +128,7 @@ func (s *Service) verifyRow(ctx context.Context, r sessionRow, depth int) (verif
 			v.problem = errcode.TokenRevoked
 			return v, nil
 		}
-		parent, err := loadSession(ctx, s.runtime, r.ParentID)
+		parent, err := loadSession(ctx, runtime, r.ParentID)
 		if errors.Is(err, errNotFound) {
 			v.problem = errcode.TokenRevoked
 			return v, nil
@@ -129,7 +136,7 @@ func (s *Service) verifyRow(ctx context.Context, r sessionRow, depth int) (verif
 		if err != nil {
 			return v, err
 		}
-		pv, err := s.verifyRow(ctx, parent, depth+1)
+		pv, err := s.verifyRowIn(ctx, runtime, parent, depth+1)
 		if err != nil {
 			return v, err
 		}
@@ -394,11 +401,37 @@ func (s *Service) sessionQuota(p Principal) func(ctx context.Context, tx *sql.Tx
 }
 
 func (s *Service) checkSessionQuota(ctx context.Context, q commands.DBTX, p Principal) error {
-	var n int
-	if err := q.QueryRowContext(ctx, `SELECT count(*) FROM identity_sessions WHERE principal_id = ?
+	// 保持独立普通会话的计数口径，派生和委托会话随父会话占用，不重复计费。
+	// runtime 的 ended_at 只是其中一项条件：main 的吊销记录、凭据和恢复代次
+	// 也会使尚未到期的行失效。先收集候选并关闭游标，再按正常认证语义核验。
+	rows, err := q.QueryContext(ctx, `SELECT `+sessionCols+` FROM identity_sessions WHERE principal_id = ?
 		AND ended_at IS NULL AND expires_at > ? AND auth_epoch = ? AND session_kind = 'normal' AND parent_session_id IS NULL`,
-		p.ID, clock.Millis(s.now()), p.AuthEpoch).Scan(&n); err != nil {
+		p.ID, clock.Millis(s.now()), p.AuthEpoch)
+	if err != nil {
 		return err
+	}
+	var candidates []sessionRow
+	for rows.Next() {
+		r, err := scanSession(rows)
+		if err != nil {
+			rows.Close()
+			return err
+		}
+		candidates = append(candidates, r)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	n := 0
+	for _, r := range candidates {
+		v, err := s.verifyRowIn(ctx, q, r, 0)
+		if err != nil {
+			return err
+		}
+		if v.problem == "" {
+			n++
+		}
 	}
 	if n >= p.Profile.MaxSessions {
 		return errcode.Newf(errcode.QuotaExceeded, "%s already has %d concurrent sessions", p.Name, n)

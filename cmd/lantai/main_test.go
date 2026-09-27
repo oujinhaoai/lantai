@@ -97,3 +97,28 @@ func TestSchemaListAndValidate(t *testing.T) {
 		t.Fatalf("fragment: %d %q", code, out)
 	}
 }
+
+func TestSchemaValidateExtremeNumbersReturnsStructuredError(t *testing.T) {
+	for ext, document := range map[string]string{
+		"json": `{"blobs":[1e-100000000,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]}`,
+		"yaml": "blobs: [1e-100000000,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]\n",
+	} {
+		t.Run(ext, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "invalid."+ext)
+			if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			code, output, stderr := runCLI(t, "schema", "validate", "-json", "lantai.pin/v1", path)
+			if code != exitInvalid || stderr != "" {
+				t.Fatalf("exit=%d stderr=%q output=%q", code, stderr, output)
+			}
+			var results []validation
+			if err := json.Unmarshal([]byte(output), &results); err != nil {
+				t.Fatal(err)
+			}
+			if len(results) != 1 || results[0].Valid || results[0].Error == nil || results[0].Error.Error.Code != "SCHEMA_INVALID" {
+				t.Fatalf("result=%+v", results)
+			}
+		})
+	}
+}

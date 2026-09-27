@@ -83,6 +83,10 @@ const (
 	// ActCatalogPatchOwnMetadata 用于制作者修改自己提交的版本的著录；
 	// “是否本人提交”由 catalog 核对后再选择这个动作。
 	ActCatalogPatchOwnMetadata authz.Action = "catalog.patch_own_metadata"
+	// ActCatalogCreateProject 登记新项目（稳定 ID 与不可变 key）；只有系统管理员本人。
+	ActCatalogCreateProject authz.Action = "catalog.create_project"
+	// ActCatalogPatchProject 修改项目说明（project.yaml）。
+	ActCatalogPatchProject authz.Action = "catalog.patch_project"
 )
 
 var adminOnly = []SystemRole{RoleAdmin}
@@ -122,6 +126,8 @@ var actionList = []ActionSpec{
 	{Action: ActLedgerCommitVersion, Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleContributor}},
 	{Action: ActCatalogPatchMetadata, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCurator}},
 	{Action: ActCatalogPatchOwnMetadata, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleContributor, RoleCurator}},
+	{Action: ActCatalogCreateProject, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActCatalogPatchProject, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}, AdminAlso: true},
 }
 
 var actions = func() map[authz.Action]ActionSpec {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/identity/totp"
 )
 
 // ListPrincipals 列出全部主体（管理员）。
@@ -114,18 +115,25 @@ func (s *Service) Members(ctx context.Context, who authz.Context, project ids.ID
 // CheckStartup 是实例启动前的核对步骤：已登记的 TOTP 因子必须能用当前主密钥
 // 解开，主密钥缺失或与因子不符时实例不开放服务。
 func (s *Service) CheckStartup(ctx context.Context) error {
-	rows, err := s.main.QueryContext(ctx, `SELECT DISTINCT key_id FROM identity_totp_factors WHERE state IN ('enabled', 'pending')`)
+	rows, err := s.main.QueryContext(ctx, `SELECT factor_id, principal_id, key_id, sealed_secret
+		FROM identity_totp_factors WHERE state IN ('enabled', 'pending') ORDER BY factor_id`)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var k ids.ID
-		if err := rows.Scan(&k); err != nil {
+		var factor factorRow
+		if err := rows.Scan(&factor.ID, &factor.PrincipalID, &factor.KeyID, &factor.Sealed); err != nil {
 			return err
 		}
-		if k != s.key.ID() {
-			return fmt.Errorf("identity: authenticator secrets were sealed with master key %s but %s is loaded; restore the matching key from its separate backup", k, s.key.ID())
+		secret, err := s.openFactor(factor)
+		if err != nil {
+			return fmt.Errorf("identity: authenticator factor %s cannot be opened; restore the matching master key and intact factor record from backup: %w", factor.ID, err)
+		}
+		valid := len(secret) == totp.SecretLen
+		clear(secret)
+		if !valid {
+			return fmt.Errorf("identity: authenticator factor %s has an invalid secret; restore its intact factor record from backup", factor.ID)
 		}
 	}
 	return rows.Err()

@@ -10,3 +10,4 @@
 | [0004](0004-execution-common-protocol.md) | 执行与扩展宿主的公共约定 | 已采纳 | 2026-09-27 |
 | [0005](0005-instance-lifecycle.md) | 实例标记、单实例锁、按库迁移与维护屏障 | 已采纳 | 2026-09-27 |
 | [0006](0006-identity-sessions-and-human-grants.md) | 身份、会话、委托与人类授权的实现取舍 | 已采纳 | 2026-09-27 |
+| [0007](0007-storage-layout-and-catalog-ledger-split.md) | 资源与存储（T02）的实现取舍 | 已采纳 | 2026-09-27 |

@@ -1,6 +1,6 @@
 # 依赖、版本与许可证
 
-核对日期：2026-09-27（T01/T08.1 新增 x/crypto、x/term，x/sys 升至 v0.48.0 并改为直接依赖）。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
+核对日期：2026-09-27（T01/T08.1 新增 x/crypto、x/term，x/sys 升至 v0.48.0 并改为直接依赖；T02 没有新增模块，只多用了 x/text 的 `cases` 包）。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
 
 ## 链接进程序的依赖
 
@@ -20,7 +20,7 @@
 | `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | JSON Schema 2020-12 校验 | Apache-2.0 |
 | `go.yaml.in/yaml/v3` | v3.0.5 | YAML 解析（按 JSON 数据模型解释） | Apache-2.0；移植自 libyaml 的部分为 MIT |
 | `golang.org/x/sync` | v0.23.0 | 可取消、公平的加权信号量（锁协调、口令计算并发上限） | BSD-3-Clause |
-| `golang.org/x/text` | v0.42.0 | schema 校验错误信息的本地化打印；口令的 Unicode NFC 规范化 | BSD-3-Clause |
+| `golang.org/x/text` | v0.42.0 | schema 校验错误信息的本地化打印；口令、路径与说明文本的 Unicode NFC 规范化；路径冲突判定的完全大小写折叠（`cases.Fold`） | BSD-3-Clause |
 | `golang.org/x/crypto` | v0.57.0 | 只用 `argon2`：口令的 Argon2id（RFC 9106）校验值 | BSD-3-Clause |
 | `golang.org/x/term` | v0.46.0 | 本机实例命令在终端读取口令时不回显 | BSD-3-Clause |
 | `golang.org/x/sys` | v0.48.0 | 数据根单实例锁（Unix `flock`、Windows `LockFileEx`）、磁盘余量与文件系统类别探测；驱动依赖 | BSD-3-Clause |

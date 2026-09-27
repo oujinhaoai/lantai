@@ -1,0 +1,58 @@
+{
+  "description": "冻结内容必须带许可声明",
+  "schema": "lantai.manifest/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/content",
+      "keyword": "required"
+    }
+  ],
+  "document": {
+    "contract": "lantai.manifest/v1",
+    "instance_id": "01J8Z3K4M5N6P7Q8R9S0T100Z8",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB",
+    "version_number": 3,
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "created_by": "01J8Z3K4M5N6P7Q8R9S0T100ZD",
+    "manifest_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "content": {
+      "asset_type": "production",
+      "type_schema": "lantai.asset-types/v1",
+      "base_version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZE",
+      "version_note": "调整落点",
+      "files": [
+        {
+          "path": "pansi-ch03-whitebox-v003.mp4",
+          "role": "primary",
+          "sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "size": 1048576
+        },
+        {
+          "path": "source/scene.blend",
+          "role": "source",
+          "sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "size": 2048
+        }
+      ],
+      "uses": [
+        {
+          "instance_id": "01J8Z3K4M5N6P7Q8R9S0T100Z8",
+          "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZE",
+          "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZD",
+          "relation": "uses",
+          "declared": "pansi/storyboard/ch03@published"
+        }
+      ],
+      "metadata": {
+        "chapter": "ch03",
+        "fps": 24,
+        "subjects": [
+          "fourth-sister"
+        ]
+      }
+    }
+  }
+}

@@ -22,8 +22,10 @@
 | 动作 | 级别 | 范围 | 允许 | 限制 |
 |---|---|---|---|---|
 | `catalog.create_asset` | 项目 | `ingest` | owner、contributor |  |
+| `catalog.create_project` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `catalog.patch_metadata` | 项目 | `organize` | owner、curator |  |
 | `catalog.patch_own_metadata` | 项目 | `organize` | owner、contributor、curator |  |
+| `catalog.patch_project` | 项目 | `organize` | owner；系统 admin |  |
 | `catalog.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `events.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `identity.disable_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |

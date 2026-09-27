@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/project.schema.json",
+  "title": "ProjectDescription",
+  "description": "项目说明的一个修订（project.yaml 与 .history/ 中的修订文件）。项目 ID 与不可变 key 由台账登记；成员、角色与策略在主库。修订以 expected_revision 条件写入，旧修订保留不覆盖。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "project_id", "key", "name", "project_type", "revision", "updated_by"],
+  "properties": {
+    "contract": { "const": "lantai.project/v1" },
+    "project_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "key": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "project_type": {
+      "description": "制作、素材库、参考或沙箱。",
+      "type": "string",
+      "enum": ["production", "library", "reference", "sandbox"]
+    },
+    "summary": { "type": "string", "maxLength": 4000 },
+    "revision": { "$ref": "../../common/v1/defs.schema.json#/$defs/revision" },
+    "updated_by": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "extra": { "type": "object" }
+  }
+}

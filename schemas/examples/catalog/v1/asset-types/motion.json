@@ -1,0 +1,15 @@
+{
+  "description": "动作元数据：帧率、帧数、骨架族与未登记字段放在 extra",
+  "schema": "lantai.asset-types/v1#/$defs/motion",
+  "valid": true,
+  "document": {
+    "fps": 30,
+    "frame_count": 120,
+    "skeleton_family": "mixamo",
+    "extra": {
+      "download_params": {
+        "skin": false
+      }
+    }
+  }
+}

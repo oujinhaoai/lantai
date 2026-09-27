@@ -1,6 +1,8 @@
 package installtest
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -15,8 +17,9 @@ import (
 // Harness 让契约套件驱动任意 Installer 实现。
 type Harness struct {
 	Installer install.Installer
-	// Put 让内容对安装可用（真实实现即上传并校验、取得本操作授权）。
-	Put func(path string, content []byte) install.File
+	// Put 让内容可供项目 project 中的操作 op 安装（真实实现即上传并校验、取得
+	// 绑定该操作的授权）。
+	Put func(op, project ids.ID, path string, content []byte) install.File
 	// Corrupt 可选：模拟安装后内容损坏。
 	Corrupt func(op ids.ID)
 }
@@ -45,6 +48,10 @@ func RunInstallerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		if err := p1.Matches(req); err != nil {
 			t.Fatal(err)
 		}
+		sum := sha256.Sum256(req.Manifest)
+		if p1.ManifestSHA256 != hex.EncodeToString(sum[:]) {
+			t.Fatalf("proof manifest_sha256 = %q, want the hash of the manifest file", p1.ManifestSHA256)
+		}
 		if err := h.Installer.Verify(t.Context(), p1); err != nil {
 			t.Fatal(err)
 		}
@@ -63,7 +70,9 @@ func RunInstallerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		forgedFiles := p
 		forgedFiles.Files = append([]install.File(nil), p.Files...)
 		forgedFiles.Files[0].Size++
-		for name, f := range map[string]install.Proof{"install_ref": forgedRef, "installed_at": forgedTime, "files": forgedFiles} {
+		forgedManifest := p
+		forgedManifest.ManifestSHA256 = "00" + p.ManifestSHA256[2:]
+		for name, f := range map[string]install.Proof{"install_ref": forgedRef, "installed_at": forgedTime, "files": forgedFiles, "manifest_sha256": forgedManifest} {
 			if h.Installer.Verify(t.Context(), f) == nil {
 				t.Errorf("proof with altered %s verified", name)
 			}
@@ -81,9 +90,14 @@ func RunInstallerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			t.Fatal(err)
 		}
 		other := req
-		other.Files = append([]install.File{h.Put("0-extra.txt", []byte("extra"))}, req.Files...)
+		other.Files = append([]install.File{h.Put(req.OperationID, req.ProjectID, "0-extra.txt", []byte("extra"))}, req.Files...)
 		other.ManifestDigest = manifestDigest(other.Files)
 		_, err := h.Installer.Install(t.Context(), other)
+		wantCode(t, err, errcode.IdempotencyConflict)
+
+		rendered := req
+		rendered.Manifest = append([]byte("# different rendering\n"), req.Manifest...)
+		_, err = h.Installer.Install(t.Context(), rendered)
 		wantCode(t, err, errcode.IdempotencyConflict)
 	})
 	t.Run("missing content needs a grant", func(t *testing.T) {
@@ -119,6 +133,26 @@ func RunInstallerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		if _, err := h.Installer.Install(t.Context(), req); err == nil {
 			t.Fatal("path with invalid UTF-8 accepted")
 		}
+		req = request(h)
+		req.Files[0].Path = "Café.md" // 未规范化为 NFC
+		if _, err := h.Installer.Install(t.Context(), req); err == nil {
+			t.Fatal("path that is not NFC accepted")
+		}
+		req = request(h)
+		req.Files[0].Path = "aux.txt" // Windows 保留名
+		req.ManifestDigest = manifestDigest(req.Files)
+		if _, err := h.Installer.Install(t.Context(), req); err == nil {
+			t.Fatal("reserved device name accepted")
+		}
+	})
+	t.Run("paths that collide after folding conflict", func(t *testing.T) {
+		h := newHarness(t)
+		req := request(h)
+		upper := h.Put(req.OperationID, req.ProjectID, "MODEL/body.glb", []byte("another body"))
+		req.Files = []install.File{upper, req.Files[0], req.Files[1]} // "MODEL/…" < "README.md" < "model/…"
+		req.ManifestDigest = manifestDigest(req.Files)
+		_, err := h.Installer.Install(t.Context(), req)
+		wantCode(t, err, errcode.PathConflict)
 	})
 	t.Run("quarantine keeps operation from installing again", func(t *testing.T) {
 		h := newHarness(t)
@@ -154,13 +188,15 @@ func RunInstallerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 }
 
 func request(h Harness) install.Request {
+	op, project := ids.New(), ids.New()
 	files := []install.File{
-		h.Put("README.md", []byte("# synthetic asset\n")),
-		h.Put("model/body.glb", []byte("glTF-synthetic-bytes")),
+		h.Put(op, project, "README.md", []byte("# synthetic asset\n")),
+		h.Put(op, project, "model/body.glb", []byte("glTF-synthetic-bytes")),
 	}
 	return install.Request{
-		OperationID: ids.New(), ProjectID: ids.New(), AssetID: ids.New(), VersionID: ids.New(),
+		OperationID: op, ProjectID: project, AssetID: ids.New(), VersionID: ids.New(),
 		VersionNumber: 1, ManifestDigest: manifestDigest(files), Files: files,
+		Manifest: []byte("contract: synthetic-manifest-for-contract-tests\n"),
 	}
 }
 

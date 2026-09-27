@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/storage/v1/evidence-record.schema.json",
+  "title": "EvidenceRecord",
+  "description": "追加式证据记录的信封（运行记录、检查结果、质检报告、许可证据与更正等）。storage 的证据适配器按 record_id 排他写入 records/<version_id>/ 下，同 ID 同内容幂等、异内容拒绝，并核对 manifest_digest 与台账中该版本的清单摘要一致，防止把旧检查用于新版本。payload 的含义与 schema 由 provenance（T03）等写入方定义；由插件或内置处理器产出的记录必须带 producer（扩展 ID、版本与包摘要）。更正追加新记录并以 supersedes 指向旧记录，不覆盖。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "record_id", "project_id", "asset_id", "version_id", "manifest_digest", "kind", "payload", "author_id", "created_at"],
+  "properties": {
+    "contract": { "const": "lantai.evidence-record/v1" },
+    "record_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "project_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "asset_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "version_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "manifest_digest": { "$ref": "../../common/v1/defs.schema.json#/$defs/digest" },
+    "kind": {
+      "description": "记录类别，例如 run_record、check_result、qa_report、rights_evidence、correction。",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "payload_schema": { "$ref": "../../common/v1/defs.schema.json#/$defs/contract_id" },
+    "payload": { "type": "object" },
+    "producer": { "$ref": "../../common/v1/defs.schema.json#/$defs/producer_ref" },
+    "author_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "session_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "operation_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+    "supersedes": {
+      "description": "被本记录更正或取代的同一版本下的记录。",
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "created_at": { "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp" }
+  }
+}

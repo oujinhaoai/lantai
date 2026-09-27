@@ -60,7 +60,8 @@
 | `versions` | `storage` | 不可变版本目录与 manifest；清单格式与规范化由 catalog 定义 |
 | `quarantine` | `storage` | 隔离的安装内容，保留字节待处置 |
 | `catalog` | `catalog` | project.yaml、asset.yaml 修订与别名历史 |
-| `records` | `provenance` | 追加写入的来源、许可、检查与质检证据 |
+| `catalog-staging` | `catalog` | 按操作冻结的清单内容，崩溃后重试时还原 prepared 的内容；操作提交后删除 |
+| `records` | `provenance` | 追加写入的来源、许可、检查与质检证据（经 storage 的证据适配器写入） |
 | `trash` | `storage` | 回收站文件；移动与清除按 ledger 持久化的意图执行 |
 | `audit` | `events` | 审计 JSONL 与摘要清单 |
 | `backups` | `operations` | 备份清单与复制目标 |

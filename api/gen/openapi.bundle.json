@@ -16,6 +16,24 @@
       }
     },
     "parameters": {
+      "GrantID": {
+        "in": "path",
+        "name": "grant_id",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "GrantSignature": {
+        "description": "服务端签发的签名（只作纵深防御，授权以服务端记录为准）。",
+        "in": "query",
+        "name": "sig",
+        "required": true,
+        "schema": {
+          "maxLength": 128,
+          "type": "string"
+        }
+      },
       "IdempotencyKey": {
         "description": "幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的\n202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。\n",
         "in": "header",
@@ -88,6 +106,29 @@
           },
           "X-Request-Id": {
             "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "FileContent": {
+        "content": {
+          "application/octet-stream": {
+            "schema": {
+              "format": "binary",
+              "type": "string"
+            }
+          }
+        },
+        "description": "文件内容（Range 请求为 206 与 Content-Range）；ETag 为 \"sha256:<哈希>\"",
+        "headers": {
+          "Accept-Ranges": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "ETag": {
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
@@ -368,6 +409,35 @@
         ],
         "type": "string"
       },
+      "PartResult": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate": {
+            "description": "该分片此前已以相同内容写入，本次没有再写。",
+            "type": "boolean"
+          },
+          "part_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "part_number": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "received_parts": {
+            "description": "该内容已收到的分片数。",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "part_number",
+          "duplicate",
+          "received_parts",
+          "part_count"
+        ],
+        "type": "object"
+      },
       "RecoveryAction": {
         "description": "调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。",
         "enum": [
@@ -389,6 +459,11 @@
         "maximum": 9007199254740991,
         "minimum": 1,
         "type": "integer"
+      },
+      "Sha256Hex": {
+        "description": "64 位小写十六进制 SHA-256，用于名为 sha256 的字段。",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
       },
       "Timestamp": {
         "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
@@ -477,6 +552,183 @@
           "operations"
         ]
       }
+    },
+    "/xfer/v1/reads/{grant_id}": {
+      "get": {
+        "description": "读取授权绑定主体与本人会话、版本、文件、哈希与用途。每个新的 GET/Range\n请求都复核签名、会话、撤销与到期，并在最终读取检查内按当前权限、台账已提交\n状态与用途限制判定。转发给别人的地址、另一个会话或只知道哈希都不能取件\n（404，不泄露存在性）；撤权后的新请求立即拒绝，不等签名到期。\n",
+        "operationId": "readGrantedFile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GrantID"
+          },
+          {
+            "$ref": "#/components/parameters/GrantSignature"
+          },
+          {
+            "in": "header",
+            "name": "Range",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/FileContent"
+          },
+          "206": {
+            "$ref": "#/components/responses/FileContent"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "416": {
+            "description": "请求的范围不可满足"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "按读取授权下载文件（支持 Range）",
+        "tags": [
+          "transfer"
+        ]
+      },
+      "head": {
+        "operationId": "headGrantedFile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GrantID"
+          },
+          {
+            "$ref": "#/components/parameters/GrantSignature"
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "与 GET 相同的响应头，没有响应体"
+          },
+          "default": {
+            "description": "与 GET 相同的错误状态（HEAD 没有响应体）"
+          }
+        },
+        "summary": "读取授权文件的元信息",
+        "tags": [
+          "transfer"
+        ]
+      }
+    },
+    "/xfer/v1/uploads/{upload_id}/files/{sha256}/parts/{part}": {
+      "put": {
+        "description": "把分片字节流式写入上传会话的暂存区并核验。长度须与会话布局一致，\nLantai-Part-Sha256 为本分片字节的 SHA-256。同一分片同内容重复写入是幂等的\n（duplicate=true）；已记录的分片换内容一律 422 HASH_MISMATCH（part_conflict），\n原分片不变。每次请求都复核当前上传权限与会话状态。\n",
+        "operationId": "putUploadPart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "description": "会话申报的内容哈希。",
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Sha256Hex"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Lantai-Part-Sha256",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Sha256Hex"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartResult"
+                }
+              }
+            },
+            "description": "分片已写入并核验（或是重复的同内容分片）"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "507": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "写入上传分片",
+        "tags": [
+          "transfer"
+        ]
+      }
     }
   },
   "security": [
@@ -497,6 +749,10 @@
     {
       "description": "持久操作状态查询",
       "name": "operations"
+    },
+    {
+      "description": "传输面：上传分片与授权下载。地址由服务端在上传会话（parts_url）与读取授权（url）\n中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位\n（交互/批量）排队准入。见 docs/contracts/storage.md。\n",
+      "name": "transfer"
     }
   ]
 }

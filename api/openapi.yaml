@@ -23,6 +23,11 @@ security:
 tags:
   - name: operations
     description: 持久操作状态查询
+  - name: transfer
+    description: |
+      传输面：上传分片与授权下载。地址由服务端在上传会话（parts_url）与读取授权（url）
+      中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位
+      （交互/批量）排队准入。见 docs/contracts/storage.md。
 paths:
   /api/v1/operations/{operation_id}:
     get:
@@ -55,6 +60,119 @@ paths:
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
+  /xfer/v1/uploads/{upload_id}/files/{sha256}/parts/{part}:
+    put:
+      tags: [transfer]
+      operationId: putUploadPart
+      summary: 写入上传分片
+      description: |
+        把分片字节流式写入上传会话的暂存区并核验。长度须与会话布局一致，
+        Lantai-Part-Sha256 为本分片字节的 SHA-256。同一分片同内容重复写入是幂等的
+        （duplicate=true）；已记录的分片换内容一律 422 HASH_MISMATCH（part_conflict），
+        原分片不变。每次请求都复核当前上传权限与会话状态。
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        - name: sha256
+          in: path
+          required: true
+          description: 会话申报的内容哈希。
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/sha256_hex'
+        - name: part
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: Lantai-Part-Sha256
+          in: header
+          required: true
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/sha256_hex'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: 分片已写入并核验（或是重复的同内容分片）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartResult'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+        '507':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /xfer/v1/reads/{grant_id}:
+    get:
+      tags: [transfer]
+      operationId: readGrantedFile
+      summary: 按读取授权下载文件（支持 Range）
+      description: |
+        读取授权绑定主体与本人会话、版本、文件、哈希与用途。每个新的 GET/Range
+        请求都复核签名、会话、撤销与到期，并在最终读取检查内按当前权限、台账已提交
+        状态与用途限制判定。转发给别人的地址、另一个会话或只知道哈希都不能取件
+        （404，不泄露存在性）；撤权后的新请求立即拒绝，不等签名到期。
+      parameters:
+        - $ref: '#/components/parameters/GrantID'
+        - $ref: '#/components/parameters/GrantSignature'
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          $ref: '#/components/responses/FileContent'
+        '206':
+          $ref: '#/components/responses/FileContent'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '416':
+          description: 请求的范围不可满足
+        default:
+          $ref: '#/components/responses/Error'
+    head:
+      tags: [transfer]
+      operationId: headGrantedFile
+      summary: 读取授权文件的元信息
+      parameters:
+        - $ref: '#/components/parameters/GrantID'
+        - $ref: '#/components/parameters/GrantSignature'
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 与 GET 相同的响应头，没有响应体
+        default:
+          description: 与 GET 相同的错误状态（HEAD 没有响应体）
 components:
   securitySchemes:
     bearerSession:
@@ -72,7 +190,40 @@ components:
         网页的 HttpOnly/Secure/SameSite=Strict 会话。GET/HEAD/OPTIONS 以外的请求必须带与
         允许列表精确相同的 Origin（缺失即拒绝）并在 X-CSRF-Token 头中带与该会话相符的 CSRF
         令牌；同一请求不能同时带 Bearer 与会话 Cookie。
+  schemas:
+    PartResult:
+      type: object
+      additionalProperties: false
+      required: [part_number, duplicate, received_parts, part_count]
+      properties:
+        part_number:
+          type: integer
+          minimum: 1
+        duplicate:
+          description: 该分片此前已以相同内容写入，本次没有再写。
+          type: boolean
+        received_parts:
+          description: 该内容已收到的分片数。
+          type: integer
+          minimum: 0
+        part_count:
+          type: integer
+          minimum: 1
   parameters:
+    GrantID:
+      name: grant_id
+      in: path
+      required: true
+      schema:
+        $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+    GrantSignature:
+      name: sig
+      in: query
+      required: true
+      description: 服务端签发的签名（只作纵深防御，授权以服务端记录为准）。
+      schema:
+        type: string
+        maxLength: 128
     OperationID:
       name: operation_id
       in: path
@@ -115,6 +266,20 @@ components:
         type: integer
         minimum: 0
   responses:
+    FileContent:
+      description: 文件内容（Range 请求为 206 与 Content-Range）；ETag 为 "sha256:<哈希>"
+      headers:
+        ETag:
+          schema:
+            type: string
+        Accept-Ranges:
+          schema:
+            type: string
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
     Error:
       description: 结构化错误；错误码、HTTP 状态、retryable 与 recovery_action 以错误码注册表为准。
       headers:

@@ -1,0 +1,24 @@
+{
+  "description": "证明记录写入版本目录的清单文件哈希",
+  "schema": "lantai.install-proof/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.install-proof/v1",
+    "operation_id": "01J8Z3K4M5N6P7Q8R9S0T100ZC",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "version_id": "01J8Z3K4M5N6P7Q8R9S0T100ZB",
+    "version_number": 3,
+    "manifest_digest": "sha256:abababababababababababababababababababababababababababababababab",
+    "files": [
+      {
+        "path": "README.md",
+        "sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "size": 120
+      }
+    ],
+    "manifest_sha256": "9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f",
+    "install_ref": "projects/01j8z3k4m5n6p7q8r9s0t100z9/assets/01j8z3k4m5n6p7q8r9s0t100za/versions/v003",
+    "installed_at": "2026-09-26T10:14:34.123Z"
+  }
+}

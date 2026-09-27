@@ -221,17 +221,37 @@ type OperationStatusResultRef struct {
 // OperationStatusStage receiving → prepared → installed → committed 为主线；projected 由 committed 且事件已全部收录推导；blocked/quarantined 保留字节待处置；failed/cancelled 为终态。
 type OperationStatusStage string
 
+// PartResult defines model for PartResult.
+type PartResult struct {
+	// Duplicate 该分片此前已以相同内容写入，本次没有再写。
+	Duplicate  bool `json:"duplicate"`
+	PartCount  int  `json:"part_count"`
+	PartNumber int  `json:"part_number"`
+
+	// ReceivedParts 该内容已收到的分片数。
+	ReceivedParts int `json:"received_parts"`
+}
+
 // RecoveryAction 调用方下一步的机器可读建议；枚举在 v1 内只增不改，客户端遇到未知值按 none 处理。
 type RecoveryAction string
 
 // Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
 type Revision = int
 
+// Sha256Hex 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+type Sha256Hex = string
+
 // Timestamp UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
 type Timestamp = time.Time
 
 // Ulid 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 type Ulid = string
+
+// GrantID 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+type GrantID = Ulid
+
+// GrantSignature defines model for GrantSignature.
+type GrantSignature = string
 
 // IfMatch defines model for IfMatch.
 type IfMatch = string
@@ -250,6 +270,33 @@ type Error = ErrorEnvelope
 
 // GetOperationParams defines parameters for GetOperation.
 type GetOperationParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ReadGrantedFileParams defines parameters for ReadGrantedFile.
+type ReadGrantedFileParams struct {
+	// Sig 服务端签发的签名（只作纵深防御，授权以服务端记录为准）。
+	Sig   GrantSignature `form:"sig" json:"sig"`
+	Range *string        `json:"Range,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// HeadGrantedFileParams defines parameters for HeadGrantedFile.
+type HeadGrantedFileParams struct {
+	// Sig 服务端签发的签名（只作纵深防御，授权以服务端记录为准）。
+	Sig GrantSignature `form:"sig" json:"sig"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// PutUploadPartParams defines parameters for PutUploadPart.
+type PutUploadPartParams struct {
+	LantaiPartSha256 Sha256Hex `json:"Lantai-Part-Sha256"`
+
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }

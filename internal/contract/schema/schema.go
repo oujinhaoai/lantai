@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -276,12 +278,76 @@ func (r *Registry) Validate(key string, doc any) error {
 	if err != nil {
 		return err
 	}
+	if issue := checkNumbers(doc, nil, 0); issue != nil {
+		return &ValidationError{Contract: contract, Issues: []Issue{*issue}}
+	}
 	if err := sch.Validate(doc); err != nil {
 		var ve *jsonschema.ValidationError
 		if errors.As(err, &ve) {
 			return &ValidationError{Contract: contract, Issues: issuesOf(ve)}
 		}
 		return fmt.Errorf("schema: validate %s: %w", contract, err)
+	}
+	return nil
+}
+
+// jsonschema 使用 big.Rat 做精确比较及 uniqueItems 哈希。原始 json.Number
+// 必须保留（否则 1.0000000000000001 等值可能被误判为整数），但指数展开需要
+// 有界；极端负指数即便被 ParseFloat 下溢为 0，也不能交给 big.Rat 分配。
+// 这两个上限涵盖双精度通常使用的表示，并保留 1024 字节以内整数的精度。
+const (
+	maxNumberLiteralBytes = 1024
+	maxNumberExponent     = 1024
+)
+
+func checkNumbers(doc any, path []string, depth int) *Issue {
+	bad := func(message string) *Issue {
+		return &Issue{Pointer: joinPointer(path), Keyword: "number", Message: message}
+	}
+	if depth > canonjson.MaxDepth {
+		return &Issue{Pointer: joinPointer(path), Keyword: "maxDepth", Message: "document exceeds the nesting limit"}
+	}
+	switch v := doc.(type) {
+	case json.Number:
+		s := string(v)
+		if len(s) == 0 || len(s) > maxNumberLiteralBytes {
+			return bad("number literal exceeds the supported representation limit")
+		}
+		if strings.TrimSpace(s) != s || (s[0] != '-' && (s[0] < '0' || s[0] > '9')) || !json.Valid([]byte(s)) {
+			return bad("number must use JSON number notation")
+		}
+		if i := strings.IndexAny(s, "eE"); i >= 0 {
+			exponent, err := strconv.ParseInt(s[i+1:], 10, 32)
+			if err != nil || exponent < -maxNumberExponent || exponent > maxNumberExponent {
+				return bad("number exponent exceeds the supported representation limit")
+			}
+		}
+	case float64:
+		if math.IsInf(v, 0) || math.IsNaN(v) {
+			return bad("number must be finite")
+		}
+	case float32:
+		if math.IsInf(float64(v), 0) || math.IsNaN(float64(v)) {
+			return bad("number must be finite")
+		}
+	case []any:
+		for i, item := range v {
+			if issue := checkNumbers(item, append(path, strconv.Itoa(i)), depth+1); issue != nil {
+				return issue
+			}
+		}
+	case map[string]any:
+		// 确保同一输入的第一条诊断稳定，不依赖 map 遍历顺序。
+		keys := make([]string, 0, len(v))
+		for k := range v {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			if issue := checkNumbers(v[k], append(path, k), depth+1); issue != nil {
+				return issue
+			}
+		}
 	}
 	return nil
 }

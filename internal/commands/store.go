@@ -571,7 +571,8 @@ func errOrNil(e *errcode.Error) error {
 	return e
 }
 
-// Update 是阶段推进时可同时写入的字段；nil/零值表示不改。
+// Update 是阶段推进时可同时写入的字段；nil/零值表示不改，但推进到正常阶段
+// receiving/prepared/installed/committed 时会清除当前 FailureCode。
 type Update struct {
 	ManifestDigest      digest.Digest
 	IntendedPaths       []string
@@ -611,6 +612,9 @@ func (s *Store) advance(ctx context.Context, q DBTX, opID ids.ID, from, to Stage
 			return fmt.Errorf("commands: unregistered failure code %q", u.FailureCode)
 		}
 		sets, args = append(sets, "failure_code = ?"), append(args, string(u.FailureCode))
+	} else if to == StageReceiving || to == StagePrepared || to == StageInstalled || to == StageCommitted {
+		// failure_code 描述当前阻塞/失败；恢复推进后不能继续污染正常状态视图。
+		sets = append(sets, "failure_code = NULL")
 	}
 	args = append(args, opID, s.module, from)
 	res, err := q.ExecContext(ctx, "UPDATE operations SET "+strings.Join(sets, ", ")+
@@ -752,6 +756,12 @@ func (s *Store) OpenOperations(ctx context.Context, q DBTX) ([]ids.ID, error) {
 // AppendEvents 在调用方的本库事务中写入 outbox，用于不经命令回执的状态变化
 // （例如会话开始与结束）。事件类型必须登记为本模块所有，且都属于 opID。
 func (s *Store) AppendEvents(ctx context.Context, q DBTX, opID ids.ID, events []event.Envelope) error {
+	return s.appendOutbox(ctx, q, opID, events)
+}
+
+func (s *Store) appendOutbox(ctx context.Context, q DBTX, opID ids.ID, events []event.Envelope) error {
+	// 所有写入口（Execute、Complete、AppendEvents）共用整批前检，拒绝越界
+	// 事件时尚未写入任何 outbox 行；业务与回执仍由所属事务一同回滚。
 	for _, e := range events {
 		owner, err := ownership.EventOwner(e.EventType)
 		if err != nil {
@@ -760,15 +770,11 @@ func (s *Store) AppendEvents(ctx context.Context, q DBTX, opID ids.ID, events []
 		if owner != s.module {
 			return fmt.Errorf("%w: event type %s belongs to %s", ErrForeignCommand, e.EventType, owner)
 		}
-	}
-	return s.appendOutbox(ctx, q, opID, events)
-}
-
-func (s *Store) appendOutbox(ctx context.Context, q DBTX, opID ids.ID, events []event.Envelope) error {
-	for _, e := range events {
 		if e.OperationID != opID {
 			return fmt.Errorf("commands: event %s belongs to operation %s, not %s", e.EventID, e.OperationID, opID)
 		}
+	}
+	for _, e := range events {
 		canonical, err := e.Canonical()
 		if err != nil {
 			return err

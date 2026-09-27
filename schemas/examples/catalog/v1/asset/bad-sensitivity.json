@@ -1,0 +1,34 @@
+{
+  "description": "敏感级别只有 normal 与 personal",
+  "schema": "lantai.asset/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/sensitivity",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "contract": "lantai.asset/v1",
+    "asset_id": "01J8Z3K4M5N6P7Q8R9S0T100ZA",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "asset_type": "model",
+    "slug": "chars/fourth-sister",
+    "title": "四妹",
+    "summary": "主角模型",
+    "tags": [
+      "角色",
+      "白模"
+    ],
+    "subjects": [
+      "fourth-sister"
+    ],
+    "sensitivity": "secret",
+    "defaults": {
+      "usage": "production",
+      "license": "LicenseRef-Owned"
+    },
+    "revision": 2,
+    "updated_by": "01J8Z3K4M5N6P7Q8R9S0T100ZD"
+  }
+}

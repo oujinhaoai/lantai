@@ -1,0 +1,14 @@
+{
+  "description": "模型单位只接受登记的取值",
+  "schema": "lantai.asset-types/v1#/$defs/model",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/units",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "units": "furlong"
+  }
+}

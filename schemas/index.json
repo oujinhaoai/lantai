@@ -14,6 +14,11 @@
     { "contract": "lantai.install-proof/v1", "path": "common/v1/install-proof.schema.json", "kind": "document", "owner": "T00" },
     { "contract": "lantai.pin/v1", "path": "common/v1/pin.schema.json", "kind": "document", "owner": "T00" },
     { "contract": "lantai.instance/v1", "path": "operations/v1/instance.schema.json", "kind": "document", "owner": "T08" },
-    { "contract": "lantai.config/v1", "path": "operations/v1/config.schema.json", "kind": "document", "owner": "T08" }
+    { "contract": "lantai.config/v1", "path": "operations/v1/config.schema.json", "kind": "document", "owner": "T08" },
+    { "contract": "lantai.evidence-record/v1", "path": "storage/v1/evidence-record.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.manifest/v1", "path": "catalog/v1/manifest.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.asset-types/v1", "path": "catalog/v1/asset-types.schema.json", "kind": "library", "owner": "T02" },
+    { "contract": "lantai.asset/v1", "path": "catalog/v1/asset.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.project/v1", "path": "catalog/v1/project.schema.json", "kind": "document", "owner": "T02" }
   ]
 }

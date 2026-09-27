@@ -39,6 +39,10 @@ type Request struct {
 	ManifestDigest digest.Digest
 	// Files 按 Path 字节序升序、不重复。
 	Files []File
+	// Manifest 是 catalog 渲染的版本清单文件（manifest.yaml）内容，storage 原样
+	// 写入版本目录，其 SHA-256 记入证明。清单格式与内容摘要规则由 catalog 定义；
+	// 同一 operation 重入时 Manifest 也必须相同。
+	Manifest []byte
 }
 
 // relativePath 取自 schemas/common/v1/defs.schema.json#/$defs/relative_path。
@@ -65,7 +69,8 @@ func (r Request) Validate() error {
 		return bad("manifest_digest")
 	}
 	for i, f := range r.Files {
-		if len(f.Path) > 200 || !utf8.ValidString(f.Path) || !relativePath.MatchString(f.Path) {
+		// 长度按 Unicode 码点计，与 schema 中 relative_path 的 maxLength 一致。
+		if !utf8.ValidString(f.Path) || utf8.RuneCountInString(f.Path) > 200 || !relativePath.MatchString(f.Path) {
 			return bad("files[%d].path %q", i, f.Path)
 		}
 		if !digest.ValidHex(f.SHA256) {
@@ -90,6 +95,8 @@ type Proof struct {
 	VersionNumber  int64
 	ManifestDigest digest.Digest
 	Files          []File
+	// ManifestSHA256 是写入版本目录的清单文件的 SHA-256；安装请求没有清单时为空。
+	ManifestSHA256 string
 	// InstallRef 是 storage 内部的安装位置引用，不是主机路径。
 	InstallRef  string
 	InstalledAt time.Time
@@ -104,6 +111,7 @@ type proofWire struct {
 	VersionNumber  int64         `json:"version_number"`
 	ManifestDigest digest.Digest `json:"manifest_digest"`
 	Files          []File        `json:"files"`
+	ManifestSHA256 string        `json:"manifest_sha256,omitempty"`
 	InstallRef     string        `json:"install_ref"`
 	InstalledAt    string        `json:"installed_at"`
 }
@@ -117,7 +125,7 @@ func (p Proof) MarshalJSON() ([]byte, error) {
 	return json.Marshal(proofWire{
 		Contract: Contract, OperationID: p.OperationID, ProjectID: p.ProjectID, AssetID: p.AssetID,
 		VersionID: p.VersionID, VersionNumber: p.VersionNumber, ManifestDigest: p.ManifestDigest,
-		Files: files, InstallRef: p.InstallRef, InstalledAt: clock.Format(p.InstalledAt),
+		Files: files, ManifestSHA256: p.ManifestSHA256, InstallRef: p.InstallRef, InstalledAt: clock.Format(p.InstalledAt),
 	})
 }
 
@@ -136,7 +144,7 @@ func (p *Proof) UnmarshalJSON(data []byte) error {
 	}
 	*p = Proof{OperationID: w.OperationID, ProjectID: w.ProjectID, AssetID: w.AssetID, VersionID: w.VersionID,
 		VersionNumber: w.VersionNumber, ManifestDigest: w.ManifestDigest, Files: w.Files,
-		InstallRef: w.InstallRef, InstalledAt: t}
+		ManifestSHA256: w.ManifestSHA256, InstallRef: w.InstallRef, InstalledAt: t}
 	return nil
 }
 
@@ -173,7 +181,8 @@ func (p Proof) Digest() (digest.Digest, error) {
 }
 
 // Matches 核对证明与请求逐项一致；不一致说明证明不属于这次提交，
-// 台账不得据此提交，应隔离并对账。
+// 台账不得据此提交，应隔离并对账。台账只持有清单摘要，不持有清单文件内容，
+// 清单文件由 Installer.Verify 按证明中的 manifest_sha256 复核。
 func (p Proof) Matches(r Request) error {
 	if p.OperationID != r.OperationID || p.ProjectID != r.ProjectID || p.AssetID != r.AssetID ||
 		p.VersionID != r.VersionID || p.VersionNumber != r.VersionNumber {
@@ -193,10 +202,11 @@ func (p Proof) Matches(r Request) error {
 // Installer 由 storage（T02）实现。
 //
 // Install 以 OperationID 幂等：同一请求重入返回同一证明，不产生第二个版本
-// 目录；同一 OperationID 携带不同请求返回 IDEMPOTENCY_CONFLICT。内容缺失或
-// 无本操作授权返回 BLOB_GRANT_REQUIRED（不区分是否已存在），哈希或大小不符
-// 返回 HASH_MISMATCH，空间不足 STORAGE_FULL，介质或占用问题 STORAGE_UNAVAILABLE。
-// 安装内容在台账提交前不得对外可读。
+// 目录；同一 OperationID 携带不同请求（含不同的清单文件）返回
+// IDEMPOTENCY_CONFLICT。内容缺失或无本操作授权返回 BLOB_GRANT_REQUIRED
+// （不区分是否已存在），哈希或大小不符返回 HASH_MISMATCH，路径规范化后冲突
+// 返回 PATH_CONFLICT，空间不足 STORAGE_FULL，介质或占用问题
+// STORAGE_UNAVAILABLE。安装内容在台账提交前不得对外可读。
 type Installer interface {
 	Install(ctx context.Context, req Request) (Proof, error)
 	// Verify 复核证明对应的安装内容仍完整；恢复与最终接受前调用。

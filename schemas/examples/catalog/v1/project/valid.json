@@ -1,0 +1,15 @@
+{
+  "description": "项目说明的第 1 个修订",
+  "schema": "lantai.project/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.project/v1",
+    "project_id": "01J8Z3K4M5N6P7Q8R9S0T100Z9",
+    "key": "pansi",
+    "name": "盘丝洞",
+    "project_type": "production",
+    "summary": "第 3 章白模",
+    "revision": 1,
+    "updated_by": "01J8Z3K4M5N6P7Q8R9S0T100ZD"
+  }
+}

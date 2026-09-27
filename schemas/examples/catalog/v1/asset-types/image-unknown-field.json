@@ -1,0 +1,15 @@
+{
+  "description": "类型定义之外的字段须先移入 extra（catalog 规范化时自动移入）",
+  "schema": "lantai.asset-types/v1#/$defs/image",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "additionalProperties"
+    }
+  ],
+  "document": {
+    "width": 1024,
+    "license": "CC0-1.0"
+  }
+}

@@ -4,6 +4,7 @@
 package installtest
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/oujinhaoai/lantai/internal/catalog/pathrule"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -90,6 +92,16 @@ func (m *Memory) Install(_ context.Context, req install.Request) (install.Proof,
 	if err := req.Validate(); err != nil {
 		return install.Proof{}, errcode.Wrap(errcode.SchemaInvalid, "invalid install request", err)
 	}
+	paths := make([]string, len(req.Files))
+	for i, f := range req.Files {
+		if err := pathrule.Check(f.Path); err != nil {
+			return install.Proof{}, err
+		}
+		paths[i] = f.Path
+	}
+	if err := pathrule.CheckSet(paths); err != nil {
+		return install.Proof{}, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.failNext; err != nil {
@@ -120,6 +132,11 @@ func (m *Memory) Install(_ context.Context, req install.Request) (install.Proof,
 		VersionNumber: req.VersionNumber, ManifestDigest: req.ManifestDigest, Files: slices.Clone(req.Files),
 		InstallRef: "install/" + strings.ToLower(string(req.OperationID)), InstalledAt: m.clock.Now(),
 	}
+	if len(req.Manifest) > 0 {
+		sum := sha256.Sum256(req.Manifest)
+		p.ManifestSHA256 = hex.EncodeToString(sum[:])
+	}
+	req.Manifest = bytes.Clone(req.Manifest)
 	m.installs[req.OperationID] = &record{req: req, proof: p}
 	return p, nil
 }
@@ -147,7 +164,8 @@ func (m *Memory) Verify(_ context.Context, p install.Proof) error {
 func sameProof(a, b install.Proof) bool {
 	return a.OperationID == b.OperationID && a.ProjectID == b.ProjectID && a.AssetID == b.AssetID &&
 		a.VersionID == b.VersionID && a.VersionNumber == b.VersionNumber && a.ManifestDigest == b.ManifestDigest &&
-		a.InstallRef == b.InstallRef && a.InstalledAt.Equal(b.InstalledAt) && slices.Equal(a.Files, b.Files)
+		a.ManifestSHA256 == b.ManifestSHA256 && a.InstallRef == b.InstallRef && a.InstalledAt.Equal(b.InstalledAt) &&
+		slices.Equal(a.Files, b.Files)
 }
 
 // Quarantine 实现 install.Installer。
@@ -166,5 +184,5 @@ func (m *Memory) Quarantine(_ context.Context, op ids.ID, reason errcode.Code) e
 func sameRequest(a, b install.Request) bool {
 	return a.OperationID == b.OperationID && a.ProjectID == b.ProjectID && a.AssetID == b.AssetID &&
 		a.VersionID == b.VersionID && a.VersionNumber == b.VersionNumber && a.ManifestDigest == b.ManifestDigest &&
-		slices.Equal(a.Files, b.Files)
+		slices.Equal(a.Files, b.Files) && bytes.Equal(a.Manifest, b.Manifest)
 }

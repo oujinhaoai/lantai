@@ -31,6 +31,10 @@
       "maxItems": 100000,
       "items": { "$ref": "#/$defs/file" }
     },
+    "manifest_sha256": {
+      "description": "写入版本目录的清单文件（manifest.yaml）的 SHA-256；安装请求带清单文件时必有。",
+      "$ref": "defs.schema.json#/$defs/sha256_hex"
+    },
     "install_ref": {
       "description": "storage 内部的安装位置引用，不是主机绝对路径。",
       "type": "string",

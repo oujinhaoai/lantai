@@ -90,7 +90,7 @@ func (f *fixture) putItem(id, v string, events ...event.Envelope) Handler {
 func (f *fixture) event(t *testing.T, op ids.ID, aggregate ids.ID) event.Envelope {
 	t.Helper()
 	e, err := event.New(f.gen, f.clk, event.Params{
-		EventType: "item.created", SchemaVersion: 1, AggregateType: "item", AggregateID: aggregate,
+		EventType: "version.created", SchemaVersion: 1, AggregateType: "item", AggregateID: aggregate,
 		AggregateRevision: 1, ActorID: f.actor, ProjectID: f.proj, OperationID: op,
 	})
 	if err != nil {
