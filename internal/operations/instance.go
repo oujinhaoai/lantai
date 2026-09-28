@@ -827,9 +827,11 @@ func (i *Instance) Close(ctx context.Context) error {
 		i.mu.Unlock()
 		return nil
 	}
+	// Publish stopping only after closing the gate, under the same instance
+	// lock. State/Readiness observers must never see stopping with writes open.
+	i.gate.Close(commands.ReasonStopping)
 	i.state = StateStopping
 	i.mu.Unlock()
-	i.gate.Close(commands.ReasonStopping)
 	i.bgCancel()
 	releaseBackup, err := i.lockBackup(ctx)
 	if err != nil {

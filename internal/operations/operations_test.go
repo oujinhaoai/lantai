@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -473,7 +474,7 @@ func TestStartHookFailureKeepsWritesClosed(t *testing.T) {
 func TestMaintenanceBarrierCoversBackgroundWriters(t *testing.T) {
 	home := createActive(t, Options{})
 	inst := open(t, home, Options{})
-	var written, rejected atomic.Int64
+	var written atomic.Int64
 	var inMaintenance atomic.Bool
 	var duringMaintenance atomic.Int64
 	inst.Go("writer", func(ctx context.Context) error {
@@ -486,7 +487,6 @@ func TestMaintenanceBarrierCoversBackgroundWriters(t *testing.T) {
 			_, h, err := inst.Gate().Acquire(ctx, commands.Request{Security: commands.ModeShared})
 			if err != nil {
 				if errcode.CodeOf(err) == errcode.MaintenanceMode {
-					rejected.Add(1)
 					time.Sleep(time.Millisecond)
 					continue
 				}
@@ -508,12 +508,30 @@ func TestMaintenanceBarrierCoversBackgroundWriters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer m.End()
 	inMaintenance.Store(true)
 	if inst.Readiness().Ready || inst.State() != StateMaintenance {
 		t.Fatal("instance must not report ready during maintenance")
 	}
-	before := rejected.Load()
-	waitFor(t, func() bool { return rejected.Load() > before+5 })
+	// A writer which passed Gate's precheck before maintenance may already be
+	// waiting for the barrier. A fresh background request must instead reject
+	// immediately, independently of that earlier writer's scheduling.
+	maintenanceWrite := make(chan error, 1)
+	go func() {
+		_, held, err := inst.Gate().Acquire(t.Context(), commands.Request{Security: commands.ModeShared})
+		if held != nil {
+			held.Release()
+		}
+		maintenanceWrite <- err
+	}()
+	select {
+	case err := <-maintenanceWrite:
+		if errcode.CodeOf(err) != errcode.MaintenanceMode {
+			t.Fatalf("fresh background write during maintenance = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("fresh background write waited for the maintenance barrier")
+	}
 	inMaintenance.Store(false)
 	m.End()
 	if duringMaintenance.Load() != 0 {
@@ -551,6 +569,7 @@ func TestGracefulCloseDrainsInFlightWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer inflight.Release()
 	var closed atomic.Bool
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -562,7 +581,11 @@ func TestGracefulCloseDrainsInFlightWrites(t *testing.T) {
 		closed.Store(true)
 	}()
 	waitFor(t, func() bool { return inst.State() == StateStopping })
-	if _, _, err := inst.Gate().Acquire(t.Context(), commands.Request{}); errcode.CodeOf(err) != errcode.MaintenanceMode {
+	_, unexpected, err := inst.Gate().Acquire(t.Context(), commands.Request{})
+	if unexpected != nil {
+		unexpected.Release()
+	}
+	if errcode.CodeOf(err) != errcode.MaintenanceMode {
 		t.Fatalf("new write while stopping = %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
@@ -575,6 +598,46 @@ func TestGracefulCloseDrainsInFlightWrites(t *testing.T) {
 		t.Fatal("resources not released")
 	}
 	open(t, home, Options{}) // 锁已释放
+}
+
+func TestStoppingStateAlwaysPublishesClosedGate(t *testing.T) {
+	// A cancelled close publishes stopping and leaves resources in place. Use a
+	// minimal instance so thousands of real observer/Close races do not require
+	// database setup, and no failed assertion can leak a resource or held lock.
+	closeCtx, cancel := context.WithCancel(t.Context())
+	cancel()
+	deadline := time.After(10 * time.Second)
+	for attempt := range 2000 {
+		gate := commands.NewGate(commands.NewCoordinator())
+		gate.Open()
+		inst := &Instance{state: StateReady, gate: gate, bgCancel: func() {}}
+		done := make(chan error, 1)
+		go func() { done <- inst.Close(closeCtx) }()
+		for inst.State() != StateStopping {
+			select {
+			case <-deadline:
+				t.Fatal("close did not publish stopping")
+			default:
+				runtime.Gosched()
+			}
+		}
+		open, _ := gate.State()
+		_, held, err := gate.Acquire(t.Context(), commands.Request{})
+		if held != nil {
+			held.Release()
+		}
+		select {
+		case closeErr := <-done:
+			if !errors.Is(closeErr, context.Canceled) {
+				t.Fatalf("cancelled close = %v", closeErr)
+			}
+		case <-deadline:
+			t.Fatal("cancelled close did not return")
+		}
+		if open || errcode.CodeOf(err) != errcode.MaintenanceMode {
+			t.Fatalf("attempt %d: observed stopping with open=%v, new write=%v", attempt, open, err)
+		}
+	}
 }
 
 // 在途写入没有排空时，Close 不关库、不释放数据根锁：另一个实例不能在旧写入
@@ -593,6 +656,7 @@ func TestCloseKeepsLockWhenWritesDoNotDrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer inflight.Release()
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
 	if err := inst.Close(ctx); err == nil || !strings.Contains(err.Error(), "did not drain") {

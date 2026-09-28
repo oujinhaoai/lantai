@@ -1,0 +1,6 @@
+# Embedded package identities hash exact file bytes. Keep checkout bytes stable
+# even when the host enables core.autocrlf; binary package files need -text.
+/plugins/corecheck/extension.yaml text eol=lf
+/plugins/corecheck/check.go text eol=lf
+/plugins/corecheck/config.schema.json text eol=lf
+/plugins/corecheck/LICENSE text eol=lf

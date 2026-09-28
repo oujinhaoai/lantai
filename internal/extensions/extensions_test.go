@@ -1,10 +1,12 @@
 package extensions
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -139,6 +141,75 @@ func TestPackageRejectsLegacyReplacementAndUnsafeFiles(t *testing.T) {
 	_, e = ReadPackage(f)
 	mustCode(t, e, errcode.SchemaInvalid)
 }
+
+func TestPackageRejectsDeclaredFileLineEndingMutation(t *testing.T) {
+	for _, entry := range basePackage(t).Manifest.Files {
+		t.Run(entry.Path, func(t *testing.T) {
+			f := packageFixture(t)
+			original := f[entry.Path].Data
+			changed := bytes.ReplaceAll(original, []byte("\n"), []byte("\r\n"))
+			if bytes.Equal(original, changed) {
+				t.Fatal("fixture has no line endings to mutate")
+			}
+			f[entry.Path].Data = changed
+			_, err := ReadPackage(f)
+			mustCode(t, err, errcode.HashMismatch)
+		})
+	}
+}
+
+func TestBuiltinPackageCheckoutPreservesByteIdentity(t *testing.T) {
+	git, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git is required to exercise checkout line-ending conversion")
+	}
+	attrs, err := os.ReadFile(filepath.Join("..", "..", ".gitattributes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	packageRoot := filepath.Join(root, "plugins", "corecheck")
+	if err := os.MkdirAll(packageRoot, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".gitattributes"), attrs, 0600); err != nil {
+		t.Fatal(err)
+	}
+	files := packageFixture(t)
+	for name, file := range files {
+		if err := os.WriteFile(filepath.Join(packageRoot, name), file.Data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Exercise actual Git clean/smudge behavior on every platform, including
+	// Unix CI. No commit or change to the source repository is needed.
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command(git, append([]string{"-c", "core.autocrlf=true", "-c", "core.eol=crlf", "-c", "core.safecrlf=false"}, args...)...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "--quiet")
+	run("add", "--", ".gitattributes", "plugins/corecheck")
+	run("checkout-index", "--force", "--all")
+	for name, file := range files {
+		got, err := os.ReadFile(filepath.Join(packageRoot, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, file.Data) {
+			t.Fatalf("checkout changed embedded %s bytes (%d -> %d)", name, len(file.Data), len(got))
+		}
+	}
+	got, err := ReadPackage(os.DirFS(packageRoot))
+	mustCode(t, err, "")
+	if want := basePackage(t); got.Digest != want.Digest || got.ManifestDigest != want.ManifestDigest {
+		t.Fatal("checkout changed builtin package identity")
+	}
+}
+
 func newRegistry(t *testing.T) (*Registry, context.Context) {
 	t.Helper()
 	db, e := sqlite.Open(t.Context(), filepath.Join(t.TempDir(), "main.db"), sqlite.Options{})
