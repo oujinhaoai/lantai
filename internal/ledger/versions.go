@@ -42,8 +42,16 @@ func (s *Service) Prepare(ctx context.Context, cmd commands.Context, req commit.
 		if err := s.CheckAssetWrite(ctx, req.AssetID); err != nil {
 			return zero, err
 		}
+		if err := s.checkout(ctx, req.Who, cmd, req.ProjectID, req.AssetID); err != nil {
+			return zero, err
+		}
 	} else if err := s.checkPathLock(ctx, req.ProjectID, "", req.Slug); err != nil {
 		return zero, err
+	} else if cmd.TaskID != "" {
+		// 新建资产没有签出，但绑定任务的提交仍须来自当前有效轮次。
+		if err := s.checkout(ctx, req.Who, cmd, req.ProjectID, ""); err != nil {
+			return zero, err
+		}
 	}
 	response, err := s.store.Accept(ctx, s.db, cmd, commands.StagePrepared, []string{string(req.ProjectID)}, func(ctx context.Context, tx *sql.Tx) error {
 		if err := s.unusedOperation(ctx, tx, cmd.OperationID); err != nil {
@@ -275,6 +283,17 @@ func (s *Service) Commit(ctx context.Context, id ids.ID, who authz.Context, proo
 	}
 	if err := s.checkPreparedWrite(ctx, o.Prepared); err != nil {
 		return block(err)
+	}
+	if o.Prepared.AliasGeneration == 0 || o.Command.TaskID != "" {
+		// Lease/checkout are rechecked at the visible commit point; a prepared
+		// write from an expired or superseded attempt cannot become committed.
+		asset := o.Prepared.AssetID
+		if o.Prepared.AliasGeneration > 0 {
+			asset = ""
+		}
+		if err := s.checkout(ctx, who, o.Command, o.Prepared.ProjectID, asset); err != nil {
+			return block(err)
+		}
 	}
 	if in == nil || acceptance == nil {
 		return block(errcode.New(errcode.OperationNeedsReconciliation, "installation and acceptance verifiers are required"))

@@ -1,0 +1,52 @@
+{
+  "description": "unsupported step kind rejected",
+  "schema": "lantai.flow-definition/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/steps/1/kind",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "contract": "lantai.flow-definition/v1",
+    "key": "lantai.create.model",
+    "version": 1,
+    "kind": "create",
+    "steps": [
+      {
+        "key": "produce",
+        "kind": "task",
+        "task": {
+          "type": "produce",
+          "role": "contributor",
+          "checkout": "exclusive"
+        }
+      },
+      {
+        "key": "branch",
+        "kind": "parallel"
+      },
+      {
+        "key": "qa",
+        "kind": "task",
+        "task": {
+          "type": "qa",
+          "role": "checker",
+          "distinct_from": "produce"
+        }
+      },
+      {
+        "key": "review",
+        "kind": "review",
+        "review": {
+          "max_rework": 3
+        }
+      },
+      {
+        "key": "publish",
+        "kind": "publish"
+      }
+    ]
+  }
+}

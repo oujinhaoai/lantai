@@ -62,6 +62,7 @@
       "additionalProperties": false,
       "properties": {
         "acceptance_profile": { "$ref": "../../ledger/v1/acceptance-profile.schema.json" },
+        "flow_definition": { "$ref": "../../tasks/v1/flow-definition.schema.json" },
         "tool": { "type": "string", "maxLength": 128 },
         "tool_version": { "type": "string", "maxLength": 64 },
         "extra": { "type": "object" }

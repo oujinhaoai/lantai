@@ -14,7 +14,7 @@
 
 `FileReviewSources.AppendEvidence` 先持久化 ledger 中的 intent，再由 T02 写不可变记录，最后复验当前权限、目标、任务执行资格和文件摘要，在 ledger 本地事务接受记录、回执和 outbox。重试使用原 operation/record ID 与恢复代次；文件存在不能代替接受。`lantai.review-evidence/v1` 为核心证据包装；其中 `check` 复用扩展的 `lantai.check-result/v1`，没有第二套处理器协议。QA 报告必须包含工具、版本、观察说明和 verdict。
 
-T05/T06 通过 `ReviewExecution` 只读接口提供当前任务身份、轮次、fence、检查执行完成与结果绑定。`VerifyEvidence` 必须核实真实执行与 actor，不能只检查请求中的 producer。证据历史读取不要求已经完成的 Job 仍在运行。未组装这些权威端口时，构造器或命令明确拒绝；测试替身不构成真实任务闭环。
+T05/T06 通过 `ReviewExecution` 只读接口提供当前任务身份、轮次、fence、检查执行完成与结果绑定；T05 的实现为 `workflow.ReviewExecution()`（见[任务与业务流程契约](tasks.md#m2-内部服务)），质检报告由其核对独立质检任务的执行者，检查结果仍委托 T06。`VerifyEvidence` 必须核实真实执行与 actor，不能只检查请求中的 producer。证据历史读取不要求已经完成的 Job 仍在运行。未组装这些权威端口时，构造器或命令明确拒绝；测试替身不构成真实任务闭环。T05 另通过 `ReviewByOperation`/`ReviewByID`/`TargetFact`、`EvidenceByOperation`/`EvidenceIDByOperation` 与 `DiscussionMessage` 受信任读取审定、证据和讨论事实，调用方负责授权。
 
 人审经 `Reviews.HumanAction` → identity Challenge/TOTP → `Reviews.Record`。HumanGrant 绑定完整请求、目标修订、清单、决定、原因和豁免项；最终接受再次检查当前目标、身份策略、任务资格、用途与证据。制作和 QA 按 principal 分离；人自审依当前 `review.allow_self_human` 策略记入回执。豁免只能覆盖配置明确允许的检查，不能绕过身份、完整性、目标或当前用途限制。过期豁免不能支持新批准或发布。
 
@@ -72,7 +72,7 @@ runtime 中的收件箱只保存对象引用、事件去重和读取位置；排
 
 ## 5. 集成边界
 
-T05/T06 的真实运行态、T07 入口、动态插件、调度、部署和独立验收不由本文接口自动启用。归档测试中的逐资产/项目空闲判断是明确的 T05 读端口夹具；未组装权威端口时拒绝相应命令。
+T06 执行运行态、T07 入口、动态插件、调度、部署和独立验收不由本文接口自动启用。T05 的任务可见性、讨论、收件箱归属、归档空闲判断与里程碑进度已有真实实现（`internal/tasks`、`internal/workflow`）；本文件原有归档与收件箱测试仍保留夹具用例，真实接线另见 T05 集成测试。未组装权威端口时拒绝相应命令。台账追加版本另可接入 T05 `CheckoutGuard`，在 Prepare 与最终 Commit 复验签出与租约。
 
 可重复验证命令：
 
@@ -83,4 +83,4 @@ scripts/generate.sh
 scripts/check.sh
 ```
 
-集成用例使用真实身份/TOTP、存储、注册表和 SQLite；首次配置初始化用例通过真实配置入库、证据接受和人审获得批准。T05/T06 当前任务与检查完成来源仍为显式夹具，部分旧审定用例保留预先 approved Profile 夹具。不得把这些测试记录为完整 M2 或独立验收门禁通过。
+集成用例使用真实身份/TOTP、存储、注册表和 SQLite；首次配置初始化用例通过真实配置入库、证据接受和人审获得批准。本文件的旧用例中 T05/T06 当前任务与检查完成来源仍为显式夹具，部分旧审定用例保留预先 approved Profile 夹具；T05 真实任务端口的闭环见 `TestM2Flow*`，T06 检查完成仍为夹具。不得把这些测试记录为完整 M2 或独立验收门禁通过。

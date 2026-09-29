@@ -89,6 +89,18 @@
 | `query.search` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.read_content` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.upload` | 项目 | `ingest` | owner、contributor |  |
+| `tasks.answer` | 项目 | `organize` | owner、coordinator、reviewer |  |
+| `tasks.assign` | 项目 | `organize` | owner、coordinator |  |
+| `tasks.cancel` | 项目 | `organize` | owner、coordinator |  |
+| `tasks.claim` | 项目 | `task` | owner、coordinator、contributor、curator、checker |  |
+| `tasks.complete` | 项目 | `task` | owner、coordinator、checker、reviewer |  |
+| `tasks.create` | 项目 | `organize` | owner、coordinator |  |
+| `tasks.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `tasks.reconcile` | 项目 | `organize` | owner、coordinator |  |
+| `tasks.work` | 项目 | `task` | owner、coordinator、contributor、curator、checker |  |
+| `workflow.operate` | 项目 | `organize` | owner、coordinator |  |
+| `workflow.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `workflow.start` | 项目 | `organize` | owner、coordinator、contributor、curator |  |
 
 ## 策略
 

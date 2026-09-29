@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/tasks/v1/flow-definition.schema.json",
+  "title": "lantai.flow-definition/v1",
+  "description": "M2 固定顺序业务流程定义，作为 config 资产清单 metadata.flow_definition 保存并按精确版本固定；只允许 制作 →（检查）→（质检）→ 审定 → 发布，结构顺序另由 workflow 校验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "key",
+    "version",
+    "kind",
+    "steps"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.flow-definition/v1"
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "ingest",
+        "create",
+        "modify"
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "$defs": {
+    "step_key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/step_key"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "task",
+            "job",
+            "review",
+            "publish"
+          ]
+        },
+        "task": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "produce",
+                "ingest",
+                "maintain",
+                "curate",
+                "qa"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "coordinator",
+                "contributor",
+                "curator",
+                "checker",
+                "reviewer",
+                "viewer"
+              ]
+            },
+            "checkout": {
+              "type": "string",
+              "enum": [
+                "none",
+                "exclusive",
+                "advisory"
+              ]
+            },
+            "distinct_from": {
+              "$ref": "#/$defs/step_key"
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "P0",
+                "P1",
+                "P2",
+                "P3"
+              ]
+            }
+          }
+        },
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "processor"
+          ],
+          "properties": {
+            "processor": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_rework": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "task"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "task"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "job"
+                  ]
+                },
+                {
+                  "required": [
+                    "review"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "job"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "job"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "task"
+                  ]
+                },
+                {
+                  "required": [
+                    "review"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "review"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "task"
+                  ]
+                },
+                {
+                  "required": [
+                    "job"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "publish"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "task"
+                  ]
+                },
+                {
+                  "required": [
+                    "job"
+                  ]
+                },
+                {
+                  "required": [
+                    "review"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

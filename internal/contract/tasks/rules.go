@@ -20,9 +20,9 @@ type StepState string
 // 权限、输入/定义、修订、fence 和安全回收还需分别复验。
 var taskEdges = map[TaskState][]TaskState{
 	"waiting": {"todo", "cancelled"}, "todo": {"claimed", "done", "cancelled"}, "claimed": {"reconciling", "blocked", "submitted"},
-	"reconciling": {"todo", "cancelled"}, "blocked": {"reconciling"}, "submitted": {"done", "rework"}, "rework": {"claimed", "cancelled"},
+	"reconciling": {"todo", "cancelled"}, "blocked": {"reconciling"}, "submitted": {"done", "rework", "cancelled"}, "rework": {"claimed", "cancelled"},
 }
-var seatEdges = map[SeatState][]SeatState{"open": {"claimed", "cancelled"}, "claimed": {"reconciling", "submitted"}, "reconciling": {"open", "cancelled"}, "submitted": {"done", "open"}}
+var seatEdges = map[SeatState][]SeatState{"open": {"claimed", "cancelled"}, "claimed": {"reconciling", "submitted"}, "reconciling": {"open", "cancelled"}, "submitted": {"done", "open", "cancelled"}}
 var attemptEdges = map[AttemptState][]AttemptState{"active": {"reconciling", "submitted"}, "reconciling": {"released", "cancelled", "expired"}}
 var flowEdges = map[FlowState][]FlowState{"running": {"waiting", "paused", "completed", "failed", "cancelled"}, "waiting": {"running", "paused", "failed", "cancelled"}, "paused": {"running", "cancelled"}, "failed": {"running", "cancelled"}}
 var stepEdges = map[StepState][]StepState{"pending": {"ready", "cancelled"}, "ready": {"running", "cancelled"}, "running": {"waiting", "blocked", "completed", "failed", "cancelled"}, "waiting": {"running", "blocked", "completed", "failed", "cancelled"}, "blocked": {"ready", "cancelled"}}

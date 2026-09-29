@@ -1,0 +1,49 @@
+{
+  "description": "fixed create flow",
+  "schema": "lantai.flow-definition/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.flow-definition/v1",
+    "key": "lantai.create.model",
+    "version": 1,
+    "kind": "create",
+    "steps": [
+      {
+        "key": "produce",
+        "kind": "task",
+        "task": {
+          "type": "produce",
+          "role": "contributor",
+          "checkout": "exclusive"
+        }
+      },
+      {
+        "key": "check",
+        "kind": "job",
+        "job": {
+          "processor": "org.lantai.corecheck.manifest"
+        }
+      },
+      {
+        "key": "qa",
+        "kind": "task",
+        "task": {
+          "type": "qa",
+          "role": "checker",
+          "distinct_from": "produce"
+        }
+      },
+      {
+        "key": "review",
+        "kind": "review",
+        "review": {
+          "max_rework": 3
+        }
+      },
+      {
+        "key": "publish",
+        "kind": "publish"
+      }
+    ]
+  }
+}

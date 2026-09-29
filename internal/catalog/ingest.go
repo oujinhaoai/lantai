@@ -190,6 +190,16 @@ type VersionRequest struct {
 	Content        ContentInput
 	// Describe 只用于新建资产：第一个说明修订的标题、摘要、标签与主题。
 	Describe *AssetPatch
+	// Task 把本次写入绑定到 T05 的当前 Attempt；台账在 Prepare 与最终 Commit
+	// 经签出守卫复验租约、fence 与签出。仅作绑定，不授予任何权限。
+	Task *TaskBinding
+}
+
+// TaskBinding 是提交所属的任务执行轮次，随请求摘要固定，重试不能换轮次。
+type TaskBinding struct {
+	TaskID     ids.ID `json:"task_id"`
+	AttemptID  ids.ID `json:"attempt_id"`
+	LeaseFence int64  `json:"lease_fence"`
 }
 
 // VersionResult 是入藏结果。
@@ -269,6 +279,12 @@ func (s *Service) CommitVersion(ctx context.Context, req VersionRequest) (Versio
 	cmd := commands.Context{OperationID: up.OperationID, IdempotencyKey: req.IdempotencyKey, RequestHash: hash,
 		CommandType: commit.CommandType, ActorID: req.Who.PrincipalID, SessionID: req.Who.SessionID,
 		ProjectID: project.ProjectID, RecoveryEpoch: req.Who.RecoveryEpoch}
+	if req.Task != nil {
+		if !req.Task.TaskID.Valid() || !req.Task.AttemptID.Valid() || req.Task.LeaseFence < 1 {
+			return VersionResult{}, invalid("task binding requires task, attempt and lease fence")
+		}
+		cmd.TaskID, cmd.AttemptID, cmd.LeaseFence = req.Task.TaskID, req.Task.AttemptID, req.Task.LeaseFence
+	}
 	if err := cmd.Validate(); err != nil {
 		return VersionResult{}, invalid("invalid request: %v", err)
 	}
@@ -350,6 +366,9 @@ func versionRequestHash(req VersionRequest, project ids.ID) (digest.Digest, erro
 	body := map[string]any{"upload_id": req.UploadID, "asset_id": req.AssetID, "slug": req.Slug, "base_version_id": req.BaseVersionID,
 		"asset_type": req.Content.AssetType, "version_note": req.Content.VersionNote, "files": req.Content.Files, "uses": declared,
 		"rights": req.Content.Rights, "metadata": req.Content.Metadata, "describe": req.Describe}
+	if req.Task != nil {
+		body["task"] = req.Task
+	}
 	if err := canonjson.CheckUTF8(body); err != nil {
 		return "", invalid("the request must contain valid UTF-8")
 	}

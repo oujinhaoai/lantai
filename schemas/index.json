@@ -35,6 +35,7 @@
     { "contract": "lantai.attempt/v1", "path": "tasks/v1/attempt.schema.json", "kind": "document", "owner": "T05" },
     { "contract": "lantai.flow/v1", "path": "tasks/v1/flow.schema.json", "kind": "document", "owner": "T05" },
     { "contract": "lantai.step-run/v1", "path": "tasks/v1/step-run.schema.json", "kind": "document", "owner": "T05" },
+    { "contract": "lantai.flow-definition/v1", "path": "tasks/v1/flow-definition.schema.json", "kind": "document", "owner": "T05" },
     { "contract": "lantai.task-command/v1", "path": "tasks/v1/task-command.schema.json", "kind": "document", "owner": "T05" },
     { "contract": "lantai.task-receipt/v1", "path": "tasks/v1/task-receipt.schema.json", "kind": "document", "owner": "T05" },
     { "contract": "lantai.agent-execution-defs/v1", "path": "agent-execution/v1/defs.schema.json", "kind": "library", "owner": "T06" },

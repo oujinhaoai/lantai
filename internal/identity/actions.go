@@ -107,6 +107,25 @@ const (
 	ActDisableExtension       authz.Action = "extensions.disable"
 )
 
+// T05 任务与业务流程动作。领取、交付等仍须在 tasks 最终接受时复验
+// 指派/角色池、当前 Attempt、fence 与恢复代次；动作只给出角色矩阵。
+const (
+	ActTasksRead      authz.Action = "tasks.read"
+	ActTasksCreate    authz.Action = "tasks.create"
+	ActTasksAssign    authz.Action = "tasks.assign"
+	ActTasksClaim     authz.Action = "tasks.claim"
+	ActTasksWork      authz.Action = "tasks.work"
+	ActTasksAnswer    authz.Action = "tasks.answer"
+	ActTasksCancel    authz.Action = "tasks.cancel"
+	ActTasksReconcile authz.Action = "tasks.reconcile"
+	ActTasksComplete  authz.Action = "tasks.complete"
+	ActWorkflowRead   authz.Action = "workflow.read"
+	ActWorkflowStart  authz.Action = "workflow.start"
+	ActWorkflowManage authz.Action = "workflow.operate"
+)
+
+var taskWorkers = []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurator, RoleChecker}
+
 var adminOnly = []SystemRole{RoleAdmin}
 
 var actionList = []ActionSpec{
@@ -137,6 +156,18 @@ var actionList = []ActionSpec{
 	{Action: ActPurge, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
 	{Action: ActHold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
 	{Action: ActUnhold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: ActTasksRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActTasksCreate, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
+	{Action: ActTasksAssign, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
+	{Action: ActTasksClaim, Scope: ScopeTask, Level: ProjectLevel, Roles: taskWorkers},
+	{Action: ActTasksWork, Scope: ScopeTask, Level: ProjectLevel, Roles: taskWorkers},
+	{Action: ActTasksAnswer, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleReviewer}},
+	{Action: ActTasksCancel, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
+	{Action: ActTasksReconcile, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
+	{Action: ActTasksComplete, Scope: ScopeTask, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleChecker, RoleReviewer}},
+	{Action: ActWorkflowRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActWorkflowStart, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurator}},
+	{Action: ActWorkflowManage, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
 	{Action: ActEnableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActDisableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActWhoAmI, Scope: ScopeSelf, AllowRecovery: true},

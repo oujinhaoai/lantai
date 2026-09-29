@@ -56,6 +56,7 @@ type Service struct {
 	installer  install.Installer
 	revisions  commit.RevisionVerifier
 	acceptance commit.AcceptanceVerifier
+	guard      CheckoutGuard
 }
 
 var (
