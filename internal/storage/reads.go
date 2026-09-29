@@ -16,6 +16,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/storage/fileop"
@@ -54,12 +55,13 @@ const ReadPathPrefix = "/xfer/v1/reads/"
 
 type readRow struct {
 	ReadGrant
-	PrincipalID ids.ID
-	SessionID   ids.ID
-	KeyID       string
-	AuthEpoch   int64
-	RightsEpoch int64
-	RevokedAt   time.Time
+	PrincipalID  ids.ID
+	SessionID    ids.ID
+	KeyID        string
+	AuthEpoch    int64
+	RightsEpoch  int64
+	VersionFence int64
+	RevokedAt    time.Time
 }
 
 // signature 对读取授权的全部身份与资源绑定字段计算 HMAC-SHA256。签名只是
@@ -70,6 +72,9 @@ func (s *Service) signature(r readRow) string {
 	fields := []string{"lantai.read-grant/v1", string(r.GrantID), string(r.PrincipalID), string(r.SessionID),
 		string(r.ProjectID), string(r.AssetID), string(r.VersionID), r.Path, r.SHA256, fmt.Sprint(r.Size), r.Method,
 		string(r.Purpose), fmt.Sprint(clock.Millis(r.ExpiresAt)), r.KeyID, fmt.Sprint(r.AuthEpoch), fmt.Sprint(r.RightsEpoch)}
+	if r.VersionFence > 0 {
+		fields = append(fields, "version_fence", fmt.Sprint(r.VersionFence))
+	}
 	for _, f := range fields {
 		m.Write([]byte(f))
 		m.Write([]byte{0})
@@ -124,11 +129,20 @@ func (s *Service) IssueReadGrant(ctx context.Context, req ReadRequest) (ReadGran
 		PrincipalID: req.Who.PrincipalID, SessionID: req.Who.SessionID, KeyID: s.keyID,
 		AuthEpoch: req.Who.AuthEpoch, RightsEpoch: d.RightsEpoch,
 	}
+	if source, ok := s.ledger.(commit.ReadFences); ok {
+		r.VersionFence, err = source.VersionReadFence(ctx, v.AssetID, v.VersionID)
+		if err != nil {
+			return ReadGrant{}, err
+		}
+		if r.VersionFence < 1 {
+			return ReadGrant{}, errcode.New(errcode.OperationNeedsReconciliation, "invalid version read fence")
+		}
+	}
 	_, err = s.db.ExecContext(lctx, `INSERT INTO storage_read_grants (grant_id, principal_id, session_id, project_id, asset_id,
-		version_id, path, sha256, size, method, purpose, issued_at, expires_at, signing_key_id, auth_epoch, rights_epoch)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'GET', ?, ?, ?, ?, ?, ?)`,
+		version_id, path, sha256, size, method, purpose, issued_at, expires_at, signing_key_id, auth_epoch, rights_epoch, version_fence)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'GET', ?, ?, ?, ?, ?, ?, ?)`,
 		r.GrantID, r.PrincipalID, r.SessionID, r.ProjectID, r.AssetID, r.VersionID, r.Path, r.SHA256, r.Size, r.Purpose,
-		clock.Millis(r.IssuedAt), clock.Millis(r.ExpiresAt), r.KeyID, r.AuthEpoch, r.RightsEpoch)
+		clock.Millis(r.IssuedAt), clock.Millis(r.ExpiresAt), r.KeyID, r.AuthEpoch, r.RightsEpoch, r.VersionFence)
 	if err != nil {
 		return ReadGrant{}, err
 	}
@@ -142,10 +156,10 @@ func (s *Service) loadRead(ctx context.Context, id ids.ID) (*readRow, error) {
 	var issued, expires int64
 	var revoked sql.NullInt64
 	err := s.db.QueryRowContext(ctx, `SELECT grant_id, principal_id, session_id, project_id, asset_id, version_id, path, sha256,
-		size, method, purpose, issued_at, expires_at, signing_key_id, auth_epoch, rights_epoch, revoked_at
+		size, method, purpose, issued_at, expires_at, signing_key_id, auth_epoch, rights_epoch, revoked_at, version_fence
 		FROM storage_read_grants WHERE grant_id = ?`, id).
 		Scan(&r.GrantID, &r.PrincipalID, &r.SessionID, &r.ProjectID, &r.AssetID, &r.VersionID, &r.Path, &r.SHA256, &r.Size,
-			&r.Method, &r.Purpose, &issued, &expires, &r.KeyID, &r.AuthEpoch, &r.RightsEpoch, &revoked)
+			&r.Method, &r.Purpose, &issued, &expires, &r.KeyID, &r.AuthEpoch, &r.RightsEpoch, &revoked, &r.VersionFence)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
@@ -208,6 +222,24 @@ func (s *Service) OpenRead(ctx context.Context, who authz.Context, grantID ids.I
 		v, err := s.ledger.Version(ctx, r.AssetID, r.VersionID)
 		if err != nil {
 			return err
+		}
+		if controls, ok := s.ledger.(commit.Controls); ok {
+			if err := controls.CheckVersionRead(ctx, v.AssetID, v.VersionID); err != nil {
+				return err
+			}
+		}
+		if source, ok := s.ledger.(commit.ReadFences); ok {
+			fence, err := source.VersionReadFence(ctx, v.AssetID, v.VersionID)
+			if err != nil {
+				return err
+			}
+			expected := r.VersionFence
+			if expected == 0 {
+				expected = 1
+			}
+			if fence != expected {
+				return errcode.New(errcode.TokenRevoked, "version state changed; request a new read grant")
+			}
 		}
 		if err := s.checkInstalledFor(ctx, v); err != nil {
 			return err

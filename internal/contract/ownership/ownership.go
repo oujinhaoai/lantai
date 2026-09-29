@@ -34,7 +34,7 @@ type Module struct {
 
 // Modules 列出全部模块；新增模块须先在此登记。
 var Modules = []Module{
-	{"identity", "T01", "身份、成员、角色、策略、凭据、Challenge/HumanGrant；会话运行记录"},
+	{"identity", "T01", "身份、成员、角色、策略、凭据、Challenge/HumanGrant 与批次项、项目里程碑；会话运行记录"},
 	{"catalog", "T02", "项目与资产稳定 ID、路径别名、著录修订、类型 schema、清单规范化"},
 	{"storage", "T02", "Blob、上传会话与分片、BlobGrant/ReadGrant、暂存、版本安装与下载"},
 	{"ledger", "T03", "版本登记与占名、审定、发布、锁定、回收站与墓碑、讨论"},
@@ -119,7 +119,7 @@ var EventPrefixes = map[string]string{
 	"principal": "identity", "session": "identity", "project": "identity", "human_grant": "identity", "policy": "identity",
 	"asset": "catalog", "namespace": "ledger",
 	"upload": "storage", "blob_grant": "storage",
-	"version": "ledger", "review": "ledger", "publication": "ledger", "lock": "ledger", "trash": "ledger", "comment": "ledger",
+	"check": "ledger", "version": "ledger", "review": "ledger", "publication": "ledger", "lock": "ledger", "trash": "ledger", "comment": "ledger",
 	"rights": "provenance",
 	"ledger": "ledger",
 	"task":   "tasks", "attempt": "tasks", "checkout": "tasks",

@@ -46,3 +46,11 @@ func (d Decision) Err() error {
 type Evaluator interface {
 	EvaluateUse(ctx context.Context, who authz.Context, ref ids.PermanentRef, purpose authz.Purpose) (Decision, error)
 }
+
+// RiskReader is an internal diagnostic authorization port for lifecycle/risk
+// commands. It checks project and inherited personal/source access while allowing
+// examination of a disabled version or retained stable trash. It never grants
+// ordinary byte reads or production use, and rejects pending/purged resources.
+type RiskReader interface {
+	EvaluateRiskAccess(context.Context, authz.Context, ids.PermanentRef) (Decision, error)
+}

@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review-evidence.schema.json",
+  "title": "lantai.review-evidence/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project_id",
+    "ref",
+    "manifest_digest",
+    "flow",
+    "kind"
+  ],
+  "properties": {
+    "project_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "ref": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+    },
+    "manifest_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "attempt_id",
+        "round",
+        "fence"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "attempt_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidate_group": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        }
+      }
+    },
+    "kind": {
+      "enum": [
+        "check_result",
+        "qa_report"
+      ]
+    },
+    "check_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "config_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "check": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/check-result.schema.json"
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "tool_version",
+        "observations",
+        "verdict"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observations": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16384
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ]
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "kind": {
+          "const": "check_result"
+        }
+      },
+      "required": [
+        "check_key",
+        "schema_version",
+        "config_digest",
+        "check"
+      ],
+      "not": {
+        "required": [
+          "qa"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "qa_report"
+        }
+      },
+      "required": [
+        "qa"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "check"
+            ]
+          },
+          {
+            "required": [
+              "check_key"
+            ]
+          },
+          {
+            "required": [
+              "schema_version"
+            ]
+          },
+          {
+            "required": [
+              "config_digest"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

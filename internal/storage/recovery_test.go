@@ -65,6 +65,28 @@ func TestInventoryDoesNotFollowSymlink(t *testing.T) {
 	}
 }
 
+func TestInventoryDoesNotFollowTrashRecordSymlink(t *testing.T) {
+	f := newFixture(t, testConfig(), nil)
+	outside := filepath.Join(t.TempDir(), "outside-record")
+	if err := os.WriteFile(outside, []byte("synthetic private bytes"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(f.svc.layout.Home, "trash", string(ids.New()), "records", string(ids.New()), string(ids.New())+".json")
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, path); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	got, err := f.svc.Inventory(t.Context(), true)
+	if err != nil || len(got.Records) != 0 || len(got.Findings) != 1 || got.Findings[0].Reason != "non_regular" {
+		t.Fatalf("trash symlink: %+v %v", got, err)
+	}
+	if _, err = os.Lstat(path); err != nil {
+		t.Fatal("inventory removed the unsafe entry", err)
+	}
+}
+
 func TestPinReconciliationRequiresLiveMaintenanceAndPreservesStaging(t *testing.T) {
 	f := newFixture(t, testConfig(), nil)
 	b := []byte("verified blob")

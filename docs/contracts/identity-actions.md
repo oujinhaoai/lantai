@@ -28,6 +28,8 @@
 | `catalog.patch_project` | 项目 | `organize` | owner；系统 admin |  |
 | `catalog.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `events.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `extensions.disable` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
+| `extensions.enable` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.disable_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.enable_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.end_session` | 实例 | `self` | 本人 | 恢复会话可用 |
@@ -36,6 +38,7 @@
 | `identity.issue_credential` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.narrow_session` | 实例 | `self` | 本人 |  |
 | `identity.read_members` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer；系统 admin |  |
+| `identity.read_milestones` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `identity.read_principals` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `identity.recovery_confirm` | 实例 | `recovery` | 本人 | 仅恢复会话 |
 | `identity.recovery_enroll` | 实例 | `recovery` | 本人 | 仅恢复会话 |
@@ -50,9 +53,39 @@
 | `identity.set_system_policy` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.update_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.whoami` | 实例 | `self` | 本人 | 恢复会话可用 |
+| `identity.write_milestones` | 项目 | `organize` | owner |  |
+| `ledger.append_check` | 项目 | `ingest` | owner、checker、contributor |  |
+| `ledger.archive` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.cancel_trash` | 项目 | `organize` | owner |  |
 | `ledger.commit_version` | 项目 | `ingest` | owner、contributor |  |
+| `ledger.disable_version` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.enable_version` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.force_trash` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
+| `ledger.hold` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
+| `ledger.initialize_profile` | 项目 | `organize` | owner |  |
+| `ledger.lock` | 项目 | `organize` | owner |  |
+| `ledger.post_message` | 项目 | `organize` | owner、reviewer、checker、coordinator、contributor、curator |  |
+| `ledger.publish` | 项目 | `organize` | owner |  |
+| `ledger.purge` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
+| `ledger.read_discussion` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `ledger.record_review` | 项目 | `admin` | owner、reviewer | 仅人本人；需 HumanGrant |
+| `ledger.release_name` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
+| `ledger.restore` | 项目 | `organize` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `ledger.restore_others` | 项目 | `organize` | owner；系统 admin |  |
+| `ledger.revoke_review` | 项目 | `admin` | owner、reviewer | 仅人本人；需 HumanGrant |
+| `ledger.submit_review` | 项目 | `ingest` | owner、coordinator、contributor、curator |  |
+| `ledger.suspend` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.trash` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.trash_own` | 项目 | `organize` | owner、contributor、curator、coordinator |  |
+| `ledger.unarchive` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `ledger.unhold` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
+| `ledger.unlock` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
 | `personal.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `provenance.append_evidence` | 项目 | `organize` | owner、curator |  |
+| `provenance.assert_evidence` | 项目 | `organize` | owner、checker、curator |  |
+| `provenance.cancel_assertion` | 项目 | `organize` | owner |  |
+| `provenance.release_restriction` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `provenance.restrict` | 项目 | `organize` | owner、checker |  |
 | `query.search` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.read_content` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `storage.upload` | 项目 | `ingest` | owner、contributor |  |

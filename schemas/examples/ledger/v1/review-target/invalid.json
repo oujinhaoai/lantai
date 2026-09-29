@@ -1,0 +1,144 @@
+{
+  "description": "Synthetic review-target structural contract example; domain checks fixed identity and current authority",
+  "schema": "lantai.review-target/v1",
+  "valid": false,
+  "document": {
+    "target_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "expected_revision": 1,
+    "profile_ref": {
+      "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "evidence_ids": [
+      "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    ],
+    "flow": {
+      "task_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "attempt_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "round": 1,
+      "fence": 0
+    },
+    "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "profile": {
+      "ref": {
+        "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+      },
+      "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "profile": {
+        "contract": "lantai.acceptance-profile/v1",
+        "profile_id": "basic",
+        "revision": 1,
+        "asset_types": [
+          "doc"
+        ],
+        "purpose": "production",
+        "required_checks": [
+          {
+            "check_key": "integrity",
+            "schema_version": 1,
+            "accepted_processor_versions": [
+              {
+                "extension_id": "org.example.check",
+                "extension_version": "1.0.0",
+                "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "source": "package",
+                "contribution_id": "org.example.check.all"
+              }
+            ],
+            "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "severity": "error",
+            "waivable": false
+          },
+          {
+            "check_key": "schema",
+            "schema_version": 1,
+            "accepted_processor_versions": [
+              {
+                "extension_id": "org.example.check",
+                "extension_version": "1.0.0",
+                "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "source": "package",
+                "contribution_id": "org.example.check.all"
+              }
+            ],
+            "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "severity": "error",
+            "waivable": false
+          },
+          {
+            "check_key": "license_evidence",
+            "schema_version": 1,
+            "accepted_processor_versions": [
+              {
+                "extension_id": "org.example.check",
+                "extension_version": "1.0.0",
+                "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "source": "package",
+                "contribution_id": "org.example.check.all"
+              }
+            ],
+            "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "severity": "error",
+            "waivable": false
+          },
+          {
+            "check_key": "purpose",
+            "schema_version": 1,
+            "accepted_processor_versions": [
+              {
+                "extension_id": "org.example.check",
+                "extension_version": "1.0.0",
+                "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "source": "package",
+                "contribution_id": "org.example.check.all"
+              }
+            ],
+            "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "severity": "error",
+            "waivable": false
+          }
+        ],
+        "required_evidence": [
+          "qa_report"
+        ],
+        "qa_required": true,
+        "distinct_actor_rule": "maker_checker",
+        "waivable_checks": [],
+        "defaults": {
+          "publication": "manual"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "evidence_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ref": {
+          "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+        },
+        "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "license_evidence",
+        "actor_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "completed_at": "2026-09-29T00:00:00.000Z"
+      }
+    ],
+    "target_revision": 2,
+    "maker_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "submitted_by": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "created_at": "2026-09-29T00:00:00.000Z"
+  },
+  "expect": [
+    {
+      "pointer": "/flow/fence",
+      "keyword": "minimum"
+    }
+  ]
+}

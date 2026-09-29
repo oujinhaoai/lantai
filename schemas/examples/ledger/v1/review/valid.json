@@ -1,0 +1,50 @@
+{
+  "description": "Synthetic review structural contract example; domain checks fixed identity and current authority",
+  "schema": "lantai.review/v1",
+  "valid": true,
+  "document": {
+    "review_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "action": "ledger.record_review",
+    "target_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "expected_revision": 2,
+    "verdict": "approve",
+    "reason": "Synthetic exact human decision",
+    "waivers": [
+      {
+        "check_key": "visual",
+        "reason": "Synthetic bounded waiver",
+        "evidence_ids": [
+          "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+        ]
+      }
+    ],
+    "waiver_records": [
+      {
+        "check_key": "visual",
+        "reason": "Synthetic bounded waiver",
+        "evidence_ids": [
+          "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+        ],
+        "waiver_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "target_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "review_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "approver_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "human_grant_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "operation_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "created_at": "2026-09-29T00:00:00.000Z",
+        "scope": "review_target"
+      }
+    ],
+    "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "actor_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "human_grant_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "operation_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "created_at": "2026-09-29T00:00:00.000Z",
+    "self_review": false,
+    "publication_pending": false
+  }
+}

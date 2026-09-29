@@ -517,3 +517,54 @@ func TestMissingAcceptedRecordCannotEraseUnknownSource(t *testing.T) {
 		t.Fatalf("missing accepted record silently loosened rights: %+v %v", d, err)
 	}
 }
+
+func (a *authority) VersionByID(_ context.Context, id ids.ID) (commit.Committed, error) {
+	v, ok := a.versions[id]
+	if !ok {
+		return v, errcode.New(errcode.NotFound, "")
+	}
+	return v, nil
+}
+func TestAcceptedEvidenceReadRequiresReceiptBytesAndCurrentAccess(t *testing.T) {
+	f := setup(t)
+	v := f.add(manifest.Rights{})
+	accepted, err := f.s.AppendEvidence(t.Context(), f.req(v))
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, hash, err := f.s.AcceptedEvidenceRecord(t.Context(), f.who, accepted.RecordID)
+	if err != nil || record.VersionID != v.VersionID || hash != accepted.Digest {
+		t.Fatal(record, hash, err)
+	}
+	_, _, err = f.s.AcceptedEvidenceRecord(t.Context(), f.who, ids.New())
+	code(t, err, errcode.NotFound)
+	original := f.files.records[accepted.RecordID]
+	f.files.records[accepted.RecordID] = []byte(`{"changed":true}`)
+	if _, _, err = f.s.AcceptedEvidenceRecord(t.Context(), f.who, accepted.RecordID); err == nil {
+		t.Fatal("corrupt accepted evidence read")
+	}
+	f.files.records[accepted.RecordID] = original
+	f.az.Revoke(f.who.PrincipalID, f.project)
+	if _, _, err = f.s.AcceptedEvidenceRecord(t.Context(), f.who, accepted.RecordID); err == nil {
+		t.Fatal("revoked evidence read")
+	}
+}
+
+func TestIncomingUsesScansAuthorityAndIgnoresBaseOnly(t *testing.T) {
+	f := setup(t)
+	target := f.add(manifest.Rights{})
+	ref := target.Ref(f.instance)
+	source := f.add(manifest.Rights{}, manifest.Use{InstanceID: f.instance, AssetID: target.AssetID, VersionID: target.VersionID, Relation: "uses"})
+	unrelated := f.add(manifest.Rights{}, manifest.Use{InstanceID: f.instance, AssetID: target.AssetID, VersionID: target.VersionID, Relation: "reference"})
+	uses, err := f.s.IncomingUses(t.Context(), []ids.PermanentRef{ref})
+	if err != nil || len(uses) != 1 || uses[0].Source.VersionID != source.VersionID {
+		t.Fatal(uses, err)
+	}
+	uses, err = f.s.IncomingUses(t.Context(), []ids.PermanentRef{ref, source.Ref(f.instance)})
+	if err != nil || len(uses) != 0 {
+		t.Fatal(uses, err)
+	}
+	delete(f.files.manifests, unrelated.VersionID)
+	_, err = f.s.IncomingUses(t.Context(), []ids.PermanentRef{ref})
+	code(t, err, errcode.RightsPending)
+}

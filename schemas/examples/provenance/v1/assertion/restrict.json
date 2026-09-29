@@ -1,0 +1,26 @@
+{
+  "description": "Immutable restrict assertion; domain authorization is checked separately",
+  "schema": "lantai.rights-assertion/v1",
+  "valid": true,
+  "document": {
+    "assertion_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "subject": {
+      "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kind": "restrict",
+    "fields": {
+      "noai": true
+    },
+    "evidence_ids": [
+      "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    ],
+    "actor_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "operation_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "created_at": "2026-09-29T00:00:00.000Z",
+    "expected_revision": 1,
+    "reason": "Synthetic new restriction"
+  }
+}

@@ -806,7 +806,23 @@ func (s *Service) ReadManifest(ctx context.Context, v commit.Committed) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(s.layout.VersionDir(row.ProjectID, row.AssetID, row.VersionNumber), ManifestFile), int64(s.cfg.MaxManifestBytes))
+	dir := s.layout.VersionDir(row.ProjectID, row.AssetID, row.VersionNumber)
+	if source, ok := s.ledger.(commit.FileLocations); ok {
+		location, err := source.VersionFileLocation(ctx, v.AssetID, v.VersionID)
+		if err != nil {
+			return nil, err
+		}
+		if location.Purged {
+			return nil, errcode.New(errcode.AssetPurged, "")
+		}
+		if location.PendingOperationID != "" {
+			return nil, errcode.New(errcode.OperationNeedsReconciliation, "version files are moving")
+		}
+		if location.TrashID != "" {
+			dir = s.trashVersion(location.TrashID, v.VersionID)
+		}
+	}
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(dir, ManifestFile), int64(s.cfg.MaxManifestBytes))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, errcode.New(errcode.OperationNeedsReconciliation, "the manifest file of a committed version is missing")

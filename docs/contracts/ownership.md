@@ -8,7 +8,7 @@
 
 | 模块 | 任务 | 职责 |
 |---|---|---|
-| `identity` | T01 | 身份、成员、角色、策略、凭据、Challenge/HumanGrant；会话运行记录 |
+| `identity` | T01 | 身份、成员、角色、策略、凭据、Challenge/HumanGrant 与批次项、项目里程碑；会话运行记录 |
 | `catalog` | T02 | 项目与资产稳定 ID、路径别名、著录修订、类型 schema、清单规范化 |
 | `storage` | T02 | Blob、上传会话与分片、BlobGrant/ReadGrant、暂存、版本安装与下载 |
 | `ledger` | T03 | 版本登记与占名、审定、发布、锁定、回收站与墓碑、讨论 |
@@ -81,6 +81,7 @@
 | `attempt.*` | `tasks` |
 | `backup.*` | `operations` |
 | `blob_grant.*` | `storage` |
+| `check.*` | `ledger` |
 | `checkout.*` | `tasks` |
 | `comment.*` | `ledger` |
 | `extension.*` | `extensions` |

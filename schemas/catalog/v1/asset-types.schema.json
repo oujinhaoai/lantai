@@ -53,6 +53,7 @@
       "additionalProperties": false,
       "properties": {
         "language": { "type": "string", "maxLength": 35 },
+        "project_document": { "$ref": "project-document.schema.json" },
         "extra": { "type": "object" }
       }
     },
@@ -60,6 +61,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "acceptance_profile": { "$ref": "../../ledger/v1/acceptance-profile.schema.json" },
         "tool": { "type": "string", "maxLength": 128 },
         "tool_version": { "type": "string", "maxLength": 64 },
         "extra": { "type": "object" }

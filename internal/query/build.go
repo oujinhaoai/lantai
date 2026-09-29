@@ -11,6 +11,7 @@ import (
 
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/commands"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/event"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -53,19 +54,37 @@ func (s *Service) scan(ctx context.Context) (map[ids.ID]projection, error) {
 				return nil, errors.New("query: authoritative version enumeration did not advance")
 			}
 			after = v.VersionID
+			if roots, ok := s.reader.(commit.ReferenceRoots); ok {
+				live, err := roots.RetainsReferences(ctx, v.AssetID, v.VersionID)
+				if err != nil {
+					return nil, err
+				}
+				if !live {
+					continue
+				}
+			}
 			p, ok := out[v.AssetID]
 			if !ok {
 				a, err := s.catalog.ReadProjection(ctx, v.AssetID)
 				if err != nil {
 					return nil, err
 				}
+				a.Latest = v
 				p.Item = itemOf(a)
+			}
+			if v.VersionNumber > p.Item.VersionNumber {
+				p.Item.VersionID = v.VersionID
+				p.Item.VersionNumber = v.VersionNumber
 			}
 			doc, err := s.catalog.ReadProjectionVersion(ctx, v.AssetID, v.VersionID)
 			if err != nil {
 				return nil, err
 			}
-			for _, use := range doc.Manifest.Content.Uses {
+			uses, err := s.effectiveUses(ctx, v.AssetID, v.VersionID, doc.Manifest.Content.Uses)
+			if err != nil {
+				return nil, err
+			}
+			for _, use := range uses {
 				p.Relations = append(p.Relations, relation{v.AssetID, v.VersionID, use})
 			}
 			out[v.AssetID] = p
@@ -77,11 +96,7 @@ func (s *Service) scan(ctx context.Context) (map[ids.ID]projection, error) {
 // refresh 重读整个资产；事件 payload 只是定位提示，绝不作为可见事实。M1 的
 // Reader 只提供全库版本枚举，关联刷新因此是线性扫描；不建立第二份权威清单。
 func (s *Service) refresh(ctx context.Context, asset ids.ID) (projection, error) {
-	a, err := s.catalog.ReadProjection(ctx, asset)
-	if err != nil {
-		return projection{}, err
-	}
-	p := projection{Item: itemOf(a)}
+	p := projection{}
 	var after ids.ID
 	for {
 		versions, err := s.reader.Versions(ctx, after, 256)
@@ -99,14 +114,42 @@ func (s *Service) refresh(ctx context.Context, asset ids.ID) (projection, error)
 			if v.AssetID != asset {
 				continue
 			}
+			if roots, ok := s.reader.(commit.ReferenceRoots); ok {
+				live, err := roots.RetainsReferences(ctx, v.AssetID, v.VersionID)
+				if err != nil {
+					return projection{}, err
+				}
+				if !live {
+					continue
+				}
+			}
+			if p.Item.AssetID == "" {
+				a, err := s.catalog.ReadProjection(ctx, asset)
+				if err != nil {
+					return projection{}, err
+				}
+				a.Latest = v
+				p.Item = itemOf(a)
+			}
+			if v.VersionNumber > p.Item.VersionNumber {
+				p.Item.VersionID = v.VersionID
+				p.Item.VersionNumber = v.VersionNumber
+			}
 			doc, err := s.catalog.ReadProjectionVersion(ctx, v.AssetID, v.VersionID)
 			if err != nil {
 				return projection{}, err
 			}
-			for _, use := range doc.Manifest.Content.Uses {
+			uses, err := s.effectiveUses(ctx, v.AssetID, v.VersionID, doc.Manifest.Content.Uses)
+			if err != nil {
+				return projection{}, err
+			}
+			for _, use := range uses {
 				p.Relations = append(p.Relations, relation{v.AssetID, v.VersionID, use})
 			}
 		}
+	}
+	if p.Item.AssetID == "" {
+		return p, errcode.New(errcode.NotFound, "")
 	}
 	return p, nil
 }
@@ -119,7 +162,7 @@ func affected(e event.Envelope) (ids.ID, error) {
 		TargetID   ids.ID `json:"target_id"`
 		TargetKind string `json:"target_kind"`
 	}
-	relevant := e.AggregateType == "asset" || e.EventType == "version.committed" || (e.EventType == "ledger.metadata_committed" && e.AggregateType == "asset")
+	relevant := e.AggregateType == "asset" || strings.HasPrefix(e.EventType, "trash.") && (e.EventType == "trash.created" || e.EventType == "trash.restored" || e.EventType == "trash.purged") || e.EventType == "version.committed" || e.EventType == "rights.asserted" || (e.EventType == "ledger.metadata_committed" && e.AggregateType == "asset")
 	if !relevant {
 		return "", nil
 	}
@@ -386,4 +429,15 @@ func putProjection(ctx context.Context, tx *sql.Tx, p projection) error {
 		}
 	}
 	return nil
+}
+
+// The real provenance adapter provides the corrected graph. The manifest
+// fallback supports immutable-only readers without inventing another authority.
+func (s *Service) effectiveUses(ctx context.Context, asset, version ids.ID, frozen []manifest.Use) ([]manifest.Use, error) {
+	if source, ok := s.rights.(interface {
+		EffectiveUses(context.Context, ids.ID, ids.ID) ([]manifest.Use, error)
+	}); ok {
+		return source.EffectiveUses(ctx, asset, version)
+	}
+	return frozen, nil
 }

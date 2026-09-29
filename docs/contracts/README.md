@@ -112,3 +112,7 @@ T02 接入后契约有三处变化：安装请求带清单文件、证明记录�
 
 - OpenAPI 生成的传输类型把时间映射为 `time.Time`，其默认 JSON 编码会省略末尾零毫秒，不满足契约的时间格式；服务端输出须使用契约包的编码（见 [`internal/apiv1`](../../internal/apiv1/apiv1_test.go) 的测试）。
 - 平台相关结论（SQLite 行为、文件语义）目前只在开发机 macOS/arm64 上实测，其他平台结果以 CI 与各平台验收记录为准，见[开发与验证](../development.md)。
+
+- [M2 T01/T02 协作适配](collaboration-foundation.md)：动作绑定人审批次、里程碑、回收/GC 文件接口和固定版本上下文。
+
+- [审定、发布与协作读取接口](review-collaboration.md)：固定目标、证据接受、人审与发布、讨论、权限事件和收件箱的内部接口及集成边界。

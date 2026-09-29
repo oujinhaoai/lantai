@@ -8,8 +8,10 @@ import (
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/pin"
+	"github.com/oujinhaoai/lantai/internal/storage"
 )
 
 // RecoveryOperation exposes a durable intent to the trusted maintenance dispatcher.
@@ -19,12 +21,15 @@ type RecoveryOperation struct {
 	Command          commands.Context
 	PreparedVersion  *commit.Prepared
 	PreparedMetadata *commit.PreparedMetadata
+	PreparedEvidence *storage.Record
+	LifecyclePlan    *storage.FileIntent
 }
 
 type RecoveryInventory struct {
 	Open     []RecoveryOperation
 	Versions []commit.Committed
 	Metadata []commit.CommittedMetadata
+	Records  []storage.RecordEntry
 	Pins     []pin.Pin
 }
 
@@ -55,6 +60,30 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 				return out, err
 			}
 			r.Command, r.PreparedMetadata = o.Command, &o.Prepared
+		case "ledger.append_check":
+			record, err := readJSON[storage.Record](ctx, s.db, `SELECT record_json FROM ledger_check_prepared WHERE operation_id=?`, id)
+			if err != nil {
+				return out, err
+			}
+			receipt, err := s.store.ReceiptByOperation(ctx, s.db, id)
+			if err != nil {
+				return out, err
+			}
+			r.PreparedEvidence = &record
+			r.Command = commands.Context{OperationID: id, CommandType: op.CommandType, ActorID: record.AuthorID, SessionID: record.SessionID, ProjectID: record.ProjectID, RecoveryEpoch: op.RecoveryEpoch, RequestHash: op.RequestHash, IdempotencyKey: receipt.Key.IdempotencyKey}
+		case "ledger.trash", "ledger.force_trash", "ledger.trash_own", "ledger.restore", "ledger.purge", "ledger.purge_due":
+			cmd, err := readJSON[commands.Context](ctx, s.db, `SELECT command FROM ledger_lifecycle_ops WHERE operation_id=? AND state='accepted'`, id)
+			if err != nil {
+				return out, err
+			}
+			plan, err := readJSON[storage.FileIntent](ctx, s.db, `SELECT plan FROM ledger_lifecycle_ops WHERE operation_id=? AND state='accepted'`, id)
+			if err != nil {
+				return out, err
+			}
+			if cmd.OperationID != id || plan.OperationID != id || cmd.RequestHash != op.RequestHash || cmd.RecoveryEpoch != op.RecoveryEpoch {
+				return out, errcode.New(errcode.OperationNeedsReconciliation, "lifecycle intent differs from operation")
+			}
+			r.Command, r.LifecyclePlan = cmd, &plan
 		default:
 			return out, invalid("unknown ledger recovery command")
 		}
@@ -92,8 +121,38 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 	if err != nil {
 		return out, err
 	}
+	rows, err = s.db.QueryContext(ctx, `SELECT evidence_id,project_id,asset_id,version_id,digest,operation_id FROM ledger_check_records ORDER BY evidence_id`)
+	if err != nil {
+		return out, err
+	}
+	for rows.Next() {
+		var r storage.RecordEntry
+		if err = rows.Scan(&r.RecordID, &r.ProjectID, &r.AssetID, &r.VersionID, &r.Digest, &r.OperationID); err != nil {
+			rows.Close()
+			return out, err
+		}
+		out.Records = append(out.Records, r)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return out, err
+	}
 	out.Pins, err = s.commitPins(ctx)
 	return out, err
+}
+
+// ResumeLifecycle is maintenance-only assembly of the already accepted physical
+// recovery port; it cannot create a new lifecycle intention or authorize a job.
+func (s *Service) ResumeLifecycle(ctx context.Context, op ids.ID, files LifecycleFiles, aliases LifecycleAliases) (commands.Receipt, error) {
+	if err := s.gate.RequireMaintenance(ctx); err != nil {
+		return commands.Receipt{}, err
+	}
+	if files == nil || aliases == nil {
+		return commands.Receipt{}, errcode.New(errcode.OperationNeedsReconciliation, "lifecycle adapters missing")
+	}
+	l := &Lifecycle{ledger: s, files: files, aliases: aliases}
+	return l.Resume(ctx, op)
 }
 
 var _ pin.Source = (*Service)(nil)

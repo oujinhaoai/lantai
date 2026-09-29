@@ -13,6 +13,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -21,9 +22,10 @@ import (
 // Filter 固定一个可见范围。Text 是 NFC、不分大小写的字面子串匹配；不执行
 // 用户提供的 SQL/FTS 表达式。M1 只检索著录，不把来源路径/声明混入全文。
 type Filter struct {
-	ProjectID ids.ID             `json:"project_id,omitempty"`
-	Text      string             `json:"text,omitempty"`
-	AssetType manifest.AssetType `json:"asset_type,omitempty"`
+	IncludeArchived bool               `json:"include_archived,omitempty"`
+	ProjectID       ids.ID             `json:"project_id,omitempty"`
+	Text            string             `json:"text,omitempty"`
+	AssetType       manifest.AssetType `json:"asset_type,omitempty"`
 }
 
 type SearchRequest struct {
@@ -92,7 +94,7 @@ func cleanFilter(f Filter) (Filter, error) {
 
 // visible 从权威登记得项目，再查当前身份和来源。索引中的项目/版本字段只
 // 用于定位，不能代替最终检查。拒绝不返回对象存在性或隐藏来源的数量。
-func (s *Service) visible(ctx context.Context, who authz.Context, asset, version ids.ID) (bool, error) {
+func (s *Service) visible(ctx context.Context, who authz.Context, asset, version ids.ID, includeArchived ...bool) (bool, error) {
 	v, err := s.reader.Version(ctx, asset, version)
 	if errcode.CodeOf(err) == errcode.NotFound {
 		return false, nil
@@ -110,6 +112,15 @@ func (s *Service) visible(ctx context.Context, who authz.Context, asset, version
 			return false, d.Err()
 		}
 		return false, nil
+	}
+	if controls, ok := s.reader.(commit.Controls); ok {
+		err := controls.CheckVersionSearch(ctx, asset, version, len(includeArchived) > 0 && includeArchived[0])
+		if hidden(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
 	}
 	a, err := s.catalog.ReadProjection(ctx, asset)
 	if errcode.CodeOf(err) == errcode.NotFound {
@@ -225,7 +236,7 @@ func (s *Service) selectItems(ctx context.Context, who authz.Context, f Filter, 
 			after = i.AssetID
 			scanned++
 			if f.AssetType == "" || f.AssetType == i.AssetType {
-				ok, err := s.visible(ctx, who, i.AssetID, i.VersionID)
+				ok, err := s.visible(ctx, who, i.AssetID, i.VersionID, f.IncludeArchived)
 				if err != nil {
 					return nil, after, false, err
 				}
@@ -344,8 +355,24 @@ func (s *Service) Relations(ctx context.Context, who authz.Context, ref ids.Perm
 		if err != nil {
 			return nil, err
 		}
-		if b {
-			out = append(out, r)
+		if !b {
+			continue
+		}
+		// Reconcile every candidate with authority before disclosure. An index
+		// that has not consumed a correction must not resurrect a removed edge.
+		doc, err := s.catalog.ReadProjectionVersion(lctx, r.Source.AssetID, r.Source.VersionID)
+		if err != nil {
+			return nil, err
+		}
+		uses, err := s.effectiveUses(lctx, r.Source.AssetID, r.Source.VersionID, doc.Manifest.Content.Uses)
+		if err != nil {
+			return nil, err
+		}
+		for _, use := range uses {
+			if use.InstanceID == r.Target.InstanceID && use.AssetID == r.Target.AssetID && use.VersionID == r.Target.VersionID && use.Relation == r.Relation {
+				out = append(out, r)
+				break
+			}
 		}
 	}
 	return out, nil
@@ -380,6 +407,9 @@ func (s *Service) Changes(ctx context.Context, who authz.Context, after int64, l
 	out := Changes{Items: []Change{}, HighWater: page.HighWater}
 	seen := map[ids.ID]bool{}
 	for _, e := range page.Entries {
+		if e.Envelope.EventType == "ledger.control_changed" && e.Envelope.AggregateType == "project" {
+			out.ResyncRequired = true
+		}
 		prefix, _, _ := strings.Cut(e.Envelope.EventType, ".")
 		switch prefix {
 		case "principal", "session", "project", "policy", "rights", "trash":

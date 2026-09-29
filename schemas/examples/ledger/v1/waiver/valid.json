@@ -1,0 +1,22 @@
+{
+  "description": "Synthetic waiver structural contract example; domain checks fixed identity and current authority",
+  "schema": "lantai.waiver/v1",
+  "valid": true,
+  "document": {
+    "check_key": "visual",
+    "reason": "Synthetic bounded waiver",
+    "evidence_ids": [
+      "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    ],
+    "waiver_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "target_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "review_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "approver_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "human_grant_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "operation_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "created_at": "2026-09-29T00:00:00.000Z",
+    "scope": "review_target"
+  }
+}

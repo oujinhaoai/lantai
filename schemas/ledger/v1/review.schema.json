@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review.schema.json",
+  "title": "lantai.review/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "review_id",
+    "action",
+    "target_id",
+    "expected_revision",
+    "verdict",
+    "reason",
+    "waivers",
+    "waiver_records",
+    "version_id",
+    "manifest_digest",
+    "profile_digest",
+    "actor_id",
+    "human_grant_id",
+    "operation_id",
+    "created_at",
+    "self_review",
+    "publication_pending"
+  ],
+  "properties": {
+    "review_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "action": {
+      "enum": [
+        "ledger.record_review",
+        "ledger.revoke_review"
+      ]
+    },
+    "target_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "effective_review_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "verdict": {
+      "enum": [
+        "approve",
+        "return",
+        "reject",
+        "revoke"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "waivers": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_key",
+          "reason",
+          "evidence_ids"
+        ],
+        "properties": {
+          "check_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "evidence_ids": {
+            "type": "array",
+            "maxItems": 1000,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+            },
+            "minItems": 1
+          },
+          "expires_at": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+          }
+        }
+      }
+    },
+    "waiver_records": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/waiver.schema.json"
+      }
+    },
+    "version_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "profile_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "actor_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "human_grant_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "created_at": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "self_review": {
+      "type": "boolean"
+    },
+    "publication_pending": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "revoke"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "effective_review_id"
+        ],
+        "properties": {
+          "action": {
+            "const": "ledger.revoke_review"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "action": {
+            "const": "ledger.record_review"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "enum": [
+              "return",
+              "reject",
+              "revoke"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "waivers": {
+            "maxItems": 0
+          },
+          "waiver_records": {
+            "maxItems": 0
+          },
+          "publication_pending": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}

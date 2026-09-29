@@ -1,0 +1,15 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "$id":"https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/project-document.schema.json",
+ "title":"Versioned project context or decision metadata",
+ "type":"object","additionalProperties":false,
+ "required":["contract","kind","title","scope","file_path","supersedes"],
+ "properties":{
+  "contract":{"const":"lantai.project-document/v1"},
+  "kind":{"enum":["context","decision"]},
+  "title":{"type":"string","minLength":1,"maxLength":256},
+  "scope":{"type":"object","additionalProperties":false,"required":["kind"],"properties":{"kind":{"enum":["global","project","asset_type"]},"asset_type":{"enum":["image","video","audio","doc","config","plugin","model","motion","scene","production"]}},"if":{"properties":{"kind":{"const":"asset_type"}}},"then":{"required":["asset_type"]},"else":{"not":{"required":["asset_type"]}}},
+  "file_path":{"$ref":"../../common/v1/defs.schema.json#/$defs/relative_path"},
+  "supersedes":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"$ref":"../../common/v1/defs.schema.json#/$defs/permanent_ref"}}
+ }
+}

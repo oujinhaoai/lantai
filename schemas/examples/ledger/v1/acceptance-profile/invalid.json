@@ -1,0 +1,95 @@
+{
+  "description": "Reject incomplete or mixed binding",
+  "schema": "lantai.acceptance-profile/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.acceptance-profile/v1",
+    "profile_id": "basic",
+    "revision": 1,
+    "asset_types": [
+      "doc"
+    ],
+    "purpose": "production",
+    "required_checks": [
+      {
+        "check_key": "integrity",
+        "schema_version": 1,
+        "accepted_processor_versions": [
+          {
+            "extension_id": "org.example.check",
+            "extension_version": "1.0.0",
+            "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source": "package",
+            "contribution_id": "org.example.check.all"
+          }
+        ],
+        "config_digest": "unbound",
+        "severity": "error",
+        "waivable": false
+      },
+      {
+        "check_key": "schema",
+        "schema_version": 1,
+        "accepted_processor_versions": [
+          {
+            "extension_id": "org.example.check",
+            "extension_version": "1.0.0",
+            "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source": "package",
+            "contribution_id": "org.example.check.all"
+          }
+        ],
+        "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "severity": "error",
+        "waivable": false
+      },
+      {
+        "check_key": "license_evidence",
+        "schema_version": 1,
+        "accepted_processor_versions": [
+          {
+            "extension_id": "org.example.check",
+            "extension_version": "1.0.0",
+            "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source": "package",
+            "contribution_id": "org.example.check.all"
+          }
+        ],
+        "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "severity": "error",
+        "waivable": false
+      },
+      {
+        "check_key": "purpose",
+        "schema_version": 1,
+        "accepted_processor_versions": [
+          {
+            "extension_id": "org.example.check",
+            "extension_version": "1.0.0",
+            "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source": "package",
+            "contribution_id": "org.example.check.all"
+          }
+        ],
+        "config_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "severity": "error",
+        "waivable": false
+      }
+    ],
+    "required_evidence": [
+      "qa_report"
+    ],
+    "qa_required": true,
+    "distinct_actor_rule": "maker_checker",
+    "waivable_checks": [],
+    "defaults": {
+      "publication": "manual"
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/required_checks/0/config_digest",
+      "keyword": "pattern"
+    }
+  ]
+}

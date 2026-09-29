@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review-target.schema.json",
+  "title": "lantai.review-target/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target_id",
+    "project_id",
+    "version_id",
+    "expected_revision",
+    "profile_ref",
+    "evidence_ids",
+    "flow",
+    "asset_id",
+    "manifest_digest",
+    "profile",
+    "evidence",
+    "target_revision",
+    "maker_id",
+    "submitted_by",
+    "created_at"
+  ],
+  "properties": {
+    "target_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "project_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "version_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "profile_ref": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+      }
+    },
+    "flow": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review-evidence.schema.json#/properties/flow"
+    },
+    "asset_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "manifest_digest",
+        "profile"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+        },
+        "manifest_digest": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+        },
+        "profile": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/acceptance-profile.schema.json"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "digest",
+          "ref",
+          "manifest_digest",
+          "kind",
+          "actor_id",
+          "completed_at"
+        ],
+        "properties": {
+          "evidence_id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+          },
+          "digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          },
+          "ref": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/permanent_ref"
+          },
+          "manifest_digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "actor_id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+          },
+          "flow": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review-evidence.schema.json#/properties/flow"
+          },
+          "check_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "schema_version": {
+            "const": 1
+          },
+          "config_digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          },
+          "check": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/check-result.schema.json"
+          },
+          "qa_verdict": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown"
+            ]
+          },
+          "completed_at": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "check_result"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "flow",
+                "check_key",
+                "schema_version",
+                "config_digest",
+                "check"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "qa_report"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "flow",
+                "qa_verdict"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "target_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maker_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "submitted_by": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "created_at": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "initial_profile": {
+      "type": "boolean"
+    }
+  }
+}

@@ -243,6 +243,44 @@ type ConsumerMetrics struct {
 	BlockedCommands int64
 }
 
+// ConsumerFailure is a local operations view, without event payloads or raw
+// error strings. RetryAtMillis is zero for failures requiring explicit repair.
+type ConsumerFailure struct {
+	EventID       ids.ID      `json:"event_id"`
+	GlobalSeq     int64       `json:"global_seq"`
+	Kind          FailureKind `json:"kind"`
+	Attempts      int         `json:"attempts"`
+	RetryAtMillis int64       `json:"retry_at_ms"`
+}
+
+// Failures lists this consumer's durable failure queue under a live maintenance
+// barrier. The sequence of the last returned item is the next page's cursor.
+func (c *Consumer) Failures(ctx context.Context, after int64, limit int) ([]ConsumerFailure, error) {
+	if c.gate == nil {
+		return nil, errors.New("events: failure inventory requires maintenance")
+	}
+	if err := c.gate.RequireMaintenance(ctx); err != nil {
+		return nil, err
+	}
+	if after < 0 || limit < 1 || limit > 1000 {
+		return nil, errors.New("events: invalid failure inventory page")
+	}
+	rows, err := c.db.QueryContext(ctx, `SELECT event_id,global_seq,kind,attempts,retry_at FROM consumer_failures WHERE consumer=? AND global_seq>? ORDER BY global_seq LIMIT ?`, c.name, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []ConsumerFailure{}
+	for rows.Next() {
+		var f ConsumerFailure
+		if err = rows.Scan(&f.EventID, &f.GlobalSeq, &f.Kind, &f.Attempts, &f.RetryAtMillis); err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, rows.Err()
+}
+
 func (c *Consumer) Metrics(ctx context.Context) (ConsumerMetrics, error) {
 	var m ConsumerMetrics
 	var err error
@@ -257,4 +295,45 @@ func (c *Consumer) Metrics(ctx context.Context) (ConsumerMetrics, error) {
 	}
 	err = c.db.QueryRowContext(ctx, `SELECT count(*) FROM pending_commands WHERE consumer=? AND status='blocked'`, c.name).Scan(&m.BlockedCommands)
 	return m, err
+}
+
+// RebuildProjection replaces derived state and its consumer offset in one local
+// transaction. It is deliberately maintenance-only, requires a caller-supplied
+// authoritative snapshot, and refuses consumers with pending cross-module work.
+// Business facts (review, publication, permissions) must never use this method.
+// The caller captures through BEFORE enumerating authority, then replays after it.
+func (c *Consumer) RebuildProjection(ctx context.Context, through int64, replace func(context.Context, *sql.Tx) error) error {
+	if c.gate == nil || c.gate.RequireMaintenance(ctx) != nil || through < 0 || replace == nil {
+		return errors.New("events: projection rebuild requires maintenance and a valid snapshot")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	tx, err := c.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var current int64
+	if err = tx.QueryRowContext(ctx, `SELECT COALESCE((SELECT through_seq FROM consumer_offsets WHERE consumer=?),0)`, c.name).Scan(&current); err != nil {
+		return err
+	}
+	if through < current {
+		return errors.New("events: projection rebuild cannot move the consumer backwards")
+	}
+	var pending int
+	if err = tx.QueryRowContext(ctx, `SELECT count(*) FROM pending_commands WHERE consumer=? AND status<>'succeeded'`, c.name).Scan(&pending); err != nil {
+		return err
+	}
+	if pending != 0 {
+		return errors.New("events: pending business commands prevent projection replacement")
+	}
+	if err = replace(ctx, tx); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO consumer_offsets(consumer,through_seq) VALUES(?,?) ON CONFLICT(consumer) DO UPDATE SET through_seq=excluded.through_seq`, c.name, through); err != nil {
+		return err
+	}
+	// Only future entries will run again; retain older failure/deduplication facts
+	// as diagnostics. Nothing in this method executes or completes business work.
+	return tx.Commit()
 }

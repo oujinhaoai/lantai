@@ -1,0 +1,1 @@
+{"description":"A draft cannot claim an approval in its content metadata","schema":"lantai.project-document/v1","valid":false,"expect":[{"pointer":"","keyword":"additionalProperties"}],"document":{"contract":"lantai.project-document/v1","kind":"context","title":"Rules","scope":{"kind":"project"},"file_path":"rules.md","supersedes":[],"approved":true}}

@@ -193,7 +193,10 @@ func (s *Service) challenge(ctx context.Context, who authz.Context, cmd Command,
 			targets, target_set_digest, request_hash, operation_id, summary, created_at, expires_at, state)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, id, v.principal.ID, v.sess.ID, b.action, b.project,
 			jsonText(b.targets), b.targetDigest, b.requestHash, op, summary, clock.Millis(now), clock.Millis(ch.ExpiresAt))
-		return err
+		if err != nil {
+			return err
+		}
+		return persistDomainBatch(ctx, tx, op, cmd)
 	})
 	return ch, err
 }
@@ -305,6 +308,9 @@ func (s *Service) VerifyChallenge(ctx context.Context, who authz.Context, challe
 			project_id, target_set_digest, request_hash, operation_id, issued_at, expires_at, auth_epoch, recovery_epoch, state)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bound')`, gid, c.ID, v.principal.ID, v.sess.ID, c.Action, c.Project,
 			c.TargetDigest, c.RequestHash, c.OperationID, clock.Millis(now), clock.Millis(exp), v.principal.AuthEpoch, epoch); err != nil {
+			return err
+		}
+		if err := grantDomainItems(ctx, tx, c.OperationID, gid); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE identity_challenges SET state = 'verified', grant_id = ? WHERE challenge_id = ?`, gid, c.ID); err != nil {

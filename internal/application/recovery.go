@@ -63,14 +63,27 @@ func (a *App) FSCK(ctx context.Context, deep bool) (FSCKReport, error) {
 		committed[v.OperationID] = v
 	}
 	accepted := map[ids.ID]bool{}
+	acceptedRecords := map[ids.ID]storage.RecordEntry{}
 	for _, r := range out.Provenance.Records {
 		accepted[r.OperationID] = true
+		acceptedRecords[r.RecordID] = r
 	}
+	for _, r := range out.Ledger.Records {
+		accepted[r.OperationID] = true
+		acceptedRecords[r.RecordID] = r
+	}
+	checks, residuals, err := a.Ledger.CheckEvidenceFiles(ctx, a.Storage, out.Ledger.Records)
+	if err != nil {
+		return out, err
+	}
+	out.Findings = append(out.Findings, checks...)
+	out.Residuals = append(out.Residuals, residuals...)
 	for _, f := range out.Storage.Findings {
 		_, final := committed[f.OperationID]
 		soft := (f.Reason == "install_verification" || f.Reason == "referenced_blob_missing_or_size") && !final
-		soft = soft || (slices.Contains([]string{"record_unreadable", "record_invalid"}, f.Reason) && !accepted[f.OperationID])
+		soft = soft || (slices.Contains([]string{"record_unreadable", "record_invalid", "record_location_mismatch"}, f.Reason) && !accepted[f.OperationID])
 		soft = soft || strings.HasPrefix(f.Reason, "upload_")
+		soft = soft || f.Reason == "lifecycle_pending" || f.Reason == "record_lifecycle_pending"
 		if soft {
 			out.Residuals = append(out.Residuals, f)
 		} else {
@@ -85,6 +98,7 @@ func (a *App) FSCK(ctx context.Context, deep bool) (FSCKReport, error) {
 		}
 	}
 	out.Findings = append(out.Findings, out.Provenance.Findings...)
+	out.Residuals = append(out.Residuals, out.Provenance.Residuals...)
 	installs := map[ids.ID]storage.InstallEntry{}
 	for _, i := range out.Storage.Installs {
 		installs[i.OperationID] = i
@@ -105,6 +119,18 @@ func (a *App) FSCK(ctx context.Context, deep bool) (FSCKReport, error) {
 			continue
 		}
 		// Catalog's authority files carry identity as well as the content digest.
+		location, e := a.Ledger.VersionFileLocation(ctx, v.AssetID, v.VersionID)
+		if e != nil {
+			add("committed_location_invalid", v.OperationID)
+			continue
+		}
+		if location.Purged {
+			continue
+		}
+		if location.PendingOperationID != "" {
+			out.Residuals = append(out.Residuals, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "committed_lifecycle_pending", OperationID: location.PendingOperationID})
+			continue
+		}
 		b, e := a.Storage.ReadManifest(ctx, v)
 		if e != nil {
 			add("committed_manifest_unreadable", v.OperationID)
@@ -126,7 +152,7 @@ func (a *App) FSCK(ctx context.Context, deep bool) (FSCKReport, error) {
 		out.Residuals = append(out.Residuals, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: o.Reason, Ref: o.Ref, OperationID: o.OperationID})
 	}
 	for _, r := range out.Storage.Records {
-		if !accepted[r.OperationID] {
+		if expected, ok := acceptedRecords[r.RecordID]; !ok || expected.OperationID != r.OperationID || expected.Digest != r.Digest {
 			out.Residuals = append(out.Residuals, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "unaccepted_record", Ref: r.Ref, OperationID: r.OperationID})
 		}
 	}
@@ -169,6 +195,14 @@ func (a *App) Recover(ctx context.Context) (RecoveryReport, error) {
 		}
 		if r.Operation.Stage == commands.StageQuarantined {
 			issue("ledger", r.Operation.OperationID, errcode.New(errcode.OperationNeedsReconciliation, ""))
+			continue
+		}
+		if r.LifecyclePlan != nil {
+			if _, e := a.Ledger.ResumeLifecycle(ctx, r.Operation.OperationID, a.Storage, a.Catalog); e != nil {
+				issue("ledger", r.Operation.OperationID, e)
+			} else {
+				out.Resumed = append(out.Resumed, r.Operation.OperationID)
+			}
 			continue
 		}
 		who, e := a.originalSession(ctx, r.Command.SessionID, r.Command.ActorID, r.Command.RecoveryEpoch)

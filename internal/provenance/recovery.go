@@ -18,11 +18,13 @@ type RecoveryOperation struct {
 	Key              commands.ReceiptKey
 	Record           storage.Record
 	ExpectedRevision int64
+	Assertion        *AssertionRequest
 }
 type RecoveryInventory struct {
-	Open     []RecoveryOperation
-	Records  []storage.RecordEntry
-	Findings []storage.Finding
+	Open      []RecoveryOperation
+	Records   []storage.RecordEntry
+	Findings  []storage.Finding
+	Residuals []storage.Finding
 }
 
 func (s *Service) recoveryOperation(ctx context.Context, id ids.ID) (RecoveryOperation, error) {
@@ -39,6 +41,17 @@ func (s *Service) recoveryOperation(ctx context.Context, id ids.ID) (RecoveryOpe
 		return out, err
 	}
 	out.Operation, out.Key = *op, r.Key
+	if op.CommandType != string(ActionAppendEvidence) {
+		prepared, err := s.preparedAssertion(ctx, id)
+		if err != nil {
+			return out, err
+		}
+		if prepared.Command.OperationID != id || prepared.Command.Key() != r.Key || prepared.Command.RequestHash != r.RequestHash || prepared.Command.RecoveryEpoch != op.RecoveryEpoch {
+			return out, errcode.New(errcode.OperationNeedsReconciliation, "assertion intent differs from operation")
+		}
+		out.Record, out.ExpectedRevision, out.Assertion = prepared.Record, prepared.Request.ExpectedRevision, &prepared.Request
+		return out, nil
+	}
 	var raw string
 	if err = s.DB.QueryRowContext(ctx, `SELECT expected_revision,record_json FROM provenance_prepared WHERE operation_id=?`, id).Scan(&out.ExpectedRevision, &raw); err != nil {
 		return out, err
@@ -80,6 +93,7 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 		id, version, op ids.ID
 		digest          digest.Digest
 		revision        int64
+		assertion       bool
 	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT record_id,version_id,operation_id,digest,revision FROM provenance_records ORDER BY version_id,revision`)
 	if err != nil {
@@ -99,20 +113,59 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 	if err != nil {
 		return out, err
 	}
+	rows, err = s.DB.QueryContext(ctx, `SELECT assertion_id,version_id,operation_id,digest,revision FROM provenance_assertions ORDER BY version_id,revision`)
+	if err != nil {
+		return out, err
+	}
+	for rows.Next() {
+		r := accepted{assertion: true}
+		if err = rows.Scan(&r.id, &r.version, &r.op, &r.digest, &r.revision); err != nil {
+			rows.Close()
+			return out, err
+		}
+		records = append(records, r)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return out, err
+	}
+	assertionCounts := map[ids.ID]int64{}
+	assertionLast := map[ids.ID]ids.ID{}
 	counts := map[ids.ID]int64{}
 	for _, r := range records {
 		v, ok := versions[r.version]
 		entry := storage.RecordEntry{RecordID: r.id, ProjectID: v.ProjectID, AssetID: v.AssetID, VersionID: r.version, OperationID: r.op, Digest: r.digest}
 		out.Records = append(out.Records, entry)
-		counts[r.version]++
+		expected := counts[r.version] + 1
+		if r.assertion {
+			assertionCounts[r.version]++
+			expected = assertionCounts[r.version] + 1
+			assertionLast[r.version] = r.id
+		} else {
+			counts[r.version]++
+		}
 		reason := ""
 		if !ok {
 			reason = "evidence_target_missing"
-		} else if counts[r.version] != r.revision {
+		} else if expected != r.revision {
 			reason = "evidence_revision_gap"
 		} else if s.Files == nil {
 			reason = "evidence_adapter_missing"
 		} else {
+			if source, ok := s.Reader.(commit.FileLocations); ok {
+				location, e := source.VersionFileLocation(ctx, v.AssetID, v.VersionID)
+				if e != nil {
+					return out, e
+				}
+				if location.Purged {
+					continue
+				} // Evidence receipt/history remains authoritative.
+				if location.PendingOperationID != "" {
+					out.Residuals = append(out.Residuals, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "evidence_lifecycle_pending", OperationID: r.op})
+					continue
+				}
+			}
 			b, e := s.Files.ReadRecord(ctx, v.ProjectID, v.AssetID, v.VersionID, r.id)
 			var record storage.Record
 			if e != nil {
@@ -131,7 +184,6 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 	if err != nil {
 		return out, err
 	}
-	defer rows.Close()
 	seenTargets := map[ids.ID]bool{}
 	for rows.Next() {
 		var id ids.ID
@@ -149,7 +201,59 @@ func (s *Service) RecoveryInventory(ctx context.Context) (RecoveryInventory, err
 			out.Findings = append(out.Findings, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "evidence_current_revision_missing"})
 		}
 	}
-	return out, rows.Err()
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return out, err
+	}
+	rows, err = s.DB.QueryContext(ctx, `SELECT version_id,revision,assertion_id FROM provenance_assertion_targets ORDER BY version_id`)
+	if err != nil {
+		return out, err
+	}
+	seen := map[ids.ID]bool{}
+	for rows.Next() {
+		var version, last ids.ID
+		var revision int64
+		if err = rows.Scan(&version, &revision, &last); err != nil {
+			rows.Close()
+			return out, err
+		}
+		seen[version] = true
+		if assertionCounts[version]+1 != revision || assertionLast[version] != last {
+			out.Findings = append(out.Findings, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "assertion_current_revision_mismatch"})
+		}
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return out, err
+	}
+	for version := range assertionCounts {
+		if !seen[version] {
+			out.Findings = append(out.Findings, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "assertion_current_revision_missing"})
+		}
+		v, ok := versions[version]
+		if !ok {
+			continue
+		}
+		if locations, ok := s.Reader.(commit.FileLocations); ok {
+			location, err := locations.VersionFileLocation(ctx, v.AssetID, v.VersionID)
+			if err != nil {
+				return out, err
+			}
+			if location.Purged || location.PendingOperationID != "" {
+				continue
+			}
+		}
+		_, doc, err := s.read(ctx, v.Ref(s.InstanceID))
+		if err == nil {
+			_, err = s.assertionState(ctx, v, doc)
+		}
+		if err != nil {
+			out.Findings = append(out.Findings, storage.Finding{Code: errcode.OperationNeedsReconciliation, Reason: "assertion_history_invalid"})
+		}
+	}
+	return out, nil
 }
 
 // RecoverOperation retries the same frozen record through normal acceptance.
@@ -168,6 +272,13 @@ func (s *Service) RecoverOperation(ctx context.Context, who authz.Context, id id
 	}
 	if who.PrincipalID != r.Record.AuthorID || who.PrincipalID != r.Key.ActorID || who.SessionID != r.Record.SessionID || who.RecoveryEpoch != r.Operation.RecoveryEpoch {
 		return AcceptedRecord{}, errcode.New(errcode.OperationNeedsReconciliation, "original evidence authority is no longer available")
+	}
+	if r.Assertion != nil {
+		if r.Assertion.Kind == "correct" || r.Assertion.Kind == "release" {
+			return AcceptedRecord{}, errcode.New(errcode.HumanProofRequired, "human assertion requires current exact grant acceptance")
+		}
+		result, err := s.ApplyAssertion(ctx, who, r.Key.IdempotencyKey, *r.Assertion)
+		return AcceptedRecord(result), err
 	}
 	var e Evidence
 	if err = json.Unmarshal(r.Record.Payload, &e); err != nil {

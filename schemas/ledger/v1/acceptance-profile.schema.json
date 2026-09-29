@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/acceptance-profile.schema.json",
+  "title": "lantai.acceptance-profile/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "profile_id",
+    "revision",
+    "asset_types",
+    "purpose",
+    "required_checks",
+    "required_evidence",
+    "qa_required",
+    "distinct_actor_rule",
+    "waivable_checks",
+    "defaults"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.acceptance-profile/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "asset_types": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "enum": [
+          "image",
+          "video",
+          "audio",
+          "doc",
+          "config",
+          "plugin",
+          "model",
+          "motion",
+          "scene",
+          "production"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "archive_review",
+        "reference",
+        "production",
+        "generative_input",
+        "raw_export"
+      ]
+    },
+    "required_checks": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_key",
+          "schema_version",
+          "accepted_processor_versions",
+          "config_digest",
+          "severity",
+          "waivable"
+        ],
+        "properties": {
+          "check_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "schema_version": {
+            "const": 1
+          },
+          "accepted_processor_versions": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "config_digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "waivable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 4
+    },
+    "required_evidence": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "uniqueItems": true
+    },
+    "qa_required": {
+      "type": "boolean"
+    },
+    "distinct_actor_rule": {
+      "enum": [
+        "maker_checker",
+        "maker_checker_reviewer"
+      ]
+    },
+    "waivable_checks": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "uniqueItems": true
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication"
+      ],
+      "properties": {
+        "publication": {
+          "enum": [
+            "auto",
+            "manual"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -285,6 +285,11 @@ func (s *Service) readableFile(ctx context.Context, who authz.Context, assetID, 
 	if err != nil {
 		return VersionFile{}, commit.Committed{}, err
 	}
+	if controls, ok := s.ledger.(commit.Controls); ok {
+		if err := controls.CheckVersionRead(ctx, assetID, versionID); err != nil {
+			return VersionFile{}, commit.Committed{}, err
+		}
+	}
 	norm, err := pathrule.Normalize(path)
 	if err != nil {
 		return VersionFile{}, commit.Committed{}, err
@@ -321,6 +326,11 @@ func (s *Service) VersionFiles(ctx context.Context, who authz.Context, assetID, 
 	if !assetID.Valid() || !versionID.Valid() {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
+	ctx, release, err := s.write(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 	asset, err := s.ledger.Asset(ctx, assetID)
 	if err != nil {
 		return nil, err
@@ -330,6 +340,18 @@ func (s *Service) VersionFiles(ctx context.Context, who authz.Context, assetID, 
 	}
 	v, err := s.ledger.Version(ctx, assetID, versionID)
 	if err != nil {
+		return nil, err
+	}
+	if controls, ok := s.ledger.(commit.Controls); ok {
+		if err = controls.CheckVersionRead(ctx, assetID, versionID); err != nil {
+			return nil, err
+		}
+	}
+	decision, err := s.rights.EvaluateUse(ctx, who, v.Ref(s.instance), authz.PurposeArchiveReview)
+	if err != nil {
+		return nil, err
+	}
+	if err = decision.Err(); err != nil {
 		return nil, err
 	}
 	if err := s.checkInstalledFor(ctx, v); err != nil {

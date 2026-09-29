@@ -78,7 +78,13 @@ func (s *Service) assetDescription(ctx context.Context, a commit.Asset) (AssetDe
 		return s.derivedDescription(ctx, a)
 	}
 	var d AssetDescription
-	return d, parseInto(raw, AssetContract, &d)
+	if err := parseInto(raw, AssetContract, &d); err != nil {
+		return d, err
+	}
+	// Namespace/lifecycle owns current location; immutable metadata history keeps
+	// its original bytes when an asset is restored at a different path.
+	d.Slug = a.Slug
+	return d, nil
 }
 
 // GetProject 按 key 读取项目登记与当前说明。
@@ -245,6 +251,12 @@ func (s *Service) GetVersion(ctx context.Context, who authz.Context, assetID, ve
 }
 
 func (s *Service) canReadRights(ctx context.Context, who authz.Context, v commit.Committed) error {
+	if controls, ok := s.ledger.(commit.Controls); ok {
+		if err := controls.CheckVersionRead(ctx, v.AssetID, v.VersionID); err != nil {
+			return err
+		}
+	}
+
 	d, err := s.rights.EvaluateUse(ctx, who, v.Ref(s.instance), authz.PurposeArchiveReview)
 	if err != nil {
 		return err

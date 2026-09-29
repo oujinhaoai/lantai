@@ -1,11 +1,12 @@
 // Package provenance 从不可变版本清单和已接受的追加证据计算当前用途限制。
-// 不以索引、同哈希的最宽许可或普通著录替换历史证据；M2 的限制解除不在此实现。
+// 不以索引、同哈希的最宽许可或普通著录替换历史证据；人审更正追加不可变断言。
 package provenance
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -127,9 +128,14 @@ func (s *Service) EvaluateUse(ctx context.Context, who authz.Context, ref ids.Pe
 	default:
 		return denied(1), nil
 	}
-	return s.evaluate(ctx, who, ref, purpose, 0, map[ids.PermanentRef]bool{}, map[ids.PermanentRef]rights.Decision{})
+	return s.evaluate(ctx, who, ref, purpose, false, 0, map[ids.PermanentRef]bool{}, map[ids.PermanentRef]rights.Decision{})
 }
-func (s *Service) evaluate(ctx context.Context, who authz.Context, ref ids.PermanentRef, purpose authz.Purpose, depth int, active map[ids.PermanentRef]bool, memo map[ids.PermanentRef]rights.Decision) (rights.Decision, error) {
+
+// EvaluateRiskAccess is for trusted core risk/lifecycle callers, not downloads.
+func (s *Service) EvaluateRiskAccess(ctx context.Context, who authz.Context, ref ids.PermanentRef) (rights.Decision, error) {
+	return s.evaluate(ctx, who, ref, authz.PurposeArchiveReview, true, 0, map[ids.PermanentRef]bool{}, map[ids.PermanentRef]rights.Decision{})
+}
+func (s *Service) evaluate(ctx context.Context, who authz.Context, ref ids.PermanentRef, purpose authz.Purpose, risk bool, depth int, active map[ids.PermanentRef]bool, memo map[ids.PermanentRef]rights.Decision) (rights.Decision, error) {
 	if err := ctx.Err(); err != nil {
 		return rights.Decision{}, err
 	}
@@ -152,7 +158,26 @@ func (s *Service) evaluate(ctx context.Context, who authz.Context, ref ids.Perma
 	if !ok {
 		return denied(1), nil
 	}
-	epoch, unknown, err := s.evidenceState(ctx, v)
+	if controls, ok := s.Reader.(commit.Controls); ok {
+		var controlErr error
+		if risk {
+			if riskControls, ok := s.Reader.(commit.RiskControls); ok {
+				controlErr = riskControls.CheckRiskRead(ctx, v.AssetID, v.VersionID)
+			} else {
+				controlErr = controls.CheckEvidenceAppend(ctx, v.AssetID, v.VersionID)
+			}
+		} else {
+			controlErr = controls.CheckVersionRead(ctx, v.AssetID, v.VersionID)
+		}
+		if controlErr != nil {
+			return denied(1), nil
+		}
+	}
+	effective, err := s.assertionState(ctx, v, doc)
+	if err != nil {
+		return pending(1), nil
+	}
+	epoch, unknown, err := s.evidenceState(ctx, v, effective.Confirmed)
 	if err != nil {
 		return pending(1), nil
 	}
@@ -163,7 +188,7 @@ func (s *Service) evaluate(ctx context.Context, who authz.Context, ref ids.Perma
 	if err != nil || asset.Asset.AssetID != v.AssetID || asset.Asset.ProjectID != v.ProjectID {
 		return pending(epoch), nil
 	}
-	r := doc.Content.Rights
+	r := effective.Rights
 	if r.Sensitivity == "personal" || asset.Description.Sensitivity == "personal" {
 		ok, err = s.allowed(ctx, who, ActionPersonalRead, v)
 		if err != nil {
@@ -178,13 +203,16 @@ func (s *Service) evaluate(ctx context.Context, who authz.Context, ref ids.Perma
 		if unknown || unknownLicense(r.License) {
 			result = pending(epoch)
 		}
-		if r.Usage == "restricted" || (r.Usage == "reference" && purpose != authz.PurposeReference) || (r.NoAI && purpose == authz.PurposeGenerativeInput) || (!r.RedistributeRaw && purpose == authz.PurposeRawExport) {
+		if effective.RestrictedSource || r.Usage == "restricted" || (r.Usage == "reference" && purpose != authz.PurposeReference) || (r.NoAI && purpose == authz.PurposeGenerativeInput) || (!r.RedistributeRaw && purpose == authz.PurposeRawExport) {
 			result = denied(epoch)
 		}
 	}
-	for _, u := range doc.Content.Uses {
+	if slices.Contains(effective.DenyPurposes, purpose) && !risk {
+		result = denied(epoch)
+	}
+	for _, u := range effective.Uses {
 		// M1 尚无可放宽 reference 的 Profile，因此三类关系均保守继承限制。
-		child, err := s.evaluate(ctx, who, ids.PermanentRef{InstanceID: u.InstanceID, AssetID: u.AssetID, VersionID: u.VersionID}, purpose, depth+1, active, memo)
+		child, err := s.evaluate(ctx, who, ids.PermanentRef{InstanceID: u.InstanceID, AssetID: u.AssetID, VersionID: u.VersionID}, purpose, risk, depth+1, active, memo)
 		if err != nil {
 			return rights.Decision{}, err
 		}
@@ -216,12 +244,12 @@ func (s *Service) VisibleUses(ctx context.Context, who authz.Context, ref ids.Pe
 	if !d.Allowed {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
-	_, doc, err := s.read(ctx, ref)
+	uses, err := s.EffectiveUses(ctx, ref.AssetID, ref.VersionID)
 	if err != nil {
 		return nil, err
 	}
 	out := []manifest.Use{}
-	for _, u := range doc.Content.Uses {
+	for _, u := range uses {
 		d, err := s.EvaluateUse(ctx, who, ids.PermanentRef{InstanceID: u.InstanceID, AssetID: u.AssetID, VersionID: u.VersionID}, authz.PurposeArchiveReview)
 		if err != nil {
 			return nil, err

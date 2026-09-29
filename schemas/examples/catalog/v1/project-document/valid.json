@@ -1,0 +1,1 @@
+{"description":"Versioned decision with project scope; approval belongs to ledger","schema":"lantai.project-document/v1","valid":true,"document":{"contract":"lantai.project-document/v1","kind":"decision","title":"Use permanent references","scope":{"kind":"project"},"file_path":"rules.md","supersedes":[]}}

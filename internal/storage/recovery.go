@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -180,13 +181,35 @@ func (s *Service) Inventory(ctx context.Context, deep bool) (Inventory, error) {
 				out.Installs = append(out.Installs, e)
 				continue
 			}
+			var location commit.FileLocation
+			if source, ok := s.ledger.(commit.FileLocations); ok {
+				if _, lookupErr := s.ledger.Version(ctx, r.AssetID, r.VersionID); lookupErr == nil {
+					location, err = source.VersionFileLocation(ctx, r.AssetID, r.VersionID)
+					if err != nil {
+						return out, err
+					}
+				} else if errcode.CodeOf(lookupErr) != errcode.NotFound {
+					return out, lookupErr
+				}
+			}
+			if location.Purged {
+				out.Installs = append(out.Installs, e)
+				continue // Immutable receipt survives; purged files are no longer roots.
+			}
 			for _, f := range proof.Files {
 				if n, ok := blobs[f.SHA256]; !ok || n != f.Size {
 					add("referenced_blob_missing_or_size", s.layout.BlobPath(f.SHA256), id, errcode.OperationNeedsReconciliation)
 				}
 			}
 			if deep {
-				if err = s.VerifyDeep(ctx, id); err != nil {
+				if location.PendingOperationID != "" {
+					add("lifecycle_pending", s.layout.Home, id, errcode.OperationNeedsReconciliation)
+				} else if location.TrashID != "" {
+					err = s.verifyLifecycleTree(ctx, s.trashVersion(location.TrashID, r.VersionID), proof)
+				} else {
+					err = s.VerifyDeep(ctx, id)
+				}
+				if err != nil {
 					code := errcode.CodeOf(err)
 					if code == "" {
 						code = errcode.StorageUnavailable
@@ -234,36 +257,74 @@ func (s *Service) Inventory(ctx context.Context, deep bool) (Inventory, error) {
 			return out, err
 		}
 	}
-	// Record enumeration has its own identity and schema checks; file existence
-	// alone never makes the record accepted provenance.
-	if err = walk(filepath.Join(s.layout.Home, "projects"), func(path string, d fs.DirEntry) error {
-		if d.IsDir() {
+	// Enumerate both live and trash evidence. Merely finding a canonical record
+	// does not make it accepted; the application compares owner receipts below.
+	for _, area := range []string{"projects", "trash"} {
+		if err = walk(filepath.Join(s.layout.Home, area), func(path string, d fs.DirEntry) error {
+			if d.IsDir() {
+				return nil
+			}
+			rel, _ := filepath.Rel(s.layout.Home, path)
+			parts := strings.Split(filepath.ToSlash(rel), "/")
+			isTrash := area == "trash"
+			if !isTrash && (len(parts) != 7 || parts[2] != "assets" || parts[4] != "records") {
+				return nil
+			}
+			if isTrash && (len(parts) < 3 || parts[2] != "records") {
+				return nil
+			}
+			if isTrash && (len(parts) != 5 || !ids.ID(parts[1]).Valid()) {
+				add("record_invalid", path, "", errcode.SchemaInvalid)
+				return nil
+			}
+			b, err := readBoundedRegular(s.layout.Home, path, MaxRecordBytes)
+			if err != nil {
+				add("record_unreadable", path, "", errcode.OperationNeedsReconciliation)
+				return nil
+			}
+			var r Record
+			if err = json.Unmarshal(b, &r); err != nil {
+				add("record_invalid", path, "", errcode.SchemaInvalid)
+				return nil
+			}
+			canonical, err := r.canonical()
+			matchingPath := false
+			if isTrash {
+				matchingPath = string(r.VersionID) == parts[3] && string(r.RecordID)+".json" == parts[4]
+			} else {
+				matchingPath = string(r.ProjectID) == parts[1] && string(r.AssetID) == parts[3] && string(r.VersionID) == parts[5] && string(r.RecordID)+".json" == parts[6]
+			}
+			if err != nil || !bytes.Equal(b, canonical) || !matchingPath {
+				add("record_invalid", path, r.OperationID, errcode.SchemaInvalid)
+				return nil
+			}
+			// A trash path omits project and asset. Reconstruct that binding from
+			// the authoritative version and its current lifecycle, not the payload.
+			if isTrash {
+				v, err := s.ledger.Version(ctx, r.AssetID, r.VersionID)
+				if err != nil && errcode.CodeOf(err) != errcode.NotFound {
+					return err
+				}
+				locations, ok := s.ledger.(commit.FileLocations)
+				if err != nil || !ok || v.ProjectID != r.ProjectID || v.ManifestDigest != r.ManifestDigest {
+					add("record_location_mismatch", path, r.OperationID, errcode.OperationNeedsReconciliation)
+					return nil
+				}
+				location, err := locations.VersionFileLocation(ctx, r.AssetID, r.VersionID)
+				if err != nil {
+					return err
+				}
+				if location.Purged || string(location.TrashID) != parts[1] {
+					add("record_location_mismatch", path, r.OperationID, errcode.OperationNeedsReconciliation)
+				} else if location.PendingOperationID != "" {
+					add("record_lifecycle_pending", path, location.PendingOperationID, errcode.OperationNeedsReconciliation)
+				}
+			}
+			out.Records = append(out.Records, RecordEntry{RecordID: r.RecordID, ProjectID: r.ProjectID, AssetID: r.AssetID, VersionID: r.VersionID, OperationID: r.OperationID, Digest: digest.Of(b), Ref: s.layout.ref(path)})
 			return nil
+		}); err != nil {
+			return out, err
 		}
-		rel, _ := filepath.Rel(s.layout.Home, path)
-		parts := strings.Split(filepath.ToSlash(rel), "/")
-		if len(parts) != 7 || parts[2] != "assets" || parts[4] != "records" {
-			return nil
-		}
-		b, err := readBoundedRegular(s.layout.Home, path, MaxRecordBytes)
-		if err != nil {
-			add("record_unreadable", path, "", errcode.OperationNeedsReconciliation)
-			return nil
-		}
-		var r Record
-		if err = json.Unmarshal(b, &r); err != nil {
-			add("record_invalid", path, "", errcode.SchemaInvalid)
-			return nil
-		}
-		canonical, err := r.canonical()
-		if err != nil || !bytes.Equal(b, canonical) || string(r.ProjectID) != parts[1] || string(r.AssetID) != parts[3] || string(r.VersionID) != parts[5] || string(r.RecordID)+".json" != parts[6] {
-			add("record_invalid", path, r.OperationID, errcode.SchemaInvalid)
-			return nil
-		}
-		out.Records = append(out.Records, RecordEntry{RecordID: r.RecordID, ProjectID: r.ProjectID, AssetID: r.AssetID, VersionID: r.VersionID, OperationID: r.OperationID, Digest: digest.Of(b), Ref: s.layout.ref(path)})
-		return nil
-	}); err != nil {
-		return out, err
 	}
 	for _, f := range out.Findings {
 		if f.Reason == "non_regular" || f.Reason == "unreadable" {

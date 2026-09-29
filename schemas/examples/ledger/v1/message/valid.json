@@ -1,0 +1,40 @@
+{
+  "description": "Immutable message with exact file anchor and project role mention",
+  "schema": "lantai.discussion-message/v1",
+  "valid": true,
+  "document": {
+    "sequence": 1,
+    "message_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "target": {
+      "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "kind": "version",
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "kind": "question",
+    "text": "Synthetic review question",
+    "anchors": [
+      {
+        "ref": {
+          "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+        },
+        "file_path": "content.md",
+        "kind": "line",
+        "values": [
+          1,
+          2
+        ]
+      }
+    ],
+    "mentions": [
+      {
+        "role": "reviewer"
+      }
+    ],
+    "author_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "session_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "operation_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "created_at": "2026-09-29T00:00:00.000Z"
+  }
+}

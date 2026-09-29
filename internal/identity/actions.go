@@ -92,9 +92,53 @@ const (
 	ActPersonalRead authz.Action = "personal.read"
 )
 
+const (
+	ActProjectMilestonesRead  authz.Action = "identity.read_milestones"
+	ActProjectMilestonesWrite authz.Action = "identity.write_milestones"
+	ActRecordReview           authz.Action = "ledger.record_review"
+	ActRevokeReview           authz.Action = "ledger.revoke_review"
+	ActUnlock                 authz.Action = "ledger.unlock"
+	ActReleaseRestriction     authz.Action = "provenance.release_restriction"
+	ActReleaseName            authz.Action = "ledger.release_name"
+	ActPurge                  authz.Action = "ledger.purge"
+	ActHold                   authz.Action = "ledger.hold"
+	ActUnhold                 authz.Action = "ledger.unhold"
+	ActEnableExtension        authz.Action = "extensions.enable"
+	ActDisableExtension       authz.Action = "extensions.disable"
+)
+
 var adminOnly = []SystemRole{RoleAdmin}
 
 var actionList = []ActionSpec{
+	{Action: "ledger.trash", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.force_trash", Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.trash_own", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleContributor, RoleCurator, RoleCoordinator}},
+	{Action: "ledger.restore", Scope: ScopeOrganize, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: "ledger.restore_others", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}, AdminAlso: true},
+	{Action: "ledger.append_check", Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker, RoleContributor}},
+	{Action: "ledger.initialize_profile", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: "ledger.submit_review", Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurator}},
+	{Action: "ledger.publish", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: "ledger.suspend", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.disable_version", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.enable_version", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.archive", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.unarchive", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: "ledger.lock", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: "ledger.read_discussion", Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: "ledger.post_message", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleReviewer, RoleChecker, RoleCoordinator, RoleContributor, RoleCurator}},
+	{Action: ActProjectMilestonesRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActProjectMilestonesWrite, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: ActRecordReview, Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleReviewer}, HumanOnly: true, HumanGrant: true},
+	{Action: ActRevokeReview, Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleReviewer}, HumanOnly: true, HumanGrant: true},
+	{Action: ActUnlock, Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: ActReleaseRestriction, Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
+	{Action: ActReleaseName, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: ActPurge, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: ActHold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: ActUnhold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
+	{Action: ActEnableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
+	{Action: ActDisableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActWhoAmI, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActEndSession, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActNarrowSession, Scope: ScopeSelf},
@@ -122,6 +166,10 @@ var actionList = []ActionSpec{
 
 	{Action: ActCatalogRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActPersonalRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: "ledger.cancel_trash", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: "provenance.cancel_assertion", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
+	{Action: "provenance.restrict", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker}},
+	{Action: "provenance.assert_evidence", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker, RoleCurator}},
 	{Action: ActProvenanceAppendEvidence, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCurator}},
 	{Action: ActStorageReadContent, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActQuerySearch, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},

@@ -1,0 +1,36 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "$id":"https://github.com/oujinhaoai/lantai/raw/main/schemas/provenance/v1/assertion.schema.json",
+ "title":"RightsAssertion",
+ "description":"Immutable rights assertion accepted by provenance. Loosening or replacing effective uses requires an exact human owner grant and new accepted evidence; bytes alone are not authority.",
+ "type":"object","additionalProperties":false,
+ "required":["assertion_id","subject","manifest_digest","kind","fields","evidence_ids","actor_id","operation_id","created_at","expected_revision","reason"],
+ "properties":{
+  "assertion_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},
+  "subject":{"$ref":"../../common/v1/defs.schema.json#/$defs/permanent_ref"},
+  "manifest_digest":{"$ref":"../../common/v1/defs.schema.json#/$defs/digest"},
+  "kind":{"enum":["restrict","correct","evidence","release"]},
+  "replaces_assertion_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},
+  "expected_revision":{"type":"integer","minimum":1},
+  "fields":{"type":"object","additionalProperties":false,"properties":{
+   "usage":{"enum":["production","reference","restricted"]},
+   "license_expression":{"type":"string","minLength":1,"maxLength":256},
+   "sensitivity":{"enum":["normal","personal"]},
+   "redistribute_raw":{"type":"boolean"},
+   "noai":{"type":"boolean"},
+   "restricted_source":{"type":"boolean"},
+   "deny_purposes":{"type":"array","uniqueItems":true,"maxItems":5,"items":{"enum":["archive_review","reference","production","generative_input","raw_export"]}},
+   "confirmed_evidence_ids":{"type":"array","uniqueItems":true,"maxItems":1000,"items":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"}},
+   "uses":{"type":"array","maxItems":1000,"items":{"type":"object","additionalProperties":false,"required":["instance_id","asset_id","version_id","relation"],"properties":{
+    "instance_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},"asset_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},"version_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},"relation":{"enum":["uses","derived_from","reference"]},"declared":{"type":"string","maxLength":4000}
+   }}}
+  }},
+  "evidence_ids":{"type":"array","minItems":1,"maxItems":1000,"uniqueItems":true,"items":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"}},
+  "reason":{"type":"string","minLength":1,"maxLength":4096},
+  "actor_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},
+  "human_grant_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},
+  "operation_id":{"$ref":"../../common/v1/defs.schema.json#/$defs/ulid"},
+  "created_at":{"$ref":"../../common/v1/defs.schema.json#/$defs/timestamp"}
+ },
+ "allOf":[{"if":{"properties":{"kind":{"enum":["correct","release"]}}},"then":{"required":["human_grant_id","reason"]}}]
+}

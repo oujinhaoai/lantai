@@ -287,8 +287,19 @@ func (s *Service) aliasPath(project ids.ID, slug string, generation int64) strin
 
 // writeAliasRecord 写出资产建立时取得的代次记录；重入幂等。
 func (s *Service) writeAliasRecord(ctx context.Context, a commit.Asset) error {
+	reason := "create"
+	if history, ok := s.ledger.(commit.AliasHistory); ok {
+		allocation, err := history.AliasAllocation(ctx, a.ProjectID, a.Slug, a.Generation)
+		if err == nil {
+			a = allocation.Asset
+			reason = allocation.Reason
+		} else if errcode.CodeOf(err) != errcode.NotFound {
+			return err
+		}
+	}
+
 	rec := AliasRecord{ProjectID: a.ProjectID, NormalizedSlug: a.Slug, Generation: a.Generation, AssetID: a.AssetID,
-		CreatedAt: clock.Format(a.CreatedAt), Reason: "create", OperationID: a.OperationID}
+		CreatedAt: clock.Format(a.CreatedAt), Reason: reason, OperationID: a.OperationID}
 	raw, err := json.Marshal(rec)
 	if err != nil {
 		return err
@@ -329,8 +340,23 @@ func (s *Service) aliasRecord(ctx context.Context, project ids.ID, slug string, 
 		pathrule.Key(rec.NormalizedSlug) != pathrule.Key(slug) {
 		return AliasRecord{}, errcode.New(errcode.OperationNeedsReconciliation, "the alias history record is inconsistent")
 	}
-	a, err := s.ledger.Asset(ctx, rec.AssetID)
-	if err != nil || a.Generation != generation || a.ProjectID != project {
+	var a commit.Asset
+	if history, ok := s.ledger.(commit.AliasHistory); ok {
+		allocation, e := history.AliasAllocation(ctx, project, slug, generation)
+		if e == nil {
+			a = allocation.Asset
+			if allocation.Reason != rec.Reason {
+				return AliasRecord{}, errcode.New(errcode.OperationNeedsReconciliation, "alias reason differs")
+			}
+		} else if errcode.CodeOf(e) != errcode.NotFound {
+			return AliasRecord{}, e
+		}
+	}
+	if a.AssetID == "" {
+		a, err = s.ledger.Asset(ctx, rec.AssetID)
+	}
+
+	if err != nil || a.AssetID != rec.AssetID || a.Generation != generation || a.ProjectID != project {
 		return AliasRecord{}, errcode.New(errcode.NotFound, "")
 	}
 	if pathrule.Key(a.Slug) != pathrule.Key(slug) || a.OperationID != rec.OperationID || clock.Format(a.CreatedAt) != rec.CreatedAt {
@@ -356,7 +382,7 @@ func (s *Service) RepairAliasHistory(ctx context.Context) (RepairReport, error) 
 			return rep, err
 		}
 		if len(page) == 0 {
-			return rep, nil
+			break
 		}
 		for _, v := range page {
 			after = v.VersionID
@@ -382,4 +408,42 @@ func (s *Service) RepairAliasHistory(ctx context.Context) (RepairReport, error) 
 			rep.Written++
 		}
 	}
+	if history, ok := s.ledger.(commit.AliasHistory); ok {
+		var after int64
+		for {
+			page, err := history.AliasAllocations(ctx, after, 500)
+			if err != nil {
+				return rep, err
+			}
+			if len(page) == 0 {
+				break
+			}
+			for _, allocation := range page {
+				after = allocation.Sequence
+				a := allocation.Asset
+				rep.Checked++
+				if _, err := os.Stat(s.aliasPath(a.ProjectID, a.Slug, a.Generation)); err == nil {
+					if _, err = s.aliasRecord(ctx, a.ProjectID, a.Slug, a.Generation); err != nil {
+						return rep, err
+					}
+					continue
+				} else if !errors.Is(err, fs.ErrNotExist) {
+					return rep, err
+				}
+				if err = s.writeAliasRecord(ctx, a); err != nil {
+					return rep, err
+				}
+				rep.Written++
+			}
+		}
+	}
+	return rep, nil
+
+}
+
+// RepairLifecycleAliases materializes immutable ledger allocations after a
+// restore. Replays repair a missing file without allocating another generation.
+func (s *Service) RepairLifecycleAliases(ctx context.Context) error {
+	_, err := s.RepairAliasHistory(ctx)
+	return err
 }

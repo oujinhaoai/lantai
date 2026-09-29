@@ -38,6 +38,13 @@ func (s *Service) Prepare(ctx context.Context, cmd commands.Context, req commit.
 	} else if r != nil {
 		return s.LookupPrepared(ctx, cmd)
 	}
+	if req.AssetID != "" {
+		if err := s.CheckAssetWrite(ctx, req.AssetID); err != nil {
+			return zero, err
+		}
+	} else if err := s.checkPathLock(ctx, req.ProjectID, "", req.Slug); err != nil {
+		return zero, err
+	}
 	response, err := s.store.Accept(ctx, s.db, cmd, commands.StagePrepared, []string{string(req.ProjectID)}, func(ctx context.Context, tx *sql.Tx) error {
 		if err := s.unusedOperation(ctx, tx, cmd.OperationID); err != nil {
 			return err
@@ -118,7 +125,15 @@ func (s *Service) Prepare(ctx context.Context, cmd commands.Context, req commit.
 				return err
 			}
 		}
-		_, err = tx.ExecContext(ctx, `INSERT INTO ledger_prepared(operation_id,command,prepared,base_version_id) VALUES(?,?,?,?)`, cmd.OperationID, encoded(cmd), encoded(p), req.BaseVersionID)
+		var baseRevision int64
+		if req.BaseVersionID != "" {
+			state, e := versionControl(ctx, tx, req.BaseVersionID)
+			if e != nil {
+				return e
+			}
+			baseRevision = state.Revision
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO ledger_prepared(operation_id,command,prepared,base_version_id,base_control_revision) VALUES(?,?,?,?,?)`, cmd.OperationID, encoded(cmd), encoded(p), req.BaseVersionID, baseRevision)
 		return err
 	})
 	if err != nil {
@@ -258,6 +273,9 @@ func (s *Service) Commit(ctx context.Context, id ids.ID, who authz.Context, proo
 	if err := s.finalCheck(ctx, o.Command, who, commit.ActionCommitVersion, o.Prepared.ProjectID, "project", o.Prepared.ProjectID); err != nil {
 		return block(err)
 	}
+	if err := s.checkPreparedWrite(ctx, o.Prepared); err != nil {
+		return block(err)
+	}
 	if in == nil || acceptance == nil {
 		return block(errcode.New(errcode.OperationNeedsReconciliation, "installation and acceptance verifiers are required"))
 	}
@@ -310,6 +328,9 @@ func (s *Service) Commit(ctx context.Context, id ids.ID, who authz.Context, proo
 		if p.AliasGeneration > 0 {
 			asset := commit.Asset{AssetID: p.AssetID, ProjectID: p.ProjectID, Slug: slug, Generation: generation, CreatedBy: o.Command.ActorID, CreatedAt: result.CommittedAt, OperationID: id}
 			if _, err := tx.ExecContext(ctx, `UPDATE ledger_assets SET record=? WHERE asset_id=?`, encoded(asset), p.AssetID); err != nil {
+				return err
+			}
+			if err := saveAliasAllocation(ctx, tx, asset, "create"); err != nil {
 				return err
 			}
 			cl, err := readJSON[commit.Claim](ctx, tx, `SELECT record FROM ledger_namespace_claims WHERE project_id=? AND slug_key=?`, p.ProjectID, pathrule.Key(slug))

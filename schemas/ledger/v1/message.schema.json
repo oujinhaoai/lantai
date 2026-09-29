@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/message.schema.json",
+  "title": "Immutable object discussion message",
+  "description": "Current object/anchor/mention access and coordinate bounds are checked by the domain before acceptance. Messages never confer review or publication authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sequence",
+    "message_id",
+    "target",
+    "kind",
+    "text",
+    "anchors",
+    "mentions",
+    "author_id",
+    "session_id",
+    "operation_id",
+    "created_at"
+  ],
+  "properties": {
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "message_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "project_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "kind": {
+          "enum": [
+            "project",
+            "task",
+            "asset",
+            "version"
+          ]
+        },
+        "id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        }
+      }
+    },
+    "kind": {
+      "enum": [
+        "note",
+        "question",
+        "answer",
+        "feedback",
+        "handoff",
+        "decision_proposal"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536
+    },
+    "anchors": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "file_path",
+          "kind",
+          "values"
+        ],
+        "properties": {
+          "ref": {
+            "$ref": "../../common/v1/defs.schema.json#/$defs/permanent_ref"
+          },
+          "file_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "kind": {
+            "enum": [
+              "time",
+              "frame",
+              "line",
+              "page",
+              "region",
+              "camera"
+            ]
+          },
+          "values": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 7,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "time"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "frame"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "line"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "page"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "region"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "camera"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "values": {
+                  "minItems": 7,
+                  "maxItems": 7
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "mentions": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "principal_id": {
+            "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "reviewer",
+              "checker",
+              "coordinator",
+              "contributor",
+              "curator",
+              "viewer"
+            ]
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "principal_id"
+            ],
+            "not": {
+              "required": [
+                "role"
+              ]
+            }
+          },
+          {
+            "required": [
+              "role"
+            ],
+            "not": {
+              "required": [
+                "principal_id"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "reply_to": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "supersedes": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "author_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "session_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "operation_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "created_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    }
+  }
+}

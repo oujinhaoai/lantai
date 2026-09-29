@@ -20,6 +20,12 @@ import (
 // 并持有该哈希的 blob 锁。内容库已有同一哈希时去重（只核对大小），不覆盖。
 // 返回 true 表示本次新建了原件。
 func (s *Service) placeBlob(src, sha string, size int64) (bool, error) {
+	// A verified upload starts a new content lifetime under this same hash lock.
+	// Never let a crashed old deletion resume against newly retained content.
+	if _, err := s.db.Exec(`UPDATE storage_gc_deletions SET state='cancelled' WHERE sha256=? AND state='deleting'`, sha); err != nil {
+		return false, err
+	}
+
 	dst := s.layout.BlobPath(sha)
 	if st, err := os.Lstat(dst); err == nil {
 		if st.Size() != size || !st.Mode().IsRegular() {

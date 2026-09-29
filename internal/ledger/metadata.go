@@ -70,17 +70,18 @@ func (s *Service) RegisterProject(ctx context.Context, cmd commands.Context, req
 }
 
 type metadataOp struct {
-	Command     commands.Context
-	Request     commit.MetadataRequest
-	Prepared    commit.PreparedMetadata
-	ProofDigest digest.Digest
+	AssetControlRevision int64
+	Command              commands.Context
+	Request              commit.MetadataRequest
+	Prepared             commit.PreparedMetadata
+	ProofDigest          digest.Digest
 }
 
 func (s *Service) metadataOp(ctx context.Context, q commands.DBTX, id ids.ID) (metadataOp, error) {
 	var o metadataOp
 	var cmd, req, p string
 	var proof sql.NullString
-	if err := q.QueryRowContext(ctx, `SELECT command,request,prepared,proof_digest FROM ledger_metadata_prepared WHERE operation_id=?`, id).Scan(&cmd, &req, &p, &proof); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT command,request,prepared,proof_digest,asset_control_revision FROM ledger_metadata_prepared WHERE operation_id=?`, id).Scan(&cmd, &req, &p, &proof, &o.AssetControlRevision); err != nil {
 		return o, missing(err)
 	}
 	if err := json.Unmarshal([]byte(cmd), &o.Command); err != nil {
@@ -154,6 +155,11 @@ func (s *Service) PrepareMetadata(ctx context.Context, cmd commands.Context, req
 		o, err := s.metadataOp(ctx, s.db, r.OperationID)
 		return o.Prepared, err
 	}
+	if t.Kind == commit.TargetAsset {
+		if err := s.CheckAssetWrite(ctx, t.ID); err != nil {
+			return zero, err
+		}
+	}
 	response, err := s.store.Accept(ctx, s.db, cmd, commands.StagePrepared, []string{string(t.ID)}, func(ctx context.Context, tx *sql.Tx) error {
 		if err := s.unusedOperation(ctx, tx, cmd.OperationID); err != nil {
 			return err
@@ -180,7 +186,15 @@ func (s *Service) PrepareMetadata(ctx context.Context, cmd commands.Context, req
 		// context (which may contain ephemeral credential information).
 		saved := req
 		saved.Who = authz.Context{}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO ledger_metadata_prepared(operation_id,command,request,prepared) VALUES(?,?,?,?)`, cmd.OperationID, encoded(cmd), encoded(saved), encoded(p)); err != nil {
+		var controlRevision int64
+		if t.Kind == commit.TargetAsset {
+			control, err := assetControl(ctx, tx, t.ID)
+			if err != nil {
+				return err
+			}
+			controlRevision = control.Revision
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO ledger_metadata_prepared(operation_id,command,request,prepared,asset_control_revision) VALUES(?,?,?,?,?)`, cmd.OperationID, encoded(cmd), encoded(saved), encoded(p), controlRevision); err != nil {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `UPDATE ledger_metadata_targets SET pending_operation_id=? WHERE kind=? AND target_id=?`, cmd.OperationID, t.Kind, t.ID)
@@ -242,6 +256,22 @@ func (s *Service) CommitMetadata(ctx context.Context, id ids.ID, who authz.Conte
 	}
 	if err := s.finalCheck(ctx, o.Command, who, o.Request.Action, t.ProjectID, string(t.Kind), t.ID); err != nil {
 		return reject(commands.StageBlocked, err)
+	}
+	if t.Kind == commit.TargetAsset {
+		if err := s.CheckAssetWrite(ctx, t.ID); err != nil {
+			return reject(commands.StageBlocked, err)
+		}
+		control, err := s.AssetControl(ctx, t.ID)
+		if err != nil {
+			return reject(commands.StageBlocked, err)
+		}
+		expected := o.AssetControlRevision
+		if expected == 0 {
+			expected = 1
+		}
+		if control.Revision != expected {
+			return reject(commands.StageBlocked, errcode.New(errcode.PreconditionFailed, "prepared asset state changed"))
+		}
 	}
 	if err := s.checkTarget(ctx, s.db, t, who, o.Request.Action); err != nil {
 		return reject(commands.StageBlocked, err)

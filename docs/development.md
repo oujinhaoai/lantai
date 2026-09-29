@@ -44,6 +44,7 @@
 | 1 GiB 分片续传与流式内存（默认 32 MiB） | `LANTAI_TEST_LARGE_MB=1024 go test -run TestLargeResumableTransfer -v ./tests/integration/` |
 | 台账/事件/查询单元与故障验证 | `go test ./internal/ledger ./internal/provenance ./internal/events ./internal/query` |
 | T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
+| M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 
@@ -120,3 +121,5 @@ CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `u
 开发机实测（2026-09-27，Go 1.26.8，modernc.org/sqlite v1.59.0，SQLite 3.53.4）：WAL、synchronous=FULL、fullfsync、STRICT 表、RETURNING、JSON 函数、FTS5、busy 超时后返回可分类错误、上下文取消可中断长查询、回滚、`wal_checkpoint(TRUNCATE)`、`VACUUM INTO` 快照与 `integrity_check` 均通过；写事务中强杀进程后重开，已提交数据完整、未提交数据不出现。启用 fullfsync 后单行提交约 4 ms（内置 SSD）至 10 ms（外置 SSD）。交叉编译通过不代表其他平台的文件语义、恢复或隔离已验证。
 
 存储传输开发机实测（2026-09-27，同上环境，macOS 系统临时目录）：`LANTAI_TEST_LARGE_MB=1024` 的续传测试上传 1 073 754 169 字节（17 个 64 MiB 分片，第三片中途断开后只补传缺的 15 片）、分两段 Range 下载，整件 SHA-256 一致；最终复跑上传约 2.5 秒、全程约 3.1 秒，传输期间堆占用增长约 3.6 MiB（默认 32 MiB 规模约 1.6 MiB），不随文件大小线性增长。空间不足、文件占用、硬链接不可用与改名失败只经故障注入测试覆盖，真实文件系统上的故障演练仍属 TEST-M1-06。
+
+M2 的 T01/T02 适配接口、存储迁移与接线边界见[协作适配契约](contracts/collaboration-foundation.md)。它们尚未增加远程命令或自动 GC 调度。

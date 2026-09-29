@@ -238,7 +238,7 @@ func (s *Service) AppendEvidence(ctx context.Context, r AppendRequest) (Accepted
 		if e != nil {
 			return e
 		}
-		if e = tx.QueryRowContext(lctx, `SELECT COALESCE(max(global_seq),0)+1 FROM provenance_records`).Scan(&result.RightsEpoch); e != nil {
+		if result.RightsEpoch, e = bumpRightsEpoch(lctx, tx); e != nil {
 			return e
 		}
 		ev, e := event.New(s.IDs, s.Clock, event.Params{EventType: "rights.evidence_accepted", SchemaVersion: 1, AggregateType: "version_rights", AggregateID: v.VersionID, AggregateRevision: result.Revision, ActorID: r.Who.PrincipalID, SessionID: r.Who.SessionID, ProjectID: v.ProjectID, OperationID: cmd.OperationID, Payload: map[string]any{"asset_id": v.AssetID, "version_id": v.VersionID, "record_id": record.RecordID, "rights_epoch": result.RightsEpoch}})
@@ -286,7 +286,11 @@ func (s *Service) authorizeAppend(ctx context.Context, who authz.Context, v comm
 	if a.Asset.AssetID != v.AssetID || a.Asset.ProjectID != v.ProjectID {
 		return errcode.New(errcode.RightsPending, "current asset description target mismatch")
 	}
-	if doc.Content.Rights.Sensitivity == "personal" || a.Description.Sensitivity == "personal" {
+	state, err := s.assertionState(ctx, v, doc)
+	if err != nil {
+		return errcode.New(errcode.RightsPending, "current rights assertion cannot be verified")
+	}
+	if state.Rights.Sensitivity == "personal" || a.Description.Sensitivity == "personal" {
 		d, err = s.Authz.Authorize(ctx, who, ActionPersonalRead, authz.Resource{ProjectID: v.ProjectID, Kind: "asset", ID: v.AssetID})
 		if err != nil {
 			return err
@@ -304,7 +308,7 @@ func hideReadDenial(d authz.Decision) error {
 	}
 	return errcode.New(errcode.NotFound, "")
 }
-func (s *Service) evidenceState(ctx context.Context, v commit.Committed) (int64, bool, error) {
+func (s *Service) evidenceState(ctx context.Context, v commit.Committed, confirmed map[ids.ID]bool) (int64, bool, error) {
 	rows, err := s.DB.QueryContext(ctx, `SELECT record_id,digest,revision FROM provenance_records WHERE version_id=? ORDER BY revision`, v.VersionID)
 	if err != nil {
 		return 0, false, err
@@ -343,7 +347,7 @@ func (s *Service) evidenceState(ctx context.Context, v commit.Committed) (int64,
 	// 全库接受序号单调递增。任意来源的新证据都使 epoch 改变，不能用依赖
 	// 树内 max(各对象 revision) 冒充对所有变化敏感的水位。
 	var epoch int64
-	if err = s.DB.QueryRowContext(ctx, `SELECT COALESCE(max(global_seq),0)+1 FROM provenance_records`).Scan(&epoch); err != nil {
+	if err = s.DB.QueryRowContext(ctx, `SELECT epoch FROM provenance_rights_epoch WHERE singleton=1`).Scan(&epoch); err != nil {
 		return 0, false, err
 	}
 	unknown := false
@@ -384,7 +388,65 @@ func (s *Service) evidenceState(ctx context.Context, v commit.Committed) (int64,
 		if e = reg.Validate(EvidenceContract, payload); e != nil {
 			return epoch, false, e
 		}
-		unknown = unknown || len(evidence.ExternalInputs) > 0
+		unknown = unknown || len(evidence.ExternalInputs) > 0 && !confirmed[i.id]
 	}
 	return epoch, unknown, nil
+}
+
+// AcceptedEvidenceRecord is a trusted read port for T03 review assembly. It
+// resolves only this module's committed evidence references, rechecks current
+// access (including personal restrictions), and verifies the immutable bytes.
+// Caller holds the shared security guard. An orphan file is never returned.
+func (s *Service) AcceptedEvidenceRecord(ctx context.Context, who authz.Context, id ids.ID) (storage.Record, digest.Digest, error) {
+	var out storage.Record
+	var version ids.ID
+	var hash digest.Digest
+	err := s.DB.QueryRowContext(ctx, `SELECT version_id,digest FROM provenance_records WHERE record_id=?`, id).Scan(&version, &hash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return out, "", errcode.New(errcode.NotFound, "")
+	}
+	if err != nil {
+		return out, "", err
+	}
+	reader, ok := s.Reader.(interface {
+		VersionByID(context.Context, ids.ID) (commit.Committed, error)
+	})
+	if !ok {
+		return out, "", errcode.New(errcode.RightsPending, "version identity resolver unavailable")
+	}
+	v, err := reader.VersionByID(ctx, version)
+	if err != nil {
+		return out, "", err
+	}
+	d, err := s.Authz.Authorize(ctx, who, "catalog.read", authz.Resource{ProjectID: v.ProjectID, Kind: "version", ID: v.VersionID})
+	if err != nil {
+		return out, "", err
+	}
+	if !d.Allowed {
+		return out, "", hideReadDenial(d)
+	}
+	use, err := s.EvaluateUse(ctx, who, v.Ref(s.InstanceID), authz.PurposeArchiveReview)
+	if err != nil {
+		return out, "", err
+	}
+	if err = use.Err(); err != nil {
+		return out, "", err
+	}
+	if s.Files == nil {
+		return out, "", errcode.New(errcode.RightsPending, "")
+	}
+	raw, err := s.Files.ReadRecord(ctx, v.ProjectID, v.AssetID, v.VersionID, id)
+	if err != nil {
+		return out, "", err
+	}
+	if digest.Of(raw) != hash {
+		return out, "", errcode.New(errcode.HashMismatch, "")
+	}
+	if err = json.Unmarshal(raw, &out); err != nil {
+		return out, "", err
+	}
+	if out.RecordID != id || out.ProjectID != v.ProjectID || out.AssetID != v.AssetID || out.VersionID != v.VersionID || out.ManifestDigest != v.ManifestDigest || out.PayloadSchema != EvidenceContract || (out.Kind != "rights_evidence" && out.Kind != "correction") {
+		return storage.Record{}, "", errcode.New(errcode.RefMismatch, "")
+	}
+	return out, hash, nil
 }

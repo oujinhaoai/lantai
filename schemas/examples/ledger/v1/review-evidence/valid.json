@@ -1,0 +1,27 @@
+{
+  "description": "Valid review-evidence",
+  "schema": "lantai.review-evidence/v1",
+  "valid": true,
+  "document": {
+    "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "ref": {
+      "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "flow": {
+      "task_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "attempt_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "round": 1,
+      "fence": 1
+    },
+    "kind": "qa_report",
+    "qa": {
+      "tool": "local-viewer",
+      "tool_version": "1.0.0",
+      "observations": "Inspected the fixed synthetic document.",
+      "verdict": "pass"
+    }
+  }
+}

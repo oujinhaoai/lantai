@@ -10,6 +10,7 @@ import (
 
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -125,11 +126,16 @@ func (s *Service) AppendRecord(ctx context.Context, r Record) (RecordRef, error)
 			return RecordRef{}, fileop.Wrap("checking a record", err)
 		}
 	}
-	_, release, err := s.write(ctx, commands.Request{})
+	ctx, release, err := s.write(ctx, commands.Request{Security: commands.ModeShared, Assets: []string{string(r.AssetID)}})
 	if err != nil {
 		return RecordRef{}, err
 	}
 	defer release()
+	if controls, ok := s.ledger.(commit.Controls); ok {
+		if err := controls.CheckEvidenceAppend(ctx, r.AssetID, r.VersionID); err != nil {
+			return RecordRef{}, err
+		}
+	}
 	path := filepath.Join(dir, string(r.RecordID)+".json")
 	created, err := s.fs.CreateOrMatch(path, raw, 0o444)
 	if errors.Is(err, fileop.ErrContentDiffers) {
@@ -146,7 +152,30 @@ func (s *Service) ReadRecord(ctx context.Context, project, asset, version, recor
 	if !project.Valid() || !asset.Valid() || !version.Valid() || !record.Valid() {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
-	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(s.layout.recordsDir(project, asset, version), string(record)+".json"), MaxRecordBytes)
+	dir := s.layout.recordsDir(project, asset, version)
+	if source, ok := s.ledger.(commit.FileLocations); ok {
+		v, err := s.ledger.Version(ctx, asset, version)
+		if err != nil {
+			return nil, err
+		}
+		if v.ProjectID != project {
+			return nil, errcode.New(errcode.RefMismatch, "")
+		}
+		location, err := source.VersionFileLocation(ctx, asset, version)
+		if err != nil {
+			return nil, err
+		}
+		if location.Purged {
+			return nil, errcode.New(errcode.AssetPurged, "")
+		}
+		if location.PendingOperationID != "" {
+			return nil, errcode.New(errcode.OperationNeedsReconciliation, "version records are moving")
+		}
+		if location.TrashID != "" {
+			dir = s.trashRecords(location.TrashID, version)
+		}
+	}
+	raw, err := readBoundedRegular(s.layout.Home, filepath.Join(dir, string(record)+".json"), MaxRecordBytes)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, errcode.New(errcode.NotFound, "")
 	}
