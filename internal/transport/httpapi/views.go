@@ -91,6 +91,7 @@ func uploadView(u storage.Upload) UploadView {
 }
 
 type CommitRequest struct {
+	Task          *catalog.TaskBinding `json:"task,omitempty"`
 	AssetID       ids.ID               `json:"asset_id,omitempty"`
 	Slug          string               `json:"slug,omitempty"`
 	BaseVersionID ids.ID               `json:"base_version_id,omitempty"`

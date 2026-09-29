@@ -25,7 +25,11 @@ func (s *Service) decide(ctx context.Context, q commands.DBTX, v verified, spec 
 		// 受限恢复会话不能取得资源访问、敏感操作或任何普通权限。
 		return errcode.Forbidden, nil
 	}
-	if !slices.Contains(sess.Scopes, spec.Scope) {
+	scope := spec.Scope
+	if p.Kind == authz.Worker && spec.WorkerScope {
+		scope = ScopeWorker
+	}
+	if !slices.Contains(sess.Scopes, scope) {
 		return errcode.Forbidden, nil
 	}
 	// 委托会话只能执行所列动作；查看自己、结束自己不受此限。

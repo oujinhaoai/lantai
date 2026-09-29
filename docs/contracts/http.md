@@ -1,4 +1,4 @@
-# M1 HTTP 接口
+# HTTP 接口
 
 HTTP 权威定义是 [`api/openapi.yaml`](../../api/openapi.yaml)。`internal/transport/httpapi` 只解析请求、映射视图与错误；身份、目录、存储、台账和查询服务拥有授权、幂等、状态转换及持久化。传输层不访问数据库，不替领域创建成功回执。共享引用、清单和错误来自 `schemas/`，HTTP 的说明视图不含文件中的 `contract` 标记，修订 0 表示尚未有已提交说明时的权威推导值。
 
@@ -8,7 +8,7 @@ HTTP 权威定义是 [`api/openapi.yaml`](../../api/openapi.yaml)。`internal/tr
 
 - 所有业务路由接受短期 Bearer 会话或浏览器 `lantai_session` Cookie。长期凭据只通过 `POST /api/v1/sessions/exchange` 换会话；人的登录是 `POST /api/v1/sessions/login`，必须提供口令和动态码。响应是 `{token?, csrf_token?, session}`，浏览器模式只设置 Secure、HttpOnly、SameSite=Strict Cookie，不返回 bearer token。
 - 浏览器登录及设置会话验证精确 Origin；Cookie 写请求另由身份 Guard 核对 Origin、跨站请求标记与 CSRF。重复认证头、重复会话 Cookie、Bearer 与 Cookie 混用被拒绝。登录来源限速使用直接连接的对端，不信任客户端提交的转发头。
-- `GET /api/v1/whoami` 返回当前身份与会话；`DELETE /api/v1/sessions/current` 结束本人会话。客户端自报的主体、权限和传输档位不进入可信上下文。M1 拒绝 `X-Lantai-Task`、`X-Lantai-Lease` 执行上下文；也不启用任务执行、审定、扩展路由、事件订阅或联邦请求。
+- `GET /api/v1/whoami` 返回当前身份与会话；`DELETE /api/v1/sessions/current` 结束本人会话。客户端自报的主体、权限和传输档位不进入可信上下文。拒绝 `X-Lantai-Task`、`X-Lantai-Lease` 自报执行上下文；M2 通过明确请求体中的任务绑定/fence 由 owner 复验。任务执行、审定与权限过滤长轮询见[协作接线](manual-execution.md)，动态扩展路由和联邦请求未启用。
 - `/api/v1/meta` 无需会话，公布实例 ID、当前版本、实际能力、JSON 大小和分页上限；它不披露主机路径、监听配置、成员或凭据。其余读取仍由领域服务按当前权限判定。
 
 ## JSON、错误与条件写入

@@ -26,7 +26,7 @@
 | `catalog.patch_metadata` | 项目 | `organize` | owner、curator |  |
 | `catalog.patch_own_metadata` | 项目 | `organize` | owner、contributor、curator |  |
 | `catalog.patch_project` | 项目 | `organize` | owner；系统 admin |  |
-| `catalog.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `catalog.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer | Worker 使用 worker 范围；仍核对项目角色 |
 | `events.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `extensions.disable` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `extensions.enable` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
@@ -54,7 +54,7 @@
 | `identity.update_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.whoami` | 实例 | `self` | 本人 | 恢复会话可用 |
 | `identity.write_milestones` | 项目 | `organize` | owner |  |
-| `ledger.append_check` | 项目 | `ingest` | owner、checker、contributor |  |
+| `ledger.append_check` | 项目 | `ingest` | owner、checker、contributor | Worker 使用 worker 范围；仍核对项目角色 |
 | `ledger.archive` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
 | `ledger.cancel_trash` | 项目 | `organize` | owner |  |
 | `ledger.commit_version` | 项目 | `ingest` | owner、contributor |  |
@@ -80,6 +80,7 @@
 | `ledger.unarchive` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
 | `ledger.unhold` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
 | `ledger.unlock` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `node.observe` | 项目 | `node` | owner、checker |  |
 | `personal.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `provenance.append_evidence` | 项目 | `organize` | owner、curator |  |
 | `provenance.assert_evidence` | 项目 | `organize` | owner、checker、curator |  |
@@ -95,7 +96,7 @@
 | `tasks.claim` | 项目 | `task` | owner、coordinator、contributor、curator、checker |  |
 | `tasks.complete` | 项目 | `task` | owner、coordinator、checker、reviewer |  |
 | `tasks.create` | 项目 | `organize` | owner、coordinator |  |
-| `tasks.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
+| `tasks.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer | Worker 使用 worker 范围；仍核对项目角色 |
 | `tasks.reconcile` | 项目 | `organize` | owner、coordinator |  |
 | `tasks.work` | 项目 | `task` | owner、coordinator、contributor、curator、checker |  |
 | `workflow.operate` | 项目 | `organize` | owner、coordinator |  |

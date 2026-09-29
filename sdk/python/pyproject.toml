@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lantai-client"
+version = "0.2.0"
+readme = "README.md"
+description = "Minimal client for the Lantai v1 REST API"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["lantai*"]

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Lantai API
   version: 1.0.0-draft
-  summary: 兰台 M1 REST 与传输契约
+  summary: 兰台 M2 REST 与传输契约
   description: |
     兰台只有一套 REST 接口。HTTP 路由、请求和视图由本文件定义，共享数据、清单与错误引用 schemas/ 权威定义。scripts/gen/openapi 打包为 api/gen/openapi.bundle.json；内部 handler 使用相同契约。
 
@@ -890,6 +890,1675 @@ paths:
         default:
           $ref: '#/components/responses/Error'
       summary: whoAmI
+  /api/v1/context:
+    get:
+      operationId: getContext
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: asset_type
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2CatalogContextBundle'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: context
+      tags:
+        - collaboration
+  /api/v1/events:
+    get:
+      operationId: getEvents
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+        - in: query
+          name: after
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+        - in: query
+          name: wait_seconds
+          required: false
+          schema:
+            maximum: 20
+            minimum: 0
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2QueryEventPage'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: events
+      tags:
+        - collaboration
+  /api/v1/evidence:
+    post:
+      operationId: postEvidence
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerReviewEvidenceInput'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerAcceptedEvidence'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: evidence
+      tags:
+        - collaboration
+  /api/v1/flows:
+    get:
+      operationId: getFlows
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: after
+          required: false
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: ../schemas/tasks/v1/flow.schema.json
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows
+      tags:
+        - collaboration
+    post:
+      operationId: postFlows
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowStartRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows
+      tags:
+        - collaboration
+  /api/v1/flows/{id}:
+    get:
+      operationId: getFlowsId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowFlowView'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/{id}
+      tags:
+        - collaboration
+  /api/v1/flows/cancel:
+    post:
+      operationId: postFlowsCancel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowFlowRef'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/cancel
+      tags:
+        - collaboration
+  /api/v1/flows/dispatch:
+    post:
+      operationId: postFlowsDispatch
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                limit:
+                  maximum: 100
+                  minimum: 1
+                  type: integer
+              required:
+                - limit
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  dispatched:
+                    minimum: 0
+                    type: integer
+                  jobs_synchronized:
+                    minimum: 0
+                    type: integer
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/dispatch
+      tags:
+        - collaboration
+  /api/v1/flows/pause:
+    post:
+      operationId: postFlowsPause
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowFlowRef'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/pause
+      tags:
+        - collaboration
+  /api/v1/flows/resume:
+    post:
+      operationId: postFlowsResume
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowFlowRef'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/resume
+      tags:
+        - collaboration
+  /api/v1/flows/retry:
+    post:
+      operationId: postFlowsRetry
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowFlowRef'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/retry
+      tags:
+        - collaboration
+  /api/v1/flows/retry-command:
+    post:
+      operationId: postFlowsRetryCommand
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2WorkflowCommandRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2WorkflowResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: flows/retry-command
+      tags:
+        - collaboration
+  /api/v1/human/execute:
+    post:
+      operationId: postHumanExecute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2HttpapiHumanExecuteRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: human/execute
+      tags:
+        - collaboration
+  /api/v1/human/grants/{id}:
+    get:
+      operationId: getHumanGrantsId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/M2IdentityHumanGrantItem'
+                type: array
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: human/grants/{id}
+      tags:
+        - collaboration
+  /api/v1/human/prepare:
+    post:
+      operationId: postHumanPrepare
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2HttpapiHumanPrepareRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  challenge:
+                    $ref: '#/components/schemas/Challenge'
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2IdentityHumanAction'
+                    type: array
+                required:
+                  - challenge
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: human/prepare
+      tags:
+        - collaboration
+  /api/v1/human/rechallenge:
+    post:
+      operationId: postHumanRechallenge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                operation_id:
+                  $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              required:
+                - operation_id
+              type: object
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: human/rechallenge
+      tags:
+        - collaboration
+  /api/v1/inbox:
+    get:
+      operationId: getInbox
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2QueryInboxPage'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: inbox
+      tags:
+        - collaboration
+  /api/v1/inbox/read:
+    post:
+      operationId: postInboxRead
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: false
+              properties:
+                project_id:
+                  $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+                through:
+                  minimum: 0
+                  type: integer
+              required:
+                - project_id
+                - through
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  through:
+                    minimum: 0
+                    type: integer
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: inbox/read
+      tags:
+        - collaboration
+  /api/v1/jobs:
+    get:
+      operationId: getJobs
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: after
+          required: false
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2JobsJob'
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs
+      tags:
+        - collaboration
+  /api/v1/jobs/{id}:
+    get:
+      operationId: getJobsId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2JobsJob'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs/{id}
+      tags:
+        - collaboration
+  /api/v1/jobs/cancel:
+    post:
+      operationId: postJobsCancel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2JobsControl'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2JobsJob'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs/cancel
+      tags:
+        - collaboration
+  /api/v1/jobs/reconcile:
+    post:
+      operationId: postJobsReconcile
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2JobsReconcileRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2JobsJob'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs/reconcile
+      tags:
+        - collaboration
+  /api/v1/jobs/retry:
+    post:
+      operationId: postJobsRetry
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2JobsControl'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2JobsJob'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs/retry
+      tags:
+        - collaboration
+  /api/v1/jobs/run:
+    post:
+      operationId: postJobsRun
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2JobsControl'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2JobsJob'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: jobs/run
+      tags:
+        - collaboration
+  /api/v1/messages:
+    get:
+      operationId: getMessages
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: kind
+          required: true
+          schema:
+            enum:
+              - project
+              - task
+              - asset
+              - version
+        - in: query
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: after
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2LedgerMessage'
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: messages
+      tags:
+        - collaboration
+    post:
+      operationId: postMessages
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerMessageInput'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerMessage'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: messages
+      tags:
+        - collaboration
+  /api/v1/nodes/observe:
+    post:
+      operationId: postNodesObserve
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2NodeObservation'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2NodeObservation'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: nodes/observe
+      tags:
+        - collaboration
+  /api/v1/publications:
+    post:
+      operationId: postPublications
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerPublishRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerPublication'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: publications
+      tags:
+        - collaboration
+  /api/v1/resync:
+    get:
+      operationId: getResync
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2QueryResyncPage'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: resync
+      tags:
+        - collaboration
+  /api/v1/review-targets:
+    post:
+      operationId: postReviewTargets
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerSubmitReview'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerReviewTarget'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: review-targets
+      tags:
+        - collaboration
+  /api/v1/review-targets/{id}:
+    get:
+      operationId: getReviewTargetsId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerReviewTarget'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: review-targets/{id}
+      tags:
+        - collaboration
+  /api/v1/rights/assertions:
+    post:
+      operationId: postRightsAssertions
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2ProvenanceAssertionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2ProvenanceAssertionReceipt'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: rights/assertions
+      tags:
+        - collaboration
+  /api/v1/rights/cancel:
+    post:
+      operationId: postRightsCancel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2ProvenanceCancelAssertionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2ProvenanceCancelAssertionReceipt'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: rights/cancel
+      tags:
+        - collaboration
+  /api/v1/task-runs:
+    get:
+      operationId: getTaskRuns
+      parameters:
+        - in: query
+          name: task_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: after
+          required: false
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: ../schemas/agent-execution/v1/task-run.schema.json
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs
+      tags:
+        - collaboration
+    post:
+      operationId: postTaskRuns
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecStartRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs
+      tags:
+        - collaboration
+  /api/v1/task-runs/{id}:
+    get:
+      operationId: getTaskRunsId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/{id}
+      tags:
+        - collaboration
+  /api/v1/task-runs/answer:
+    post:
+      operationId: postTaskRunsAnswer
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionAnswerRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/answer
+      tags:
+        - collaboration
+  /api/v1/task-runs/ask:
+    post:
+      operationId: postTaskRunsAsk
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionInputRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/ask
+      tags:
+        - collaboration
+  /api/v1/task-runs/cancel:
+    post:
+      operationId: postTaskRunsCancel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionCancelRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/cancel
+      tags:
+        - collaboration
+  /api/v1/task-runs/candidate:
+    post:
+      operationId: postTaskRunsCandidate
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionCandidateRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/candidate
+      tags:
+        - collaboration
+  /api/v1/task-runs/capabilities:
+    get:
+      operationId: getTaskRunsCapabilities
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/agent-execution/v1/execution-capabilities.schema.json
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/capabilities
+      tags:
+        - collaboration
+  /api/v1/task-runs/checkpoint:
+    post:
+      operationId: postTaskRunsCheckpoint
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionCheckpointRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/checkpoint
+      tags:
+        - collaboration
+  /api/v1/task-runs/progress:
+    post:
+      operationId: postTaskRunsProgress
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionProgressRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/progress
+      tags:
+        - collaboration
+  /api/v1/task-runs/reconcile:
+    post:
+      operationId: postTaskRunsReconcile
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionReconcileRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/reconcile
+      tags:
+        - collaboration
+  /api/v1/task-runs/seal:
+    post:
+      operationId: postTaskRunsSeal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionSealRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/seal
+      tags:
+        - collaboration
+  /api/v1/task-runs/tool:
+    post:
+      operationId: postTaskRunsTool
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2AgentexecutionToolRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2AgentexecutionRecord'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: task-runs/tool
+      tags:
+        - collaboration
+  /api/v1/tasks:
+    get:
+      operationId: getTasks
+      parameters:
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: after
+          required: false
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            default: 50
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: ../schemas/tasks/v1/task.schema.json
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks
+      tags:
+        - collaboration
+    post:
+      operationId: postTasks
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksCreateRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks
+      tags:
+        - collaboration
+  /api/v1/tasks/{id}:
+    get:
+      operationId: getTasksId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksView'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/{id}
+      tags:
+        - collaboration
+  /api/v1/tasks/{id}/attempts:
+    get:
+      operationId: getTasksIdAttempts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: ../schemas/tasks/v1/attempt.schema.json
+                type: array
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/{id}/attempts
+      tags:
+        - collaboration
+  /api/v1/tasks/answer:
+    post:
+      operationId: postTasksAnswer
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksAnswerRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/answer
+      tags:
+        - collaboration
+  /api/v1/tasks/assign:
+    post:
+      operationId: postTasksAssign
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksAssignRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/assign
+      tags:
+        - collaboration
+  /api/v1/tasks/block:
+    post:
+      operationId: postTasksBlock
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksBlockRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/block
+      tags:
+        - collaboration
+  /api/v1/tasks/cancel:
+    post:
+      operationId: postTasksCancel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksCancelRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/cancel
+      tags:
+        - collaboration
+  /api/v1/tasks/claim:
+    post:
+      operationId: postTasksClaim
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksClaimRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/claim
+      tags:
+        - collaboration
+  /api/v1/tasks/complete:
+    post:
+      operationId: postTasksComplete
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksCompleteRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/complete
+      tags:
+        - collaboration
+  /api/v1/tasks/handoff:
+    post:
+      operationId: postTasksHandoff
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksHandoffRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/handoff
+      tags:
+        - collaboration
+  /api/v1/tasks/reconcile:
+    post:
+      operationId: postTasksReconcile
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksReconcileRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/reconcile
+      tags:
+        - collaboration
+  /api/v1/tasks/release:
+    post:
+      operationId: postTasksRelease
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksReleaseRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/release
+      tags:
+        - collaboration
+  /api/v1/tasks/renew:
+    post:
+      operationId: postTasksRenew
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksAttemptRef'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/renew
+      tags:
+        - collaboration
+  /api/v1/tasks/rework:
+    post:
+      operationId: postTasksRework
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksReworkRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/rework
+      tags:
+        - collaboration
+  /api/v1/tasks/submit:
+    post:
+      operationId: postTasksSubmit
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2TasksSubmitRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2TasksResult'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: tasks/submit
+      tags:
+        - collaboration
+  /api/v1/trash/{id}:
+    get:
+      operationId: getTrashId
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: query
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerTrashEntry'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: trash/{id}
+      tags:
+        - collaboration
+  /api/v1/trash/own:
+    post:
+      operationId: postTrashOwn
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerTrashRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2CommandsReceipt'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: trash/own
+      tags:
+        - collaboration
+  /api/v1/trash/preview:
+    post:
+      operationId: postTrashPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerTrashSelector'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2LedgerTrashRequest'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: trash/preview
+      tags:
+        - collaboration
+  /api/v1/trash/restore:
+    post:
+      operationId: postTrashRestore
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2LedgerRestoreRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2CommandsReceipt'
+          description: 领域服务结果；执行成功不等于人审通过。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: trash/restore
+      tags:
+        - collaboration
 components:
   securitySchemes:
     bearerSession:
@@ -1150,6 +2819,8 @@ components:
     CommitRequest:
       additionalProperties: false
       properties:
+        task:
+          $ref: '#/components/schemas/M2CatalogTaskBinding'
         asset_id:
           $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
         base_version_id:
@@ -1415,6 +3086,7 @@ components:
         stage:
           enum:
             - M1
+            - M2
           type: string
         transfer:
           additionalProperties: false
@@ -2034,6 +3706,3035 @@ components:
         - ref
         - uri
       type: object
+    M2AgentexecStartRequest:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        activation:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/activation_ref
+        budget_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        execution_key:
+          type: string
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        input_snapshot:
+          $ref: ../schemas/tasks/v1/defs.schema.json#/$defs/input_snapshot
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        profile:
+          $ref: ../schemas/agent-execution/v1/execution-profile.schema.json
+        protocol:
+          type: string
+        request_hash:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        resume_from:
+          $ref: ../schemas/agent-execution/v1/checkpoint.schema.json
+        task_run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - action
+        - budget_id
+        - execution_key
+        - fence
+        - input_snapshot
+        - operation_id
+        - profile
+        - protocol
+        - request_hash
+        - task_run_id
+      type: object
+    M2AgentexecutionAnswerRequest:
+      additionalProperties: false
+      properties:
+        answer:
+          type: string
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        input_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+      required:
+        - answer
+        - expected_revision
+        - fence
+        - input_id
+        - run_id
+        - target_digest
+      type: object
+    M2AgentexecutionCancelRequest:
+      additionalProperties: false
+      properties:
+        cancel_mode:
+          type: string
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        reason:
+          type: string
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - cancel_mode
+        - expected_revision
+        - fence
+        - reason
+        - run_id
+      type: object
+    M2AgentexecutionCandidateRequest:
+      additionalProperties: false
+      properties:
+        candidate:
+          $ref: ../schemas/agent-execution/v1/artifact-candidate.schema.json
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - candidate
+        - expected_revision
+        - fence
+        - ref
+        - run_id
+      type: object
+    M2AgentexecutionCheckpointRequest:
+      additionalProperties: false
+      properties:
+        checkpoint:
+          $ref: ../schemas/agent-execution/v1/checkpoint.schema.json
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        stopped:
+          type: boolean
+      required:
+        - checkpoint
+        - expected_revision
+        - fence
+        - run_id
+        - stopped
+      type: object
+    M2AgentexecutionHumanInput:
+      additionalProperties: false
+      properties:
+        answer:
+          type: string
+        answered_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          type: string
+        id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        question:
+          type: string
+        target_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+      required:
+        - expires_at
+        - id
+        - kind
+        - question
+      type: object
+    M2AgentexecutionInputRequest:
+      additionalProperties: false
+      properties:
+        checkpoint:
+          $ref: ../schemas/agent-execution/v1/checkpoint.schema.json
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        input:
+          $ref: '#/components/schemas/M2AgentexecutionHumanInput'
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        stopped:
+          type: boolean
+      required:
+        - checkpoint
+        - expected_revision
+        - fence
+        - input
+        - run_id
+        - stopped
+      type: object
+    M2AgentexecutionProgressRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        step:
+          $ref: ../schemas/agent-execution/v1/agent-step-run.schema.json
+        usage:
+          $ref: ../schemas/agent-execution/v1/defs.schema.json#/$defs/budget_usage
+      required:
+        - expected_revision
+        - fence
+        - run_id
+        - usage
+      type: object
+    M2AgentexecutionReconcileRequest:
+      additionalProperties: false
+      properties:
+        checkpoint:
+          $ref: ../schemas/agent-execution/v1/checkpoint.schema.json
+        evidence_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        reason:
+          type: string
+        receipt_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        stopped:
+          type: boolean
+        tool_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        tool_state:
+          type: string
+      required:
+        - evidence_refs
+        - expected_revision
+        - fence
+        - reason
+        - run_id
+        - stopped
+      type: object
+    M2AgentexecutionRecord:
+      additionalProperties: false
+      properties:
+        reconciliations:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/M2AgentexecutionReconciliation'
+        cancel_requested:
+          type: boolean
+        candidate_refs:
+          additionalProperties:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+          type: object
+        candidates:
+          anyOf:
+            - items:
+                $ref: ../schemas/agent-execution/v1/artifact-candidate.schema.json
+              type: array
+            - type: "null"
+        checkpoints:
+          anyOf:
+            - items:
+                $ref: ../schemas/agent-execution/v1/checkpoint.schema.json
+              type: array
+            - type: "null"
+        current:
+          $ref: ../schemas/agent-execution/v1/agent-response.schema.json
+        inputs:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2AgentexecutionHumanInput'
+              type: array
+            - type: "null"
+        profile:
+          $ref: ../schemas/agent-execution/v1/execution-profile.schema.json
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        result:
+          $ref: ../schemas/agent-execution/v1/agent-result.schema.json
+        run:
+          $ref: ../schemas/agent-execution/v1/task-run.schema.json
+        session_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        steps:
+          anyOf:
+            - items:
+                $ref: ../schemas/agent-execution/v1/agent-step-run.schema.json
+              type: array
+            - type: "null"
+        task_round:
+          type: integer
+        tools:
+          anyOf:
+            - items:
+                $ref: ../schemas/agent-execution/v1/tool-operation.schema.json
+              type: array
+            - type: "null"
+        updated_at:
+          type: string
+        usage:
+          $ref: ../schemas/agent-execution/v1/defs.schema.json#/$defs/budget_usage
+      required:
+        - cancel_requested
+        - candidate_refs
+        - candidates
+        - checkpoints
+        - current
+        - inputs
+        - profile
+        - project_id
+        - run
+        - session_id
+        - steps
+        - task_round
+        - tools
+        - updated_at
+        - usage
+      type: object
+    M2AgentexecutionSealRequest:
+      additionalProperties: false
+      properties:
+        candidate_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        limitations:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        outcome:
+          type: string
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        stopped:
+          type: boolean
+      required:
+        - candidate_ids
+        - expected_revision
+        - fence
+        - limitations
+        - outcome
+        - run_id
+        - stopped
+      type: object
+    M2AgentexecutionToolRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        tool:
+          $ref: ../schemas/agent-execution/v1/tool-operation.schema.json
+      required:
+        - expected_revision
+        - fence
+        - run_id
+        - tool
+      type: object
+    M2CatalogAssetPatch:
+      additionalProperties: false
+      properties:
+        defaults:
+          $ref: '#/components/schemas/M2CatalogDefaults'
+        extra:
+          additionalProperties: {}
+          type: object
+        sensitivity:
+          type: string
+        subjects:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        summary:
+          type: string
+        tags:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        title:
+          type: string
+      required: []
+      type: object
+    M2CatalogContentInput:
+      additionalProperties: false
+      properties:
+        asset_type:
+          type: string
+        files:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2ManifestInputFile'
+              type: array
+            - type: "null"
+        metadata:
+          additionalProperties: {}
+          type: object
+        producer:
+          $ref: '#/components/schemas/M2StorageProducer'
+        rights:
+          $ref: '#/components/schemas/M2ManifestRights'
+        uses:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2CatalogDeclaredUse'
+              type: array
+            - type: "null"
+        version_note:
+          type: string
+      required:
+        - asset_type
+        - files
+      type: object
+    M2CatalogContextApproval:
+      additionalProperties: false
+      properties:
+        approver_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        effective_at:
+          type: string
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        review_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          type: integer
+      required:
+        - approver_id
+        - effective_at
+        - manifest_digest
+        - ref
+        - review_id
+        - revision
+      type: object
+    M2CatalogContextBundle:
+      additionalProperties: false
+      properties:
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        documents:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2CatalogContextDocument'
+              type: array
+            - type: "null"
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - digest
+        - documents
+        - project_id
+      type: object
+    M2CatalogContextDocument:
+      additionalProperties: false
+      properties:
+        approval:
+          $ref: '#/components/schemas/M2CatalogContextApproval'
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        markdown:
+          type: string
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        spec:
+          $ref: '#/components/schemas/M2CatalogProjectDocument'
+      required:
+        - manifest_digest
+        - markdown
+        - ref
+        - spec
+      type: object
+    M2CatalogDeclaredUse:
+      additionalProperties: false
+      properties:
+        alias_generation:
+          type: integer
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        ref:
+          type: string
+        relation:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - relation
+      type: object
+    M2CatalogDefaults:
+      additionalProperties: false
+      properties:
+        license:
+          type: string
+        usage:
+          type: string
+      required: []
+      type: object
+    M2CatalogDocumentScope:
+      additionalProperties: false
+      properties:
+        asset_type:
+          type: string
+        kind:
+          type: string
+      required:
+        - kind
+      type: object
+    M2CatalogProjectDocument:
+      additionalProperties: false
+      properties:
+        contract:
+          type: string
+        file_path:
+          type: string
+        kind:
+          type: string
+        scope:
+          $ref: '#/components/schemas/M2CatalogDocumentScope'
+        supersedes:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        title:
+          type: string
+      required:
+        - contract
+        - file_path
+        - kind
+        - scope
+        - supersedes
+        - title
+      type: object
+    M2CatalogTaskBinding:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        lease_fence:
+          type: integer
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - lease_fence
+        - task_id
+      type: object
+    M2CommandsReceipt:
+      additionalProperties: false
+      properties:
+        CompletedAt:
+          format: date-time
+          type: string
+        CreatedAt:
+          format: date-time
+          type: string
+        FailureCode:
+          type: string
+        Key:
+          $ref: '#/components/schemas/M2CommandsReceiptKey'
+        OperationID:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        OwnerModule:
+          type: string
+        RequestHash:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        ResponseCode:
+          type: integer
+        ResponseExpiresAt:
+          format: date-time
+          type: string
+        ResponseSummary: {}
+        ResultRefs:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2CommandsResultRef'
+              type: array
+            - type: "null"
+        Status:
+          type: string
+      required:
+        - CompletedAt
+        - CreatedAt
+        - FailureCode
+        - Key
+        - OperationID
+        - OwnerModule
+        - RequestHash
+        - ResponseCode
+        - ResponseExpiresAt
+        - ResponseSummary
+        - ResultRefs
+        - Status
+      type: object
+    M2CommandsReceiptKey:
+      additionalProperties: false
+      properties:
+        ActorID:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        CommandType:
+          type: string
+        IdempotencyKey:
+          type: string
+        ProjectID:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - ActorID
+        - CommandType
+        - IdempotencyKey
+        - ProjectID
+      type: object
+    M2CommandsResultRef:
+      additionalProperties: false
+      properties:
+        id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        revision:
+          type: integer
+        uri:
+          type: string
+      required:
+        - id
+        - kind
+      type: object
+    M2ExtensionsCheckResult:
+      additionalProperties: false
+      properties:
+        contract:
+          type: string
+        findings:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        producer:
+          $ref: '#/components/schemas/M2StorageProducer'
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        verdict:
+          type: string
+      required:
+        - contract
+        - findings
+        - manifest_digest
+        - producer
+        - ref
+        - verdict
+      type: object
+    M2HttpapiCommitRequest:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        base_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        content:
+          $ref: '#/components/schemas/M2CatalogContentInput'
+        describe:
+          $ref: '#/components/schemas/M2CatalogAssetPatch'
+        slug:
+          type: string
+        task:
+          $ref: '#/components/schemas/M2CatalogTaskBinding'
+      required:
+        - content
+      type: object
+    M2HttpapiHumanExecuteRequest:
+      additionalProperties: false
+      properties:
+        grant_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - grant_id
+        - operation_id
+      type: object
+    M2HttpapiHumanIntent:
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+        request: {}
+      required:
+        - kind
+        - request
+      type: object
+    M2HttpapiHumanPrepareRequest:
+      additionalProperties: false
+      properties:
+        items:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2HttpapiHumanIntent'
+              type: array
+            - type: "null"
+      required:
+        - items
+      type: object
+    M2IdentityExtensionAuthorization:
+      additionalProperties: false
+      properties:
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        config_revision:
+          type: integer
+        package_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        plugin_id:
+          type: string
+        policy_revision:
+          type: integer
+        scope_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        scope_kind:
+          type: string
+        target:
+          type: string
+      required:
+        - config_digest
+        - config_revision
+        - package_digest
+        - plugin_id
+        - policy_revision
+        - scope_kind
+        - target
+      type: object
+    M2IdentityHumanAction:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        extension:
+          $ref: '#/components/schemas/M2IdentityExtensionAuthorization'
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        request: {}
+        resource_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        resource_revision:
+          type: integer
+      required:
+        - action
+        - request
+        - resource_id
+        - resource_revision
+      type: object
+    M2IdentityHumanGrantItem:
+      additionalProperties: false
+      properties:
+        action:
+          $ref: '#/components/schemas/M2IdentityHumanAction'
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - action
+        - operation_id
+      type: object
+    M2JobsControl:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        job_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - expected_revision
+        - job_id
+      type: object
+    M2JobsJob:
+      additionalProperties: false
+      properties:
+        reconciliations:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/M2JobsReconciliation'
+        attempt:
+          $ref: ../schemas/agent-execution/v1/job-attempt.schema.json
+        attempts:
+          type: integer
+        cancel_requested:
+          type: boolean
+        checks:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerReviewEvidenceInput'
+              type: array
+            - type: "null"
+        evidence:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2WorkflowJobEvidence'
+              type: array
+            - type: "null"
+        expires_at:
+          type: string
+        failure:
+          type: string
+        job_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        recovery_epoch:
+          type: integer
+        request:
+          $ref: '#/components/schemas/M2WorkflowJobRequest'
+        revision:
+          type: integer
+        session_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        state:
+          type: string
+        worker_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempts
+        - cancel_requested
+        - checks
+        - evidence
+        - job_id
+        - operation_id
+        - recovery_epoch
+        - request
+        - revision
+        - state
+      type: object
+    M2JobsReconcileRequest:
+      additionalProperties: false
+      properties:
+        evidence_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        job_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        stopped:
+          type: boolean
+      required:
+        - evidence_refs
+        - expected_revision
+        - job_id
+        - reason
+        - stopped
+      type: object
+    M2LedgerAcceptanceProfile:
+      additionalProperties: false
+      properties:
+        asset_types:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        contract:
+          type: string
+        defaults:
+          $ref: '#/components/schemas/M2LedgerProfileDefaults'
+        distinct_actor_rule:
+          type: string
+        profile_id:
+          type: string
+        purpose:
+          type: string
+        qa_required:
+          type: boolean
+        required_checks:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerCheckRequirement'
+              type: array
+            - type: "null"
+        required_evidence:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        revision:
+          type: integer
+        waivable_checks:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+      required:
+        - asset_types
+        - contract
+        - defaults
+        - distinct_actor_rule
+        - profile_id
+        - purpose
+        - qa_required
+        - required_checks
+        - required_evidence
+        - revision
+        - waivable_checks
+      type: object
+    M2LedgerAcceptedEvidence:
+      additionalProperties: false
+      properties:
+        actor_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        check:
+          $ref: '#/components/schemas/M2ExtensionsCheckResult'
+        check_key:
+          type: string
+        completed_at:
+          type: string
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        evidence_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        kind:
+          type: string
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        qa_verdict:
+          type: string
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        schema_version:
+          type: integer
+      required:
+        - actor_id
+        - completed_at
+        - digest
+        - evidence_id
+        - kind
+        - manifest_digest
+        - ref
+      type: object
+    M2LedgerAnchor:
+      additionalProperties: false
+      properties:
+        file_path:
+          type: string
+        kind:
+          type: string
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        values:
+          anyOf:
+            - items:
+                type: number
+              type: array
+            - type: "null"
+      required:
+        - file_path
+        - kind
+        - ref
+        - values
+      type: object
+    M2LedgerCheckRequirement:
+      additionalProperties: false
+      properties:
+        accepted_processor_versions:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2StorageProducer'
+              type: array
+            - type: "null"
+        check_key:
+          type: string
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        schema_version:
+          type: integer
+        severity:
+          type: string
+        waivable:
+          type: boolean
+      required:
+        - accepted_processor_versions
+        - check_key
+        - config_digest
+        - schema_version
+        - severity
+        - waivable
+      type: object
+    M2LedgerDiscussionTarget:
+      additionalProperties: false
+      properties:
+        id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - id
+        - kind
+        - project_id
+      type: object
+    M2LedgerLifecycleUse:
+      additionalProperties: false
+      properties:
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        revision:
+          type: integer
+      required:
+        - digest
+        - id
+        - kind
+        - revision
+      type: object
+    M2LedgerMention:
+      additionalProperties: false
+      properties:
+        principal_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        role:
+          type: string
+      required: []
+      type: object
+    M2LedgerMessage:
+      additionalProperties: false
+      properties:
+        anchors:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerAnchor'
+              type: array
+            - type: "null"
+        author_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        kind:
+          type: string
+        mentions:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerMention'
+              type: array
+            - type: "null"
+        message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reply_to:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        sequence:
+          type: integer
+        session_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        supersedes:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target:
+          $ref: '#/components/schemas/M2LedgerDiscussionTarget'
+        text:
+          type: string
+      required:
+        - anchors
+        - author_id
+        - created_at
+        - kind
+        - mentions
+        - message_id
+        - operation_id
+        - sequence
+        - session_id
+        - target
+        - text
+      type: object
+    M2LedgerMessageInput:
+      additionalProperties: false
+      properties:
+        anchors:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerAnchor'
+              type: array
+            - type: "null"
+        kind:
+          type: string
+        mentions:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerMention'
+              type: array
+            - type: "null"
+        reply_to:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        supersedes:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target:
+          $ref: '#/components/schemas/M2LedgerDiscussionTarget'
+        text:
+          type: string
+      required:
+        - anchors
+        - kind
+        - mentions
+        - target
+        - text
+      type: object
+    M2LedgerProfileDefaults:
+      additionalProperties: false
+      properties:
+        publication:
+          type: string
+      required:
+        - publication
+      type: object
+    M2LedgerProfileSnapshot:
+      additionalProperties: false
+      properties:
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        profile:
+          $ref: '#/components/schemas/M2LedgerAcceptanceProfile'
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+      required:
+        - manifest_digest
+        - profile
+        - ref
+      type: object
+    M2LedgerPublication:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        actor_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        from_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        previous_revision:
+          type: integer
+        publication_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        revision:
+          type: integer
+        to_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - action
+        - actor_id
+        - asset_id
+        - created_at
+        - operation_id
+        - previous_revision
+        - publication_id
+        - reason
+        - revision
+      type: object
+    M2LedgerPublishRequest:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        expected_publication_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        review_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - action
+        - expected_publication_revision
+        - project_id
+        - reason
+        - review_id
+        - version_id
+      type: object
+    M2LedgerQAReport:
+      additionalProperties: false
+      properties:
+        observations:
+          type: string
+        tool:
+          type: string
+        tool_version:
+          type: string
+        verdict:
+          type: string
+      required:
+        - observations
+        - tool
+        - tool_version
+        - verdict
+      type: object
+    M2LedgerRestoreRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        new_slug:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        trash_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - expected_revision
+        - project_id
+        - reason
+        - trash_id
+      type: object
+    M2LedgerReviewEvidenceInput:
+      additionalProperties: false
+      properties:
+        check:
+          $ref: '#/components/schemas/M2ExtensionsCheckResult'
+        check_key:
+          type: string
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        kind:
+          type: string
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        qa:
+          $ref: '#/components/schemas/M2LedgerQAReport'
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        schema_version:
+          type: integer
+      required:
+        - flow
+        - kind
+        - manifest_digest
+        - project_id
+        - ref
+      type: object
+    M2LedgerReviewFlow:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        candidate_group:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        fence:
+          type: integer
+        round:
+          type: integer
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - fence
+        - round
+        - task_id
+      type: object
+    M2LedgerReviewTarget:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        evidence:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerAcceptedEvidence'
+              type: array
+            - type: "null"
+        evidence_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        initial_profile:
+          type: boolean
+        maker_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        profile:
+          $ref: '#/components/schemas/M2LedgerProfileSnapshot'
+        profile_ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        submitted_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target_revision:
+          type: integer
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - asset_id
+        - created_at
+        - evidence
+        - evidence_ids
+        - expected_revision
+        - flow
+        - maker_id
+        - manifest_digest
+        - profile
+        - profile_ref
+        - project_id
+        - submitted_by
+        - target_id
+        - target_revision
+        - version_id
+      type: object
+    M2LedgerSubmitReview:
+      additionalProperties: false
+      properties:
+        evidence_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        initial_profile:
+          type: boolean
+        profile_ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - evidence_ids
+        - expected_revision
+        - flow
+        - profile_ref
+        - project_id
+        - version_id
+      type: object
+    M2LedgerTrashEntry:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        created_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        due_at:
+          type: string
+        files_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        grace:
+          type: boolean
+        history:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerTrashHistoryTarget'
+              type: array
+            - type: "null"
+        hold:
+          type: boolean
+        original_generation:
+          type: integer
+        original_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        original_slug:
+          type: string
+        pending_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        prior_asset_lifecycle:
+          type: string
+        prior_version_lifecycles:
+          additionalProperties:
+            type: string
+          type: object
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        restore_generation:
+          type: integer
+        restore_slug:
+          type: string
+        retention_days:
+          type: integer
+        revision:
+          type: integer
+        state:
+          type: string
+        trash_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        whole_asset:
+          type: boolean
+      required:
+        - asset_id
+        - created_at
+        - created_by
+        - due_at
+        - files_digest
+        - grace
+        - hold
+        - original_generation
+        - original_operation_id
+        - original_slug
+        - prior_asset_lifecycle
+        - prior_version_lifecycles
+        - project_id
+        - reason
+        - retention_days
+        - revision
+        - state
+        - trash_id
+        - version_ids
+        - whole_asset
+      type: object
+    M2LedgerTrashHistoryTarget:
+      additionalProperties: false
+      properties:
+        lifecycle:
+          type: string
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        revision:
+          type: integer
+        trash_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - lifecycle
+        - manifest_digest
+        - revision
+        - trash_id
+        - version_id
+      type: object
+    M2LedgerTrashRequest:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asset_revision:
+          type: integer
+        directory:
+          type: string
+        files_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        history:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerTrashHistoryTarget'
+              type: array
+            - type: "null"
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        targets:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerTrashVersionTarget'
+              type: array
+            - type: "null"
+        uses:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2LedgerLifecycleUse'
+              type: array
+            - type: "null"
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        whole_asset:
+          type: boolean
+      required:
+        - asset_id
+        - asset_revision
+        - files_digest
+        - project_id
+        - reason
+        - targets
+        - uses
+        - whole_asset
+      type: object
+    M2LedgerTrashSelector:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        directory:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        whole_asset:
+          type: boolean
+      required:
+        - asset_id
+        - project_id
+        - reason
+        - whole_asset
+      type: object
+    M2LedgerTrashVersionTarget:
+      additionalProperties: false
+      properties:
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        revision:
+          type: integer
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - manifest_digest
+        - revision
+        - version_id
+      type: object
+    M2ManifestInputFile:
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+        role:
+          type: string
+        sha256:
+          type: string
+        size:
+          type: integer
+      required:
+        - path
+        - role
+        - sha256
+        - size
+      type: object
+    M2ManifestRights:
+      additionalProperties: false
+      properties:
+        digital_source_type:
+          type: string
+        license:
+          type: string
+        noai:
+          type: boolean
+        redistribute_raw:
+          type: boolean
+        sensitivity:
+          type: string
+        usage:
+          type: string
+      required:
+        - license
+        - noai
+        - redistribute_raw
+        - sensitivity
+        - usage
+      type: object
+    M2ManifestUse:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        declared:
+          type: string
+        instance_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        relation:
+          type: string
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - asset_id
+        - instance_id
+        - relation
+        - version_id
+      type: object
+    M2NodeObservation:
+      additionalProperties: false
+      properties:
+        busy:
+          type: integer
+        capabilities:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        memory_bytes:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        slots:
+          type: integer
+      required:
+        - busy
+        - capabilities
+        - memory_bytes
+        - project_id
+        - slots
+      type: object
+    M2ProvenanceAssertionFields:
+      additionalProperties: false
+      properties:
+        confirmed_evidence_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        deny_purposes:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        license_expression:
+          type: string
+        noai:
+          type: boolean
+        redistribute_raw:
+          type: boolean
+        restricted_source:
+          type: boolean
+        sensitivity:
+          type: string
+        usage:
+          type: string
+        uses:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2ManifestUse'
+              type: array
+            - type: "null"
+      required: []
+      type: object
+    M2ProvenanceAssertionReceipt:
+      additionalProperties: false
+      properties:
+        created:
+          type: boolean
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        record_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        ref:
+          type: string
+        revision:
+          type: integer
+        rights_epoch:
+          type: integer
+      required:
+        - created
+        - digest
+        - operation_id
+        - record_id
+        - ref
+        - revision
+        - rights_epoch
+      type: object
+    M2ProvenanceAssertionRequest:
+      additionalProperties: false
+      properties:
+        evidence_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        fields:
+          $ref: '#/components/schemas/M2ProvenanceAssertionFields'
+        kind:
+          type: string
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        reason:
+          type: string
+        replaces_assertion_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        subject:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+      required:
+        - evidence_ids
+        - expected_revision
+        - fields
+        - kind
+        - manifest_digest
+        - reason
+        - subject
+      type: object
+    M2ProvenanceCancelAssertionReceipt:
+      additionalProperties: false
+      properties:
+        cancelled_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        status:
+          type: string
+      required:
+        - cancelled_operation_id
+        - operation_id
+        - status
+      type: object
+    M2ProvenanceCancelAssertionRequest:
+      additionalProperties: false
+      properties:
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        request_hash:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+      required:
+        - operation_id
+        - project_id
+        - reason
+        - request_hash
+      type: object
+    M2QueryEventPage:
+      additionalProperties: false
+      properties:
+        events:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2QueryVisibleEvent'
+              type: array
+            - type: "null"
+        last_seq:
+          type: integer
+        replace_required:
+          type: boolean
+      required:
+        - events
+        - last_seq
+        - replace_required
+      type: object
+    M2QueryInboxItem:
+      additionalProperties: false
+      properties:
+        event_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        object:
+          $ref: '#/components/schemas/M2QueryObjectState'
+        read:
+          type: boolean
+        sequence:
+          type: integer
+      required:
+        - event_id
+        - object
+        - read
+        - sequence
+      type: object
+    M2QueryInboxPage:
+      additionalProperties: false
+      properties:
+        items:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2QueryInboxItem'
+              type: array
+            - type: "null"
+        read_through:
+          type: integer
+        through:
+          type: integer
+      required:
+        - items
+        - read_through
+        - through
+      type: object
+    M2QueryObjectRef:
+      additionalProperties: false
+      properties:
+        id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - id
+        - kind
+        - project_id
+      type: object
+    M2QueryObjectState:
+      additionalProperties: false
+      properties:
+        due_at:
+          type: string
+        priority:
+          type: integer
+        ref:
+          $ref: '#/components/schemas/M2QueryObjectRef'
+        revision:
+          type: integer
+        state:
+          type: string
+        title:
+          type: string
+        waiting_since:
+          type: string
+      required:
+        - priority
+        - ref
+        - revision
+        - state
+        - title
+      type: object
+    M2QueryResyncPage:
+      additionalProperties: false
+      properties:
+        next_cursor:
+          type: string
+        objects:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2QueryObjectState'
+              type: array
+            - type: "null"
+        replace:
+          type: boolean
+        replay_after:
+          type: integer
+      required:
+        - objects
+        - replace
+        - replay_after
+      type: object
+    M2QueryVisibleEvent:
+      additionalProperties: false
+      properties:
+        event_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        object:
+          $ref: '#/components/schemas/M2QueryObjectState'
+        sequence:
+          type: integer
+        type:
+          type: string
+      required:
+        - event_id
+        - object
+        - sequence
+        - type
+      type: object
+    M2StorageProducer:
+      additionalProperties: false
+      properties:
+        contribution_id:
+          type: string
+        core_release_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        extension_id:
+          type: string
+        extension_version:
+          type: string
+        package_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        source:
+          type: string
+      required:
+        - extension_id
+        - extension_version
+        - package_digest
+        - source
+      type: object
+    M2TasksAnswerRequest:
+      additionalProperties: false
+      properties:
+        answer_message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        block_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - answer_message_id
+        - block_id
+        - expected_revision
+        - project_id
+        - task_id
+      type: object
+    M2TasksAssignRequest:
+      additionalProperties: false
+      properties:
+        assignee_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        role:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - expected_revision
+        - project_id
+        - task_id
+      type: object
+    M2TasksAttemptRef:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - expected_revision
+        - fence
+        - project_id
+        - task_id
+      type: object
+    M2TasksBlock:
+      additionalProperties: false
+      properties:
+        answer_message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        answered_at:
+          type: string
+        answered_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        asked_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        block_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        question_message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        round:
+          type: integer
+        state:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - asked_by
+        - attempt_id
+        - block_id
+        - created_at
+        - question_message_id
+        - round
+        - state
+        - task_id
+      type: object
+    M2TasksBlockRequest:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        question_message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        stopped:
+          type: boolean
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - expected_revision
+        - fence
+        - project_id
+        - question_message_id
+        - stopped
+        - task_id
+      type: object
+    M2TasksCancelRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - expected_revision
+        - project_id
+        - reason
+        - task_id
+      type: object
+    M2TasksCheckout:
+      additionalProperties: false
+      properties:
+        acquired_at:
+          type: string
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        base_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        mode:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        state:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - acquired_at
+        - asset_id
+        - attempt_id
+        - mode
+        - project_id
+        - state
+        - task_id
+      type: object
+    M2TasksCheckoutSpec:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        mode:
+          type: string
+      required:
+        - asset_id
+        - mode
+      type: object
+    M2TasksClaimRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        seat_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - expected_revision
+        - project_id
+        - seat_id
+        - task_id
+      type: object
+    M2TasksCompleteRequest:
+      additionalProperties: false
+      properties:
+        authority_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - authority_operation_id
+        - expected_revision
+        - project_id
+        - task_id
+      type: object
+    M2TasksCompletion:
+      additionalProperties: false
+      properties:
+        at:
+          type: string
+        authority_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        kind:
+          type: string
+        verdict:
+          type: string
+      required:
+        - at
+        - authority_operation_id
+        - kind
+      type: object
+    M2TasksContextSnapshot:
+      additionalProperties: false
+      properties:
+        asset_type:
+          type: string
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+      required:
+        - asset_type
+        - digest
+        - refs
+      type: object
+    M2TasksCreateRequest:
+      additionalProperties: false
+      properties:
+        acceptance_criteria:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        assignee_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        checkouts:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksCheckoutSpec'
+              type: array
+            - type: "null"
+        context_asset_type:
+          type: string
+        dependency_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        description:
+          type: string
+        distinct_from:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        due_at:
+          type: string
+        expected_outputs:
+          anyOf:
+            - items:
+                $ref: ../schemas/tasks/v1/defs.schema.json#/$defs/output_requirement
+              type: array
+            - type: "null"
+        flow_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        input_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        priority:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        role:
+          type: string
+        step_run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        subject:
+          $ref: '#/components/schemas/M2TasksSubject'
+        title:
+          type: string
+        type:
+          type: string
+      required:
+        - acceptance_criteria
+        - checkouts
+        - dependency_ids
+        - distinct_from
+        - expected_outputs
+        - input_refs
+        - priority
+        - project_id
+        - title
+        - type
+      type: object
+    M2TasksHandoff:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        author_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        created_at:
+          type: string
+        draft_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        handoff_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        round:
+          type: integer
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - author_id
+        - created_at
+        - draft_refs
+        - handoff_id
+        - message_id
+        - round
+        - task_id
+      type: object
+    M2TasksHandoffRequest:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        draft_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        message_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - draft_refs
+        - expected_revision
+        - fence
+        - message_id
+        - project_id
+        - task_id
+      type: object
+    M2TasksMeta:
+      additionalProperties: false
+      properties:
+        assignee_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        cancel_reason:
+          type: string
+        cancel_requested:
+          type: boolean
+        checkouts:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksCheckoutSpec'
+              type: array
+            - type: "null"
+        completion:
+          $ref: '#/components/schemas/M2TasksCompletion'
+        context:
+          $ref: '#/components/schemas/M2TasksContextSnapshot'
+        created_at:
+          type: string
+        created_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        description:
+          type: string
+        distinct_from:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expiry_count:
+          type: integer
+        history:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksRoundOutcome'
+              type: array
+            - type: "null"
+        role:
+          type: string
+        round:
+          type: integer
+        state_since:
+          type: string
+        stuck:
+          type: boolean
+        subject:
+          $ref: '#/components/schemas/M2TasksSubject'
+        submit_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - checkouts
+        - created_at
+        - created_by
+        - distinct_from
+        - expiry_count
+        - history
+        - round
+        - state_since
+      type: object
+    M2TasksReconcileRequest:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        evidence_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        termination_confirmed:
+          type: boolean
+        unresolved_effects:
+          type: integer
+      required:
+        - attempt_id
+        - evidence_refs
+        - expected_revision
+        - project_id
+        - reason
+        - task_id
+        - termination_confirmed
+        - unresolved_effects
+      type: object
+    M2TasksReleaseRequest:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        stopped:
+          type: boolean
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        unresolved_effects:
+          type: integer
+      required:
+        - attempt_id
+        - expected_revision
+        - fence
+        - project_id
+        - reason
+        - stopped
+        - task_id
+        - unresolved_effects
+      type: object
+    M2TasksResult:
+      additionalProperties: false
+      properties:
+        attempt:
+          $ref: ../schemas/tasks/v1/attempt.schema.json
+        block_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        output_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        revision:
+          type: integer
+        round:
+          type: integer
+        state:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - operation_id
+        - revision
+        - round
+        - state
+        - task_id
+      type: object
+    M2TasksReworkRequest:
+      additionalProperties: false
+      properties:
+        authority_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        checkouts:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksCheckoutSpec'
+              type: array
+            - type: "null"
+        expected_revision:
+          type: integer
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - authority_operation_id
+        - checkouts
+        - expected_revision
+        - project_id
+        - reason
+        - task_id
+      type: object
+    M2TasksRoundOutcome:
+      additionalProperties: false
+      properties:
+        at:
+          type: string
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        authority_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        outcome:
+          type: string
+        output_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        reason:
+          type: string
+        round:
+          type: integer
+      required:
+        - at
+        - outcome
+        - output_refs
+        - round
+      type: object
+    M2TasksSubject:
+      additionalProperties: false
+      properties:
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+      required:
+        - flow
+        - ref
+      type: object
+    M2TasksSubmitRequest:
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expected_revision:
+          type: integer
+        fence:
+          $ref: ../schemas/common/v1/execution.schema.json#/$defs/task_fence
+        output_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempt_id
+        - expected_revision
+        - fence
+        - output_refs
+        - project_id
+        - task_id
+      type: object
+    M2TasksView:
+      additionalProperties: false
+      properties:
+        blocks:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksBlock'
+              type: array
+            - type: "null"
+        checkouts:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksCheckout'
+              type: array
+            - type: "null"
+        current_attempt:
+          $ref: ../schemas/tasks/v1/attempt.schema.json
+        handoffs:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2TasksHandoff'
+              type: array
+            - type: "null"
+        meta:
+          $ref: '#/components/schemas/M2TasksMeta'
+        seat:
+          $ref: ../schemas/tasks/v1/seat.schema.json
+        task:
+          $ref: ../schemas/tasks/v1/task.schema.json
+      required:
+        - blocks
+        - checkouts
+        - handoffs
+        - meta
+        - seat
+        - task
+      type: object
+    M2WorkflowCommandRequest:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        flow_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+      required:
+        - expected_revision
+        - flow_id
+        - operation_id
+        - project_id
+        - reason
+      type: object
+    M2WorkflowCommandView:
+      additionalProperties: false
+      properties:
+        actor_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        attempts:
+          type: integer
+        command_type:
+          type: string
+        failure_code:
+          type: string
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        payload: {}
+        status:
+          type: string
+        step_run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - attempts
+        - command_type
+        - operation_id
+        - payload
+        - status
+        - step_run_id
+      type: object
+    M2WorkflowDefinition:
+      additionalProperties: false
+      properties:
+        contract:
+          type: string
+        key:
+          type: string
+        kind:
+          type: string
+        steps:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2WorkflowStepDef'
+              type: array
+            - type: "null"
+        version:
+          type: integer
+      required:
+        - contract
+        - key
+        - kind
+        - steps
+        - version
+      type: object
+    M2WorkflowFlowMeta:
+      additionalProperties: false
+      properties:
+        approved_version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        cancel_reason:
+          type: string
+        check_evidence:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        definition:
+          $ref: '#/components/schemas/M2WorkflowDefinition'
+        failure:
+          type: string
+        pause_reason:
+          type: string
+        produce_task_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        production_round:
+          type: integer
+        profile_ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        qa_evidence_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        review_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        review_target_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reworks:
+          type: integer
+        rounds:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2WorkflowProductionRecord'
+              type: array
+            - type: "null"
+        started_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        subject:
+          $ref: '#/components/schemas/M2TasksSubject'
+        subject_asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        template:
+          $ref: '#/components/schemas/M2WorkflowTemplate'
+      required:
+        - check_evidence
+        - definition
+        - production_round
+        - profile_ref
+        - reworks
+        - rounds
+        - started_by
+        - template
+      type: object
+    M2WorkflowFlowRef:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+        flow_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        reason:
+          type: string
+      required:
+        - expected_revision
+        - flow_id
+        - project_id
+        - reason
+      type: object
+    M2WorkflowFlowView:
+      additionalProperties: false
+      properties:
+        commands:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2WorkflowCommandView'
+              type: array
+            - type: "null"
+        flow:
+          $ref: ../schemas/tasks/v1/flow.schema.json
+        meta:
+          $ref: '#/components/schemas/M2WorkflowFlowMeta'
+        steps:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/M2WorkflowStepView'
+              type: array
+            - type: "null"
+      required:
+        - commands
+        - flow
+        - meta
+        - steps
+      type: object
+    M2WorkflowJobEvidence:
+      additionalProperties: false
+      properties:
+        evidence_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        verdict:
+          type: string
+      required:
+        - evidence_id
+        - operation_id
+        - verdict
+      type: object
+    M2WorkflowJobRequest:
+      additionalProperties: false
+      properties:
+        flow:
+          $ref: '#/components/schemas/M2LedgerReviewFlow'
+        flow_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        manifest_digest:
+          type: string
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        processor:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        step_run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        target:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+      required:
+        - flow
+        - flow_id
+        - manifest_digest
+        - operation_id
+        - processor
+        - project_id
+        - step_run_id
+        - target
+      type: object
+    M2WorkflowJobStepDef:
+      additionalProperties: false
+      properties:
+        processor:
+          type: string
+      required:
+        - processor
+      type: object
+    M2WorkflowProductionRecord:
+      additionalProperties: false
+      properties:
+        at:
+          type: string
+        authority_operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        evidence:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        outcome:
+          type: string
+        output:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        round:
+          type: integer
+        subject:
+          $ref: '#/components/schemas/M2TasksSubject'
+      required:
+        - at
+        - evidence
+        - outcome
+        - round
+      type: object
+    M2WorkflowResult:
+      additionalProperties: false
+      properties:
+        flow_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          type: integer
+        state:
+          type: string
+      required:
+        - flow_id
+        - operation_id
+        - revision
+        - state
+      type: object
+    M2WorkflowReviewStepDef:
+      additionalProperties: false
+      properties:
+        max_rework:
+          type: integer
+      required: []
+      type: object
+    M2WorkflowStartRequest:
+      additionalProperties: false
+      properties:
+        acceptance_criteria:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        assignee_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        context_asset_type:
+          type: string
+        definition_ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        description:
+          type: string
+        due_at:
+          type: string
+        expected_outputs:
+          anyOf:
+            - items:
+                $ref: ../schemas/tasks/v1/defs.schema.json#/$defs/output_requirement
+              type: array
+            - type: "null"
+        input_refs:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+              type: array
+            - type: "null"
+        priority:
+          type: string
+        profile_ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        role:
+          type: string
+        target_asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        title:
+          type: string
+      required:
+        - acceptance_criteria
+        - definition_ref
+        - expected_outputs
+        - input_refs
+        - profile_ref
+        - project_id
+        - title
+      type: object
+    M2WorkflowStepDef:
+      additionalProperties: false
+      properties:
+        job:
+          $ref: '#/components/schemas/M2WorkflowJobStepDef'
+        key:
+          type: string
+        kind:
+          type: string
+        review:
+          $ref: '#/components/schemas/M2WorkflowReviewStepDef'
+        task:
+          $ref: '#/components/schemas/M2WorkflowTaskStepDef'
+      required:
+        - key
+        - kind
+      type: object
+    M2WorkflowStepMeta:
+      additionalProperties: false
+      properties:
+        command_ids:
+          anyOf:
+            - items:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              type: array
+            - type: "null"
+        failure:
+          type: string
+        ordinal:
+          type: integer
+        outcome:
+          type: string
+        production_round:
+          type: integer
+        target_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_spec:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+      required:
+        - command_ids
+        - ordinal
+        - production_round
+      type: object
+    M2WorkflowStepView:
+      additionalProperties: false
+      properties:
+        meta:
+          $ref: '#/components/schemas/M2WorkflowStepMeta'
+        step_run:
+          $ref: ../schemas/tasks/v1/step-run.schema.json
+      required:
+        - meta
+        - step_run
+      type: object
+    M2WorkflowTaskStepDef:
+      additionalProperties: false
+      properties:
+        checkout:
+          type: string
+        distinct_from:
+          type: string
+        priority:
+          type: string
+        role:
+          type: string
+        type:
+          type: string
+      required:
+        - type
+      type: object
+    M2WorkflowTemplate:
+      additionalProperties: false
+      properties:
+        acceptance_criteria:
+          anyOf:
+            - items:
+                type: string
+              type: array
+            - type: "null"
+        assignee_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        context_asset_type:
+          type: string
+        description:
+          type: string
+        due_at:
+          type: string
+        expected_outputs:
+          anyOf:
+            - items:
+                $ref: ../schemas/tasks/v1/defs.schema.json#/$defs/output_requirement
+              type: array
+            - type: "null"
+        priority:
+          type: string
+        role:
+          type: string
+        title:
+          type: string
+      required:
+        - acceptance_criteria
+        - expected_outputs
+        - priority
+        - title
+      type: object
+    M2AgentexecutionReconciliation:
+      type: object
+      additionalProperties: false
+      required: [request, actor_id, recorded_at]
+      properties:
+        request:
+          $ref: '#/components/schemas/M2AgentexecutionReconcileRequest'
+        actor_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        recorded_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+    M2JobsReconciliation:
+      type: object
+      additionalProperties: false
+      required: [request, actor_id, recorded_at]
+      properties:
+        request:
+          $ref: '#/components/schemas/M2JobsReconcileRequest'
+        actor_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        recorded_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
   parameters:
     GrantID:
       name: grant_id

@@ -4,7 +4,10 @@
 package apiv1
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for BlobStatusPageItemsStatus.
@@ -19,6 +22,201 @@ func (e BlobStatusPageItemsStatus) Valid() bool {
 	case BlobStatusPageItemsStatusGranted:
 		return true
 	case BlobStatusPageItemsStatusUploadRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionCancelMode.
+const (
+	CommonV1ExecutionCancelModeCooperative CommonV1ExecutionCancelMode = "cooperative"
+	CommonV1ExecutionCancelModeEnforced    CommonV1ExecutionCancelMode = "enforced"
+	CommonV1ExecutionCancelModeRevokeOnly  CommonV1ExecutionCancelMode = "revoke_only"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionCancelMode enum.
+func (e CommonV1ExecutionCancelMode) Valid() bool {
+	switch e {
+	case CommonV1ExecutionCancelModeCooperative:
+		return true
+	case CommonV1ExecutionCancelModeEnforced:
+		return true
+	case CommonV1ExecutionCancelModeRevokeOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionCheckVerdict.
+const (
+	CommonV1ExecutionCheckVerdictFail    CommonV1ExecutionCheckVerdict = "fail"
+	CommonV1ExecutionCheckVerdictPass    CommonV1ExecutionCheckVerdict = "pass"
+	CommonV1ExecutionCheckVerdictUnknown CommonV1ExecutionCheckVerdict = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionCheckVerdict enum.
+func (e CommonV1ExecutionCheckVerdict) Valid() bool {
+	switch e {
+	case CommonV1ExecutionCheckVerdictFail:
+		return true
+	case CommonV1ExecutionCheckVerdictPass:
+		return true
+	case CommonV1ExecutionCheckVerdictUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionEffectClass.
+const (
+	CommonV1ExecutionEffectClassExternalIdempotent    CommonV1ExecutionEffectClass = "external_idempotent"
+	CommonV1ExecutionEffectClassExternalNonIdempotent CommonV1ExecutionEffectClass = "external_non_idempotent"
+	CommonV1ExecutionEffectClassExternalQueryable     CommonV1ExecutionEffectClass = "external_queryable"
+	CommonV1ExecutionEffectClassLantaiCommand         CommonV1ExecutionEffectClass = "lantai_command"
+	CommonV1ExecutionEffectClassLocalReplaceable      CommonV1ExecutionEffectClass = "local_replaceable"
+	CommonV1ExecutionEffectClassPureRead              CommonV1ExecutionEffectClass = "pure_read"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionEffectClass enum.
+func (e CommonV1ExecutionEffectClass) Valid() bool {
+	switch e {
+	case CommonV1ExecutionEffectClassExternalIdempotent:
+		return true
+	case CommonV1ExecutionEffectClassExternalNonIdempotent:
+		return true
+	case CommonV1ExecutionEffectClassExternalQueryable:
+		return true
+	case CommonV1ExecutionEffectClassLantaiCommand:
+		return true
+	case CommonV1ExecutionEffectClassLocalReplaceable:
+		return true
+	case CommonV1ExecutionEffectClassPureRead:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionEffectState.
+const (
+	CommonV1ExecutionEffectStateCompleted     CommonV1ExecutionEffectState = "completed"
+	CommonV1ExecutionEffectStateDispatched    CommonV1ExecutionEffectState = "dispatched"
+	CommonV1ExecutionEffectStateEffectUnknown CommonV1ExecutionEffectState = "effect_unknown"
+	CommonV1ExecutionEffectStateFailed        CommonV1ExecutionEffectState = "failed"
+	CommonV1ExecutionEffectStateIntended      CommonV1ExecutionEffectState = "intended"
+	CommonV1ExecutionEffectStateNotExecuted   CommonV1ExecutionEffectState = "not_executed"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionEffectState enum.
+func (e CommonV1ExecutionEffectState) Valid() bool {
+	switch e {
+	case CommonV1ExecutionEffectStateCompleted:
+		return true
+	case CommonV1ExecutionEffectStateDispatched:
+		return true
+	case CommonV1ExecutionEffectStateEffectUnknown:
+		return true
+	case CommonV1ExecutionEffectStateFailed:
+		return true
+	case CommonV1ExecutionEffectStateIntended:
+		return true
+	case CommonV1ExecutionEffectStateNotExecuted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionInvocationOutcome.
+const (
+	CommonV1ExecutionInvocationOutcomeCancelled     CommonV1ExecutionInvocationOutcome = "cancelled"
+	CommonV1ExecutionInvocationOutcomeCompleted     CommonV1ExecutionInvocationOutcome = "completed"
+	CommonV1ExecutionInvocationOutcomeNotDispatched CommonV1ExecutionInvocationOutcome = "not_dispatched"
+	CommonV1ExecutionInvocationOutcomeRuntimeFault  CommonV1ExecutionInvocationOutcome = "runtime_fault"
+	CommonV1ExecutionInvocationOutcomeUnresolved    CommonV1ExecutionInvocationOutcome = "unresolved"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionInvocationOutcome enum.
+func (e CommonV1ExecutionInvocationOutcome) Valid() bool {
+	switch e {
+	case CommonV1ExecutionInvocationOutcomeCancelled:
+		return true
+	case CommonV1ExecutionInvocationOutcomeCompleted:
+		return true
+	case CommonV1ExecutionInvocationOutcomeNotDispatched:
+		return true
+	case CommonV1ExecutionInvocationOutcomeRuntimeFault:
+		return true
+	case CommonV1ExecutionInvocationOutcomeUnresolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionResumeClass.
+const (
+	CommonV1ExecutionResumeClassBackendCheckpoint CommonV1ExecutionResumeClass = "backend_checkpoint"
+	CommonV1ExecutionResumeClassManualOnly        CommonV1ExecutionResumeClass = "manual_only"
+	CommonV1ExecutionResumeClassPortableArtifacts CommonV1ExecutionResumeClass = "portable_artifacts"
+	CommonV1ExecutionResumeClassRestartSafe       CommonV1ExecutionResumeClass = "restart_safe"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionResumeClass enum.
+func (e CommonV1ExecutionResumeClass) Valid() bool {
+	switch e {
+	case CommonV1ExecutionResumeClassBackendCheckpoint:
+		return true
+	case CommonV1ExecutionResumeClassManualOnly:
+		return true
+	case CommonV1ExecutionResumeClassPortableArtifacts:
+		return true
+	case CommonV1ExecutionResumeClassRestartSafe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommonV1ExecutionTaskRunState.
+const (
+	CommonV1ExecutionTaskRunStateCancelled           CommonV1ExecutionTaskRunState = "cancelled"
+	CommonV1ExecutionTaskRunStateCancelling          CommonV1ExecutionTaskRunState = "cancelling"
+	CommonV1ExecutionTaskRunStateExecutionSucceeded  CommonV1ExecutionTaskRunState = "execution_succeeded"
+	CommonV1ExecutionTaskRunStateFailed              CommonV1ExecutionTaskRunState = "failed"
+	CommonV1ExecutionTaskRunStateNeedsReconciliation CommonV1ExecutionTaskRunState = "needs_reconciliation"
+	CommonV1ExecutionTaskRunStatePaused              CommonV1ExecutionTaskRunState = "paused"
+	CommonV1ExecutionTaskRunStatePending             CommonV1ExecutionTaskRunState = "pending"
+	CommonV1ExecutionTaskRunStateRunning             CommonV1ExecutionTaskRunState = "running"
+	CommonV1ExecutionTaskRunStateStarting            CommonV1ExecutionTaskRunState = "starting"
+	CommonV1ExecutionTaskRunStateWaitingInput        CommonV1ExecutionTaskRunState = "waiting_input"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionTaskRunState enum.
+func (e CommonV1ExecutionTaskRunState) Valid() bool {
+	switch e {
+	case CommonV1ExecutionTaskRunStateCancelled:
+		return true
+	case CommonV1ExecutionTaskRunStateCancelling:
+		return true
+	case CommonV1ExecutionTaskRunStateExecutionSucceeded:
+		return true
+	case CommonV1ExecutionTaskRunStateFailed:
+		return true
+	case CommonV1ExecutionTaskRunStateNeedsReconciliation:
+		return true
+	case CommonV1ExecutionTaskRunStatePaused:
+		return true
+	case CommonV1ExecutionTaskRunStatePending:
+		return true
+	case CommonV1ExecutionTaskRunStateRunning:
+		return true
+	case CommonV1ExecutionTaskRunStateStarting:
+		return true
+	case CommonV1ExecutionTaskRunStateWaitingInput:
 		return true
 	default:
 		return false
@@ -49,6 +247,525 @@ func (e CreateProjectRequestProjectType) Valid() bool {
 	}
 }
 
+// Defines values for LantaiAgentExecutionDefsV1PackageEntryTarget.
+const (
+	LantaiAgentExecutionDefsV1PackageEntryTargetNode   LantaiAgentExecutionDefsV1PackageEntryTarget = "node"
+	LantaiAgentExecutionDefsV1PackageEntryTargetServer LantaiAgentExecutionDefsV1PackageEntryTarget = "server"
+)
+
+// Valid indicates whether the value is a known member of the LantaiAgentExecutionDefsV1PackageEntryTarget enum.
+func (e LantaiAgentExecutionDefsV1PackageEntryTarget) Valid() bool {
+	switch e {
+	case LantaiAgentExecutionDefsV1PackageEntryTargetNode:
+		return true
+	case LantaiAgentExecutionDefsV1PackageEntryTargetServer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiAgentResponseV15State.
+const (
+	LantaiAgentResponseV15StateCancelled           LantaiAgentResponseV15State = "cancelled"
+	LantaiAgentResponseV15StateCancelling          LantaiAgentResponseV15State = "cancelling"
+	LantaiAgentResponseV15StateNeedsReconciliation LantaiAgentResponseV15State = "needs_reconciliation"
+)
+
+// Valid indicates whether the value is a known member of the LantaiAgentResponseV15State enum.
+func (e LantaiAgentResponseV15State) Valid() bool {
+	switch e {
+	case LantaiAgentResponseV15StateCancelled:
+		return true
+	case LantaiAgentResponseV15StateCancelling:
+		return true
+	case LantaiAgentResponseV15StateNeedsReconciliation:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiAgentResultV1Outcome.
+const (
+	LantaiAgentResultV1OutcomeCancelled          LantaiAgentResultV1Outcome = "cancelled"
+	LantaiAgentResultV1OutcomeExecutionSucceeded LantaiAgentResultV1Outcome = "execution_succeeded"
+	LantaiAgentResultV1OutcomeFailed             LantaiAgentResultV1Outcome = "failed"
+)
+
+// Valid indicates whether the value is a known member of the LantaiAgentResultV1Outcome enum.
+func (e LantaiAgentResultV1Outcome) Valid() bool {
+	switch e {
+	case LantaiAgentResultV1OutcomeCancelled:
+		return true
+	case LantaiAgentResultV1OutcomeExecutionSucceeded:
+		return true
+	case LantaiAgentResultV1OutcomeFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiAgentStepRunV1Kind.
+const (
+	LantaiAgentStepRunV1KindDelegate LantaiAgentStepRunV1Kind = "delegate"
+	LantaiAgentStepRunV1KindDeliver  LantaiAgentStepRunV1Kind = "deliver"
+	LantaiAgentStepRunV1KindPlan     LantaiAgentStepRunV1Kind = "plan"
+	LantaiAgentStepRunV1KindTool     LantaiAgentStepRunV1Kind = "tool"
+	LantaiAgentStepRunV1KindValidate LantaiAgentStepRunV1Kind = "validate"
+)
+
+// Valid indicates whether the value is a known member of the LantaiAgentStepRunV1Kind enum.
+func (e LantaiAgentStepRunV1Kind) Valid() bool {
+	switch e {
+	case LantaiAgentStepRunV1KindDelegate:
+		return true
+	case LantaiAgentStepRunV1KindDeliver:
+		return true
+	case LantaiAgentStepRunV1KindPlan:
+		return true
+	case LantaiAgentStepRunV1KindTool:
+		return true
+	case LantaiAgentStepRunV1KindValidate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiAgentStepRunV1State.
+const (
+	LantaiAgentStepRunV1StateCancelled           LantaiAgentStepRunV1State = "cancelled"
+	LantaiAgentStepRunV1StateCompleted           LantaiAgentStepRunV1State = "completed"
+	LantaiAgentStepRunV1StateFailed              LantaiAgentStepRunV1State = "failed"
+	LantaiAgentStepRunV1StateNeedsReconciliation LantaiAgentStepRunV1State = "needs_reconciliation"
+	LantaiAgentStepRunV1StatePending             LantaiAgentStepRunV1State = "pending"
+	LantaiAgentStepRunV1StateRunning             LantaiAgentStepRunV1State = "running"
+)
+
+// Valid indicates whether the value is a known member of the LantaiAgentStepRunV1State enum.
+func (e LantaiAgentStepRunV1State) Valid() bool {
+	switch e {
+	case LantaiAgentStepRunV1StateCancelled:
+		return true
+	case LantaiAgentStepRunV1StateCompleted:
+		return true
+	case LantaiAgentStepRunV1StateFailed:
+		return true
+	case LantaiAgentStepRunV1StateNeedsReconciliation:
+		return true
+	case LantaiAgentStepRunV1StatePending:
+		return true
+	case LantaiAgentStepRunV1StateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiArtifactCandidateV1ValidationState.
+const (
+	LantaiArtifactCandidateV1ValidationStateInvalid LantaiArtifactCandidateV1ValidationState = "invalid"
+	LantaiArtifactCandidateV1ValidationStatePending LantaiArtifactCandidateV1ValidationState = "pending"
+	LantaiArtifactCandidateV1ValidationStateValid   LantaiArtifactCandidateV1ValidationState = "valid"
+)
+
+// Valid indicates whether the value is a known member of the LantaiArtifactCandidateV1ValidationState enum.
+func (e LantaiArtifactCandidateV1ValidationState) Valid() bool {
+	switch e {
+	case LantaiArtifactCandidateV1ValidationStateInvalid:
+		return true
+	case LantaiArtifactCandidateV1ValidationStatePending:
+		return true
+	case LantaiArtifactCandidateV1ValidationStateValid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExecutionCapabilitiesV1AdapterKind.
+const (
+	LantaiExecutionCapabilitiesV1AdapterKindManagedRunner LantaiExecutionCapabilitiesV1AdapterKind = "managed_runner"
+	LantaiExecutionCapabilitiesV1AdapterKindManualCli     LantaiExecutionCapabilitiesV1AdapterKind = "manual_cli"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExecutionCapabilitiesV1AdapterKind enum.
+func (e LantaiExecutionCapabilitiesV1AdapterKind) Valid() bool {
+	switch e {
+	case LantaiExecutionCapabilitiesV1AdapterKindManagedRunner:
+		return true
+	case LantaiExecutionCapabilitiesV1AdapterKindManualCli:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExecutionCapabilitiesV1ArtifactMode.
+const (
+	LantaiExecutionCapabilitiesV1ArtifactModeCandidateManifest LantaiExecutionCapabilitiesV1ArtifactMode = "candidate_manifest"
+	LantaiExecutionCapabilitiesV1ArtifactModeLantaiRefs        LantaiExecutionCapabilitiesV1ArtifactMode = "lantai_refs"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExecutionCapabilitiesV1ArtifactMode enum.
+func (e LantaiExecutionCapabilitiesV1ArtifactMode) Valid() bool {
+	switch e {
+	case LantaiExecutionCapabilitiesV1ArtifactModeCandidateManifest:
+		return true
+	case LantaiExecutionCapabilitiesV1ArtifactModeLantaiRefs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExecutionCapabilitiesV1BudgetMeters.
+const (
+	LantaiExecutionCapabilitiesV1BudgetMetersArtifactBytes LantaiExecutionCapabilitiesV1BudgetMeters = "artifact_bytes"
+	LantaiExecutionCapabilitiesV1BudgetMetersCost          LantaiExecutionCapabilitiesV1BudgetMeters = "cost"
+	LantaiExecutionCapabilitiesV1BudgetMetersModelCalls    LantaiExecutionCapabilitiesV1BudgetMeters = "model_calls"
+	LantaiExecutionCapabilitiesV1BudgetMetersTokens        LantaiExecutionCapabilitiesV1BudgetMeters = "tokens"
+	LantaiExecutionCapabilitiesV1BudgetMetersToolCalls     LantaiExecutionCapabilitiesV1BudgetMeters = "tool_calls"
+	LantaiExecutionCapabilitiesV1BudgetMetersWallTime      LantaiExecutionCapabilitiesV1BudgetMeters = "wall_time"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExecutionCapabilitiesV1BudgetMeters enum.
+func (e LantaiExecutionCapabilitiesV1BudgetMeters) Valid() bool {
+	switch e {
+	case LantaiExecutionCapabilitiesV1BudgetMetersArtifactBytes:
+		return true
+	case LantaiExecutionCapabilitiesV1BudgetMetersCost:
+		return true
+	case LantaiExecutionCapabilitiesV1BudgetMetersModelCalls:
+		return true
+	case LantaiExecutionCapabilitiesV1BudgetMetersTokens:
+		return true
+	case LantaiExecutionCapabilitiesV1BudgetMetersToolCalls:
+		return true
+	case LantaiExecutionCapabilitiesV1BudgetMetersWallTime:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExecutionProfileV1AdapterKind.
+const (
+	LantaiExecutionProfileV1AdapterKindManagedRunner LantaiExecutionProfileV1AdapterKind = "managed_runner"
+	LantaiExecutionProfileV1AdapterKindManualCli     LantaiExecutionProfileV1AdapterKind = "manual_cli"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExecutionProfileV1AdapterKind enum.
+func (e LantaiExecutionProfileV1AdapterKind) Valid() bool {
+	switch e {
+	case LantaiExecutionProfileV1AdapterKindManagedRunner:
+		return true
+	case LantaiExecutionProfileV1AdapterKindManualCli:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExecutionProfileV1NetworkPolicy.
+const (
+	LantaiExecutionProfileV1NetworkPolicyAllowlist LantaiExecutionProfileV1NetworkPolicy = "allowlist"
+	LantaiExecutionProfileV1NetworkPolicyNone      LantaiExecutionProfileV1NetworkPolicy = "none"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExecutionProfileV1NetworkPolicy enum.
+func (e LantaiExecutionProfileV1NetworkPolicy) Valid() bool {
+	switch e {
+	case LantaiExecutionProfileV1NetworkPolicyAllowlist:
+		return true
+	case LantaiExecutionProfileV1NetworkPolicyNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiJobAttemptV1State.
+const (
+	LantaiJobAttemptV1StateCancelling          LantaiJobAttemptV1State = "cancelling"
+	LantaiJobAttemptV1StateCompleted           LantaiJobAttemptV1State = "completed"
+	LantaiJobAttemptV1StateNeedsReconciliation LantaiJobAttemptV1State = "needs_reconciliation"
+	LantaiJobAttemptV1StateQueued              LantaiJobAttemptV1State = "queued"
+	LantaiJobAttemptV1StateRunning             LantaiJobAttemptV1State = "running"
+)
+
+// Valid indicates whether the value is a known member of the LantaiJobAttemptV1State enum.
+func (e LantaiJobAttemptV1State) Valid() bool {
+	switch e {
+	case LantaiJobAttemptV1StateCancelling:
+		return true
+	case LantaiJobAttemptV1StateCompleted:
+		return true
+	case LantaiJobAttemptV1StateNeedsReconciliation:
+		return true
+	case LantaiJobAttemptV1StateQueued:
+		return true
+	case LantaiJobAttemptV1StateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiStepRunV1Kind.
+const (
+	LantaiStepRunV1KindGate    LantaiStepRunV1Kind = "gate"
+	LantaiStepRunV1KindJob     LantaiStepRunV1Kind = "job"
+	LantaiStepRunV1KindPublish LantaiStepRunV1Kind = "publish"
+	LantaiStepRunV1KindReview  LantaiStepRunV1Kind = "review"
+	LantaiStepRunV1KindTask    LantaiStepRunV1Kind = "task"
+	LantaiStepRunV1KindWait    LantaiStepRunV1Kind = "wait"
+)
+
+// Valid indicates whether the value is a known member of the LantaiStepRunV1Kind enum.
+func (e LantaiStepRunV1Kind) Valid() bool {
+	switch e {
+	case LantaiStepRunV1KindGate:
+		return true
+	case LantaiStepRunV1KindJob:
+		return true
+	case LantaiStepRunV1KindPublish:
+		return true
+	case LantaiStepRunV1KindReview:
+		return true
+	case LantaiStepRunV1KindTask:
+		return true
+	case LantaiStepRunV1KindWait:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTaskV1Priority.
+const (
+	LantaiTaskV1PriorityP0 LantaiTaskV1Priority = "P0"
+	LantaiTaskV1PriorityP1 LantaiTaskV1Priority = "P1"
+	LantaiTaskV1PriorityP2 LantaiTaskV1Priority = "P2"
+	LantaiTaskV1PriorityP3 LantaiTaskV1Priority = "P3"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTaskV1Priority enum.
+func (e LantaiTaskV1Priority) Valid() bool {
+	switch e {
+	case LantaiTaskV1PriorityP0:
+		return true
+	case LantaiTaskV1PriorityP1:
+		return true
+	case LantaiTaskV1PriorityP2:
+		return true
+	case LantaiTaskV1PriorityP3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTaskV1Type.
+const (
+	LantaiTaskV1TypeCurate   LantaiTaskV1Type = "curate"
+	LantaiTaskV1TypeIngest   LantaiTaskV1Type = "ingest"
+	LantaiTaskV1TypeMaintain LantaiTaskV1Type = "maintain"
+	LantaiTaskV1TypeProduce  LantaiTaskV1Type = "produce"
+	LantaiTaskV1TypeQa       LantaiTaskV1Type = "qa"
+	LantaiTaskV1TypeQuestion LantaiTaskV1Type = "question"
+	LantaiTaskV1TypeReview   LantaiTaskV1Type = "review"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTaskV1Type enum.
+func (e LantaiTaskV1Type) Valid() bool {
+	switch e {
+	case LantaiTaskV1TypeCurate:
+		return true
+	case LantaiTaskV1TypeIngest:
+		return true
+	case LantaiTaskV1TypeMaintain:
+		return true
+	case LantaiTaskV1TypeProduce:
+		return true
+	case LantaiTaskV1TypeQa:
+		return true
+	case LantaiTaskV1TypeQuestion:
+		return true
+	case LantaiTaskV1TypeReview:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTasksDefsV1AttemptState.
+const (
+	LantaiTasksDefsV1AttemptStateActive      LantaiTasksDefsV1AttemptState = "active"
+	LantaiTasksDefsV1AttemptStateCancelled   LantaiTasksDefsV1AttemptState = "cancelled"
+	LantaiTasksDefsV1AttemptStateExpired     LantaiTasksDefsV1AttemptState = "expired"
+	LantaiTasksDefsV1AttemptStateReconciling LantaiTasksDefsV1AttemptState = "reconciling"
+	LantaiTasksDefsV1AttemptStateReleased    LantaiTasksDefsV1AttemptState = "released"
+	LantaiTasksDefsV1AttemptStateSubmitted   LantaiTasksDefsV1AttemptState = "submitted"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTasksDefsV1AttemptState enum.
+func (e LantaiTasksDefsV1AttemptState) Valid() bool {
+	switch e {
+	case LantaiTasksDefsV1AttemptStateActive:
+		return true
+	case LantaiTasksDefsV1AttemptStateCancelled:
+		return true
+	case LantaiTasksDefsV1AttemptStateExpired:
+		return true
+	case LantaiTasksDefsV1AttemptStateReconciling:
+		return true
+	case LantaiTasksDefsV1AttemptStateReleased:
+		return true
+	case LantaiTasksDefsV1AttemptStateSubmitted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTasksDefsV1FlowState.
+const (
+	LantaiTasksDefsV1FlowStateCancelled LantaiTasksDefsV1FlowState = "cancelled"
+	LantaiTasksDefsV1FlowStateCompleted LantaiTasksDefsV1FlowState = "completed"
+	LantaiTasksDefsV1FlowStateFailed    LantaiTasksDefsV1FlowState = "failed"
+	LantaiTasksDefsV1FlowStatePaused    LantaiTasksDefsV1FlowState = "paused"
+	LantaiTasksDefsV1FlowStateRunning   LantaiTasksDefsV1FlowState = "running"
+	LantaiTasksDefsV1FlowStateWaiting   LantaiTasksDefsV1FlowState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTasksDefsV1FlowState enum.
+func (e LantaiTasksDefsV1FlowState) Valid() bool {
+	switch e {
+	case LantaiTasksDefsV1FlowStateCancelled:
+		return true
+	case LantaiTasksDefsV1FlowStateCompleted:
+		return true
+	case LantaiTasksDefsV1FlowStateFailed:
+		return true
+	case LantaiTasksDefsV1FlowStatePaused:
+		return true
+	case LantaiTasksDefsV1FlowStateRunning:
+		return true
+	case LantaiTasksDefsV1FlowStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTasksDefsV1SeatState.
+const (
+	LantaiTasksDefsV1SeatStateCancelled   LantaiTasksDefsV1SeatState = "cancelled"
+	LantaiTasksDefsV1SeatStateClaimed     LantaiTasksDefsV1SeatState = "claimed"
+	LantaiTasksDefsV1SeatStateDone        LantaiTasksDefsV1SeatState = "done"
+	LantaiTasksDefsV1SeatStateOpen        LantaiTasksDefsV1SeatState = "open"
+	LantaiTasksDefsV1SeatStateReconciling LantaiTasksDefsV1SeatState = "reconciling"
+	LantaiTasksDefsV1SeatStateSubmitted   LantaiTasksDefsV1SeatState = "submitted"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTasksDefsV1SeatState enum.
+func (e LantaiTasksDefsV1SeatState) Valid() bool {
+	switch e {
+	case LantaiTasksDefsV1SeatStateCancelled:
+		return true
+	case LantaiTasksDefsV1SeatStateClaimed:
+		return true
+	case LantaiTasksDefsV1SeatStateDone:
+		return true
+	case LantaiTasksDefsV1SeatStateOpen:
+		return true
+	case LantaiTasksDefsV1SeatStateReconciling:
+		return true
+	case LantaiTasksDefsV1SeatStateSubmitted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTasksDefsV1StepState.
+const (
+	LantaiTasksDefsV1StepStateBlocked   LantaiTasksDefsV1StepState = "blocked"
+	LantaiTasksDefsV1StepStateCancelled LantaiTasksDefsV1StepState = "cancelled"
+	LantaiTasksDefsV1StepStateCompleted LantaiTasksDefsV1StepState = "completed"
+	LantaiTasksDefsV1StepStateFailed    LantaiTasksDefsV1StepState = "failed"
+	LantaiTasksDefsV1StepStatePending   LantaiTasksDefsV1StepState = "pending"
+	LantaiTasksDefsV1StepStateReady     LantaiTasksDefsV1StepState = "ready"
+	LantaiTasksDefsV1StepStateRunning   LantaiTasksDefsV1StepState = "running"
+	LantaiTasksDefsV1StepStateWaiting   LantaiTasksDefsV1StepState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTasksDefsV1StepState enum.
+func (e LantaiTasksDefsV1StepState) Valid() bool {
+	switch e {
+	case LantaiTasksDefsV1StepStateBlocked:
+		return true
+	case LantaiTasksDefsV1StepStateCancelled:
+		return true
+	case LantaiTasksDefsV1StepStateCompleted:
+		return true
+	case LantaiTasksDefsV1StepStateFailed:
+		return true
+	case LantaiTasksDefsV1StepStatePending:
+		return true
+	case LantaiTasksDefsV1StepStateReady:
+		return true
+	case LantaiTasksDefsV1StepStateRunning:
+		return true
+	case LantaiTasksDefsV1StepStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiTasksDefsV1TaskState.
+const (
+	LantaiTasksDefsV1TaskStateBlocked     LantaiTasksDefsV1TaskState = "blocked"
+	LantaiTasksDefsV1TaskStateCancelled   LantaiTasksDefsV1TaskState = "cancelled"
+	LantaiTasksDefsV1TaskStateClaimed     LantaiTasksDefsV1TaskState = "claimed"
+	LantaiTasksDefsV1TaskStateDone        LantaiTasksDefsV1TaskState = "done"
+	LantaiTasksDefsV1TaskStateReconciling LantaiTasksDefsV1TaskState = "reconciling"
+	LantaiTasksDefsV1TaskStateRework      LantaiTasksDefsV1TaskState = "rework"
+	LantaiTasksDefsV1TaskStateSubmitted   LantaiTasksDefsV1TaskState = "submitted"
+	LantaiTasksDefsV1TaskStateTodo        LantaiTasksDefsV1TaskState = "todo"
+	LantaiTasksDefsV1TaskStateWaiting     LantaiTasksDefsV1TaskState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the LantaiTasksDefsV1TaskState enum.
+func (e LantaiTasksDefsV1TaskState) Valid() bool {
+	switch e {
+	case LantaiTasksDefsV1TaskStateBlocked:
+		return true
+	case LantaiTasksDefsV1TaskStateCancelled:
+		return true
+	case LantaiTasksDefsV1TaskStateClaimed:
+		return true
+	case LantaiTasksDefsV1TaskStateDone:
+		return true
+	case LantaiTasksDefsV1TaskStateReconciling:
+		return true
+	case LantaiTasksDefsV1TaskStateRework:
+		return true
+	case LantaiTasksDefsV1TaskStateSubmitted:
+		return true
+	case LantaiTasksDefsV1TaskStateTodo:
+		return true
+	case LantaiTasksDefsV1TaskStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MetaApiVersion.
 const (
 	MetaApiVersionV1 MetaApiVersion = "v1"
@@ -67,12 +784,15 @@ func (e MetaApiVersion) Valid() bool {
 // Defines values for MetaStage.
 const (
 	MetaStageM1 MetaStage = "M1"
+	MetaStageM2 MetaStage = "M2"
 )
 
 // Valid indicates whether the value is a known member of the MetaStage enum.
 func (e MetaStage) Valid() bool {
 	switch e {
 	case MetaStageM1:
+		return true
+	case MetaStageM2:
 		return true
 	default:
 		return false
@@ -636,8 +1356,9 @@ type CommitRequest struct {
 	Content       ContentInput `json:"content"`
 
 	// Describe sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
-	Describe *AssetPatch `json:"describe,omitempty"`
-	Slug     *string     `json:"slug,omitempty"`
+	Describe *AssetPatch           `json:"describe,omitempty"`
+	Slug     *string               `json:"slug,omitempty"`
+	Task     *M2CatalogTaskBinding `json:"task,omitempty"`
 }
 
 // CommitResult defines model for CommitResult.
@@ -670,6 +1391,63 @@ type CommitResult struct {
 	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	VersionId     Ulid `json:"version_id"`
 	VersionNumber int  `json:"version_number"`
+}
+
+// CommonV1ExecutionActivationRef 扩展调用绑定的激活快照身份。extensions 模块签发；包摘要或代次变化后旧结果不被接受。
+type CommonV1ExecutionActivationRef struct {
+	// ActivationGeneration 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	ActivationGeneration Epoch `json:"activation_generation"`
+
+	// ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+	ExtensionId ExtensionId `json:"extension_id"`
+
+	// ExtensionVersion 扩展包语义化版本。
+	ExtensionVersion ExtensionVersion `json:"extension_version"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest `json:"package_digest"`
+}
+
+// CommonV1ExecutionCancelMode adapter 能兑现的取消方式：revoke_only 只撤销兰台写入授权，停止需人或会话确认；cooperative 请求后端停止但可能延迟；enforced 由宿主终止进程树。
+type CommonV1ExecutionCancelMode string
+
+// CommonV1ExecutionCheckVerdict 检查的业务结论。只有 completed 的调用才能给出 pass 或 fail；其他运行结论一律为 unknown，不能当作 pass。
+type CommonV1ExecutionCheckVerdict string
+
+// CommonV1ExecutionEffectClass 工具或外部动作的副作用类别，决定恢复时能否重试。
+type CommonV1ExecutionEffectClass string
+
+// CommonV1ExecutionEffectState ToolOperation 的副作用进度：先持久化 intended 再发送；结果不明为 effect_unknown，需对账后才能转为 completed 或 not_executed。
+type CommonV1ExecutionEffectState string
+
+// CommonV1ExecutionInvocationOutcome 一次性处理器或作业单次调用的运行结论，与检查的业务结论分开：completed 表示退出码 0 且结果完整、schema 合法（业务结论可以是 fail）；runtime_fault 表示崩溃、非零退出、超时、结果缺失或畸形，只有它计入熔断；not_dispatched（派发前拒绝或排队失败）、cancelled（已确认停止的取消）不计故障；unresolved 表示已派发但停止状态未知，须先回收或对账。
+type CommonV1ExecutionInvocationOutcome string
+
+// CommonV1ExecutionResumeClass defines model for CommonV1ExecutionResumeClass.
+type CommonV1ExecutionResumeClass string
+
+// CommonV1ExecutionTaskFence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+type CommonV1ExecutionTaskFence struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid `json:"attempt_id"`
+
+	// LeaseFence 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	LeaseFence Epoch `json:"lease_fence"`
+
+	// RecoveryEpoch 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	RecoveryEpoch Epoch `json:"recovery_epoch"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId *Ulid `json:"task_id,omitempty"`
+}
+
+// CommonV1ExecutionTaskRunState TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+type CommonV1ExecutionTaskRunState string
+
+// CommonV1ExecutionTermination 取消或结束时的停止确认；未确认停止不得报告 cancelled。
+type CommonV1ExecutionTermination struct {
+	TerminationConfirmed bool `json:"termination_confirmed"`
+	UnresolvedEffects    int  `json:"unresolved_effects"`
 }
 
 // ContentInput defines model for ContentInput.
@@ -732,6 +1510,9 @@ type Enrollment struct {
 	Uri    string `json:"uri"`
 }
 
+// Epoch 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+type Epoch = int
+
 // ErrorEnvelope 所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。
 type ErrorEnvelope struct {
 	Error ErrorEnvelopeErrorBody `json:"error"`
@@ -789,6 +1570,9 @@ type ExactVersionView struct {
 	Version  VersionView      `json:"version"`
 }
 
+// ExpectedRevision 条件写入的预期修订；0 表示对象必须尚不存在。
+type ExpectedRevision = int
+
 // ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
 type ExtensionId = string
 
@@ -834,8 +1618,2524 @@ type IdentityView struct {
 // JsonPointer RFC 6901 JSON Pointer。
 type JsonPointer = string
 
+// LantaiActivationSnapshotV1 defines model for LantaiActivationSnapshotV1.
+type LantaiActivationSnapshotV1 struct {
+	// Activation 扩展调用绑定的激活快照身份。extensions 模块签发；包摘要或代次变化后旧结果不被接受。
+	Activation CommonV1ExecutionActivationRef `json:"activation"`
+	Contract   interface{}                    `json:"contract"`
+
+	// EffectiveConfigRevision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	EffectiveConfigRevision Revision `json:"effective_config_revision"`
+
+	// EnablementPolicyRevision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	EnablementPolicyRevision Revision                               `json:"enablement_policy_revision"`
+	Entry                    LantaiAgentExecutionDefsV1PackageEntry `json:"entry"`
+}
+
+// LantaiAgentExecutionDefsV1ArtifactFile defines model for LantaiAgentExecutionDefsV1ArtifactFile.
+type LantaiAgentExecutionDefsV1ArtifactFile struct {
+	// Path 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+	Path RelativePath `json:"path"`
+
+	// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+	Sha256 Sha256Hex `json:"sha256"`
+	Size   int       `json:"size"`
+}
+
+// LantaiAgentExecutionDefsV1BudgetLimits defines model for LantaiAgentExecutionDefsV1BudgetLimits.
+type LantaiAgentExecutionDefsV1BudgetLimits struct {
+	ArtifactBytes int  `json:"artifact_bytes"`
+	Concurrency   int  `json:"concurrency"`
+	ModelCalls    int  `json:"model_calls"`
+	SubagentCount int  `json:"subagent_count"`
+	SubagentDepth int  `json:"subagent_depth"`
+	Tokens        *int `json:"tokens,omitempty"`
+	ToolCalls     int  `json:"tool_calls"`
+	WallTimeMs    int  `json:"wall_time_ms"`
+}
+
+// LantaiAgentExecutionDefsV1BudgetUsage defines model for LantaiAgentExecutionDefsV1BudgetUsage.
+type LantaiAgentExecutionDefsV1BudgetUsage struct {
+	ArtifactBytes int  `json:"artifact_bytes"`
+	ModelCalls    int  `json:"model_calls"`
+	Tokens        *int `json:"tokens,omitempty"`
+	ToolCalls     int  `json:"tool_calls"`
+	WallTimeMs    int  `json:"wall_time_ms"`
+}
+
+// LantaiAgentExecutionDefsV1JobFence defines model for LantaiAgentExecutionDefsV1JobFence.
+type LantaiAgentExecutionDefsV1JobFence struct {
+	// JobAttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobAttemptId Ulid `json:"job_attempt_id"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId Ulid `json:"job_id"`
+
+	// LeaseFence 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	LeaseFence Epoch `json:"lease_fence"`
+
+	// RecoveryEpoch 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	RecoveryEpoch Epoch `json:"recovery_epoch"`
+}
+
+// LantaiAgentExecutionDefsV1PackageEntry defines model for LantaiAgentExecutionDefsV1PackageEntry.
+type LantaiAgentExecutionDefsV1PackageEntry struct {
+	// Entry 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+	Entry RelativePath `json:"entry"`
+
+	// EntryDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	EntryDigest Digest `json:"entry_digest"`
+
+	// ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+	ExtensionId ExtensionId `json:"extension_id"`
+
+	// ExtensionVersion 扩展包语义化版本。
+	ExtensionVersion ExtensionVersion `json:"extension_version"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest                                       `json:"package_digest"`
+	Target        LantaiAgentExecutionDefsV1PackageEntryTarget `json:"target"`
+}
+
+// LantaiAgentExecutionDefsV1PackageEntryTarget defines model for LantaiAgentExecutionDefsV1PackageEntry.Target.
+type LantaiAgentExecutionDefsV1PackageEntryTarget string
+
+// LantaiAgentExecutionDefsV1ProfileRef defines model for LantaiAgentExecutionDefsV1ProfileRef.
+type LantaiAgentExecutionDefsV1ProfileRef struct {
+	// ProfileDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ProfileDigest Digest `json:"profile_digest"`
+
+	// ProfileId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProfileId Ulid `json:"profile_id"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+}
+
+// LantaiAgentResponseV1 defines model for LantaiAgentResponseV1.
+type LantaiAgentResponseV1 struct {
+	union json.RawMessage
+}
+
+// LantaiAgentResponseV10 defines model for LantaiAgentResponseV1.0.
+type LantaiAgentResponseV10 struct {
+	Action       interface{}                   `json:"action"`
+	Capabilities LantaiExecutionCapabilitiesV1 `json:"capabilities"`
+	Protocol     interface{}                   `json:"protocol"`
+}
+
+// LantaiAgentResponseV11 defines model for LantaiAgentResponseV1.1.
+type LantaiAgentResponseV11 struct {
+	// AcceptedRequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	AcceptedRequestHash Digest      `json:"accepted_request_hash"`
+	Action              interface{} `json:"action"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId     Ulid    `json:"attempt_id"`
+	BackendRunRef *string `json:"backend_run_ref,omitempty"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid `json:"execution_id"`
+
+	// ExecutionKey 客户端提供的幂等键；作用域为 (actor, project, command_type)。
+	ExecutionKey IdempotencyKey `json:"execution_key"`
+	Protocol     interface{}    `json:"protocol"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// State TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+	State CommonV1ExecutionTaskRunState `json:"state"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+}
+
+// LantaiAgentResponseV12 defines model for LantaiAgentResponseV1.2.
+type LantaiAgentResponseV12 struct {
+	// AcceptedRequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	AcceptedRequestHash Digest      `json:"accepted_request_hash"`
+	Action              interface{} `json:"action"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId     Ulid    `json:"attempt_id"`
+	BackendRunRef *string `json:"backend_run_ref,omitempty"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid `json:"execution_id"`
+
+	// ExecutionKey 客户端提供的幂等键；作用域为 (actor, project, command_type)。
+	ExecutionKey IdempotencyKey `json:"execution_key"`
+	Protocol     interface{}    `json:"protocol"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// State TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+	State CommonV1ExecutionTaskRunState `json:"state"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+}
+
+// LantaiAgentResponseV13 defines model for LantaiAgentResponseV1.3.
+type LantaiAgentResponseV13 struct {
+	// AcceptedRequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	AcceptedRequestHash Digest      `json:"accepted_request_hash"`
+	Action              interface{} `json:"action"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId     Ulid    `json:"attempt_id"`
+	BackendRunRef *string `json:"backend_run_ref,omitempty"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid `json:"execution_id"`
+
+	// ExecutionKey 客户端提供的幂等键；作用域为 (actor, project, command_type)。
+	ExecutionKey IdempotencyKey `json:"execution_key"`
+	Protocol     interface{}    `json:"protocol"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// State TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+	State CommonV1ExecutionTaskRunState `json:"state"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+}
+
+// LantaiAgentResponseV14 defines model for LantaiAgentResponseV1.4.
+type LantaiAgentResponseV14 struct {
+	Action      interface{}                           `json:"action"`
+	BudgetUsage LantaiAgentExecutionDefsV1BudgetUsage `json:"budget_usage"`
+
+	// CheckpointId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CheckpointId *Ulid `json:"checkpoint_id,omitempty"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid `json:"execution_id"`
+
+	// HeartbeatAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	HeartbeatAt *Timestamp `json:"heartbeat_at,omitempty"`
+
+	// ObservedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ObservedAt Timestamp   `json:"observed_at"`
+	Protocol   interface{} `json:"protocol"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// State TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+	State CommonV1ExecutionTaskRunState `json:"state"`
+
+	// Termination 取消或结束时的停止确认；未确认停止不得报告 cancelled。
+	Termination CommonV1ExecutionTermination `json:"termination"`
+}
+
+// LantaiAgentResponseV15 defines model for LantaiAgentResponseV1.5.
+type LantaiAgentResponseV15 struct {
+	Action interface{} `json:"action"`
+
+	// CancelMode adapter 能兑现的取消方式：revoke_only 只撤销兰台写入授权，停止需人或会话确认；cooperative 请求后端停止但可能延迟；enforced 由宿主终止进程树。
+	CancelMode CommonV1ExecutionCancelMode `json:"cancel_mode"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid                        `json:"execution_id"`
+	Protocol    interface{}                 `json:"protocol"`
+	State       LantaiAgentResponseV15State `json:"state"`
+
+	// Termination 取消或结束时的停止确认；未确认停止不得报告 cancelled。
+	Termination CommonV1ExecutionTermination `json:"termination"`
+}
+
+// LantaiAgentResponseV15State defines model for LantaiAgentResponseV1.5.State.
+type LantaiAgentResponseV15State string
+
+// LantaiAgentResponseV16 defines model for LantaiAgentResponseV1.6.
+type LantaiAgentResponseV16 struct {
+	Action   interface{}         `json:"action"`
+	Protocol interface{}         `json:"protocol"`
+	Result   LantaiAgentResultV1 `json:"result"`
+}
+
+// LantaiAgentResultV1 defines model for LantaiAgentResultV1.
+type LantaiAgentResultV1 struct {
+	// AcceptedRequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	AcceptedRequestHash Digest `json:"accepted_request_hash"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId    Ulid                                  `json:"attempt_id"`
+	BudgetUsage  LantaiAgentExecutionDefsV1BudgetUsage `json:"budget_usage"`
+	CandidateIds []Ulid                                `json:"candidate_ids"`
+	Contract     interface{}                           `json:"contract"`
+	EvidenceRefs []Ulid                                `json:"evidence_refs"`
+
+	// ExecutionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ExecutionId Ulid                       `json:"execution_id"`
+	Limitations []string                   `json:"limitations"`
+	Outcome     LantaiAgentResultV1Outcome `json:"outcome"`
+
+	// ResultDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ResultDigest Digest `json:"result_digest"`
+
+	// SealedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	SealedAt Timestamp `json:"sealed_at"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId   Ulid `json:"task_run_id"`
+	Termination struct {
+		TerminationConfirmed interface{} `json:"termination_confirmed"`
+		UnresolvedEffects    interface{} `json:"unresolved_effects"`
+	} `json:"termination"`
+}
+
+// LantaiAgentResultV1Outcome defines model for LantaiAgentResultV1.Outcome.
+type LantaiAgentResultV1Outcome string
+
+// LantaiAgentStepRunV1 defines model for LantaiAgentStepRunV1.
+type LantaiAgentStepRunV1 struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid        `json:"attempt_id"`
+	Contract  interface{} `json:"contract"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id         Ulid                     `json:"id"`
+	InputRefs  []PermanentRef           `json:"input_refs"`
+	Kind       LantaiAgentStepRunV1Kind `json:"kind"`
+	OutputRefs []PermanentRef           `json:"output_refs"`
+
+	// ParentId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ParentId *Ulid `json:"parent_id,omitempty"`
+
+	// PlanRevision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	PlanRevision Revision `json:"plan_revision"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision                  `json:"revision"`
+	State    LantaiAgentStepRunV1State `json:"state"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId        Ulid   `json:"task_run_id"`
+	ToolOperationIds []Ulid `json:"tool_operation_ids"`
+}
+
+// LantaiAgentStepRunV1Kind defines model for LantaiAgentStepRunV1.Kind.
+type LantaiAgentStepRunV1Kind string
+
+// LantaiAgentStepRunV1State defines model for LantaiAgentStepRunV1.State.
+type LantaiAgentStepRunV1State string
+
+// LantaiArtifactCandidateV1 defines model for LantaiArtifactCandidateV1.
+type LantaiArtifactCandidateV1 struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid                                     `json:"attempt_id"`
+	Contract  interface{}                              `json:"contract"`
+	Files     []LantaiAgentExecutionDefsV1ArtifactFile `json:"files"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id                  Ulid   `json:"id"`
+	LicenseEvidenceRefs []Ulid `json:"license_evidence_refs"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
+	Producer       *ProducerRef `json:"producer,omitempty"`
+	ProvenanceRefs []Ulid       `json:"provenance_refs"`
+	Purpose        string       `json:"purpose"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId       Ulid                                     `json:"task_run_id"`
+	ValidationState LantaiArtifactCandidateV1ValidationState `json:"validation_state"`
+}
+
+// LantaiArtifactCandidateV1ValidationState defines model for LantaiArtifactCandidateV1.ValidationState.
+type LantaiArtifactCandidateV1ValidationState string
+
+// LantaiAttemptV1 defines model for LantaiAttemptV1.
+type LantaiAttemptV1 struct {
+	Contract interface{} `json:"contract"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id Ulid `json:"id"`
+
+	// IssuedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	IssuedAt Timestamp `json:"issued_at"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId    Ulid                            `json:"principal_id"`
+	Reconciliation LantaiTasksDefsV1Reconciliation `json:"reconciliation"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// SeatId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SeatId Ulid `json:"seat_id"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId Ulid                          `json:"session_id"`
+	State     LantaiTasksDefsV1AttemptState `json:"state"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// LantaiCheckpointV1 defines model for LantaiCheckpointV1.
+type LantaiCheckpointV1 struct {
+	ArtifactRefs []PermanentRef `json:"artifact_refs"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId            Ulid    `json:"attempt_id"`
+	BackendCheckpointRef *string `json:"backend_checkpoint_ref,omitempty"`
+
+	// BackendVersion 扩展包语义化版本。
+	BackendVersion   ExtensionVersion `json:"backend_version"`
+	CompletedStepIds []Ulid           `json:"completed_step_ids"`
+	Contract         interface{}      `json:"contract"`
+
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt     Timestamp `json:"created_at"`
+	FormatVersion string    `json:"format_version"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id Ulid `json:"id"`
+
+	// InputSnapshotDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	InputSnapshotDigest Digest `json:"input_snapshot_digest"`
+
+	// ProfileDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ProfileDigest Digest                       `json:"profile_digest"`
+	ResumeClass   CommonV1ExecutionResumeClass `json:"resume_class"`
+
+	// Sequence 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Sequence Revision `json:"sequence"`
+
+	// SideEffectWatermark 条件写入的预期修订；0 表示对象必须尚不存在。
+	SideEffectWatermark ExpectedRevision `json:"side_effect_watermark"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+}
+
+// LantaiExecutionCapabilitiesV1 defines model for LantaiExecutionCapabilitiesV1.
+type LantaiExecutionCapabilitiesV1 struct {
+	AdapterKind  LantaiExecutionCapabilitiesV1AdapterKind  `json:"adapter_kind"`
+	ArtifactMode LantaiExecutionCapabilitiesV1ArtifactMode `json:"artifact_mode"`
+
+	// BackendVersion 扩展包语义化版本。
+	BackendVersion ExtensionVersion                            `json:"backend_version"`
+	BudgetMeters   []LantaiExecutionCapabilitiesV1BudgetMeters `json:"budget_meters"`
+
+	// CancelMode adapter 能兑现的取消方式：revoke_only 只撤销兰台写入授权，停止需人或会话确认；cooperative 请求后端停止但可能延迟；enforced 由宿主终止进程树。
+	CancelMode               CommonV1ExecutionCancelMode    `json:"cancel_mode"`
+	Capabilities             []string                       `json:"capabilities"`
+	CheckpointFormatVersions []string                       `json:"checkpoint_format_versions"`
+	Contract                 interface{}                    `json:"contract"`
+	ProtocolVersions         []interface{}                  `json:"protocol_versions"`
+	ResumeClasses            []CommonV1ExecutionResumeClass `json:"resume_classes"`
+	SupportsIdempotentStart  interface{}                    `json:"supports_idempotent_start"`
+	SupportsLookupByKey      interface{}                    `json:"supports_lookup_by_key"`
+}
+
+// LantaiExecutionCapabilitiesV1AdapterKind defines model for LantaiExecutionCapabilitiesV1.AdapterKind.
+type LantaiExecutionCapabilitiesV1AdapterKind string
+
+// LantaiExecutionCapabilitiesV1ArtifactMode defines model for LantaiExecutionCapabilitiesV1.ArtifactMode.
+type LantaiExecutionCapabilitiesV1ArtifactMode string
+
+// LantaiExecutionCapabilitiesV1BudgetMeters defines model for LantaiExecutionCapabilitiesV1.BudgetMeters.
+type LantaiExecutionCapabilitiesV1BudgetMeters string
+
+// LantaiExecutionProfileV1 defines model for LantaiExecutionProfileV1.
+type LantaiExecutionProfileV1 struct {
+	ActivationSnapshot *LantaiActivationSnapshotV1         `json:"activation_snapshot,omitempty"`
+	AdapterKind        LantaiExecutionProfileV1AdapterKind `json:"adapter_kind"`
+
+	// AdapterVersion 扩展包语义化版本。
+	AdapterVersion ExtensionVersion                       `json:"adapter_version"`
+	AllowedTools   []CommandType                          `json:"allowed_tools"`
+	BudgetLimits   LantaiAgentExecutionDefsV1BudgetLimits `json:"budget_limits"`
+	Contract       interface{}                            `json:"contract"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id                   Ulid                                  `json:"id"`
+	NetworkAllowlist     []string                              `json:"network_allowlist"`
+	NetworkPolicy        LantaiExecutionProfileV1NetworkPolicy `json:"network_policy"`
+	PlaybookRefs         []PermanentRef                        `json:"playbook_refs"`
+	RequiredCapabilities []string                              `json:"required_capabilities"`
+	ResultSchema         interface{}                           `json:"result_schema"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision     Revision `json:"revision"`
+	SkillDigests []Digest `json:"skill_digests"`
+}
+
+// LantaiExecutionProfileV1AdapterKind defines model for LantaiExecutionProfileV1.AdapterKind.
+type LantaiExecutionProfileV1AdapterKind string
+
+// LantaiExecutionProfileV1NetworkPolicy defines model for LantaiExecutionProfileV1.NetworkPolicy.
+type LantaiExecutionProfileV1NetworkPolicy string
+
+// LantaiFlowV1 defines model for LantaiFlowV1.
+type LantaiFlowV1 struct {
+	Contract   interface{}                    `json:"contract"`
+	Definition LantaiTasksDefsV1DefinitionRef `json:"definition"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id            Ulid                           `json:"id"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot `json:"input_snapshot"`
+
+	// LastEventId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	LastEventId *Ulid `json:"last_event_id,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId         Ulid   `json:"operation_id"`
+	PendingOperationIds []Ulid `json:"pending_operation_ids"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision   Revision                   `json:"revision"`
+	State      LantaiTasksDefsV1FlowState `json:"state"`
+	StepRunIds []Ulid                     `json:"step_run_ids"`
+}
+
+// LantaiJobAttemptV1 defines model for LantaiJobAttemptV1.
+type LantaiJobAttemptV1 struct {
+	ActivationSnapshot LantaiActivationSnapshotV1 `json:"activation_snapshot"`
+	Contract           interface{}                `json:"contract"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id            Ulid                               `json:"id"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot     `json:"input_snapshot"`
+	JobFence      LantaiAgentExecutionDefsV1JobFence `json:"job_fence"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId Ulid `json:"job_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// Outcome 一次性处理器或作业单次调用的运行结论，与检查的业务结论分开：completed 表示退出码 0 且结果完整、schema 合法（业务结论可以是 fail）；runtime_fault 表示崩溃、非零退出、超时、结果缺失或畸形，只有它计入熔断；not_dispatched（派发前拒绝或排队失败）、cancelled（已确认停止的取消）不计故障；unresolved 表示已派发但停止状态未知，须先回收或对账。
+	Outcome  *CommonV1ExecutionInvocationOutcome `json:"outcome,omitempty"`
+	Protocol interface{}                         `json:"protocol"`
+
+	// ResultDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ResultDigest *Digest `json:"result_digest,omitempty"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision                `json:"revision"`
+	State    LantaiJobAttemptV1State `json:"state"`
+
+	// Termination 取消或结束时的停止确认；未确认停止不得报告 cancelled。
+	Termination CommonV1ExecutionTermination `json:"termination"`
+
+	// Verdict 检查的业务结论。只有 completed 的调用才能给出 pass 或 fail；其他运行结论一律为 unknown，不能当作 pass。
+	Verdict *CommonV1ExecutionCheckVerdict `json:"verdict,omitempty"`
+}
+
+// LantaiJobAttemptV1State defines model for LantaiJobAttemptV1.State.
+type LantaiJobAttemptV1State string
+
+// LantaiSeatV1 defines model for LantaiSeatV1.
+type LantaiSeatV1 struct {
+	Contract interface{} `json:"contract"`
+
+	// CurrentAttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CurrentAttemptId *Ulid `json:"current_attempt_id,omitempty"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id Ulid `json:"id"`
+
+	// LastLeaseFence 条件写入的预期修订；0 表示对象必须尚不存在。
+	LastLeaseFence ExpectedRevision `json:"last_lease_fence"`
+	Ordinal        int              `json:"ordinal"`
+
+	// RecoveryEpoch 单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。
+	RecoveryEpoch Epoch `json:"recovery_epoch"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision                   `json:"revision"`
+	State    LantaiTasksDefsV1SeatState `json:"state"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// LantaiStepRunV1 defines model for LantaiStepRunV1.
+type LantaiStepRunV1 struct {
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId *Ulid                          `json:"authority_operation_id,omitempty"`
+	Contract             interface{}                    `json:"contract"`
+	Definition           LantaiTasksDefsV1DefinitionRef `json:"definition"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId Ulid `json:"flow_id"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id            Ulid                           `json:"id"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot `json:"input_snapshot"`
+	JobIds        []Ulid                         `json:"job_ids"`
+	Kind          LantaiStepRunV1Kind            `json:"kind"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid           `json:"operation_id"`
+	OutputRefs  []PermanentRef `json:"output_refs"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision                   `json:"revision"`
+	Round    int                        `json:"round"`
+	State    LantaiTasksDefsV1StepState `json:"state"`
+	StepKey  string                     `json:"step_key"`
+	TaskIds  []Ulid                     `json:"task_ids"`
+}
+
+// LantaiStepRunV1Kind defines model for LantaiStepRunV1.Kind.
+type LantaiStepRunV1Kind string
+
+// LantaiTaskRunV1 defines model for LantaiTaskRunV1.
+type LantaiTaskRunV1 struct {
+	// BudgetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BudgetId Ulid        `json:"budget_id"`
+	Contract interface{} `json:"contract"`
+
+	// CreatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CreatedBy Ulid `json:"created_by"`
+
+	// CurrentAttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CurrentAttemptId *Ulid `json:"current_attempt_id,omitempty"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId *Ulid `json:"flow_id,omitempty"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id            Ulid                           `json:"id"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot `json:"input_snapshot"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid                                 `json:"operation_id"`
+	Profile     LantaiAgentExecutionDefsV1ProfileRef `json:"profile"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision `json:"revision"`
+
+	// SeatId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SeatId Ulid `json:"seat_id"`
+
+	// State TaskRun 状态。execution_succeeded 只表示候选与结果已完整交回，不等于任务完成、审定通过或已发布。
+	State CommonV1ExecutionTaskRunState `json:"state"`
+
+	// StepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StepRunId *Ulid `json:"step_run_id,omitempty"`
+
+	// SupersedesRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SupersedesRunId *Ulid `json:"supersedes_run_id,omitempty"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+
+	// Termination 取消或结束时的停止确认；未确认停止不得报告 cancelled。
+	Termination CommonV1ExecutionTermination `json:"termination"`
+}
+
+// LantaiTaskV1 defines model for LantaiTaskV1.
+type LantaiTaskV1 struct {
+	AcceptanceCriteria []string    `json:"acceptance_criteria"`
+	Contract           interface{} `json:"contract"`
+	DependencyIds      []Ulid      `json:"dependency_ids"`
+
+	// DueAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	DueAt           *Timestamp                           `json:"due_at,omitempty"`
+	ExpectedOutputs []LantaiTasksDefsV1OutputRequirement `json:"expected_outputs"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId *Ulid `json:"flow_id,omitempty"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id            Ulid                           `json:"id"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot `json:"input_snapshot"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid                 `json:"operation_id"`
+	OutputRefs  []PermanentRef       `json:"output_refs"`
+	Priority    LantaiTaskV1Priority `json:"priority"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Revision Revision                   `json:"revision"`
+	SeatIds  []Ulid                     `json:"seat_ids"`
+	State    LantaiTasksDefsV1TaskState `json:"state"`
+
+	// StepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StepRunId *Ulid            `json:"step_run_id,omitempty"`
+	Title     string           `json:"title"`
+	Type      LantaiTaskV1Type `json:"type"`
+}
+
+// LantaiTaskV1Priority defines model for LantaiTaskV1.Priority.
+type LantaiTaskV1Priority string
+
+// LantaiTaskV1Type defines model for LantaiTaskV1.Type.
+type LantaiTaskV1Type string
+
+// LantaiTasksDefsV1AttemptState defines model for LantaiTasksDefsV1AttemptState.
+type LantaiTasksDefsV1AttemptState string
+
+// LantaiTasksDefsV1DefinitionRef defines model for LantaiTasksDefsV1DefinitionRef.
+type LantaiTasksDefsV1DefinitionRef struct {
+	// DefinitionDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	DefinitionDigest Digest `json:"definition_digest"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+}
+
+// LantaiTasksDefsV1FlowState defines model for LantaiTasksDefsV1FlowState.
+type LantaiTasksDefsV1FlowState string
+
+// LantaiTasksDefsV1InputSnapshot defines model for LantaiTasksDefsV1InputSnapshot.
+type LantaiTasksDefsV1InputSnapshot struct {
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest         `json:"digest"`
+	Refs   []PermanentRef `json:"refs"`
+}
+
+// LantaiTasksDefsV1OutputRequirement defines model for LantaiTasksDefsV1OutputRequirement.
+type LantaiTasksDefsV1OutputRequirement struct {
+	AssetType      string `json:"asset_type"`
+	CandidateCount int    `json:"candidate_count"`
+
+	// Slug 项目内的资产路径别名，由 catalog 规范化（NFC、/ 分隔、跨平台保留名规则）；此处只约束基本形态。
+	Slug NormalizedSlug `json:"slug"`
+}
+
+// LantaiTasksDefsV1Reconciliation defines model for LantaiTasksDefsV1Reconciliation.
+type LantaiTasksDefsV1Reconciliation struct {
+	EvidenceRefs         []Ulid `json:"evidence_refs"`
+	TerminationConfirmed bool   `json:"termination_confirmed"`
+	UnresolvedEffects    int    `json:"unresolved_effects"`
+}
+
+// LantaiTasksDefsV1SeatState defines model for LantaiTasksDefsV1SeatState.
+type LantaiTasksDefsV1SeatState string
+
+// LantaiTasksDefsV1StepState defines model for LantaiTasksDefsV1StepState.
+type LantaiTasksDefsV1StepState string
+
+// LantaiTasksDefsV1TaskState defines model for LantaiTasksDefsV1TaskState.
+type LantaiTasksDefsV1TaskState string
+
+// LantaiToolOperationV1 defines model for LantaiToolOperationV1.
+type LantaiToolOperationV1 struct {
+	// AgentStepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AgentStepRunId Ulid `json:"agent_step_run_id"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid        `json:"attempt_id"`
+	Contract  interface{} `json:"contract"`
+
+	// EffectClass 工具或外部动作的副作用类别，决定恢复时能否重试。
+	EffectClass        CommonV1ExecutionEffectClass `json:"effect_class"`
+	ExternalRequestRef *string                      `json:"external_request_ref,omitempty"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id Ulid `json:"id"`
+
+	// IdempotencyKey 客户端提供的幂等键；作用域为 (actor, project, command_type)。
+	IdempotencyKey *IdempotencyKey `json:"idempotency_key,omitempty"`
+
+	// ReceiptDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ReceiptDigest              *Digest `json:"receipt_digest,omitempty"`
+	ReconciliationEvidenceRefs []Ulid  `json:"reconciliation_evidence_refs"`
+
+	// RequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	RequestHash Digest `json:"request_hash"`
+
+	// Sequence 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
+	Sequence Revision `json:"sequence"`
+
+	// State ToolOperation 的副作用进度：先持久化 intended 再发送；结果不明为 effect_unknown，需对账后才能转为 completed 或 not_executed。
+	State CommonV1ExecutionEffectState `json:"state"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+
+	// Tool 命令类型，<module>.<command>，例如 ledger.commit_version。
+	Tool CommandType `json:"tool"`
+
+	// ToolVersion 扩展包语义化版本。
+	ToolVersion ExtensionVersion `json:"tool_version"`
+}
+
 // LantaiUri 永久引用的外部 URI 形式。
 type LantaiUri = string
+
+// M2AgentexecStartRequest defines model for M2AgentexecStartRequest.
+type M2AgentexecStartRequest struct {
+	Action string `json:"action"`
+
+	// Activation 扩展调用绑定的激活快照身份。extensions 模块签发；包摘要或代次变化后旧结果不被接受。
+	Activation *CommonV1ExecutionActivationRef `json:"activation,omitempty"`
+
+	// BudgetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BudgetId     Ulid   `json:"budget_id"`
+	ExecutionKey string `json:"execution_key"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence         CommonV1ExecutionTaskFence     `json:"fence"`
+	InputSnapshot LantaiTasksDefsV1InputSnapshot `json:"input_snapshot"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid                     `json:"operation_id"`
+	Profile     LantaiExecutionProfileV1 `json:"profile"`
+	Protocol    string                   `json:"protocol"`
+
+	// RequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	RequestHash Digest              `json:"request_hash"`
+	ResumeFrom  *LantaiCheckpointV1 `json:"resume_from,omitempty"`
+
+	// TaskRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskRunId Ulid `json:"task_run_id"`
+}
+
+// M2AgentexecutionAnswerRequest defines model for M2AgentexecutionAnswerRequest.
+type M2AgentexecutionAnswerRequest struct {
+	Answer           string `json:"answer"`
+	ExpectedRevision int    `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// InputId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InputId Ulid `json:"input_id"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId Ulid `json:"run_id"`
+
+	// TargetDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	TargetDigest Digest `json:"target_digest"`
+}
+
+// M2AgentexecutionCancelRequest defines model for M2AgentexecutionCancelRequest.
+type M2AgentexecutionCancelRequest struct {
+	CancelMode       string `json:"cancel_mode"`
+	ExpectedRevision int    `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence  CommonV1ExecutionTaskFence `json:"fence"`
+	Reason string                     `json:"reason"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId Ulid `json:"run_id"`
+}
+
+// M2AgentexecutionCandidateRequest defines model for M2AgentexecutionCandidateRequest.
+type M2AgentexecutionCandidateRequest struct {
+	Candidate        LantaiArtifactCandidateV1 `json:"candidate"`
+	ExpectedRevision int                       `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId Ulid `json:"run_id"`
+}
+
+// M2AgentexecutionCheckpointRequest defines model for M2AgentexecutionCheckpointRequest.
+type M2AgentexecutionCheckpointRequest struct {
+	Checkpoint       LantaiCheckpointV1 `json:"checkpoint"`
+	ExpectedRevision int                `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId   Ulid `json:"run_id"`
+	Stopped bool `json:"stopped"`
+}
+
+// M2AgentexecutionHumanInput defines model for M2AgentexecutionHumanInput.
+type M2AgentexecutionHumanInput struct {
+	Answer *string `json:"answer,omitempty"`
+
+	// AnsweredBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AnsweredBy *Ulid  `json:"answered_by,omitempty"`
+	ExpiresAt  string `json:"expires_at"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id       Ulid   `json:"id"`
+	Kind     string `json:"kind"`
+	Question string `json:"question"`
+
+	// TargetDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	TargetDigest *Digest `json:"target_digest,omitempty"`
+}
+
+// M2AgentexecutionInputRequest defines model for M2AgentexecutionInputRequest.
+type M2AgentexecutionInputRequest struct {
+	Checkpoint       LantaiCheckpointV1 `json:"checkpoint"`
+	ExpectedRevision int                `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+	Input M2AgentexecutionHumanInput `json:"input"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId   Ulid `json:"run_id"`
+	Stopped bool `json:"stopped"`
+}
+
+// M2AgentexecutionProgressRequest defines model for M2AgentexecutionProgressRequest.
+type M2AgentexecutionProgressRequest struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId Ulid                                  `json:"run_id"`
+	Step  *LantaiAgentStepRunV1                 `json:"step,omitempty"`
+	Usage LantaiAgentExecutionDefsV1BudgetUsage `json:"usage"`
+}
+
+// M2AgentexecutionReconcileRequest defines model for M2AgentexecutionReconcileRequest.
+type M2AgentexecutionReconcileRequest struct {
+	Checkpoint       *LantaiCheckpointV1 `json:"checkpoint,omitempty"`
+	EvidenceRefs     *[]PermanentRef     `json:"evidence_refs"`
+	ExpectedRevision int                 `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence  CommonV1ExecutionTaskFence `json:"fence"`
+	Reason string                     `json:"reason"`
+
+	// ReceiptDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ReceiptDigest *Digest `json:"receipt_digest,omitempty"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId   Ulid `json:"run_id"`
+	Stopped bool `json:"stopped"`
+
+	// ToolId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ToolId    *Ulid   `json:"tool_id,omitempty"`
+	ToolState *string `json:"tool_state,omitempty"`
+}
+
+// M2AgentexecutionReconciliation defines model for M2AgentexecutionReconciliation.
+type M2AgentexecutionReconciliation struct {
+	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorId Ulid `json:"actor_id"`
+
+	// RecordedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	RecordedAt Timestamp                        `json:"recorded_at"`
+	Request    M2AgentexecutionReconcileRequest `json:"request"`
+}
+
+// M2AgentexecutionRecord defines model for M2AgentexecutionRecord.
+type M2AgentexecutionRecord struct {
+	CancelRequested bool                          `json:"cancel_requested"`
+	CandidateRefs   map[string]PermanentRef       `json:"candidate_refs"`
+	Candidates      *[]LantaiArtifactCandidateV1  `json:"candidates"`
+	Checkpoints     *[]LantaiCheckpointV1         `json:"checkpoints"`
+	Current         LantaiAgentResponseV1         `json:"current"`
+	Inputs          *[]M2AgentexecutionHumanInput `json:"inputs"`
+	Profile         LantaiExecutionProfileV1      `json:"profile"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId       Ulid                              `json:"project_id"`
+	Reconciliations *[]M2AgentexecutionReconciliation `json:"reconciliations,omitempty"`
+	Result          *LantaiAgentResultV1              `json:"result,omitempty"`
+	Run             LantaiTaskRunV1                   `json:"run"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId Ulid                                  `json:"session_id"`
+	Steps     *[]LantaiAgentStepRunV1               `json:"steps"`
+	TaskRound int                                   `json:"task_round"`
+	Tools     *[]LantaiToolOperationV1              `json:"tools"`
+	UpdatedAt string                                `json:"updated_at"`
+	Usage     LantaiAgentExecutionDefsV1BudgetUsage `json:"usage"`
+}
+
+// M2AgentexecutionSealRequest defines model for M2AgentexecutionSealRequest.
+type M2AgentexecutionSealRequest struct {
+	CandidateIds     *[]Ulid `json:"candidate_ids"`
+	ExpectedRevision int     `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence       CommonV1ExecutionTaskFence `json:"fence"`
+	Limitations *[]string                  `json:"limitations"`
+	Outcome     string                     `json:"outcome"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId   Ulid `json:"run_id"`
+	Stopped bool `json:"stopped"`
+}
+
+// M2AgentexecutionToolRequest defines model for M2AgentexecutionToolRequest.
+type M2AgentexecutionToolRequest struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId Ulid                  `json:"run_id"`
+	Tool  LantaiToolOperationV1 `json:"tool"`
+}
+
+// M2CatalogAssetPatch defines model for M2CatalogAssetPatch.
+type M2CatalogAssetPatch struct {
+	Defaults    *M2CatalogDefaults      `json:"defaults,omitempty"`
+	Extra       *map[string]interface{} `json:"extra,omitempty"`
+	Sensitivity *string                 `json:"sensitivity,omitempty"`
+	Subjects    *[]string               `json:"subjects,omitempty"`
+	Summary     *string                 `json:"summary,omitempty"`
+	Tags        *[]string               `json:"tags,omitempty"`
+	Title       *string                 `json:"title,omitempty"`
+}
+
+// M2CatalogContentInput defines model for M2CatalogContentInput.
+type M2CatalogContentInput struct {
+	AssetType   string                  `json:"asset_type"`
+	Files       *[]M2ManifestInputFile  `json:"files"`
+	Metadata    *map[string]interface{} `json:"metadata,omitempty"`
+	Producer    *M2StorageProducer      `json:"producer,omitempty"`
+	Rights      *M2ManifestRights       `json:"rights,omitempty"`
+	Uses        *[]M2CatalogDeclaredUse `json:"uses,omitempty"`
+	VersionNote *string                 `json:"version_note,omitempty"`
+}
+
+// M2CatalogContextApproval defines model for M2CatalogContextApproval.
+type M2CatalogContextApproval struct {
+	// ApproverId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ApproverId  Ulid   `json:"approver_id"`
+	EffectiveAt string `json:"effective_at"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+
+	// ReviewId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReviewId Ulid `json:"review_id"`
+	Revision int  `json:"revision"`
+}
+
+// M2CatalogContextBundle defines model for M2CatalogContextBundle.
+type M2CatalogContextBundle struct {
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest    Digest                      `json:"digest"`
+	Documents *[]M2CatalogContextDocument `json:"documents"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+}
+
+// M2CatalogContextDocument defines model for M2CatalogContextDocument.
+type M2CatalogContextDocument struct {
+	Approval *M2CatalogContextApproval `json:"approval,omitempty"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+	Markdown       string `json:"markdown"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref  PermanentRef             `json:"ref"`
+	Spec M2CatalogProjectDocument `json:"spec"`
+}
+
+// M2CatalogDeclaredUse defines model for M2CatalogDeclaredUse.
+type M2CatalogDeclaredUse struct {
+	AliasGeneration *int `json:"alias_generation,omitempty"`
+
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId  *Ulid   `json:"asset_id,omitempty"`
+	Ref      *string `json:"ref,omitempty"`
+	Relation string  `json:"relation"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId *Ulid `json:"version_id,omitempty"`
+}
+
+// M2CatalogDefaults defines model for M2CatalogDefaults.
+type M2CatalogDefaults struct {
+	License *string `json:"license,omitempty"`
+	Usage   *string `json:"usage,omitempty"`
+}
+
+// M2CatalogDocumentScope defines model for M2CatalogDocumentScope.
+type M2CatalogDocumentScope struct {
+	AssetType *string `json:"asset_type,omitempty"`
+	Kind      string  `json:"kind"`
+}
+
+// M2CatalogProjectDocument defines model for M2CatalogProjectDocument.
+type M2CatalogProjectDocument struct {
+	Contract   string                 `json:"contract"`
+	FilePath   string                 `json:"file_path"`
+	Kind       string                 `json:"kind"`
+	Scope      M2CatalogDocumentScope `json:"scope"`
+	Supersedes *[]PermanentRef        `json:"supersedes"`
+	Title      string                 `json:"title"`
+}
+
+// M2CatalogTaskBinding defines model for M2CatalogTaskBinding.
+type M2CatalogTaskBinding struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId  Ulid `json:"attempt_id"`
+	LeaseFence int  `json:"lease_fence"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2CommandsReceipt defines model for M2CommandsReceipt.
+type M2CommandsReceipt struct {
+	CompletedAt time.Time            `json:"CompletedAt"`
+	CreatedAt   time.Time            `json:"CreatedAt"`
+	FailureCode string               `json:"FailureCode"`
+	Key         M2CommandsReceiptKey `json:"Key"`
+
+	// OperationID 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationID Ulid   `json:"OperationID"`
+	OwnerModule string `json:"OwnerModule"`
+
+	// RequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	RequestHash       Digest                 `json:"RequestHash"`
+	ResponseCode      int                    `json:"ResponseCode"`
+	ResponseExpiresAt time.Time              `json:"ResponseExpiresAt"`
+	ResponseSummary   interface{}            `json:"ResponseSummary"`
+	ResultRefs        *[]M2CommandsResultRef `json:"ResultRefs"`
+	Status            string                 `json:"Status"`
+}
+
+// M2CommandsReceiptKey defines model for M2CommandsReceiptKey.
+type M2CommandsReceiptKey struct {
+	// ActorID 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorID        Ulid   `json:"ActorID"`
+	CommandType    string `json:"CommandType"`
+	IdempotencyKey string `json:"IdempotencyKey"`
+
+	// ProjectID 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectID Ulid `json:"ProjectID"`
+}
+
+// M2CommandsResultRef defines model for M2CommandsResultRef.
+type M2CommandsResultRef struct {
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id       Ulid    `json:"id"`
+	Kind     string  `json:"kind"`
+	Revision *int    `json:"revision,omitempty"`
+	Uri      *string `json:"uri,omitempty"`
+}
+
+// M2ExtensionsCheckResult defines model for M2ExtensionsCheckResult.
+type M2ExtensionsCheckResult struct {
+	Contract string    `json:"contract"`
+	Findings *[]string `json:"findings"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest            `json:"manifest_digest"`
+	Producer       M2StorageProducer `json:"producer"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref     PermanentRef `json:"ref"`
+	Verdict string       `json:"verdict"`
+}
+
+// M2HttpapiCommitRequest defines model for M2HttpapiCommitRequest.
+type M2HttpapiCommitRequest struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId *Ulid `json:"asset_id,omitempty"`
+
+	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BaseVersionId *Ulid                 `json:"base_version_id,omitempty"`
+	Content       M2CatalogContentInput `json:"content"`
+	Describe      *M2CatalogAssetPatch  `json:"describe,omitempty"`
+	Slug          *string               `json:"slug,omitempty"`
+	Task          *M2CatalogTaskBinding `json:"task,omitempty"`
+}
+
+// M2HttpapiHumanExecuteRequest defines model for M2HttpapiHumanExecuteRequest.
+type M2HttpapiHumanExecuteRequest struct {
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId Ulid `json:"grant_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+}
+
+// M2HttpapiHumanIntent defines model for M2HttpapiHumanIntent.
+type M2HttpapiHumanIntent struct {
+	Kind    string      `json:"kind"`
+	Request interface{} `json:"request"`
+}
+
+// M2HttpapiHumanPrepareRequest defines model for M2HttpapiHumanPrepareRequest.
+type M2HttpapiHumanPrepareRequest struct {
+	Items *[]M2HttpapiHumanIntent `json:"items"`
+}
+
+// M2IdentityExtensionAuthorization defines model for M2IdentityExtensionAuthorization.
+type M2IdentityExtensionAuthorization struct {
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest   Digest `json:"config_digest"`
+	ConfigRevision int    `json:"config_revision"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest  Digest `json:"package_digest"`
+	PluginId       string `json:"plugin_id"`
+	PolicyRevision int    `json:"policy_revision"`
+
+	// ScopeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ScopeId   *Ulid  `json:"scope_id,omitempty"`
+	ScopeKind string `json:"scope_kind"`
+	Target    string `json:"target"`
+}
+
+// M2IdentityHumanAction defines model for M2IdentityHumanAction.
+type M2IdentityHumanAction struct {
+	Action    string                            `json:"action"`
+	Extension *M2IdentityExtensionAuthorization `json:"extension,omitempty"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest *Digest `json:"manifest_digest,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId *Ulid       `json:"project_id,omitempty"`
+	Request   interface{} `json:"request"`
+
+	// ResourceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ResourceId       Ulid `json:"resource_id"`
+	ResourceRevision int  `json:"resource_revision"`
+}
+
+// M2IdentityHumanGrantItem defines model for M2IdentityHumanGrantItem.
+type M2IdentityHumanGrantItem struct {
+	Action M2IdentityHumanAction `json:"action"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+}
+
+// M2JobsControl defines model for M2JobsControl.
+type M2JobsControl struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId Ulid `json:"job_id"`
+}
+
+// M2JobsJob defines model for M2JobsJob.
+type M2JobsJob struct {
+	Attempt         *LantaiJobAttemptV1            `json:"attempt,omitempty"`
+	Attempts        int                            `json:"attempts"`
+	CancelRequested bool                           `json:"cancel_requested"`
+	Checks          *[]M2LedgerReviewEvidenceInput `json:"checks"`
+	Evidence        *[]M2WorkflowJobEvidence       `json:"evidence"`
+	ExpiresAt       *string                        `json:"expires_at,omitempty"`
+	Failure         *string                        `json:"failure,omitempty"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId Ulid `json:"job_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId     Ulid                    `json:"operation_id"`
+	Reconciliations *[]M2JobsReconciliation `json:"reconciliations,omitempty"`
+	RecoveryEpoch   int                     `json:"recovery_epoch"`
+	Request         M2WorkflowJobRequest    `json:"request"`
+	Revision        int                     `json:"revision"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId *Ulid  `json:"session_id,omitempty"`
+	State     string `json:"state"`
+
+	// WorkerId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	WorkerId *Ulid `json:"worker_id,omitempty"`
+}
+
+// M2JobsReconcileRequest defines model for M2JobsReconcileRequest.
+type M2JobsReconcileRequest struct {
+	EvidenceRefs     *[]PermanentRef `json:"evidence_refs"`
+	ExpectedRevision int             `json:"expected_revision"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId   Ulid   `json:"job_id"`
+	Reason  string `json:"reason"`
+	Stopped bool   `json:"stopped"`
+}
+
+// M2JobsReconciliation defines model for M2JobsReconciliation.
+type M2JobsReconciliation struct {
+	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorId Ulid `json:"actor_id"`
+
+	// RecordedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	RecordedAt Timestamp              `json:"recorded_at"`
+	Request    M2JobsReconcileRequest `json:"request"`
+}
+
+// M2LedgerAcceptanceProfile defines model for M2LedgerAcceptanceProfile.
+type M2LedgerAcceptanceProfile struct {
+	AssetTypes        *[]string                   `json:"asset_types"`
+	Contract          string                      `json:"contract"`
+	Defaults          M2LedgerProfileDefaults     `json:"defaults"`
+	DistinctActorRule string                      `json:"distinct_actor_rule"`
+	ProfileId         string                      `json:"profile_id"`
+	Purpose           string                      `json:"purpose"`
+	QaRequired        bool                        `json:"qa_required"`
+	RequiredChecks    *[]M2LedgerCheckRequirement `json:"required_checks"`
+	RequiredEvidence  *[]string                   `json:"required_evidence"`
+	Revision          int                         `json:"revision"`
+	WaivableChecks    *[]string                   `json:"waivable_checks"`
+}
+
+// M2LedgerAcceptedEvidence defines model for M2LedgerAcceptedEvidence.
+type M2LedgerAcceptedEvidence struct {
+	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorId     Ulid                     `json:"actor_id"`
+	Check       *M2ExtensionsCheckResult `json:"check,omitempty"`
+	CheckKey    *string                  `json:"check_key,omitempty"`
+	CompletedAt string                   `json:"completed_at"`
+
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest *Digest `json:"config_digest,omitempty"`
+
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest `json:"digest"`
+
+	// EvidenceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EvidenceId Ulid                `json:"evidence_id"`
+	Flow       *M2LedgerReviewFlow `json:"flow,omitempty"`
+	Kind       string              `json:"kind"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest  `json:"manifest_digest"`
+	QaVerdict      *string `json:"qa_verdict,omitempty"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref           PermanentRef `json:"ref"`
+	SchemaVersion *int         `json:"schema_version,omitempty"`
+}
+
+// M2LedgerAnchor defines model for M2LedgerAnchor.
+type M2LedgerAnchor struct {
+	FilePath string `json:"file_path"`
+	Kind     string `json:"kind"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref    PermanentRef `json:"ref"`
+	Values *[]float32   `json:"values"`
+}
+
+// M2LedgerCheckRequirement defines model for M2LedgerCheckRequirement.
+type M2LedgerCheckRequirement struct {
+	AcceptedProcessorVersions *[]M2StorageProducer `json:"accepted_processor_versions"`
+	CheckKey                  string               `json:"check_key"`
+
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest  Digest `json:"config_digest"`
+	SchemaVersion int    `json:"schema_version"`
+	Severity      string `json:"severity"`
+	Waivable      bool   `json:"waivable"`
+}
+
+// M2LedgerDiscussionTarget defines model for M2LedgerDiscussionTarget.
+type M2LedgerDiscussionTarget struct {
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id   Ulid   `json:"id"`
+	Kind string `json:"kind"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+}
+
+// M2LedgerLifecycleUse defines model for M2LedgerLifecycleUse.
+type M2LedgerLifecycleUse struct {
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest `json:"digest"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id   Ulid   `json:"id"`
+	Kind string `json:"kind"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref      *PermanentRef `json:"ref,omitempty"`
+	Revision int           `json:"revision"`
+}
+
+// M2LedgerMention defines model for M2LedgerMention.
+type M2LedgerMention struct {
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId *Ulid   `json:"principal_id,omitempty"`
+	Role        *string `json:"role,omitempty"`
+}
+
+// M2LedgerMessage defines model for M2LedgerMessage.
+type M2LedgerMessage struct {
+	Anchors *[]M2LedgerAnchor `json:"anchors"`
+
+	// AuthorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorId  Ulid               `json:"author_id"`
+	CreatedAt string             `json:"created_at"`
+	Kind      string             `json:"kind"`
+	Mentions  *[]M2LedgerMention `json:"mentions"`
+
+	// MessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	MessageId Ulid `json:"message_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ReplyTo 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReplyTo  *Ulid `json:"reply_to,omitempty"`
+	Sequence int   `json:"sequence"`
+
+	// SessionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SessionId Ulid `json:"session_id"`
+
+	// Supersedes 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Supersedes *Ulid                    `json:"supersedes,omitempty"`
+	Target     M2LedgerDiscussionTarget `json:"target"`
+	Text       string                   `json:"text"`
+}
+
+// M2LedgerMessageInput defines model for M2LedgerMessageInput.
+type M2LedgerMessageInput struct {
+	Anchors  *[]M2LedgerAnchor  `json:"anchors"`
+	Kind     string             `json:"kind"`
+	Mentions *[]M2LedgerMention `json:"mentions"`
+
+	// ReplyTo 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReplyTo *Ulid `json:"reply_to,omitempty"`
+
+	// Supersedes 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Supersedes *Ulid                    `json:"supersedes,omitempty"`
+	Target     M2LedgerDiscussionTarget `json:"target"`
+	Text       string                   `json:"text"`
+}
+
+// M2LedgerProfileDefaults defines model for M2LedgerProfileDefaults.
+type M2LedgerProfileDefaults struct {
+	Publication string `json:"publication"`
+}
+
+// M2LedgerProfileSnapshot defines model for M2LedgerProfileSnapshot.
+type M2LedgerProfileSnapshot struct {
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest                    `json:"manifest_digest"`
+	Profile        M2LedgerAcceptanceProfile `json:"profile"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+}
+
+// M2LedgerPublication defines model for M2LedgerPublication.
+type M2LedgerPublication struct {
+	Action string `json:"action"`
+
+	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorId Ulid `json:"actor_id"`
+
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId   Ulid   `json:"asset_id"`
+	CreatedAt string `json:"created_at"`
+
+	// FromVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FromVersionId *Ulid `json:"from_version_id,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId      Ulid `json:"operation_id"`
+	PreviousRevision int  `json:"previous_revision"`
+
+	// PublicationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PublicationId Ulid   `json:"publication_id"`
+	Reason        string `json:"reason"`
+	Revision      int    `json:"revision"`
+
+	// ToVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ToVersionId *Ulid `json:"to_version_id,omitempty"`
+}
+
+// M2LedgerPublishRequest defines model for M2LedgerPublishRequest.
+type M2LedgerPublishRequest struct {
+	Action                      string `json:"action"`
+	ExpectedPublicationRevision int    `json:"expected_publication_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// ReviewId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReviewId Ulid `json:"review_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2LedgerQAReport defines model for M2LedgerQAReport.
+type M2LedgerQAReport struct {
+	Observations string `json:"observations"`
+	Tool         string `json:"tool"`
+	ToolVersion  string `json:"tool_version"`
+	Verdict      string `json:"verdict"`
+}
+
+// M2LedgerRestoreRequest defines model for M2LedgerRestoreRequest.
+type M2LedgerRestoreRequest struct {
+	ExpectedRevision int     `json:"expected_revision"`
+	NewSlug          *string `json:"new_slug,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// TrashId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TrashId Ulid `json:"trash_id"`
+}
+
+// M2LedgerReviewEvidenceInput defines model for M2LedgerReviewEvidenceInput.
+type M2LedgerReviewEvidenceInput struct {
+	Check    *M2ExtensionsCheckResult `json:"check,omitempty"`
+	CheckKey *string                  `json:"check_key,omitempty"`
+
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest *Digest            `json:"config_digest,omitempty"`
+	Flow         M2LedgerReviewFlow `json:"flow"`
+	Kind         string             `json:"kind"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid              `json:"project_id"`
+	Qa        *M2LedgerQAReport `json:"qa,omitempty"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref           PermanentRef `json:"ref"`
+	SchemaVersion *int         `json:"schema_version,omitempty"`
+}
+
+// M2LedgerReviewFlow defines model for M2LedgerReviewFlow.
+type M2LedgerReviewFlow struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid `json:"attempt_id"`
+
+	// CandidateGroup 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CandidateGroup *Ulid `json:"candidate_group,omitempty"`
+	Fence          int   `json:"fence"`
+	Round          int   `json:"round"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2LedgerReviewTarget defines model for M2LedgerReviewTarget.
+type M2LedgerReviewTarget struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId          Ulid                        `json:"asset_id"`
+	CreatedAt        string                      `json:"created_at"`
+	Evidence         *[]M2LedgerAcceptedEvidence `json:"evidence"`
+	EvidenceIds      *[]Ulid                     `json:"evidence_ids"`
+	ExpectedRevision int                         `json:"expected_revision"`
+	Flow             M2LedgerReviewFlow          `json:"flow"`
+	InitialProfile   *bool                       `json:"initial_profile,omitempty"`
+
+	// MakerId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	MakerId Ulid `json:"maker_id"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest                  `json:"manifest_digest"`
+	Profile        M2LedgerProfileSnapshot `json:"profile"`
+
+	// ProfileRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	ProfileRef PermanentRef `json:"profile_ref"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// SubmittedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SubmittedBy Ulid `json:"submitted_by"`
+
+	// TargetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TargetId       Ulid `json:"target_id"`
+	TargetRevision int  `json:"target_revision"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2LedgerSubmitReview defines model for M2LedgerSubmitReview.
+type M2LedgerSubmitReview struct {
+	EvidenceIds      *[]Ulid            `json:"evidence_ids"`
+	ExpectedRevision int                `json:"expected_revision"`
+	Flow             M2LedgerReviewFlow `json:"flow"`
+	InitialProfile   *bool              `json:"initial_profile,omitempty"`
+
+	// ProfileRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	ProfileRef PermanentRef `json:"profile_ref"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2LedgerTrashEntry defines model for M2LedgerTrashEntry.
+type M2LedgerTrashEntry struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId   Ulid   `json:"asset_id"`
+	CreatedAt string `json:"created_at"`
+
+	// CreatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CreatedBy Ulid   `json:"created_by"`
+	DueAt     string `json:"due_at"`
+
+	// FilesDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	FilesDigest        Digest                        `json:"files_digest"`
+	Grace              bool                          `json:"grace"`
+	History            *[]M2LedgerTrashHistoryTarget `json:"history,omitempty"`
+	Hold               bool                          `json:"hold"`
+	OriginalGeneration int                           `json:"original_generation"`
+
+	// OriginalOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OriginalOperationId Ulid   `json:"original_operation_id"`
+	OriginalSlug        string `json:"original_slug"`
+
+	// PendingOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PendingOperationId     *Ulid             `json:"pending_operation_id,omitempty"`
+	PriorAssetLifecycle    string            `json:"prior_asset_lifecycle"`
+	PriorVersionLifecycles map[string]string `json:"prior_version_lifecycles"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId         Ulid    `json:"project_id"`
+	Reason            string  `json:"reason"`
+	RestoreGeneration *int    `json:"restore_generation,omitempty"`
+	RestoreSlug       *string `json:"restore_slug,omitempty"`
+	RetentionDays     int     `json:"retention_days"`
+	Revision          int     `json:"revision"`
+	State             string  `json:"state"`
+
+	// TrashId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TrashId    Ulid    `json:"trash_id"`
+	VersionIds *[]Ulid `json:"version_ids"`
+	WholeAsset bool    `json:"whole_asset"`
+}
+
+// M2LedgerTrashHistoryTarget defines model for M2LedgerTrashHistoryTarget.
+type M2LedgerTrashHistoryTarget struct {
+	Lifecycle string `json:"lifecycle"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+	Revision       int    `json:"revision"`
+
+	// TrashId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TrashId Ulid `json:"trash_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2LedgerTrashRequest defines model for M2LedgerTrashRequest.
+type M2LedgerTrashRequest struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId       Ulid    `json:"asset_id"`
+	AssetRevision int     `json:"asset_revision"`
+	Directory     *string `json:"directory,omitempty"`
+
+	// FilesDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	FilesDigest Digest                        `json:"files_digest"`
+	History     *[]M2LedgerTrashHistoryTarget `json:"history,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid                          `json:"project_id"`
+	Reason    string                        `json:"reason"`
+	Targets   *[]M2LedgerTrashVersionTarget `json:"targets"`
+	Uses      *[]M2LedgerLifecycleUse       `json:"uses"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId  *Ulid `json:"version_id,omitempty"`
+	WholeAsset bool  `json:"whole_asset"`
+}
+
+// M2LedgerTrashSelector defines model for M2LedgerTrashSelector.
+type M2LedgerTrashSelector struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId   Ulid    `json:"asset_id"`
+	Directory *string `json:"directory,omitempty"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId  *Ulid `json:"version_id,omitempty"`
+	WholeAsset bool  `json:"whole_asset"`
+}
+
+// M2LedgerTrashVersionTarget defines model for M2LedgerTrashVersionTarget.
+type M2LedgerTrashVersionTarget struct {
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+	Revision       int    `json:"revision"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2ManifestInputFile defines model for M2ManifestInputFile.
+type M2ManifestInputFile struct {
+	Path   string `json:"path"`
+	Role   string `json:"role"`
+	Sha256 string `json:"sha256"`
+	Size   int    `json:"size"`
+}
+
+// M2ManifestRights defines model for M2ManifestRights.
+type M2ManifestRights struct {
+	DigitalSourceType *string `json:"digital_source_type,omitempty"`
+	License           string  `json:"license"`
+	Noai              bool    `json:"noai"`
+	RedistributeRaw   bool    `json:"redistribute_raw"`
+	Sensitivity       string  `json:"sensitivity"`
+	Usage             string  `json:"usage"`
+}
+
+// M2ManifestUse defines model for M2ManifestUse.
+type M2ManifestUse struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId  Ulid    `json:"asset_id"`
+	Declared *string `json:"declared,omitempty"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId Ulid   `json:"instance_id"`
+	Relation   string `json:"relation"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2NodeObservation defines model for M2NodeObservation.
+type M2NodeObservation struct {
+	Busy         int       `json:"busy"`
+	Capabilities *[]string `json:"capabilities"`
+	MemoryBytes  int       `json:"memory_bytes"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+	Slots     int  `json:"slots"`
+}
+
+// M2ProvenanceAssertionFields defines model for M2ProvenanceAssertionFields.
+type M2ProvenanceAssertionFields struct {
+	ConfirmedEvidenceIds *[]Ulid          `json:"confirmed_evidence_ids,omitempty"`
+	DenyPurposes         *[]string        `json:"deny_purposes,omitempty"`
+	LicenseExpression    *string          `json:"license_expression,omitempty"`
+	Noai                 *bool            `json:"noai,omitempty"`
+	RedistributeRaw      *bool            `json:"redistribute_raw,omitempty"`
+	RestrictedSource     *bool            `json:"restricted_source,omitempty"`
+	Sensitivity          *string          `json:"sensitivity,omitempty"`
+	Usage                *string          `json:"usage,omitempty"`
+	Uses                 *[]M2ManifestUse `json:"uses,omitempty"`
+}
+
+// M2ProvenanceAssertionReceipt defines model for M2ProvenanceAssertionReceipt.
+type M2ProvenanceAssertionReceipt struct {
+	Created bool `json:"created"`
+
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest `json:"digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// RecordId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RecordId    Ulid   `json:"record_id"`
+	Ref         string `json:"ref"`
+	Revision    int    `json:"revision"`
+	RightsEpoch int    `json:"rights_epoch"`
+}
+
+// M2ProvenanceAssertionRequest defines model for M2ProvenanceAssertionRequest.
+type M2ProvenanceAssertionRequest struct {
+	EvidenceIds      *[]Ulid                     `json:"evidence_ids"`
+	ExpectedRevision int                         `json:"expected_revision"`
+	Fields           M2ProvenanceAssertionFields `json:"fields"`
+	Kind             string                      `json:"kind"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+	Reason         string `json:"reason"`
+
+	// ReplacesAssertionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReplacesAssertionId *Ulid `json:"replaces_assertion_id,omitempty"`
+
+	// Subject 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Subject PermanentRef `json:"subject"`
+}
+
+// M2ProvenanceCancelAssertionReceipt defines model for M2ProvenanceCancelAssertionReceipt.
+type M2ProvenanceCancelAssertionReceipt struct {
+	// CancelledOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CancelledOperationId Ulid `json:"cancelled_operation_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid   `json:"operation_id"`
+	Status      string `json:"status"`
+}
+
+// M2ProvenanceCancelAssertionRequest defines model for M2ProvenanceCancelAssertionRequest.
+type M2ProvenanceCancelAssertionRequest struct {
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// RequestHash 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	RequestHash Digest `json:"request_hash"`
+}
+
+// M2QueryEventPage defines model for M2QueryEventPage.
+type M2QueryEventPage struct {
+	Events          *[]M2QueryVisibleEvent `json:"events"`
+	LastSeq         int                    `json:"last_seq"`
+	ReplaceRequired bool                   `json:"replace_required"`
+}
+
+// M2QueryInboxItem defines model for M2QueryInboxItem.
+type M2QueryInboxItem struct {
+	// EventId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EventId  Ulid               `json:"event_id"`
+	Object   M2QueryObjectState `json:"object"`
+	Read     bool               `json:"read"`
+	Sequence int                `json:"sequence"`
+}
+
+// M2QueryInboxPage defines model for M2QueryInboxPage.
+type M2QueryInboxPage struct {
+	Items       *[]M2QueryInboxItem `json:"items"`
+	ReadThrough int                 `json:"read_through"`
+	Through     int                 `json:"through"`
+}
+
+// M2QueryObjectRef defines model for M2QueryObjectRef.
+type M2QueryObjectRef struct {
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id   Ulid   `json:"id"`
+	Kind string `json:"kind"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+}
+
+// M2QueryObjectState defines model for M2QueryObjectState.
+type M2QueryObjectState struct {
+	DueAt        *string          `json:"due_at,omitempty"`
+	Priority     int              `json:"priority"`
+	Ref          M2QueryObjectRef `json:"ref"`
+	Revision     int              `json:"revision"`
+	State        string           `json:"state"`
+	Title        string           `json:"title"`
+	WaitingSince *string          `json:"waiting_since,omitempty"`
+}
+
+// M2QueryResyncPage defines model for M2QueryResyncPage.
+type M2QueryResyncPage struct {
+	NextCursor  *string               `json:"next_cursor,omitempty"`
+	Objects     *[]M2QueryObjectState `json:"objects"`
+	Replace     bool                  `json:"replace"`
+	ReplayAfter int                   `json:"replay_after"`
+}
+
+// M2QueryVisibleEvent defines model for M2QueryVisibleEvent.
+type M2QueryVisibleEvent struct {
+	// EventId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EventId  Ulid               `json:"event_id"`
+	Object   M2QueryObjectState `json:"object"`
+	Sequence int                `json:"sequence"`
+	Type     string             `json:"type"`
+}
+
+// M2StorageProducer defines model for M2StorageProducer.
+type M2StorageProducer struct {
+	ContributionId *string `json:"contribution_id,omitempty"`
+
+	// CoreReleaseDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	CoreReleaseDigest *Digest `json:"core_release_digest,omitempty"`
+	ExtensionId       string  `json:"extension_id"`
+	ExtensionVersion  string  `json:"extension_version"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest `json:"package_digest"`
+	Source        string `json:"source"`
+}
+
+// M2TasksAnswerRequest defines model for M2TasksAnswerRequest.
+type M2TasksAnswerRequest struct {
+	// AnswerMessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AnswerMessageId Ulid `json:"answer_message_id"`
+
+	// BlockId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BlockId          Ulid `json:"block_id"`
+	ExpectedRevision int  `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksAssignRequest defines model for M2TasksAssignRequest.
+type M2TasksAssignRequest struct {
+	// AssigneeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssigneeId       *Ulid `json:"assignee_id,omitempty"`
+	ExpectedRevision int   `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid    `json:"project_id"`
+	Role      *string `json:"role,omitempty"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksAttemptRef defines model for M2TasksAttemptRef.
+type M2TasksAttemptRef struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid `json:"attempt_id"`
+	ExpectedRevision int  `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksBlock defines model for M2TasksBlock.
+type M2TasksBlock struct {
+	// AnswerMessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AnswerMessageId *Ulid   `json:"answer_message_id,omitempty"`
+	AnsweredAt      *string `json:"answered_at,omitempty"`
+
+	// AnsweredBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AnsweredBy *Ulid `json:"answered_by,omitempty"`
+
+	// AskedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AskedBy Ulid `json:"asked_by"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid `json:"attempt_id"`
+
+	// BlockId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BlockId   Ulid   `json:"block_id"`
+	CreatedAt string `json:"created_at"`
+
+	// QuestionMessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	QuestionMessageId Ulid   `json:"question_message_id"`
+	Round             int    `json:"round"`
+	State             string `json:"state"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksBlockRequest defines model for M2TasksBlockRequest.
+type M2TasksBlockRequest struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid `json:"attempt_id"`
+	ExpectedRevision int  `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// QuestionMessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	QuestionMessageId Ulid `json:"question_message_id"`
+	Stopped           bool `json:"stopped"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksCancelRequest defines model for M2TasksCancelRequest.
+type M2TasksCancelRequest struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksCheckout defines model for M2TasksCheckout.
+type M2TasksCheckout struct {
+	AcquiredAt string `json:"acquired_at"`
+
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid `json:"attempt_id"`
+
+	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BaseVersionId *Ulid  `json:"base_version_id,omitempty"`
+	Mode          string `json:"mode"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	State     string `json:"state"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksCheckoutSpec defines model for M2TasksCheckoutSpec.
+type M2TasksCheckoutSpec struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid   `json:"asset_id"`
+	Mode    string `json:"mode"`
+}
+
+// M2TasksClaimRequest defines model for M2TasksClaimRequest.
+type M2TasksClaimRequest struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// SeatId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SeatId Ulid `json:"seat_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksCompleteRequest defines model for M2TasksCompleteRequest.
+type M2TasksCompleteRequest struct {
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId Ulid `json:"authority_operation_id"`
+	ExpectedRevision     int  `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksCompletion defines model for M2TasksCompletion.
+type M2TasksCompletion struct {
+	At string `json:"at"`
+
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId Ulid    `json:"authority_operation_id"`
+	Kind                 string  `json:"kind"`
+	Verdict              *string `json:"verdict,omitempty"`
+}
+
+// M2TasksContextSnapshot defines model for M2TasksContextSnapshot.
+type M2TasksContextSnapshot struct {
+	AssetType string `json:"asset_type"`
+
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest          `json:"digest"`
+	Refs   *[]PermanentRef `json:"refs"`
+}
+
+// M2TasksCreateRequest defines model for M2TasksCreateRequest.
+type M2TasksCreateRequest struct {
+	AcceptanceCriteria *[]string `json:"acceptance_criteria"`
+
+	// AssigneeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssigneeId       *Ulid                                 `json:"assignee_id,omitempty"`
+	Checkouts        *[]M2TasksCheckoutSpec                `json:"checkouts"`
+	ContextAssetType *string                               `json:"context_asset_type,omitempty"`
+	DependencyIds    *[]Ulid                               `json:"dependency_ids"`
+	Description      *string                               `json:"description,omitempty"`
+	DistinctFrom     *[]Ulid                               `json:"distinct_from"`
+	DueAt            *string                               `json:"due_at,omitempty"`
+	ExpectedOutputs  *[]LantaiTasksDefsV1OutputRequirement `json:"expected_outputs"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId    *Ulid           `json:"flow_id,omitempty"`
+	InputRefs *[]PermanentRef `json:"input_refs"`
+	Priority  string          `json:"priority"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid    `json:"project_id"`
+	Role      *string `json:"role,omitempty"`
+
+	// StepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StepRunId *Ulid           `json:"step_run_id,omitempty"`
+	Subject   *M2TasksSubject `json:"subject,omitempty"`
+	Title     string          `json:"title"`
+	Type      string          `json:"type"`
+}
+
+// M2TasksHandoff defines model for M2TasksHandoff.
+type M2TasksHandoff struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId Ulid `json:"attempt_id"`
+
+	// AuthorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorId  Ulid            `json:"author_id"`
+	CreatedAt string          `json:"created_at"`
+	DraftRefs *[]PermanentRef `json:"draft_refs"`
+
+	// HandoffId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	HandoffId Ulid `json:"handoff_id"`
+
+	// MessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	MessageId Ulid `json:"message_id"`
+	Round     int  `json:"round"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksHandoffRequest defines model for M2TasksHandoffRequest.
+type M2TasksHandoffRequest struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid            `json:"attempt_id"`
+	DraftRefs        *[]PermanentRef `json:"draft_refs"`
+	ExpectedRevision int             `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// MessageId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	MessageId Ulid `json:"message_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksMeta defines model for M2TasksMeta.
+type M2TasksMeta struct {
+	// AssigneeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssigneeId      *Ulid                   `json:"assignee_id,omitempty"`
+	CancelReason    *string                 `json:"cancel_reason,omitempty"`
+	CancelRequested *bool                   `json:"cancel_requested,omitempty"`
+	Checkouts       *[]M2TasksCheckoutSpec  `json:"checkouts"`
+	Completion      *M2TasksCompletion      `json:"completion,omitempty"`
+	Context         *M2TasksContextSnapshot `json:"context,omitempty"`
+	CreatedAt       string                  `json:"created_at"`
+
+	// CreatedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CreatedBy    Ulid                   `json:"created_by"`
+	Description  *string                `json:"description,omitempty"`
+	DistinctFrom *[]Ulid                `json:"distinct_from"`
+	ExpiryCount  int                    `json:"expiry_count"`
+	History      *[]M2TasksRoundOutcome `json:"history"`
+	Role         *string                `json:"role,omitempty"`
+	Round        int                    `json:"round"`
+	StateSince   string                 `json:"state_since"`
+	Stuck        *bool                  `json:"stuck,omitempty"`
+	Subject      *M2TasksSubject        `json:"subject,omitempty"`
+
+	// SubmitOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SubmitOperationId *Ulid `json:"submit_operation_id,omitempty"`
+}
+
+// M2TasksReconcileRequest defines model for M2TasksReconcileRequest.
+type M2TasksReconcileRequest struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid    `json:"attempt_id"`
+	EvidenceRefs     *[]Ulid `json:"evidence_refs"`
+	ExpectedRevision int     `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId               Ulid `json:"task_id"`
+	TerminationConfirmed bool `json:"termination_confirmed"`
+	UnresolvedEffects    int  `json:"unresolved_effects"`
+}
+
+// M2TasksReleaseRequest defines model for M2TasksReleaseRequest.
+type M2TasksReleaseRequest struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid `json:"attempt_id"`
+	ExpectedRevision int  `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence CommonV1ExecutionTaskFence `json:"fence"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+	Stopped   bool   `json:"stopped"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId            Ulid `json:"task_id"`
+	UnresolvedEffects int  `json:"unresolved_effects"`
+}
+
+// M2TasksResult defines model for M2TasksResult.
+type M2TasksResult struct {
+	Attempt *LantaiAttemptV1 `json:"attempt,omitempty"`
+
+	// BlockId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BlockId *Ulid `json:"block_id,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid            `json:"operation_id"`
+	OutputRefs  *[]PermanentRef `json:"output_refs,omitempty"`
+	Revision    int             `json:"revision"`
+	Round       int             `json:"round"`
+	State       string          `json:"state"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksReworkRequest defines model for M2TasksReworkRequest.
+type M2TasksReworkRequest struct {
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId Ulid                   `json:"authority_operation_id"`
+	Checkouts            *[]M2TasksCheckoutSpec `json:"checkouts"`
+	ExpectedRevision     int                    `json:"expected_revision"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksRoundOutcome defines model for M2TasksRoundOutcome.
+type M2TasksRoundOutcome struct {
+	At string `json:"at"`
+
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId *Ulid `json:"attempt_id,omitempty"`
+
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId *Ulid           `json:"authority_operation_id,omitempty"`
+	Outcome              string          `json:"outcome"`
+	OutputRefs           *[]PermanentRef `json:"output_refs"`
+	Reason               *string         `json:"reason,omitempty"`
+	Round                int             `json:"round"`
+}
+
+// M2TasksSubject defines model for M2TasksSubject.
+type M2TasksSubject struct {
+	Flow M2LedgerReviewFlow `json:"flow"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref PermanentRef `json:"ref"`
+}
+
+// M2TasksSubmitRequest defines model for M2TasksSubmitRequest.
+type M2TasksSubmitRequest struct {
+	// AttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AttemptId        Ulid `json:"attempt_id"`
+	ExpectedRevision int  `json:"expected_revision"`
+
+	// Fence 任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。
+	Fence      CommonV1ExecutionTaskFence `json:"fence"`
+	OutputRefs *[]PermanentRef            `json:"output_refs"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// TaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TaskId Ulid `json:"task_id"`
+}
+
+// M2TasksView defines model for M2TasksView.
+type M2TasksView struct {
+	Blocks         *[]M2TasksBlock    `json:"blocks"`
+	Checkouts      *[]M2TasksCheckout `json:"checkouts"`
+	CurrentAttempt *LantaiAttemptV1   `json:"current_attempt,omitempty"`
+	Handoffs       *[]M2TasksHandoff  `json:"handoffs"`
+	Meta           M2TasksMeta        `json:"meta"`
+	Seat           LantaiSeatV1       `json:"seat"`
+	Task           LantaiTaskV1       `json:"task"`
+}
+
+// M2WorkflowCommandRequest defines model for M2WorkflowCommandRequest.
+type M2WorkflowCommandRequest struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId Ulid `json:"flow_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+}
+
+// M2WorkflowCommandView defines model for M2WorkflowCommandView.
+type M2WorkflowCommandView struct {
+	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ActorId     *Ulid   `json:"actor_id,omitempty"`
+	Attempts    int     `json:"attempts"`
+	CommandType string  `json:"command_type"`
+	FailureCode *string `json:"failure_code,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid        `json:"operation_id"`
+	Payload     interface{} `json:"payload"`
+	Status      string      `json:"status"`
+
+	// StepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StepRunId Ulid `json:"step_run_id"`
+}
+
+// M2WorkflowDefinition defines model for M2WorkflowDefinition.
+type M2WorkflowDefinition struct {
+	Contract string               `json:"contract"`
+	Key      string               `json:"key"`
+	Kind     string               `json:"kind"`
+	Steps    *[]M2WorkflowStepDef `json:"steps"`
+	Version  int                  `json:"version"`
+}
+
+// M2WorkflowFlowMeta defines model for M2WorkflowFlowMeta.
+type M2WorkflowFlowMeta struct {
+	// ApprovedVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ApprovedVersionId *Ulid                `json:"approved_version_id,omitempty"`
+	CancelReason      *string              `json:"cancel_reason,omitempty"`
+	CheckEvidence     *[]Ulid              `json:"check_evidence"`
+	Definition        M2WorkflowDefinition `json:"definition"`
+	Failure           *string              `json:"failure,omitempty"`
+	PauseReason       *string              `json:"pause_reason,omitempty"`
+
+	// ProduceTaskId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProduceTaskId   *Ulid `json:"produce_task_id,omitempty"`
+	ProductionRound int   `json:"production_round"`
+
+	// ProfileRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	ProfileRef PermanentRef `json:"profile_ref"`
+
+	// QaEvidenceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	QaEvidenceId *Ulid `json:"qa_evidence_id,omitempty"`
+
+	// ReviewId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReviewId *Ulid `json:"review_id,omitempty"`
+
+	// ReviewTargetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReviewTargetId *Ulid                         `json:"review_target_id,omitempty"`
+	Reworks        int                           `json:"reworks"`
+	Rounds         *[]M2WorkflowProductionRecord `json:"rounds"`
+
+	// StartedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StartedBy Ulid            `json:"started_by"`
+	Subject   *M2TasksSubject `json:"subject,omitempty"`
+
+	// SubjectAssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	SubjectAssetId *Ulid              `json:"subject_asset_id,omitempty"`
+	Template       M2WorkflowTemplate `json:"template"`
+}
+
+// M2WorkflowFlowRef defines model for M2WorkflowFlowRef.
+type M2WorkflowFlowRef struct {
+	ExpectedRevision int `json:"expected_revision"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId Ulid `json:"flow_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid   `json:"project_id"`
+	Reason    string `json:"reason"`
+}
+
+// M2WorkflowFlowView defines model for M2WorkflowFlowView.
+type M2WorkflowFlowView struct {
+	Commands *[]M2WorkflowCommandView `json:"commands"`
+	Flow     LantaiFlowV1             `json:"flow"`
+	Meta     M2WorkflowFlowMeta       `json:"meta"`
+	Steps    *[]M2WorkflowStepView    `json:"steps"`
+}
+
+// M2WorkflowJobEvidence defines model for M2WorkflowJobEvidence.
+type M2WorkflowJobEvidence struct {
+	// EvidenceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EvidenceId Ulid `json:"evidence_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid   `json:"operation_id"`
+	Verdict     string `json:"verdict"`
+}
+
+// M2WorkflowJobRequest defines model for M2WorkflowJobRequest.
+type M2WorkflowJobRequest struct {
+	Flow M2LedgerReviewFlow `json:"flow"`
+
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId         Ulid   `json:"flow_id"`
+	ManifestDigest string `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid   `json:"operation_id"`
+	Processor   string `json:"processor"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// StepRunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	StepRunId Ulid `json:"step_run_id"`
+
+	// Target 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Target PermanentRef `json:"target"`
+}
+
+// M2WorkflowJobStepDef defines model for M2WorkflowJobStepDef.
+type M2WorkflowJobStepDef struct {
+	Processor string `json:"processor"`
+}
+
+// M2WorkflowProductionRecord defines model for M2WorkflowProductionRecord.
+type M2WorkflowProductionRecord struct {
+	At string `json:"at"`
+
+	// AuthorityOperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorityOperationId *Ulid   `json:"authority_operation_id,omitempty"`
+	Evidence             *[]Ulid `json:"evidence"`
+	Outcome              string  `json:"outcome"`
+
+	// Output 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Output  *PermanentRef   `json:"output,omitempty"`
+	Round   int             `json:"round"`
+	Subject *M2TasksSubject `json:"subject,omitempty"`
+}
+
+// M2WorkflowResult defines model for M2WorkflowResult.
+type M2WorkflowResult struct {
+	// FlowId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	FlowId Ulid `json:"flow_id"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid   `json:"operation_id"`
+	Revision    int    `json:"revision"`
+	State       string `json:"state"`
+}
+
+// M2WorkflowReviewStepDef defines model for M2WorkflowReviewStepDef.
+type M2WorkflowReviewStepDef struct {
+	MaxRework *int `json:"max_rework,omitempty"`
+}
+
+// M2WorkflowStartRequest defines model for M2WorkflowStartRequest.
+type M2WorkflowStartRequest struct {
+	AcceptanceCriteria *[]string `json:"acceptance_criteria"`
+
+	// AssigneeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssigneeId       *Ulid   `json:"assignee_id,omitempty"`
+	ContextAssetType *string `json:"context_asset_type,omitempty"`
+
+	// DefinitionRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	DefinitionRef   PermanentRef                          `json:"definition_ref"`
+	Description     *string                               `json:"description,omitempty"`
+	DueAt           *string                               `json:"due_at,omitempty"`
+	ExpectedOutputs *[]LantaiTasksDefsV1OutputRequirement `json:"expected_outputs"`
+	InputRefs       *[]PermanentRef                       `json:"input_refs"`
+	Priority        *string                               `json:"priority,omitempty"`
+
+	// ProfileRef 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	ProfileRef PermanentRef `json:"profile_ref"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid    `json:"project_id"`
+	Role      *string `json:"role,omitempty"`
+
+	// TargetAssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TargetAssetId *Ulid  `json:"target_asset_id,omitempty"`
+	Title         string `json:"title"`
+}
+
+// M2WorkflowStepDef defines model for M2WorkflowStepDef.
+type M2WorkflowStepDef struct {
+	Job    *M2WorkflowJobStepDef    `json:"job,omitempty"`
+	Key    string                   `json:"key"`
+	Kind   string                   `json:"kind"`
+	Review *M2WorkflowReviewStepDef `json:"review,omitempty"`
+	Task   *M2WorkflowTaskStepDef   `json:"task,omitempty"`
+}
+
+// M2WorkflowStepMeta defines model for M2WorkflowStepMeta.
+type M2WorkflowStepMeta struct {
+	CommandIds      *[]Ulid `json:"command_ids"`
+	Failure         *string `json:"failure,omitempty"`
+	Ordinal         int     `json:"ordinal"`
+	Outcome         *string `json:"outcome,omitempty"`
+	ProductionRound int     `json:"production_round"`
+
+	// TargetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	TargetId *Ulid `json:"target_id,omitempty"`
+
+	// TaskSpec 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	TaskSpec *Digest `json:"task_spec,omitempty"`
+}
+
+// M2WorkflowStepView defines model for M2WorkflowStepView.
+type M2WorkflowStepView struct {
+	Meta    M2WorkflowStepMeta `json:"meta"`
+	StepRun LantaiStepRunV1    `json:"step_run"`
+}
+
+// M2WorkflowTaskStepDef defines model for M2WorkflowTaskStepDef.
+type M2WorkflowTaskStepDef struct {
+	Checkout     *string `json:"checkout,omitempty"`
+	DistinctFrom *string `json:"distinct_from,omitempty"`
+	Priority     *string `json:"priority,omitempty"`
+	Role         *string `json:"role,omitempty"`
+	Type         string  `json:"type"`
+}
+
+// M2WorkflowTemplate defines model for M2WorkflowTemplate.
+type M2WorkflowTemplate struct {
+	AcceptanceCriteria *[]string `json:"acceptance_criteria"`
+
+	// AssigneeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssigneeId       *Ulid                                 `json:"assignee_id,omitempty"`
+	ContextAssetType *string                               `json:"context_asset_type,omitempty"`
+	Description      *string                               `json:"description,omitempty"`
+	DueAt            *string                               `json:"due_at,omitempty"`
+	ExpectedOutputs  *[]LantaiTasksDefsV1OutputRequirement `json:"expected_outputs"`
+	Priority         string                                `json:"priority"`
+	Role             *string                               `json:"role,omitempty"`
+	Title            string                                `json:"title"`
+}
 
 // MemberPage defines model for MemberPage.
 type MemberPage struct {
@@ -877,6 +4177,9 @@ type MetaStage string
 
 // Module 服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。
 type Module = string
+
+// NormalizedSlug 项目内的资产路径别名，由 catalog 规范化（NFC、/ 分隔、跨平台保留名规则）；此处只约束基本形态。
+type NormalizedSlug = string
 
 // OperationStatus 持久操作的对外状态视图（GET /api/v1/operations/{operation_id}）。不返回令牌、签名 URL 或敏感堆栈；按当前读取权限过滤 result_refs。
 type OperationStatus struct {
@@ -1525,6 +4828,94 @@ type IssueReadGrantParams struct {
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
 
+// GetContextParams defines parameters for GetContext.
+type GetContextParams struct {
+	ProjectId Ulid   `form:"project_id" json:"project_id"`
+	AssetType string `form:"asset_type" json:"asset_type"`
+}
+
+// GetEventsParams defines parameters for GetEvents.
+type GetEventsParams struct {
+	ProjectId   Ulid `form:"project_id" json:"project_id"`
+	Limit       *int `form:"limit,omitempty" json:"limit,omitempty"`
+	After       *int `form:"after,omitempty" json:"after,omitempty"`
+	WaitSeconds *int `form:"wait_seconds,omitempty" json:"wait_seconds,omitempty"`
+}
+
+// PostEvidenceParams defines parameters for PostEvidence.
+type PostEvidenceParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetFlowsParams defines parameters for GetFlows.
+type GetFlowsParams struct {
+	ProjectId Ulid  `form:"project_id" json:"project_id"`
+	After     *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit     *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// PostFlowsParams defines parameters for PostFlows.
+type PostFlowsParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsCancelParams defines parameters for PostFlowsCancel.
+type PostFlowsCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsDispatchJSONBody defines parameters for PostFlowsDispatch.
+type PostFlowsDispatchJSONBody struct {
+	Limit int `json:"limit"`
+}
+
+// PostFlowsDispatchParams defines parameters for PostFlowsDispatch.
+type PostFlowsDispatchParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsPauseParams defines parameters for PostFlowsPause.
+type PostFlowsPauseParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsResumeParams defines parameters for PostFlowsResume.
+type PostFlowsResumeParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsRetryParams defines parameters for PostFlowsRetry.
+type PostFlowsRetryParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostFlowsRetryCommandParams defines parameters for PostFlowsRetryCommand.
+type PostFlowsRetryCommandParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostHumanRechallengeJSONBody defines parameters for PostHumanRechallenge.
+type PostHumanRechallengeJSONBody struct {
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+}
+
 // CreateIdentityChallengeParams defines parameters for CreateIdentityChallenge.
 type CreateIdentityChallengeParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
@@ -1577,10 +4968,80 @@ type GetProjectMembersParams struct {
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
 
+// GetInboxParams defines parameters for GetInbox.
+type GetInboxParams struct {
+	ProjectId Ulid `form:"project_id" json:"project_id"`
+}
+
+// PostInboxReadJSONBody defines parameters for PostInboxRead.
+type PostInboxReadJSONBody struct {
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+	Through   int  `json:"through"`
+}
+
+// GetJobsParams defines parameters for GetJobs.
+type GetJobsParams struct {
+	ProjectId Ulid  `form:"project_id" json:"project_id"`
+	After     *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit     *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// PostJobsCancelParams defines parameters for PostJobsCancel.
+type PostJobsCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostJobsReconcileParams defines parameters for PostJobsReconcile.
+type PostJobsReconcileParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostJobsRetryParams defines parameters for PostJobsRetry.
+type PostJobsRetryParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostJobsRunParams defines parameters for PostJobsRun.
+type PostJobsRunParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetMessagesParams defines parameters for GetMessages.
+type GetMessagesParams struct {
+	ProjectId Ulid        `form:"project_id" json:"project_id"`
+	Kind      interface{} `form:"kind" json:"kind"`
+	Id        Ulid        `form:"id" json:"id"`
+	After     *int        `form:"after,omitempty" json:"after,omitempty"`
+	Limit     *int        `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// PostMessagesParams defines parameters for PostMessages.
+type PostMessagesParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // GetMetaParams defines parameters for GetMeta.
 type GetMetaParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// PostNodesObserveParams defines parameters for PostNodesObserve.
+type PostNodesObserveParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
 // GetOperationParams defines parameters for GetOperation.
@@ -1623,6 +5084,41 @@ type GetProjectParams struct {
 // GetProjectParamsView defines parameters for GetProject.
 type GetProjectParamsView string
 
+// PostPublicationsParams defines parameters for PostPublications.
+type PostPublicationsParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetResyncParams defines parameters for GetResync.
+type GetResyncParams struct {
+	ProjectId Ulid    `form:"project_id" json:"project_id"`
+	Limit     *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor    *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// PostReviewTargetsParams defines parameters for PostReviewTargets.
+type PostReviewTargetsParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostRightsAssertionsParams defines parameters for PostRightsAssertions.
+type PostRightsAssertionsParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostRightsCancelParams defines parameters for PostRightsCancel.
+type PostRightsCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // EndCurrentSessionParams defines parameters for EndCurrentSession.
 type EndCurrentSessionParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
@@ -1645,6 +5141,200 @@ type LoginSessionParams struct {
 type StartSetupParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetTaskRunsParams defines parameters for GetTaskRuns.
+type GetTaskRunsParams struct {
+	TaskId Ulid  `form:"task_id" json:"task_id"`
+	After  *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit  *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// PostTaskRunsParams defines parameters for PostTaskRuns.
+type PostTaskRunsParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsAnswerParams defines parameters for PostTaskRunsAnswer.
+type PostTaskRunsAnswerParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsAskParams defines parameters for PostTaskRunsAsk.
+type PostTaskRunsAskParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsCancelParams defines parameters for PostTaskRunsCancel.
+type PostTaskRunsCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsCandidateParams defines parameters for PostTaskRunsCandidate.
+type PostTaskRunsCandidateParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsCheckpointParams defines parameters for PostTaskRunsCheckpoint.
+type PostTaskRunsCheckpointParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsProgressParams defines parameters for PostTaskRunsProgress.
+type PostTaskRunsProgressParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsReconcileParams defines parameters for PostTaskRunsReconcile.
+type PostTaskRunsReconcileParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsSealParams defines parameters for PostTaskRunsSeal.
+type PostTaskRunsSealParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTaskRunsToolParams defines parameters for PostTaskRunsTool.
+type PostTaskRunsToolParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetTasksParams defines parameters for GetTasks.
+type GetTasksParams struct {
+	ProjectId Ulid  `form:"project_id" json:"project_id"`
+	After     *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit     *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// PostTasksParams defines parameters for PostTasks.
+type PostTasksParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksAnswerParams defines parameters for PostTasksAnswer.
+type PostTasksAnswerParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksAssignParams defines parameters for PostTasksAssign.
+type PostTasksAssignParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksBlockParams defines parameters for PostTasksBlock.
+type PostTasksBlockParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksCancelParams defines parameters for PostTasksCancel.
+type PostTasksCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksClaimParams defines parameters for PostTasksClaim.
+type PostTasksClaimParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksCompleteParams defines parameters for PostTasksComplete.
+type PostTasksCompleteParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksHandoffParams defines parameters for PostTasksHandoff.
+type PostTasksHandoffParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksReconcileParams defines parameters for PostTasksReconcile.
+type PostTasksReconcileParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksReleaseParams defines parameters for PostTasksRelease.
+type PostTasksReleaseParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksRenewParams defines parameters for PostTasksRenew.
+type PostTasksRenewParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksReworkParams defines parameters for PostTasksRework.
+type PostTasksReworkParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTasksSubmitParams defines parameters for PostTasksSubmit.
+type PostTasksSubmitParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTrashOwnParams defines parameters for PostTrashOwn.
+type PostTrashOwnParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PostTrashRestoreParams defines parameters for PostTrashRestore.
+type PostTrashRestoreParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetTrashIdParams defines parameters for GetTrashId.
+type GetTrashIdParams struct {
+	ProjectId Ulid `form:"project_id" json:"project_id"`
 }
 
 // ListTypesParams defines parameters for ListTypes.
@@ -1742,6 +5432,39 @@ type PatchAssetMetadataJSONRequestBody = AssetPatch
 // IssueReadGrantJSONRequestBody defines body for IssueReadGrant for application/json ContentType.
 type IssueReadGrantJSONRequestBody = ReadGrantRequest
 
+// PostEvidenceJSONRequestBody defines body for PostEvidence for application/json ContentType.
+type PostEvidenceJSONRequestBody = M2LedgerReviewEvidenceInput
+
+// PostFlowsJSONRequestBody defines body for PostFlows for application/json ContentType.
+type PostFlowsJSONRequestBody = M2WorkflowStartRequest
+
+// PostFlowsCancelJSONRequestBody defines body for PostFlowsCancel for application/json ContentType.
+type PostFlowsCancelJSONRequestBody = M2WorkflowFlowRef
+
+// PostFlowsDispatchJSONRequestBody defines body for PostFlowsDispatch for application/json ContentType.
+type PostFlowsDispatchJSONRequestBody PostFlowsDispatchJSONBody
+
+// PostFlowsPauseJSONRequestBody defines body for PostFlowsPause for application/json ContentType.
+type PostFlowsPauseJSONRequestBody = M2WorkflowFlowRef
+
+// PostFlowsResumeJSONRequestBody defines body for PostFlowsResume for application/json ContentType.
+type PostFlowsResumeJSONRequestBody = M2WorkflowFlowRef
+
+// PostFlowsRetryJSONRequestBody defines body for PostFlowsRetry for application/json ContentType.
+type PostFlowsRetryJSONRequestBody = M2WorkflowFlowRef
+
+// PostFlowsRetryCommandJSONRequestBody defines body for PostFlowsRetryCommand for application/json ContentType.
+type PostFlowsRetryCommandJSONRequestBody = M2WorkflowCommandRequest
+
+// PostHumanExecuteJSONRequestBody defines body for PostHumanExecute for application/json ContentType.
+type PostHumanExecuteJSONRequestBody = M2HttpapiHumanExecuteRequest
+
+// PostHumanPrepareJSONRequestBody defines body for PostHumanPrepare for application/json ContentType.
+type PostHumanPrepareJSONRequestBody = M2HttpapiHumanPrepareRequest
+
+// PostHumanRechallengeJSONRequestBody defines body for PostHumanRechallenge for application/json ContentType.
+type PostHumanRechallengeJSONRequestBody PostHumanRechallengeJSONBody
+
 // CreateIdentityChallengeJSONRequestBody defines body for CreateIdentityChallenge for application/json ContentType.
 type CreateIdentityChallengeJSONRequestBody = SensitiveRequest
 
@@ -1760,8 +5483,41 @@ type EnrollFactorJSONRequestBody = EmptyRequest
 // SetSetupPasswordJSONRequestBody defines body for SetSetupPassword for application/json ContentType.
 type SetSetupPasswordJSONRequestBody = PasswordRequest
 
+// PostInboxReadJSONRequestBody defines body for PostInboxRead for application/json ContentType.
+type PostInboxReadJSONRequestBody PostInboxReadJSONBody
+
+// PostJobsCancelJSONRequestBody defines body for PostJobsCancel for application/json ContentType.
+type PostJobsCancelJSONRequestBody = M2JobsControl
+
+// PostJobsReconcileJSONRequestBody defines body for PostJobsReconcile for application/json ContentType.
+type PostJobsReconcileJSONRequestBody = M2JobsReconcileRequest
+
+// PostJobsRetryJSONRequestBody defines body for PostJobsRetry for application/json ContentType.
+type PostJobsRetryJSONRequestBody = M2JobsControl
+
+// PostJobsRunJSONRequestBody defines body for PostJobsRun for application/json ContentType.
+type PostJobsRunJSONRequestBody = M2JobsControl
+
+// PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
+type PostMessagesJSONRequestBody = M2LedgerMessageInput
+
+// PostNodesObserveJSONRequestBody defines body for PostNodesObserve for application/json ContentType.
+type PostNodesObserveJSONRequestBody = M2NodeObservation
+
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = CreateProjectRequest
+
+// PostPublicationsJSONRequestBody defines body for PostPublications for application/json ContentType.
+type PostPublicationsJSONRequestBody = M2LedgerPublishRequest
+
+// PostReviewTargetsJSONRequestBody defines body for PostReviewTargets for application/json ContentType.
+type PostReviewTargetsJSONRequestBody = M2LedgerSubmitReview
+
+// PostRightsAssertionsJSONRequestBody defines body for PostRightsAssertions for application/json ContentType.
+type PostRightsAssertionsJSONRequestBody = M2ProvenanceAssertionRequest
+
+// PostRightsCancelJSONRequestBody defines body for PostRightsCancel for application/json ContentType.
+type PostRightsCancelJSONRequestBody = M2ProvenanceCancelAssertionRequest
 
 // ExchangeSessionJSONRequestBody defines body for ExchangeSession for application/json ContentType.
 type ExchangeSessionJSONRequestBody = SessionRequest
@@ -1771,6 +5527,84 @@ type LoginSessionJSONRequestBody = SessionRequest
 
 // StartSetupJSONRequestBody defines body for StartSetup for application/json ContentType.
 type StartSetupJSONRequestBody = SetupRequest
+
+// PostTaskRunsJSONRequestBody defines body for PostTaskRuns for application/json ContentType.
+type PostTaskRunsJSONRequestBody = M2AgentexecStartRequest
+
+// PostTaskRunsAnswerJSONRequestBody defines body for PostTaskRunsAnswer for application/json ContentType.
+type PostTaskRunsAnswerJSONRequestBody = M2AgentexecutionAnswerRequest
+
+// PostTaskRunsAskJSONRequestBody defines body for PostTaskRunsAsk for application/json ContentType.
+type PostTaskRunsAskJSONRequestBody = M2AgentexecutionInputRequest
+
+// PostTaskRunsCancelJSONRequestBody defines body for PostTaskRunsCancel for application/json ContentType.
+type PostTaskRunsCancelJSONRequestBody = M2AgentexecutionCancelRequest
+
+// PostTaskRunsCandidateJSONRequestBody defines body for PostTaskRunsCandidate for application/json ContentType.
+type PostTaskRunsCandidateJSONRequestBody = M2AgentexecutionCandidateRequest
+
+// PostTaskRunsCheckpointJSONRequestBody defines body for PostTaskRunsCheckpoint for application/json ContentType.
+type PostTaskRunsCheckpointJSONRequestBody = M2AgentexecutionCheckpointRequest
+
+// PostTaskRunsProgressJSONRequestBody defines body for PostTaskRunsProgress for application/json ContentType.
+type PostTaskRunsProgressJSONRequestBody = M2AgentexecutionProgressRequest
+
+// PostTaskRunsReconcileJSONRequestBody defines body for PostTaskRunsReconcile for application/json ContentType.
+type PostTaskRunsReconcileJSONRequestBody = M2AgentexecutionReconcileRequest
+
+// PostTaskRunsSealJSONRequestBody defines body for PostTaskRunsSeal for application/json ContentType.
+type PostTaskRunsSealJSONRequestBody = M2AgentexecutionSealRequest
+
+// PostTaskRunsToolJSONRequestBody defines body for PostTaskRunsTool for application/json ContentType.
+type PostTaskRunsToolJSONRequestBody = M2AgentexecutionToolRequest
+
+// PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
+type PostTasksJSONRequestBody = M2TasksCreateRequest
+
+// PostTasksAnswerJSONRequestBody defines body for PostTasksAnswer for application/json ContentType.
+type PostTasksAnswerJSONRequestBody = M2TasksAnswerRequest
+
+// PostTasksAssignJSONRequestBody defines body for PostTasksAssign for application/json ContentType.
+type PostTasksAssignJSONRequestBody = M2TasksAssignRequest
+
+// PostTasksBlockJSONRequestBody defines body for PostTasksBlock for application/json ContentType.
+type PostTasksBlockJSONRequestBody = M2TasksBlockRequest
+
+// PostTasksCancelJSONRequestBody defines body for PostTasksCancel for application/json ContentType.
+type PostTasksCancelJSONRequestBody = M2TasksCancelRequest
+
+// PostTasksClaimJSONRequestBody defines body for PostTasksClaim for application/json ContentType.
+type PostTasksClaimJSONRequestBody = M2TasksClaimRequest
+
+// PostTasksCompleteJSONRequestBody defines body for PostTasksComplete for application/json ContentType.
+type PostTasksCompleteJSONRequestBody = M2TasksCompleteRequest
+
+// PostTasksHandoffJSONRequestBody defines body for PostTasksHandoff for application/json ContentType.
+type PostTasksHandoffJSONRequestBody = M2TasksHandoffRequest
+
+// PostTasksReconcileJSONRequestBody defines body for PostTasksReconcile for application/json ContentType.
+type PostTasksReconcileJSONRequestBody = M2TasksReconcileRequest
+
+// PostTasksReleaseJSONRequestBody defines body for PostTasksRelease for application/json ContentType.
+type PostTasksReleaseJSONRequestBody = M2TasksReleaseRequest
+
+// PostTasksRenewJSONRequestBody defines body for PostTasksRenew for application/json ContentType.
+type PostTasksRenewJSONRequestBody = M2TasksAttemptRef
+
+// PostTasksReworkJSONRequestBody defines body for PostTasksRework for application/json ContentType.
+type PostTasksReworkJSONRequestBody = M2TasksReworkRequest
+
+// PostTasksSubmitJSONRequestBody defines body for PostTasksSubmit for application/json ContentType.
+type PostTasksSubmitJSONRequestBody = M2TasksSubmitRequest
+
+// PostTrashOwnJSONRequestBody defines body for PostTrashOwn for application/json ContentType.
+type PostTrashOwnJSONRequestBody = M2LedgerTrashRequest
+
+// PostTrashPreviewJSONRequestBody defines body for PostTrashPreview for application/json ContentType.
+type PostTrashPreviewJSONRequestBody = M2LedgerTrashSelector
+
+// PostTrashRestoreJSONRequestBody defines body for PostTrashRestore for application/json ContentType.
+type PostTrashRestoreJSONRequestBody = M2LedgerRestoreRequest
 
 // CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
 type CreateUploadJSONRequestBody = CreateUploadRequest
@@ -1783,3 +5617,221 @@ type CommitUploadJSONRequestBody = CommitRequest
 
 // CompleteUploadFileJSONRequestBody defines body for CompleteUploadFile for application/json ContentType.
 type CompleteUploadFileJSONRequestBody = EmptyRequest
+
+// AsLantaiAgentResponseV10 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV10
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV10() (LantaiAgentResponseV10, error) {
+	var body LantaiAgentResponseV10
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV10 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV10
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV10(v LantaiAgentResponseV10) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV10 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV10
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV10(v LantaiAgentResponseV10) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV11 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV11
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV11() (LantaiAgentResponseV11, error) {
+	var body LantaiAgentResponseV11
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV11 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV11
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV11(v LantaiAgentResponseV11) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV11 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV11
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV11(v LantaiAgentResponseV11) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV12 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV12
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV12() (LantaiAgentResponseV12, error) {
+	var body LantaiAgentResponseV12
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV12 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV12
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV12(v LantaiAgentResponseV12) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV12 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV12
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV12(v LantaiAgentResponseV12) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV13 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV13
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV13() (LantaiAgentResponseV13, error) {
+	var body LantaiAgentResponseV13
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV13 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV13
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV13(v LantaiAgentResponseV13) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV13 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV13
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV13(v LantaiAgentResponseV13) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV14 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV14
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV14() (LantaiAgentResponseV14, error) {
+	var body LantaiAgentResponseV14
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV14 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV14
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV14(v LantaiAgentResponseV14) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV14 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV14
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV14(v LantaiAgentResponseV14) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV15 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV15
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV15() (LantaiAgentResponseV15, error) {
+	var body LantaiAgentResponseV15
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV15 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV15
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV15(v LantaiAgentResponseV15) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV15 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV15
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV15(v LantaiAgentResponseV15) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLantaiAgentResponseV16 returns the union data inside the LantaiAgentResponseV1 as a LantaiAgentResponseV16
+func (t LantaiAgentResponseV1) AsLantaiAgentResponseV16() (LantaiAgentResponseV16, error) {
+	var body LantaiAgentResponseV16
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLantaiAgentResponseV16 overwrites any union data inside the LantaiAgentResponseV1 as the provided LantaiAgentResponseV16
+func (t *LantaiAgentResponseV1) FromLantaiAgentResponseV16(v LantaiAgentResponseV16) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLantaiAgentResponseV16 performs a merge with any union data inside the LantaiAgentResponseV1, using the provided LantaiAgentResponseV16
+func (t *LantaiAgentResponseV1) MergeLantaiAgentResponseV16(v LantaiAgentResponseV16) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsErrorEnvelope returns the union data inside the LantaiAgentResponseV1 as a ErrorEnvelope
+func (t LantaiAgentResponseV1) AsErrorEnvelope() (ErrorEnvelope, error) {
+	var body ErrorEnvelope
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromErrorEnvelope overwrites any union data inside the LantaiAgentResponseV1 as the provided ErrorEnvelope
+func (t *LantaiAgentResponseV1) FromErrorEnvelope(v ErrorEnvelope) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeErrorEnvelope performs a merge with any union data inside the LantaiAgentResponseV1, using the provided ErrorEnvelope
+func (t *LantaiAgentResponseV1) MergeErrorEnvelope(v ErrorEnvelope) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LantaiAgentResponseV1) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LantaiAgentResponseV1) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}

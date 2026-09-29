@@ -80,8 +80,8 @@ func TestActionFamiliesAreSeparate(t *testing.T) {
 		t.Fatal("control action lists")
 	}
 	for _, s := range SupportMatrix() {
-		if s.Status != "contract_only" && s.Status != "reserved" {
-			t.Errorf("%s reports %s; M1 must not enable execution services", s.Protocol, s.Status)
+		if s.Status != "enabled" && s.Status != "reserved" {
+			t.Errorf("%s reports %s; unexpected build capability", s.Protocol, s.Status)
 		}
 	}
 }

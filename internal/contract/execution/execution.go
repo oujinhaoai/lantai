@@ -33,18 +33,17 @@ var Protocols = []Protocol{AgentExecution, Processor, HostControl}
 type Support struct {
 	Protocol Protocol `json:"protocol"`
 	// Status：contract_only 表示只有契约与校验，没有运行中的服务；
-	// reserved 表示只保留标识，尚无完整契约。
+	// enabled 表示存在限定范围的运行实现；reserved 表示只保留标识。
 	Status string `json:"status"`
 	// Planned 是计划启用阶段。
 	Planned string `json:"planned"`
 }
 
-// SupportMatrix 如实报告当前构建的协议支持情况：M1 不启用任务服务、
-// 自动后端或动态 loader。
+// SupportMatrix 报告构建能力；实例范围仍由 /meta 和实时授权决定。
 func SupportMatrix() []Support {
 	return []Support{
-		{AgentExecution, "contract_only", "M2 manual-cli adapter; M3 managed runner"},
-		{Processor, "contract_only", "M2 oneshot host (spawn/run/exit)"},
+		{AgentExecution, "enabled", "manual_cli only; managed runner deferred"},
+		{Processor, "enabled", "builtin corecheck only; external packages deferred"},
 		{HostControl, "reserved", "on demand, resident instances only"},
 	}
 }

@@ -39,6 +39,10 @@ if ! cmp -s internal/apiv1/models.gen.go "$tmp/models.gen.go"; then
   exit 1
 fi
 
+step "Python SDK 契约与测试"
+python3 sdk/python/generate.py --check
+PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v
+
 step "go test"
 if [ "${LANTAI_RACE:-1}" = "1" ]; then
   go test -race -count=1 ./...

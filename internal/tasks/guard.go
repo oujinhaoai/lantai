@@ -60,6 +60,9 @@ func (s *Service) CheckVersionWrite(ctx context.Context, who authz.Context, cmd 
 	if r.task.State != "claimed" && r.task.State != "blocked" {
 		return stale(execution.ReasonAttemptEnded)
 	}
+	if err = s.checkExecution(ctx, cmd.TaskID, cmd.AttemptID); err != nil {
+		return err
+	}
 	epoch, err := s.epoch(ctx)
 	if err != nil {
 		return err

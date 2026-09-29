@@ -23,7 +23,9 @@ type ActionSpec struct {
 	Action authz.Action
 	// Scope 是会话必须包含的范围。
 	Scope Scope
-	Level Level
+	// WorkerScope permits this exact action with a worker session; roles still apply.
+	WorkerScope bool
+	Level       Level
 	// Roles 是允许的项目角色（ProjectLevel）。
 	Roles []Role
 	// AdminAlso 表示系统管理员在任何项目也可执行（例如为新项目指定负责人）。
@@ -134,7 +136,8 @@ var actionList = []ActionSpec{
 	{Action: "ledger.trash_own", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleContributor, RoleCurator, RoleCoordinator}},
 	{Action: "ledger.restore", Scope: ScopeOrganize, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: "ledger.restore_others", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}, AdminAlso: true},
-	{Action: "ledger.append_check", Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker, RoleContributor}},
+	{Action: "node.observe", Scope: ScopeNode, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker}},
+	{Action: "ledger.append_check", WorkerScope: true, Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleChecker, RoleContributor}},
 	{Action: "ledger.initialize_profile", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
 	{Action: "ledger.submit_review", Scope: ScopeIngest, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurator}},
 	{Action: "ledger.publish", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
@@ -156,7 +159,7 @@ var actionList = []ActionSpec{
 	{Action: ActPurge, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
 	{Action: ActHold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
 	{Action: ActUnhold, Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
-	{Action: ActTasksRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActTasksRead, WorkerScope: true, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActTasksCreate, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
 	{Action: ActTasksAssign, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
 	{Action: ActTasksClaim, Scope: ScopeTask, Level: ProjectLevel, Roles: taskWorkers},
@@ -195,7 +198,7 @@ var actionList = []ActionSpec{
 	{Action: ActRecoveryConfirm, Scope: ScopeRecovery, RecoveryOnly: true},
 	{Action: ActRecoverySetPassword, Scope: ScopeRecovery, RecoveryOnly: true},
 
-	{Action: ActCatalogRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
+	{Action: ActCatalogRead, WorkerScope: true, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: ActPersonalRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles},
 	{Action: "ledger.cancel_trash", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},
 	{Action: "provenance.cancel_assertion", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner}},

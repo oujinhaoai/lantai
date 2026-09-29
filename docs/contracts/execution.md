@@ -2,7 +2,7 @@
 
 状态：**M1 共享执行契约，已实现规则与测试**（T00.6）。本篇规定任务、Agent 执行、作业与扩展宿主共同遵守的协议边界、凭据检查、错误映射、状态分离与副作用恢复规则。机器可校验的定义在 [`schemas/common/v1/execution.schema.json`](../../schemas/common/v1/execution.schema.json)，判定规则在 [`internal/contract/execution`](../../internal/contract/execution/)；领域完整 schema 由各自任务补充：Task/Seat/Attempt/Flow 归 [T05](../tasks/T05-tasks-workflow.md)，ExecutionProfile/TaskRun/AgentStepRun/Checkpoint/ToolOperation/JobAttempt 归 [T06](../tasks/T06-execution-nodes.md)，扩展清单与激活快照归 [T09](../tasks/T09-extension-platform.md)，插件规格以[扩展设计](../extensions.md)为准。
 
-M1 只交付契约与判定规则：**不启用任务服务、Agent 后端、一次性处理器宿主或动态 loader**。`lantai version` 如实报告各协议状态。
+M1 只交付契约与判定规则；M2 当前已启用 manual_cli 与官方 corecheck 一次性宿主，运行边界见[手动执行](manual-execution.md)。自动后端和动态 loader 未启用。`lantai version` 如实报告各协议状态。
 
 ## 对象归属
 

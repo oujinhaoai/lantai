@@ -5,6 +5,11 @@ package application
 import (
 	"context"
 	"errors"
+	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
+	"github.com/oujinhaoai/lantai/internal/jobs"
+	"github.com/oujinhaoai/lantai/internal/node"
+	"github.com/oujinhaoai/lantai/internal/tasks"
+	"github.com/oujinhaoai/lantai/internal/workflow"
 	"path/filepath"
 	"sync"
 	"time"
@@ -42,18 +47,28 @@ type Options struct {
 }
 
 type App struct {
-	Instance   *operations.Instance
-	Identity   *identity.Service
-	Ledger     *ledger.Service
-	Rights     *provenance.Service
-	Storage    *storage.Service
-	Catalog    *catalog.Service
-	Events     *events.Store
-	Query      *query.Service
-	Extensions *extensions.Registry
-	syncMu     sync.Mutex
-	healthMu   sync.RWMutex
-	syncFailed bool
+	Instance      *operations.Instance
+	Identity      *identity.Service
+	Ledger        *ledger.Service
+	Rights        *provenance.Service
+	Storage       *storage.Service
+	Catalog       *catalog.Service
+	Events        *events.Store
+	Query         *query.Service
+	Extensions    *extensions.Registry
+	Tasks         *tasks.Service
+	Flows         *workflow.Service
+	Execution     *ax.Service
+	Jobs          *jobs.Service
+	Nodes         *node.Service
+	Evidence      *ledger.FileReviewSources
+	Reviews       *ledger.Reviews
+	Lifecycle     *ledger.Lifecycle
+	Discussions   *ledger.DiscussionObjects
+	Collaboration *query.Collaboration
+	syncMu        sync.Mutex
+	healthMu      sync.RWMutex
+	syncFailed    bool
 }
 
 // Open 在任何监听开放前检查身份、收录 outbox、重建或追平查询投影。
@@ -126,6 +141,10 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
+	// Offline recovery keeps the same task/execution acceptance guards.
+	if err = a.assembleCollaboration(); err != nil {
+		return nil, err
+	}
 	if offline {
 		return a, nil
 	}
@@ -180,6 +199,11 @@ func (a *App) sync(ctx context.Context, startup bool) (err error) {
 			return err
 		}
 		if _, err = a.Query.Rebuild(ctx); err != nil {
+			return err
+		}
+	}
+	if a.Collaboration != nil {
+		if _, err = a.Collaboration.CatchUpInbox(ctx, 1000); err != nil {
 			return err
 		}
 	}

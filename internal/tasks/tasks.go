@@ -96,11 +96,33 @@ type Deps struct {
 }
 
 type Service struct {
-	d      Deps
-	store  *commands.Store
-	wiring sync.RWMutex
-	steps  Steps
-	facts  Authorities
+	d          Deps
+	store      *commands.Store
+	wiring     sync.RWMutex
+	steps      Steps
+	facts      Authorities
+	executions ExecutionGuard
+}
+
+// ExecutionGuard prevents a revoked or paused TaskRun from bypassing execution
+// cancellation through ordinary task submission or a catalog version commit.
+type ExecutionGuard interface {
+	CheckTaskWrite(context.Context, ids.ID, ids.ID) error
+}
+
+func (s *Service) SetExecutions(v ExecutionGuard) {
+	s.wiring.Lock()
+	defer s.wiring.Unlock()
+	s.executions = v
+}
+func (s *Service) checkExecution(ctx context.Context, task, attempt ids.ID) error {
+	s.wiring.RLock()
+	g := s.executions
+	s.wiring.RUnlock()
+	if g == nil {
+		return nil
+	}
+	return g.CheckTaskWrite(ctx, task, attempt)
 }
 
 func New(d Deps) (*Service, error) {

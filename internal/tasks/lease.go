@@ -483,6 +483,11 @@ func (s *Service) attemptCommand(ctx context.Context, who authz.Context, key, ty
 	if err = s.authorize(ctx, who, "tasks.work", in.ProjectID, "task", in.TaskID); err != nil {
 		return Result{}, err
 	}
+	if typ == "tasks.submit" || typ == "tasks.handoff" {
+		if err = s.checkExecution(ctx, in.TaskID, in.AttemptID); err != nil {
+			return Result{}, err
+		}
+	}
 	for _, ref := range refs {
 		if err = s.readable(ctx, who, ref, in.ProjectID); err != nil {
 			return Result{}, err

@@ -13,7 +13,10 @@
 - `ledger/`、`provenance/`：M1 持久版本登记、占名、说明生效修订、恢复核对与权威来源限制，见[台账](../docs/contracts/ledger.md)及[溯源](../docs/contracts/provenance.md)。
 - `events/`、`query/`：M1 多源收录、事务消费与持久后续命令、审计/保留水位，以及受当前权限过滤的可重建目录、文本和关联投影，见[事件](../docs/contracts/events.md)及[查询](../docs/contracts/query.md)。
 - `contract/tasks`、`contract/agentexec`：T05/T06 的 M1 数据协议、纯状态规则、稳定执行键与静态桩；不运行任务/执行服务。
-- `application/`：真实模块静态组装、实例启动与 HTTP 关闭顺序、outbox/查询/审计后台推进、按当前权限过滤的 operation 聚合；没有业务 SQL 或跨库事务。
+- `tasks/`、`workflow/`：T05 单席位任务、租约、签出与固定业务 Flow。
+- `agent_execution/`、`jobs/`、`node/`：M2 手动会话、步骤/工具日志、检查点/预算/人机输入、独立检查作业与节点观测。
+- `mcpserver/`：官方 Go SDK stdio 到同一 REST 的有界适配。
+- `application/`：真实模块静态组装、实例启动与 HTTP 关闭顺序、outbox/查询/收件箱/审计后台推进、按当前权限过滤的 operation 聚合；没有业务 SQL 或跨库事务。
 - `transport/httpapi/`：统一认证、严格 JSON 输入、错误与 DTO、分面/merged 路由和 HTTP server 配置。
 - `client/`、`cli/`：独立 JSON/传输连接池、私有凭据与恢复状态、分片/Range 流式传输、薄 REST 命令。
 - `apiv1/`：由 `api/` 契约生成的 Go 传输类型，不手改。

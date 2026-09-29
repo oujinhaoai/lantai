@@ -10,7 +10,6 @@
     "revision",
     "adapter_kind",
     "adapter_version",
-    "activation_snapshot",
     "playbook_refs",
     "skill_digests",
     "required_capabilities",
@@ -121,6 +120,20 @@
             "maxItems": 0
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter_kind": {
+            "const": "managed_runner"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "activation_snapshot"
+        ]
       }
     }
   ]

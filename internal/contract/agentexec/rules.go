@@ -29,6 +29,9 @@ func (p ExecutionProfile) Validate() error {
 	if err := tasks.ValidateShape("lantai.execution-profile/v1", p); err != nil {
 		return err
 	}
+	if p.AdapterKind == "manual_cli" && p.ActivationSnapshot == (ActivationSnapshot{}) {
+		return nil
+	}
 	return p.ActivationSnapshot.Validate()
 }
 func (p ExecutionProfile) Digest() (digest.Digest, error) {
@@ -107,7 +110,11 @@ func (r StartRequest) Validate(c Capabilities) error {
 	if key != r.ExecutionKey {
 		return invalid("execution_key_mismatch")
 	}
-	if r.Activation == nil || *r.Activation != r.Profile.ActivationSnapshot.Activation {
+	if r.Profile.ActivationSnapshot == (ActivationSnapshot{}) && r.Profile.AdapterKind == "manual_cli" {
+		if r.Activation != nil {
+			return errcode.New(errcode.ExtensionActivationStale, "core manual adapter has no extension activation")
+		}
+	} else if r.Activation == nil || *r.Activation != r.Profile.ActivationSnapshot.Activation {
 		return errcode.New(errcode.ExtensionActivationStale, "").WithDetails(errcode.Detail{Reason: "profile_activation_mismatch"})
 	}
 	if r.Profile.AdapterKind != c.AdapterKind {
@@ -226,6 +233,12 @@ func AcceptResult(r Result, request StartRequest, admission Admission, accept ex
 	}
 	if accept.Fence == nil || *accept.Fence != request.Fence {
 		return errcode.New(errcode.LeaseStale, "")
+	}
+	if request.Profile.AdapterKind == "manual_cli" && request.Profile.ActivationSnapshot == (ActivationSnapshot{}) {
+		if request.Activation != nil || accept.Activation != nil || accept.ActivationState != nil {
+			return errcode.New(errcode.ExtensionActivationStale, "unexpected core adapter activation")
+		}
+		return execution.Accept(accept)
 	}
 	if accept.Activation == nil || accept.ActivationState == nil {
 		return errcode.New(errcode.ExtensionActivationStale, "").WithDetails(errcode.Detail{Reason: "activation_missing"})

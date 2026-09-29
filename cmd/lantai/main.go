@@ -1,5 +1,5 @@
 // lantai 是兰台统一入口：本机实例命令、服务启动与经 REST 的薄 CLI。
-// MCP、任务引擎与节点尚未启用，不注册占位命令。
+// MCP 是 stdio 到同一 REST 的薄适配；不注册占位能力。
 //
 // 退出码：0 成功；1 文档未通过校验，或实例状态不允许该操作；2 用法错误；
 // 3 读写或内部错误。
@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/oujinhaoai/lantai/internal/cli"
+	"github.com/oujinhaoai/lantai/internal/extensions"
 )
 
 const (
@@ -31,6 +32,7 @@ type command struct {
 }
 
 var commands = []command{
+	{"mcp", "使用现有会话启动官方 Go SDK stdio MCP 适配器", runMCP},
 	{"version", "显示版本、构建信息、公共契约与协议支持状态", runVersion},
 	{"schema", "列出公共契约 schema，或校验 JSON/YAML 文档", runSchema},
 	{"init", "本机初始化实例与首个管理员（口令、TOTP、恢复码），只能进行一次", runInit},
@@ -55,6 +57,12 @@ func main() {
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) == 1 && args[0] == "_processor-check" {
+		if extensions.ProcessorMain() != nil {
+			return exitInvalid
+		}
+		return exitOK
+	}
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		usage(stdout)
 		if len(args) == 0 {

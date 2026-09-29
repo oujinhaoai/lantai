@@ -35,3 +35,8 @@ __pycache__/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Python SDK packaging outputs
+/sdk/python/build/
+/sdk/python/dist/
+/sdk/python/*.egg-info/

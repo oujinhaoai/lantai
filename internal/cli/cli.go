@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation"}
+	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox"}
 }
 func Help() string {
 	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
@@ -32,6 +32,9 @@ func Help() string {
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
+协作命令：task | flow | run | job | node | message | review | rights | evidence | trash | human | context | events | resync | inbox。
+写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
+human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
 详见 docs/contracts/client.md。`
 }
 
@@ -116,7 +119,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -260,6 +263,8 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Do(ctx, method, path, body, opts)
 	}
 	switch command {
+	case "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
+		return collaborationCommand(ctx, c, command, action, o)
 	case "meta":
 		return do(http.MethodGet, "/api/v1/meta", nil)
 	case "login":
@@ -475,54 +480,14 @@ func login(ctx context.Context, c *client.Client, o options, exchange bool) (cli
 	return r, nil
 }
 func pull(ctx context.Context, c *client.Client, o options) (client.Response, error) {
-	path, err := readPath(o)
+	_, err := readPath(o)
 	if err != nil {
 		return client.Response{}, err
 	}
 	if o.directory == "" {
 		return client.Response{}, usage("pull requires --directory")
 	}
-	r, err := c.Do(ctx, http.MethodGet, path+"?view=full", nil, client.Options{})
-	if err != nil {
-		return r, err
-	}
-	var version struct {
-		Manifest *struct {
-			Content struct {
-				Files []client.InputFile `json:"files"`
-			} `json:"content"`
-		} `json:"manifest"`
-	}
-	if err = r.Decode(&version); err != nil {
-		return r, err
-	}
-	if version.Manifest == nil {
-		return r, errors.New("client: server omitted the exact version manifest")
-	}
-	paths := make([]string, len(version.Manifest.Content.Files))
-	for i, f := range version.Manifest.Content.Files {
-		paths[i] = f.Path
-	}
-	if err = client.ValidatePaths(paths); err != nil {
-		return client.Response{}, err
-	}
-	for _, f := range version.Manifest.Content.Files {
-		grant, err := c.Do(ctx, http.MethodPost, path+"/read-grants", map[string]string{"path": f.Path, "purpose": o.purpose}, client.Options{})
-		if err != nil {
-			return grant, err
-		}
-		var g client.DownloadGrant
-		if err = grant.Decode(&g); err != nil {
-			return grant, err
-		}
-		if g.Path != f.Path || g.Size != f.Size || g.SHA256 != f.SHA256 {
-			return client.Response{}, errors.New("client: read grant does not match the exact manifest")
-		}
-		if err = c.Download(ctx, g, o.directory, f.Path); err != nil {
-			return client.Response{}, err
-		}
-	}
-	return r, nil
+	return c.Pull(ctx, o.asset, o.version, o.directory, o.purpose)
 }
 func writeError(w io.Writer, err error) int {
 	var api *client.APIError

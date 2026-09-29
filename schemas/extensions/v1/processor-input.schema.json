@@ -36,6 +36,12 @@
     },
     "deadline": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "activation_snapshot": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/activation-snapshot.schema.json"
+    },
+    "producer": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
     }
   }
 }

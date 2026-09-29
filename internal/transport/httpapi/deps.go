@@ -4,6 +4,13 @@ package httpapi
 
 import (
 	"context"
+	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
+	"github.com/oujinhaoai/lantai/internal/jobs"
+	"github.com/oujinhaoai/lantai/internal/ledger"
+	"github.com/oujinhaoai/lantai/internal/node"
+	"github.com/oujinhaoai/lantai/internal/provenance"
+	"github.com/oujinhaoai/lantai/internal/tasks"
+	"github.com/oujinhaoai/lantai/internal/workflow"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/catalog"
@@ -64,11 +71,26 @@ type OperationReader interface {
 }
 
 type Deps struct {
-	Identity   IdentityService
-	Catalog    CatalogService
-	Storage    StorageService
-	Query      QueryService
-	Operations OperationReader
+	Rights         *provenance.Service
+	Ledger         *ledger.Service
+	Reviews        *ledger.Reviews
+	Lifecycle      *ledger.Lifecycle
+	Discussions    *ledger.DiscussionObjects
+	Evidence       *ledger.FileReviewSources
+	Collaboration  *query.Collaboration
+	ContextCatalog *catalog.Service
+	Human          *identity.Service
+	HumanTargets   identity.HumanTargets
+	Tasks          *tasks.Service
+	Flows          *workflow.Service
+	Execution      *ax.Service
+	Jobs           *jobs.Service
+	Nodes          *node.Service
+	Identity       IdentityService
+	Catalog        CatalogService
+	Storage        StorageService
+	Query          QueryService
+	Operations     OperationReader
 }
 
 type Config struct {

@@ -188,6 +188,12 @@ func (b *bundler) mapRef(ref, base string, isOpenAPI bool, ctx ...target) (strin
 		// schema 文档内部引用：#/$defs/x → 同一文件的定义。
 		return b.enqueue(target{file: ctx[0].file, frag: frag})
 	}
+	if local, ok := strings.CutPrefix(file, schemas.BaseURI); ok {
+		if path.Clean(local) != local || strings.HasPrefix(local, "/") {
+			return "", fmt.Errorf("invalid local schema reference %q", ref)
+		}
+		return b.enqueue(target{file: local, frag: frag})
+	}
 	if strings.Contains(file, "://") {
 		return "", fmt.Errorf("remote reference %q is not allowed", ref)
 	}
@@ -277,7 +283,14 @@ func (b *bundler) nameFor(t target) (string, error) {
 		return "", err
 	}
 	title, _ := d["title"].(string)
-	if title == "" || strings.ContainsAny(title, " -") {
+	// Versioned execution contracts retain their authoritative protocol titles.
+	if strings.HasPrefix(title, "lantai.") {
+		title = pascal(strings.NewReplacer(".", "_", "-", "_", "/", "_").Replace(title))
+	}
+	if strings.ContainsAny(title, " -./") {
+		title = pascal(strings.NewReplacer("/", "_", "-", "_", ".", "_", " ", "_").Replace(strings.TrimSuffix(t.file, ".schema.json")))
+	}
+	if title == "" {
 		return "", fmt.Errorf("%s needs a PascalCase title to be bundled", t.file)
 	}
 	return title + defName, nil

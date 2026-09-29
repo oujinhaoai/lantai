@@ -56,7 +56,7 @@ type ExecutionProfile struct {
 	Revision             int64              `json:"revision"`
 	AdapterKind          string             `json:"adapter_kind"`
 	AdapterVersion       string             `json:"adapter_version"`
-	ActivationSnapshot   ActivationSnapshot `json:"activation_snapshot"`
+	ActivationSnapshot   ActivationSnapshot `json:"activation_snapshot,omitzero"`
 	PlaybookRefs         []ids.PermanentRef `json:"playbook_refs"`
 	SkillDigests         []digest.Digest    `json:"skill_digests"`
 	RequiredCapabilities []string           `json:"required_capabilities"`
@@ -143,7 +143,7 @@ type ArtifactCandidate struct {
 	ProvenanceRefs      []ids.ID       `json:"provenance_refs"`
 	LicenseEvidenceRefs []ids.ID       `json:"license_evidence_refs"`
 	ValidationState     string         `json:"validation_state"`
-	Producer            Producer       `json:"producer"`
+	Producer            Producer       `json:"producer,omitzero"`
 }
 type ToolOperation struct {
 	Contract                   string                `json:"contract"`

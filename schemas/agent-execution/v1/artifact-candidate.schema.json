@@ -14,8 +14,7 @@
     "purpose",
     "provenance_refs",
     "license_evidence_refs",
-    "validation_state",
-    "producer"
+    "validation_state"
   ],
   "properties": {
     "contract": {

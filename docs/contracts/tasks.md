@@ -1,6 +1,6 @@
 # 任务与业务流程契约
 
-本篇是 [T05.1 M1](../tasks/T05-tasks-workflow.md) 的实现契约，并在末节说明 M2 已实现的内部服务。权威字段在 [`schemas/tasks/v1`](../../schemas/tasks/v1/)，Go 类型、状态边和接受检查在 [`internal/contract/tasks`](../../internal/contract/tasks/)。`taskstest.Static` 只供领域消费者测试，不能接入服务组装；M2 服务见 [`internal/tasks`](../../internal/tasks/) 与 [`internal/workflow`](../../internal/workflow/)，尚无远程入口、租约定时器或后台消费。
+本篇是 [T05.1 M1](../tasks/T05-tasks-workflow.md) 的实现契约，并在末节说明 M2 已实现的内部服务。权威字段在 [`schemas/tasks/v1`](../../schemas/tasks/v1/)，Go 类型、状态边和接受检查在 [`internal/contract/tasks`](../../internal/contract/tasks/)。`taskstest.Static` 只供领域消费者测试，不能接入服务组装；M2 服务见 [`internal/tasks`](../../internal/tasks/) 与 [`internal/workflow`](../../internal/workflow/)，T07 已接入远程入口和显式消费/派发；租约定时器与业务自动触发未启用，见[手动执行与远程协作](manual-execution.md)。
 
 ## 对象与所有者
 

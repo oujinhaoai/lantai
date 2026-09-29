@@ -59,6 +59,15 @@ func (a *CoreCollaborationObjects) ResolveEvent(_ context.Context, e event.Envel
 		}
 		r.Kind = "review"
 		r.ID = p.Target
+	case "task_run.changed", "job.changed":
+		var payload struct {
+			TaskID ids.ID `json:"task_id"`
+		}
+		if err := json.Unmarshal(e.Payload, &payload); err != nil {
+			return r, false, err
+		}
+		r.Kind = "task"
+		r.ID = payload.TaskID
 	case "comment.posted":
 		r.Kind = "comment"
 	case "trash.created", "trash.restored", "trash.purged", "trash.held", "trash.unheld", "trash.purge_due":

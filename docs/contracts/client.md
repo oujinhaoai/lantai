@@ -1,6 +1,6 @@
-# M1 远程 CLI 与可恢复文件客户端
+# 远程 CLI 与可恢复文件客户端
 
-`internal/cli.Run(ctx, args, stdout, stderr) int` 接收含命令名的参数，由 `cmd/lantai` 组装。`internal/client` 只调用公共 REST 与服务端返回的传输 URL；不导入领域服务，不读取服务端的数据目录，不启动插件、MCP 或任务服务。公共接口以 [OpenAPI](../../api/openapi.yaml) 为准。
+`internal/cli.Run(ctx, args, stdout, stderr) int` 接收含命令名的参数，由 `cmd/lantai` 组装。`internal/client` 只调用公共 REST 与服务端返回的传输 URL；不导入领域服务，不读取服务端的数据目录，MCP 复用相同 HTTP client，任务等入口直接调用已组装的领域服务。M2 新增命令见[手动执行与远程协作](manual-execution.md)。公共接口以 [OpenAPI](../../api/openapi.yaml) 为准。
 
 ## 连接与凭据
 

@@ -23,7 +23,7 @@ func TestUsageAndUnknownCommand(t *testing.T) {
 	if code, out, _ := runCLI(t, "help"); code != exitOK || !strings.Contains(out, "schema") {
 		t.Fatalf("help: %d %q", code, out)
 	}
-	// 未实现的子命令不会被当作空命令接受。
+	// 需要连接参数的命令不能作为空命令接受。
 	for _, c := range []string{"node", "mcp", "task"} {
 		if code, _, _ := runCLI(t, c); code != exitUsage {
 			t.Errorf("%s: exit %d, want usage error", c, code)
@@ -44,8 +44,12 @@ func TestVersionJSON(t *testing.T) {
 		t.Fatalf("version info: %+v", v)
 	}
 	for _, p := range v.Protocols {
-		if p.Status == "enabled" {
-			t.Fatalf("%s must not be enabled in this build", p.Protocol)
+		want := "enabled"
+		if string(p.Protocol) == "lantai.host-control/v1" {
+			want = "reserved"
+		}
+		if p.Status != want {
+			t.Fatalf("%s: %s, want %s", p.Protocol, p.Status, want)
 		}
 	}
 	if code, out, _ := runCLI(t, "version"); code != exitOK || !strings.Contains(out, "lantai.agent-execution/v1") {

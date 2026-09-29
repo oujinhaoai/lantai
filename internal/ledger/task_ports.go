@@ -116,3 +116,11 @@ func (s *Service) EvidenceIDByOperation(ctx context.Context, operation ids.ID) (
 	}
 	return id, nil
 }
+
+// EvidenceOperation resolves the immutable ledger receipt for a T06 accepted
+// check; callers do not receive a database handle or query ledger tables.
+func (s *Service) EvidenceOperation(ctx context.Context, evidence ids.ID) (ids.ID, error) {
+	var op ids.ID
+	err := s.db.QueryRowContext(ctx, `SELECT operation_id FROM ledger_check_records WHERE evidence_id=?`, evidence).Scan(&op)
+	return op, err
+}

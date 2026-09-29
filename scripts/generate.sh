@@ -9,3 +9,5 @@ go run ./scripts/gen/ownership
 go run ./scripts/gen/identity
 go run ./scripts/gen/openapi
 go tool -modfile=scripts/tools/go.mod oapi-codegen -config api/oapi-codegen.yaml api/gen/openapi.bundle.json
+
+python3 sdk/python/generate.py

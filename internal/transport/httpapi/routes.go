@@ -23,6 +23,8 @@ import (
 
 func (h *Handler) routes(m *http.ServeMux) {
 	h.identityRoutes(m)
+	h.executionRoutes(m)
+	h.collaborationRoutes(m)
 	h.route(m, "GET /api/v1/meta", true, h.meta)
 	h.route(m, "POST /api/v1/sessions/exchange", true, h.exchange)
 	h.route(m, "POST /api/v1/sessions/login", true, h.login)
@@ -48,11 +50,38 @@ func (h *Handler) routes(m *http.ServeMux) {
 }
 
 func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) error {
-	return respond(w, 200, map[string]any{"api_version": "v1", "instance_id": h.cfg.InstanceID, "stage": "M1",
-		"capabilities": []string{"sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "search", "operation_status"},
-		"views":        []string{"brief", "full"}, "max_json_bytes": h.cfg.MaxJSONBytes, "max_page_size": 100,
-		"transfer":    map[string]any{"resumable_parts": true, "range": true, "class_source": "authenticated_session"},
-		"unsupported": []string{"task_execution", "human_review", "plugins", "event_subscriptions", "federation"}})
+	stage := "M1"
+	capabilities := []string{"sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "search", "operation_status"}
+	unsupported := []string{"managed_runner", "third_party_plugins", "automatic_triggers", "federation"}
+	if h.deps.Tasks != nil {
+		stage = "M2"
+		capabilities = append(capabilities, "tasks")
+	}
+	if h.deps.Flows != nil {
+		capabilities = append(capabilities, "manual_flows")
+	}
+	if h.deps.Execution != nil {
+		capabilities = append(capabilities, "manual_cli_execution")
+	}
+	if h.deps.Jobs != nil {
+		capabilities = append(capabilities, "official_check_jobs")
+	}
+	if h.deps.Evidence != nil {
+		capabilities = append(capabilities, "review_evidence")
+	}
+	if h.deps.Reviews != nil {
+		capabilities = append(capabilities, "human_review", "effective_context")
+	}
+	if h.deps.Discussions != nil {
+		capabilities = append(capabilities, "discussions")
+	}
+	if h.deps.Collaboration != nil {
+		capabilities = append(capabilities, "filtered_events", "inbox")
+	}
+	if h.deps.Lifecycle != nil {
+		capabilities = append(capabilities, "lifecycle")
+	}
+	return respond(w, 200, map[string]any{"api_version": "v1", "instance_id": h.cfg.InstanceID, "stage": stage, "capabilities": capabilities, "views": []string{"brief", "full"}, "max_json_bytes": h.cfg.MaxJSONBytes, "max_page_size": 100, "transfer": map[string]any{"resumable_parts": true, "range": true, "class_source": "authenticated_session"}, "unsupported": unsupported})
 }
 
 func (h *Handler) sessionInput(w http.ResponseWriter, r *http.Request) (SessionRequest, error) {
@@ -305,7 +334,7 @@ func (h *Handler) commit(w http.ResponseWriter, r *http.Request, who authz.Conte
 	if err = h.decode(w, r, &in); err != nil {
 		return err
 	}
-	v, err := h.deps.Catalog.CommitVersion(r.Context(), catalog.VersionRequest{Who: who, IdempotencyKey: k, UploadID: id, AssetID: in.AssetID, Slug: in.Slug, BaseVersionID: in.BaseVersionID, Content: in.Content, Describe: in.Describe})
+	v, err := h.deps.Catalog.CommitVersion(r.Context(), catalog.VersionRequest{Who: who, IdempotencyKey: k, UploadID: id, AssetID: in.AssetID, Slug: in.Slug, BaseVersionID: in.BaseVersionID, Content: in.Content, Describe: in.Describe, Task: in.Task})
 	if err != nil {
 		return err
 	}

@@ -19,3 +19,5 @@ The project overview is available in [English](../README.en.md). Engineering doc
 | [插件系统参考评估](references/plugin-systems.md) | DeepSeek Harness 固定源码及六个外部项目的官方机制与取舍 |
 
 仓库里的设计是重新编写的公开版本，示例仅使用合成数据。内部研究、真实环境与验收原始数据不复制到此处。任务进度唯一维护在维护者 Obsidian 的 Lantai「开发与测试」，负责人、阻塞项与执行证据索引也记录于此，仓库任务卡不重复维护当前状态。实现阶段的公开 ADR、契约、合成测试与脱敏验收证据由 T00 建立索引，知识库执行记录引用这些证据；行为变更同时更新契约、相关任务基线及中英文 README。
+
+- [M2 手动执行、检查作业与远程协作](contracts/manual-execution.md)

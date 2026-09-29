@@ -7,6 +7,7 @@
 - Go 由 `go.mod` 的 `toolchain go1.26.8` 固定；本机 Go ≥ 1.21 且 `GOTOOLCHAIN` 为默认的 `auto` 时，`go` 命令会自动下载并使用该版本。
 - 纯 Go 构建，不需要 CGo 或 C 编译器；只有 `-race` 测试需要本机 C 工具链。
 - 开发工具（oapi-codegen、staticcheck、govulncheck）锁定在独立的 [`scripts/tools/go.mod`](../scripts/tools/go.mod)，通过 `go tool -modfile=scripts/tools/go.mod <tool>` 运行，不影响运行时依赖的版本选择。
+- Python ≥ 3.11 用于最小 SDK、契约元数据生成与联调测试；运行时仅用标准库，`scripts/check.sh` 也运行 Python 测试。
 - 数据库、运行数据与真实配置放在仓库之外；测试只使用临时目录和合成数据。
 
 ## 常用命令
@@ -45,6 +46,8 @@
 | 台账/事件/查询单元与故障验证 | `go test ./internal/ledger ./internal/provenance ./internal/events ./internal/query` |
 | T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
 | M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
+| T06/T07 真实模块联调 | `go test ./tests/integration -run 'Test(M2Manual\|M2Job\|M2Real\|RemoteM2)' -count=1` |
+| Python SDK 单元测试 | `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 
@@ -81,7 +84,7 @@ transfer:
 
 CLI 会话保存在显式选择的私有文件中（Unix 0600、Windows 仅当前用户 ACL），凭据、口令和验证码不经命令行参数或普通输出。使用 `login --credentials-file` 或 `session exchange --token-file`，后续命令指定同一个 `--session-file`；通过 `meta` 查询能力。项目角色及 Agent 凭据通过 `identity challenge → verify → execute` 复用服务端 HumanGrant；管理员不会自动获得新项目的读取角色。`push` 固定原 create/commit 键到 `--state`，中断后重复同一命令；`pull` 只搬运清单声明文件并逐件验证 SHA-256。完整输入示例和命令见[客户端契约](contracts/client.md)，REST 见[HTTP 契约](contracts/http.md)。
 
-T05/T06 的 M1 仅为协议与静态桩；没有任务/执行运行服务。共同备份/空目录恢复、内置扩展登记和单 HTTPS 网关模板已经实现；目标 NAS 流量 p95、Docker/systemd 实际部署和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
+T05/T06 的 M2 已提供任务/Flow、手动执行与官方检查器；T07 远程接线及实际命令见[手动执行与远程协作](contracts/manual-execution.md)。自动 Runner/触发/定时清扫未启用。共同备份/空目录恢复、内置扩展登记和单 HTTPS 网关模板已经实现；目标 NAS 流量 p95、Docker/systemd 实际部署和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
 
 ## 生成物
 
@@ -91,6 +94,7 @@ T05/T06 的 M1 仅为协议与静态桩；没有任务/执行运行服务。共�
 | `internal/contract/ownership` | `docs/contracts/ownership.md` | `scripts/gen/ownership` |
 | `internal/identity`（动作与策略登记） | `docs/contracts/identity-actions.md` | `scripts/gen/identity` |
 | `api/openapi.yaml` + `schemas/` | `api/gen/openapi.bundle.json`（自包含，供生成器与外部 SDK 工具使用） | `scripts/gen/openapi` |
+| `api/gen/openapi.bundle.json` | `sdk/python/lantai/_contract.py` | `python3 sdk/python/generate.py`（`--check` 检查漂移） |
 | `api/gen/openapi.bundle.json` | `internal/apiv1/models.gen.go` | oapi-codegen（配置 `api/oapi-codegen.yaml`） |
 
 生成物纳入版本控制，不手改。各生成器支持 `-check`，`scripts/check.sh` 与 CI 会确认重新生成没有差异。

@@ -115,8 +115,12 @@ type flowEnv struct {
 // taskAgent 登记带 task 范围的 Agent 主体并换取会话。
 func (e *env) taskAgent(name string, role identity.Role) authz.Context {
 	e.t.Helper()
+	return e.taskPrincipal(name, role, authz.Agent)
+}
+func (e *env) taskPrincipal(name string, role identity.Role, kind authz.PrincipalKind) authz.Context {
+	e.t.Helper()
 	ctx := e.t.Context()
-	e.sudo(&identity.RegisterPrincipal{Kind: authz.Agent, Name: name})
+	e.sudo(&identity.RegisterPrincipal{Kind: kind, Name: name})
 	principals, err := e.id.ListPrincipals(ctx, e.login().Context)
 	if err != nil {
 		e.t.Fatal(err)
@@ -127,7 +131,11 @@ func (e *env) taskAgent(name string, role identity.Role) authz.Context {
 			p = x
 		}
 	}
-	res := e.sudo(&identity.IssueCredential{PrincipalID: p.ID, ExpectedRevision: p.Revision, Scopes: []identity.Scope{identity.ScopeRead, identity.ScopeIngest, identity.ScopeOrganize, identity.ScopeTask}})
+	scopes := []identity.Scope{identity.ScopeRead, identity.ScopeIngest, identity.ScopeOrganize, identity.ScopeTask}
+	if kind == authz.Worker {
+		scopes = []identity.Scope{identity.ScopeWorker}
+	}
+	res := e.sudo(&identity.IssueCredential{PrincipalID: p.ID, ExpectedRevision: p.Revision, Scopes: scopes})
 	e.setRole(p.ID, role, true)
 	s, err := e.id.ExchangeToken(ctx, res.Secret, identity.SessionRequest{Channel: identity.ChannelCLI})
 	if err != nil {
@@ -174,6 +182,12 @@ func (e *env) commitDoc(who authz.Context, slug string, asset, base ids.ID, data
 }
 
 func newFlowEnv(t *testing.T) *flowEnv {
+	return newFlowEnvRelease(t, digest.Of([]byte("flow test release")))
+}
+func newFlowEnvRelease(t *testing.T, release digest.Digest) *flowEnv {
+	return newFlowEnvConfig(t, release, digest.Of([]byte("flow checker configuration")))
+}
+func newFlowEnvConfig(t *testing.T, release, config digest.Digest) *flowEnv {
 	t.Helper()
 	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
 	ctx := t.Context()
@@ -182,7 +196,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	f.maker = e.taskAgent("maker@pc", identity.RoleContributor)
 	f.checker = e.taskAgent("checker@pc", identity.RoleChecker)
 	worker := e.taskAgent("worker@pc", identity.RoleChecker)
-	registry, err := extensions.New(extensions.Deps{DB: e.inst.DB(ownership.Main), Gate: e.inst.Gate(), ReleaseDigest: digest.Of([]byte("flow test release"))})
+	registry, err := extensions.New(extensions.Deps{DB: e.inst.DB(ownership.Main), Gate: e.inst.Gate(), ReleaseDigest: release})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +214,6 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := digest.Of([]byte("flow checker configuration"))
 	profile := ledger.AcceptanceProfile{Contract: "lantai.acceptance-profile/v1", ID: "flow-base", Revision: 1, AssetTypes: []manifest.AssetType{manifest.TypeDoc}, Purpose: authz.PurposeProduction, RequiredEvidence: []string{}, QARequired: true, DistinctActorRule: "maker_checker", WaivableChecks: []string{}, Defaults: ledger.ProfileDefaults{Publication: "auto"}}
 	checks := []string{"integrity", "schema", "license_evidence", "purpose"}
 	for _, key := range checks {

@@ -229,6 +229,13 @@ func (s *Service) GetVersion(ctx context.Context, who authz.Context, assetID, ve
 		return VersionInfo{}, err
 	}
 	defer held.Release()
+	return s.ExecutionVersion(ctx, who, assetID, versionID)
+}
+
+// ExecutionVersion performs the same current permission, rights and committed
+// manifest checks while inheriting the caller's security/project acceptance
+// locks. It is an owner port for T06, not a transport entry point.
+func (s *Service) ExecutionVersion(ctx context.Context, who authz.Context, assetID, versionID ids.ID) (VersionInfo, error) {
 	a, err := s.ledger.Asset(ctx, assetID)
 	if err != nil {
 		return VersionInfo{}, notFoundIfMissing(err)

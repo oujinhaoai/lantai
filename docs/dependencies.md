@@ -1,10 +1,10 @@
 # 依赖、版本与许可证
 
-核对日期：2026-09-27（T01/T08.1 新增 x/crypto、x/term，x/sys 升至 v0.48.0 并改为直接依赖；T02 没有新增模块，只多用了 x/text 的 `cases` 包）。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
+核对日期：2026-09-29（MCP 与 OpenAPI runtime 见下文；2026-09-27 T01/T08.1 新增 x/crypto、x/term，x/sys 升至 v0.48.0 并改为直接依赖；T02 没有新增模块，只多用了 x/text 的 `cases` 包）。版本由 `go.mod`/`go.sum` 与 `scripts/tools/go.mod`/`go.sum` 锁定；许可证依据各模块发布包中的许可证文件逐一核对。本项目以 GPL-3.0 发布，下列许可证均与之兼容。新增依赖须有实际用途，并在本篇记录版本、用途、兼容范围与许可证。
 
 ## 链接进程序的依赖
 
-`go list -deps ./...` 得到的全部第三方模块：
+`go list -deps ./...` 使用的第三方模块（含生成类型包；实际入口按导入裁剪）：
 
 | 模块 | 版本 | 用途 | 许可证 |
 |---|---|---|---|
@@ -24,6 +24,22 @@
 | `golang.org/x/crypto` | v0.57.0 | 只用 `argon2`：口令的 Argon2id（RFC 9106）校验值 | BSD-3-Clause |
 | `golang.org/x/term` | v0.46.0 | 本机实例命令在终端读取口令时不回显 | BSD-3-Clause |
 | `golang.org/x/sys` | v0.48.0 | 数据根单实例锁（Unix `flock`、Windows `LockFileEx`）、磁盘余量与文件系统类别探测；驱动依赖 | BSD-3-Clause |
+
+新增 T07 依赖（2026-09-29 核对本地下载的指定版本发布包 LICENSE/go.mod；同时核对官方 [MCP v1.8.0 发布](https://github.com/modelcontextprotocol/go-sdk/releases/tag/v1.8.0)及 [runtime v1.7.0 发布](https://github.com/oapi-codegen/runtime/releases/tag/v1.7.0)）：
+
+| 模块 | 版本 | 用途与兼容范围 | 许可证 |
+|---|---|---|---|
+| `github.com/modelcontextprotocol/go-sdk` | v1.8.0 | 官方 MCP stdio transport/协议协商；Go ≥ 1.25，实际使用固定版本 | Apache-2.0 与未重新授权贡献的 MIT，保留完整过渡声明；文档 CC-BY-4.0 未复制 |
+| `github.com/oapi-codegen/runtime` | v1.7.0 | OpenAPI 生成 anyOf 类型的 JSON 合并辅助；Go ≥ 1.24 | Apache-2.0 |
+| `github.com/apapsch/go-jsonmerge/v2` | v2.0.0 | runtime 的 JSON 合并依赖 | MIT |
+| `github.com/google/jsonschema-go` | v0.4.3 | SDK 输入 schema 推断/校验 | MIT |
+| `github.com/segmentio/encoding` | v0.5.4 | SDK JSON 编码依赖 | MIT |
+| `github.com/segmentio/asm` | v1.1.3 | encoding 的处理器辅助 | MIT |
+| `github.com/yosida95/uritemplate/v3` | v3.0.2 | SDK URI template 处理 | BSD-3-Clause |
+| `golang.org/x/oauth2` | v0.35.0 | SDK 间接依赖；本项目 MCP 只消费既有 Lantai 会话 | BSD-3-Clause |
+| `golang.org/x/time` | v0.15.0 | SDK 间接限流工具 | BSD-3-Clause |
+
+MCP 不引入任何完整 Agent 平台。SDK 的其他 transport/认证能力不会因依赖存在自动启用。Python 客户端要求 ≥ 3.11、无运行时依赖；构建依赖 setuptools ≥ 68（MIT），项目测试直接从工作树导入。打包结果须保留仓库 GPL-3.0 许可证。
 
 发布二进制时须随附上述依赖的许可证与版权声明（BSD/MIT/Apache 均要求保留声明）。发布流程归 T08，届时从 `go.sum` 生成第三方声明，不在仓库预填 `NOTICE`。
 

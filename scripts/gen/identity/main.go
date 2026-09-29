@@ -71,6 +71,9 @@ func render() []byte {
 			allowed = strings.Join(rs, "、")
 		}
 		var notes []string
+		if a.WorkerScope {
+			notes = append(notes, "Worker 使用 worker 范围；仍核对项目角色")
+		}
 		if a.HumanOnly {
 			notes = append(notes, "仅人本人")
 		}

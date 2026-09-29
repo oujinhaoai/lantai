@@ -21,6 +21,7 @@ import (
 // Fields other than project_id are passed unchanged to the commit endpoint;
 // only files[].sha256/size are computed from the local working copy.
 type PushInput struct {
+	Task          json.RawMessage `json:"task,omitempty"`
 	ProjectID     string          `json:"project_id"`
 	AssetID       string          `json:"asset_id,omitempty"`
 	Slug          string          `json:"slug,omitempty"`

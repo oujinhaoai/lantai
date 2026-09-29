@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
 	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/commands"
@@ -22,7 +23,14 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/yamljson"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/httpauth"
+	"github.com/oujinhaoai/lantai/internal/jobs"
+	"github.com/oujinhaoai/lantai/internal/ledger"
+	"github.com/oujinhaoai/lantai/internal/node"
+	"github.com/oujinhaoai/lantai/internal/provenance"
+	"github.com/oujinhaoai/lantai/internal/query"
 	"github.com/oujinhaoai/lantai/internal/storage"
+	"github.com/oujinhaoai/lantai/internal/tasks"
+	"github.com/oujinhaoai/lantai/internal/workflow"
 )
 
 type identityStub struct {
@@ -334,6 +342,27 @@ func TestSensitiveCommandBoundariesAndOneTimeSecret(t *testing.T) {
 
 func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 	f := newFixture(t)
+	// Enable all optional route groups. These zero-value owner handles must
+	// never run: this test verifies authentication before domain dispatch.
+	f.h.deps.Tasks = &tasks.Service{}
+	f.h.deps.Flows = &workflow.Service{}
+	f.h.deps.Execution = &ax.Service{}
+	f.h.deps.Jobs = &jobs.Service{}
+	f.h.deps.Nodes = &node.Service{}
+	f.h.deps.Ledger = &ledger.Service{}
+	f.h.deps.Reviews = &ledger.Reviews{}
+	f.h.deps.Lifecycle = &ledger.Lifecycle{}
+	f.h.deps.Discussions = &ledger.DiscussionObjects{}
+	f.h.deps.Evidence = &ledger.FileReviewSources{}
+	f.h.deps.Collaboration = &query.Collaboration{}
+	f.h.deps.Rights = &provenance.Service{}
+	f.h.deps.Human = &identity.Service{}
+	f.h.deps.HumanTargets = f.h.deps.Ledger
+	configured, setupErr := New(f.h.deps, f.h.cfg)
+	if setupErr != nil {
+		t.Fatal(setupErr)
+	}
+	f.h = configured
 	b, err := os.ReadFile("../../../api/openapi.yaml")
 	if err != nil {
 		t.Fatal(err)
