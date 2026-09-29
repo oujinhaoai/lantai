@@ -36,6 +36,8 @@ type Config struct {
 	Contributions []Contribution
 	Client        *client.Client
 	Workspace     string
+	// ExtensionsRegistry projects explicitly installed local commands.
+	ExtensionsRegistry string
 }
 type adapter struct {
 	c         *client.Client
@@ -128,6 +130,11 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 	}
 	if a.workspace != "" {
 		if e = a.localTools(); e != nil {
+			return nil, e
+		}
+	}
+	if c.ExtensionsRegistry != "" && has("extension_cli_commands") {
+		if e = a.extensionTools(ctx, c.ExtensionsRegistry); e != nil {
 			return nil, e
 		}
 	}

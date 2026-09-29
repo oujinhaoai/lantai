@@ -25,6 +25,7 @@ func (h *Handler) routes(m *http.ServeMux) {
 	h.identityRoutes(m)
 	h.executionRoutes(m)
 	h.collaborationRoutes(m)
+	h.extensionRoutes(m)
 	h.route(m, "GET /api/v1/meta", true, h.meta)
 	h.route(m, "POST /api/v1/sessions/exchange", true, h.exchange)
 	h.route(m, "POST /api/v1/sessions/login", true, h.login)
@@ -52,7 +53,7 @@ func (h *Handler) routes(m *http.ServeMux) {
 func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) error {
 	stage := "M1"
 	capabilities := []string{"sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "search", "operation_status"}
-	unsupported := []string{"managed_runner", "third_party_plugins", "automatic_triggers", "federation"}
+	unsupported := []string{"managed_runner", "third_party_web_ui", "resident_extension_services", "automatic_triggers", "federation"}
 	if h.deps.Tasks != nil {
 		stage = "M2"
 		capabilities = append(capabilities, "tasks")
@@ -80,6 +81,9 @@ func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) 
 	}
 	if h.deps.Lifecycle != nil {
 		capabilities = append(capabilities, "lifecycle")
+	}
+	if h.deps.Extensions != nil {
+		capabilities = append(capabilities, "extension_governance", "extension_cli_commands")
 	}
 	return respond(w, 200, map[string]any{"api_version": "v1", "instance_id": h.cfg.InstanceID, "stage": stage, "capabilities": capabilities, "views": []string{"brief", "full"}, "max_json_bytes": h.cfg.MaxJSONBytes, "max_page_size": 100, "transfer": map[string]any{"resumable_parts": true, "range": true, "class_source": "authenticated_session"}, "unsupported": unsupported})
 }

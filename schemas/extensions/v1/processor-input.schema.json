@@ -42,6 +42,18 @@
     },
     "producer": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+    },
+    "config": {
+      "description": "冻结的有效配置（按包 config_schema 校验）；内置检查器与合成探测不携带。",
+      "type": "object"
+    },
+    "mode": {
+      "description": "probe 为获授权、无业务输入与副作用的合成探测；缺省为正常调用。",
+      "type": "string",
+      "enum": [
+        "invoke",
+        "probe"
+      ]
     }
   }
 }

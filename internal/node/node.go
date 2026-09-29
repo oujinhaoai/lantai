@@ -15,9 +15,12 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/event"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/identity"
+	"regexp"
 	"slices"
 	"time"
 )
+
+var capabilityRE = regexp.MustCompile(`^[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$`)
 
 type Authority interface {
 	authz.Authorizer
@@ -67,8 +70,17 @@ func (s *Service) auth(ctx context.Context, w authz.Context, project ids.ID) err
 	return d.Err()
 }
 func (s *Service) Observe(ctx context.Context, w authz.Context, key string, in Observation) (Observation, error) {
-	if !in.ProjectID.Valid() || in.Slots < 1 || in.Slots > 8 || in.Busy < 0 || in.Busy > in.Slots || in.MemoryBytes < 0 || len(in.Capabilities) != 1 || in.Capabilities[0] != "org.lantai.corecheck.manifest" {
-		return Observation{}, errcode.New(errcode.UnsupportedCapability, "only the static official check capability is enabled")
+	if !in.ProjectID.Valid() || in.Slots < 1 || in.Slots > 8 || in.Busy < 0 || in.Busy > in.Slots || in.MemoryBytes < 0 || len(in.Capabilities) < 1 || len(in.Capabilities) > 16 {
+		return Observation{}, errcode.New(errcode.UnsupportedCapability, "1-16 processor capabilities and a bounded slot report required")
+	}
+	// Names are observations only: dispatch still needs T09 admission of an
+	// enabled, reviewed and allowed processor, so self-reporting grants nothing.
+	seen := map[string]bool{}
+	for _, c := range in.Capabilities {
+		if !capabilityRE.MatchString(c) || seen[c] {
+			return Observation{}, errcode.New(errcode.SchemaInvalid, "processor capability must be a unique contribution ID")
+		}
+		seen[c] = true
 	}
 	ctx, h, e := s.d.Gate.Acquire(ctx, commands.Request{Security: commands.ModeShared, Projects: []string{string(in.ProjectID)}})
 	if e != nil {

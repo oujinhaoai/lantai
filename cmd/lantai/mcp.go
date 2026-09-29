@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/oujinhaoai/lantai/internal/client"
@@ -19,6 +20,7 @@ func runMCP(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	server := f.String("server", os.Getenv("LANTAI_SERVER"), "HTTPS REST origin")
 	session := f.String("session-file", os.Getenv("LANTAI_SESSION"), "private existing session file")
 	workspace := f.String("workspace", "", "existing local directory; enables bounded push/pull")
+	registry := f.String("extensions-registry", os.Getenv("LANTAI_EXTENSIONS"), "private local extension registry; projects installed, server-enabled commands (needs -workspace)")
 	allowHTTP := f.Bool("allow-http", false, "allow loopback development HTTP")
 	if e := f.Parse(args); e != nil {
 		if errors.Is(e, flag.ErrHelp) {
@@ -59,7 +61,12 @@ func runMCP(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if e = c.SetSessionToken(token); e != nil {
 		return 2
 	}
-	s, e := mcpserver.New(ctx, mcpserver.Config{Client: c, Workspace: *workspace})
+	if *registry != "" {
+		if abs, err := filepath.Abs(*registry); err == nil {
+			*registry = abs
+		}
+	}
+	s, e := mcpserver.New(ctx, mcpserver.Config{Client: c, Workspace: *workspace, ExtensionsRegistry: *registry})
 	if e != nil {
 		fmt.Fprintln(stderr, "mcp: cannot initialize REST adapter:", e)
 		return 3

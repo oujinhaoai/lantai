@@ -30,6 +30,8 @@ const (
 	DependencyCycle Code = "DEPENDENCY_CYCLE"
 	// ExtensionActivationStale 扩展激活代次、包摘要或启用状态已不是当前值
 	ExtensionActivationStale Code = "EXTENSION_ACTIVATION_STALE"
+	// ExtensionBreakerOpen 扩展熔断键处于 open 或半开试探名额已占用；冷却结束前不派发新调用
+	ExtensionBreakerOpen Code = "EXTENSION_BREAKER_OPEN"
 	// ExtensionPointUnsupported 扩展点、target 或能力在当前阶段不受支持；不静默忽略配置
 	ExtensionPointUnsupported Code = "EXTENSION_POINT_UNSUPPORTED"
 	// FieldRequiresSpecialCommand 安全相关字段只能通过专门命令修改
@@ -136,6 +138,7 @@ var specs = []Spec{
 	{Code: CursorExpired, HTTPStatus: 410, Retryable: false, Recovery: ActionResync, Owner: "events", Summary: "事件游标超出保留期；先固定起点水位再全量重同步"},
 	{Code: DependencyCycle, HTTPStatus: 422, Retryable: false, Recovery: ActionFixRequest, Owner: "provenance", Summary: "声明的依赖关系形成环"},
 	{Code: ExtensionActivationStale, HTTPStatus: 409, Retryable: false, Recovery: ActionRefreshState, Owner: "extensions", Summary: "扩展激活代次、包摘要或启用状态已不是当前值"},
+	{Code: ExtensionBreakerOpen, HTTPStatus: 503, Retryable: true, Recovery: ActionRetry, Owner: "extensions", Summary: "扩展熔断键处于 open 或半开试探名额已占用；冷却结束前不派发新调用"},
 	{Code: ExtensionPointUnsupported, HTTPStatus: 422, Retryable: false, Recovery: ActionFixRequest, Owner: "extensions", Summary: "扩展点、target 或能力在当前阶段不受支持；不静默忽略配置"},
 	{Code: FieldRequiresSpecialCommand, HTTPStatus: 422, Retryable: false, Recovery: ActionFixRequest, Owner: "catalog", Summary: "安全相关字段只能通过专门命令修改"},
 	{Code: FlowRequired, HTTPStatus: 422, Retryable: false, Recovery: ActionFixRequest, Owner: "workflow", Summary: "该动作需要有效任务或流程上下文"},

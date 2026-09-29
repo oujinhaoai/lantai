@@ -48,6 +48,8 @@ lantai session end --server https://gateway.example --session-file session.json
 | `metadata set` | `--asset ID --input patch.json --if-match '"REVISION"' --idempotency-key KEY` |
 | `search` | `--query TEXT --project ID --type TYPE --limit N --cursor CURSOR --view brief\|full`，按需给出过滤条件 |
 | `operation` | `--id ID`，对账稳定操作，不自动推进状态 |
+| `plugin import/list/enablements/probe/commands` | 扩展包静态导入（`--input {asset_id,version_id} --idempotency-key KEY`）、登记与启用诊断、按 `--id` 重跑已授权探测、列出对本人生效的本机命令；启停经 `human prepare` |
+| `ext install/list/remove/run` | 显式本机扩展：`--registry FILE`（或 `LANTAI_EXTENSIONS`）为私有注册表；`install --package DIR` 只登记服务器当前启用的精确包；`run <plugin-id> <command> --output DIR [--input-file F] [--arg A]` 复验摘要与启用后运行一次，不查 PATH/CWD；见[扩展包治理](extension-governance.md) |
 
 `--ref` 在访问资源前核对 `/meta` 的 `instance_id`，不能把外馆永久引用当成本馆 ID。`show` 的默认视图是 brief；`pull` 始终读取 full 精确版本。分页由服务端授权过滤，CLI 不以本地缓存推断可见性。metadata 冲突返回原错误，不静默刷新修订或覆盖。
 

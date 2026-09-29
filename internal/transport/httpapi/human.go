@@ -9,6 +9,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/extensions"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/provenance"
@@ -86,6 +87,22 @@ func (h *Handler) intent(ctx context.Context, who authz.Context, i HumanIntent) 
 				return identity.HumanAction{}, e
 			}
 			return h.deps.Lifecycle.NameReleaseHumanAction(ctx, in)
+		}
+	case "extension_enable":
+		if h.deps.Extensions != nil {
+			in, e := decodeIntent[extensions.EnableRequest](i.Request)
+			if e != nil {
+				return identity.HumanAction{}, e
+			}
+			return h.deps.Extensions.EnableHumanAction(ctx, in)
+		}
+	case "extension_disable":
+		if h.deps.Extensions != nil {
+			in, e := decodeIntent[extensions.DisableRequest](i.Request)
+			if e != nil {
+				return identity.HumanAction{}, e
+			}
+			return h.deps.Extensions.DisableHumanAction(ctx, in)
 		}
 	case "rights":
 		if h.deps.Rights != nil {
@@ -191,6 +208,18 @@ func (h *Handler) executeHumanItem(ctx context.Context, who authz.Context, i Hum
 			return nil, e
 		}
 		return h.deps.Rights.ApplyHumanAssertion(ctx, who, in, i.GrantID, i.OperationID, h.deps.Human)
+	case identity.ActEnableExtension:
+		in, e := decodeIntent[extensions.EnableRequest](a.Request)
+		if e != nil {
+			return nil, e
+		}
+		return h.deps.Extensions.Enable(ctx, who, in, i.GrantID, i.OperationID, h.deps.Human)
+	case identity.ActDisableExtension:
+		in, e := decodeIntent[extensions.DisableRequest](a.Request)
+		if e != nil {
+			return nil, e
+		}
+		return h.deps.Extensions.Disable(ctx, who, in, i.GrantID, i.OperationID, h.deps.Human)
 	case "ledger.unlock", "ledger.disable_version", "ledger.enable_version", "ledger.suspend", "ledger.archive", "ledger.unarchive":
 		in, e := decodeIntent[ledger.ControlMutation](a.Request)
 		if e != nil {

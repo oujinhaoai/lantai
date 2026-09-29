@@ -61,6 +61,7 @@
 | `QUOTA_EXCEEDED` | 429 | false | `none` | common | 超出配额；停止并报告 |
 | `RATE_LIMITED` | 429 | true | `retry` | common | 请求过快；按 retry_after_ms 等待 |
 | `INTERNAL` | 500 | false | `poll_operation` | common | 服务端内部错误；先查询 operation，再按其结果决定，不盲重启外部副作用 |
+| `EXTENSION_BREAKER_OPEN` | 503 | true | `retry` | extensions | 扩展熔断键处于 open 或半开试探名额已占用；冷却结束前不派发新调用 |
 | `MAINTENANCE_MODE` | 503 | true | `retry` | operations | 实例处于维护、迁移或恢复状态，暂不接受该请求 |
 | `STORAGE_UNAVAILABLE` | 503 | true | `retry` | storage | 存储暂不可写或文件被占用；未确认的提交不会被报告成功 |
 | `STORAGE_FULL` | 507 | false | `human_action` | storage | 存储空间不足；需人释放空间，之后可用同一幂等键重试 |

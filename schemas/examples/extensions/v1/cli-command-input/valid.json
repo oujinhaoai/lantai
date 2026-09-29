@@ -1,0 +1,31 @@
+{
+  "description": "本机显式输入的只读副本与冻结配置；不含凭据",
+  "schema": "lantai.cli-command-input/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.cli-command-input/v1",
+    "operation_id": "01K00000000000000000000009",
+    "command": "org.example.asset-tools.inspect",
+    "args": [
+      "--strict"
+    ],
+    "inputs": [
+      {
+        "name": "model.fbx",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "size": 1024
+      }
+    ],
+    "deadline": "2026-09-29T12:00:00.000Z",
+    "producer": {
+      "extension_id": "org.example.asset-tools",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "package",
+      "contribution_id": "org.example.asset-tools.inspect"
+    },
+    "config": {
+      "strict": true
+    }
+  }
+}

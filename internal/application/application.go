@@ -47,15 +47,20 @@ type Options struct {
 }
 
 type App struct {
-	Instance      *operations.Instance
-	Identity      *identity.Service
-	Ledger        *ledger.Service
-	Rights        *provenance.Service
-	Storage       *storage.Service
-	Catalog       *catalog.Service
-	Events        *events.Store
-	Query         *query.Service
-	Extensions    *extensions.Registry
+	Instance   *operations.Instance
+	Identity   *identity.Service
+	Ledger     *ledger.Service
+	Rights     *provenance.Service
+	Storage    *storage.Service
+	Catalog    *catalog.Service
+	Events     *events.Store
+	Query      *query.Service
+	Extensions *extensions.Registry
+	// ExtensionManager governs imported packages and serves the jobs host port.
+	ExtensionManager *extensions.Manager
+	// Scheduler runs due reminders/purges and GC; serve starts it only when
+	// config lifecycle.scheduler is true.
+	Scheduler     *operations.LifecycleScheduler
 	Tasks         *tasks.Service
 	Flows         *workflow.Service
 	Execution     *ax.Service
@@ -155,6 +160,20 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 		operations.Hook{Name: "outbox-query-audit", Run: func(c context.Context) error { return a.sync(c, true) }},
 	); err != nil {
 		return nil, err
+	}
+	if lc := i.Config().Lifecycle; lc.Scheduler {
+		i.Go("lifecycle-scheduler", func(ctx context.Context) error {
+			t := time.NewTicker(time.Duration(lc.IntervalSeconds) * time.Second)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return nil
+				case <-t.C:
+					_, _ = a.Scheduler.RunOnce(ctx) // Failures stay in job rows and retry with backoff.
+				}
+			}
+		})
 	}
 	i.Go("outbox-query-audit", func(ctx context.Context) error {
 		t := time.NewTicker(time.Second)

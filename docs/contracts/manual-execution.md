@@ -4,9 +4,9 @@
 
 ## 所有者与能力边界
 
-`tasks` 签发 Task/Seat/Attempt 和任务 fence。`agent_execution` 在 runtime 保存 TaskRun、步骤、工具 intent/receipt、检查点、预算、人机问答和 admission 历史；它不签发第二套任务租约。`jobs` 在 runtime 保存独立 Job/JobAttempt/作业租约；`node` 保存带会话与过期时间的能力观测。`extensions` 管理当前核心内置检查器的一次性进程。台账仍是候选提交、审定和发布真源。
+`tasks` 签发 Task/Seat/Attempt 和任务 fence。`agent_execution` 在 runtime 保存 TaskRun、步骤、工具 intent/receipt、检查点、预算、人机问答和 admission 历史；它不签发第二套任务租约。`jobs` 在 runtime 保存独立 Job/JobAttempt/作业租约；`node` 保存带会话与过期时间的能力观测。`extensions` 管理内置检查器与已启用外部包的一次性进程及其准入、熔断和最终门禁（见[扩展包治理](extension-governance.md)）。台账仍是候选提交、审定和发布真源。
 
-`GET /api/v1/meta` 列出已组装能力；`GET /api/v1/task-runs/capabilities` 返回实际手动 adapter 的能力。当前支持 `manual_cli` 1.0.0、幂等 start/lookup、portable_artifacts/restart_safe 检查点格式 1、revoke_only 取消。managed_runner、第三方包加载、自动触发、常驻控制和网页仍未启用。
+`GET /api/v1/meta` 列出已组装能力；`GET /api/v1/task-runs/capabilities` 返回实际手动 adapter 的能力。当前支持 `manual_cli` 1.0.0、幂等 start/lookup、portable_artifacts/restart_safe 检查点格式 1、revoke_only 取消。managed_runner、自动触发、常驻控制和网页仍未启用；外部包只有经 T09 静态导入、台账审定与 HumanGrant 启用后才作为一次性检查器或本机命令运行。
 
 手动会话不会自动调用模型，也不能保证用户在外部模型软件上的网络、token 或进程隔离。网络/工具声明限制接受的执行记录；模型调用、工具调用、墙钟与产物预算由观测和服务器接受边界核验。精确 token 计量与强制终止外部会话不受支持，不能将它们申报成已具备能力。执行档案允许 manual_cli 省略 `activation_snapshot`；managed_runner 仍必须提供。无插件生成来源的候选可省略 `producer`，但不能捏造与已提交 manifest 不符的来源。
 
@@ -23,19 +23,19 @@
 
 ## 最小检查 worker
 
-Flow 明确请求 `org.lantai.corecheck.manifest`，固定目标版本及制作轮次后进入 Job 队列。worker 必须是已认证的 Worker 主体、具有项目 checker 角色和 worker session scope；普通 Agent 自报能力不能取得该权限。Worker scope 仅补充 catalog.read、tasks.read、ledger.append_check，不授权版本制作、人审或身份管理。
+Flow 定义明确请求 `org.lantai.corecheck.manifest` 或已启用包的 `asset.validator` 贡献 ID，固定目标版本及制作轮次后进入 Job 队列；StartJob 即解析处理器，未启用、未获白名单或探测失效的包直接拒绝。worker 必须是已认证的 Worker 主体、具有项目 checker 角色和 worker session scope；普通 Agent 自报能力不能取得该权限。Worker scope 仅补充 catalog.read、tasks.read、ledger.append_check，不授权版本制作、人审或身份管理。
 
-先 `POST /nodes/observe` 报告当前会话的 capability、slots、busy 和 memory_bytes，再 `POST /jobs/run` 显式派发。观测五分钟过期，核心官方 checker 的全局并发为一；未决运行占用槽位。每次分配独立 job_fence、30 秒接受租约、固定包/入口摘要、配置和恢复代次。不会发出 Task fence。
+先 `POST /nodes/observe` 报告当前会话的 capability、slots、busy 和 memory_bytes，再 `POST /jobs/run` 显式派发。观测五分钟过期，能力为 1–16 个贡献 ID 且不授予权限；检查器全局并发为一，未决运行占用槽位。每次分配独立 job_fence、30 秒接受租约、固定包/入口摘要、配置和恢复代次。不会发出 Task fence。
 
-官方宿主只运行当前已登记核心二进制的私有 `_processor-check` 入口。它将固定 `job.json`、manifest 写入私有临时目录，清空环境变量，不传会话、数据库句柄或数据根；10 秒期限控制实际进程，Wait 返回后才确认停止，输出限制 1 MiB。结果须匹配 operation、输入摘要、永久引用、producer 和协议。该路径属于 `builtin_release`，不是外部包治理、受限 probe 或通用安全沙箱。第三方包的审批启用、熔断/排空及目标平台隔离由 T09 独立交付。
+官方宿主只运行当前已登记核心二进制的私有 `_processor-check` 入口。它将固定 `job.json`、manifest 写入私有临时目录，清空环境变量，不传会话、数据库句柄或数据根；10 秒期限控制实际进程，Wait 返回后才确认停止，输出限制 1 MiB。结果须匹配 operation、输入摘要、永久引用、producer 和协议。该路径属于 `builtin_release`，不是通用安全沙箱。外部包由同一一次性宿主运行，准入、探测、熔断、排空/撤权与最终接受见[扩展包治理](extension-governance.md)。
 
-核心额外复验实际文件字节与当前权利，产生 integrity、schema、license_evidence、purpose 四项证据。证据通过台账所有者幂等追加；runtime 先保存 accepting 意图，响应丢失可以用原 key 继续接受。合法 fail 是已完成检查的失败证据，不能当宿主故障重试，也不能批准资源。只有确认停止的 runtime_fault/host_start_failed 可显式重试，总计最多三次；没有自动重试调度。unknown 必须先 `/jobs/reconcile` 提供已提交的停止证据，仍有本机宿主时拒绝人工覆盖。取消先请求宿主停止，停止未知不冒充 cancelled。
+核心额外复验实际文件字节与当前权利，产生 integrity、schema、license_evidence、purpose 四项证据。证据通过台账所有者幂等追加；runtime 先保存 accepting 意图，响应丢失可以用原 key 继续接受。合法 fail 是已完成检查的失败证据，不能当宿主故障重试，也不能批准资源。只有确认停止的 runtime_fault/host_start_failed，或未派发的准入拒绝（breaker_open、activation_stale、processor_not_allowed、processor_not_enabled）可显式重试，总计最多三次；外部包合法返回的 `unsupported` 记为 `unsupported_input`，不计宿主故障；没有自动重试调度。unknown 必须先 `/jobs/reconcile` 提供已提交的停止证据，仍有本机宿主时拒绝人工覆盖。取消先请求宿主停止，停止未知不冒充 cancelled。
 
 恢复后旧恢复代次、Worker 会话、activation 和任务轮次在接受点失效。重启不会自动重派 running/accepting/needs_reconciliation；原 worker 会话仍有效时可重放 accepting，其他未决情况需要有权人员对账。Job 成功只交回证据，固定 Flow 再经独立质检、人审和发布。
 
 ## REST 与 CLI
 
-应用组装启用任务、Flow、手动执行、Job、讨论、当前上下文、审定发布、生命周期、权利更正、权限事件和收件箱。所有入口调用同一领域 owner。后台只追平 outbox、查询/收件箱与审计；任务租约定时清扫、自动触发与 GC 调度没有启用。`flow dispatch` 显式消费已收录的 Flow 事件、派发持久命令并同步 Job 结果；事件尚未收录或新命令待处理时需再次调用。其子命令各有稳定 operation/key，HTTP 调度请求本身不是一次业务事务。
+应用组装启用任务、Flow、手动执行、Job、讨论、当前上下文、审定发布、生命周期、权利更正、权限事件和收件箱。所有入口调用同一领域 owner。后台只追平 outbox、查询/收件箱与审计；任务租约定时清扫与自动触发没有启用，到期清除与 GC 调度默认关闭，见[生命周期调度](lifecycle-scheduler.md)。`flow dispatch` 显式消费已收录的 Flow 事件、派发持久命令并同步 Job 结果；事件尚未收录或新命令待处理时需再次调用。其子命令各有稳定 operation/key，HTTP 调度请求本身不是一次业务事务。
 
 ```sh
 lantai task list --server https://gateway.example --session-file session.json --project PROJECT_ID --limit 20
@@ -58,15 +58,16 @@ lantai flow dispatch --server https://gateway.example --session-file session.jso
 | trash、rights | trash show/preview/own/restore；rights assert/cancel |
 | human | prepare/verify/items/execute/rechallenge |
 | context、events、resync、inbox | 读取；inbox read 更新已读位置 |
+| plugin、ext | plugin import/list/enablements/probe/commands；ext install/list/remove/run（见[扩展包治理](extension-governance.md)） |
 
 写入使用 `--input` 和 `--idempotency-key`；human、trash preview、inbox read 使用各自 owner 的专用幂等机制。show 用 `--id`，run list 的 `--id` 是任务 ID，message list 用 `--name KIND --id TARGET_ID`。context 用 `--project ID --type TYPE`。分页 after 通过 `--cursor`；events 的 cursor 是 sequence，resync 使用独立 opaque cursor。错误和退出码沿用[客户端契约](client.md)。
 
-人审先 `human prepare --input intents.json`（items 中 kind 为 review/control/trash/force_trash/trash_mutation/release_name/rights），服务器生成固定目标与 challenge；再 `human verify --id CHALLENGE_ID --credentials-file code.json`；最后 `human items --id GRANT_ID` 读取各子 operation，`human execute --input child.json` 只传 grant_id/operation_id。执行不接收替换后的业务请求。人审只经这一显式流程；Agent 答复和 MCP 工具不提供授权。
+人审先 `human prepare --input intents.json`（items 中 kind 为 review/control/trash/force_trash/trash_mutation/release_name/rights/extension_enable/extension_disable），服务器生成固定目标与 challenge；再 `human verify --id CHALLENGE_ID --credentials-file code.json`；最后 `human items --id GRANT_ID` 读取各子 operation，`human execute --input child.json` 只传 grant_id/operation_id。执行不接收替换后的业务请求。人审只经这一显式流程；Agent 答复和 MCP 工具不提供授权。
 
 ## MCP 与 Python
 
 `lantai mcp --server https://gateway.example --session-file session.json [--workspace ./working-copy]` 使用官方 Go SDK 的 stdio transport，stdout 仅协议。仅消费已有会话，不签发 token、不读数据库、不执行任意 shell。工具按服务器已启用能力注册，保留 REST 的 machine error；读取默认 20 条、最多 100 条，输出上限 64 KiB（超限报错），输入上限 256 KiB。大文件通过显式工作目录内的 resource_push/resource_pull 流式移动，工具只返回摘要，签名 URL 和文件字节不进入上下文。未给 workspace 时不注册搬运工具。工作目录约束不是第三方代码沙箱。
 
-工具包含 whoami、资源搜索/精确读取、任务领取/心跳/交付/阻塞/交接、执行登记/观测/工具记录/候选/检查点/提问/封存、讨论、QA 证据追加以及状态读取。精确版本读取附带 lantai:// 永久资源链接。核心组装可通过 `mcpserver.Config.Contributions` 为 T09 添加带扩展命名空间的别名；该端口只允许选择已启用的核心安全写命令，不接受 URL、凭据或可执行入口，外部插件注册与审批仍由 T09 提供，CLI 不读取插件配置。人审、身份管理、插件启用和删除不进入 MCP。取消协议请求会取消 HTTP 调用；远端是否已提交仍按原 key/operation 对账，不盲目重放。
+工具包含 whoami、资源搜索/精确读取、任务领取/心跳/交付/阻塞/交接、执行登记/观测/工具记录/候选/检查点/提问/封存、讨论、QA 证据追加以及状态读取。精确版本读取附带 lantai:// 永久资源链接。核心组装可通过 `mcpserver.Config.Contributions` 为 T09 添加带扩展命名空间的别名；该端口只允许选择已启用的核心安全写命令，不接受 URL、凭据或可执行入口，`--extensions-registry FILE` 与 workspace 同时给出时，另把本机已安装且服务器当前启用的 `cli.command` 投影为 `ext_…` 工具，调用与 `lantai ext run` 同一路径。人审、身份管理、插件启停和删除不进入 MCP。取消协议请求会取消 HTTP 调用；远端是否已提交仍按原 key/operation 对账，不盲目重放。
 
 最小 Python SDK 见 [sdk/python](../../sdk/python/README.md)。它直接调用同一 REST，以标准库提供认证、资源、任务和精确单文件下载；版本/错误语义不另设一套。两种客户端都不把模型或外部完整平台作为前置。

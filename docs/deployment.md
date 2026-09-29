@@ -41,6 +41,8 @@ bin/lantai serve --home "$LANTAI_HOME"
 
 初始化交互输入口令、验证器码；恢复码只展示一次。已有实例不重复初始化。服务先取得数据根锁、检查权威状态并恢复/追平，再开放监听；失败不会接受业务流量。停止时先排空 HTTP，再关闭后台写入和数据库。
 
+到期提醒、定时清除与 GC 调度默认关闭。只有在确认保留策略、备份计划与项目 `trash.auto_purge` 后，才在 `config.yaml` 加入 `lifecycle: {scheduler: true}`（可选 `interval_seconds`、`batch`）；也可在服务停止时用 `bin/lantai lifecycle --home "$LANTAI_HOME"` 手动运行一轮。规则见[生命周期调度](contracts/lifecycle-scheduler.md)。外部扩展包需要管理员导入、台账审定与 HumanGrant 启用，一次性宿主不是沙箱，启用时必须明确受信任部署决定，见[扩展包治理](contracts/extension-governance.md)。
+
 另一个终端设置网关环境。以下域名是示例，TLS 文件由部署者在仓库外提供，证书必须覆盖实际域名且客户端信任其签发链。
 
 ```sh

@@ -269,7 +269,7 @@ func (l *Lifecycle) snapshot(ctx context.Context, who authz.Context, in TrashSel
 		return out, err
 	}
 	for _, use := range uses {
-		if !slices.Contains([]string{"task", "uses", "derived_from"}, use.Kind) || !use.ID.Valid() || use.Revision < 1 || !use.Digest.Valid() {
+		if !slices.Contains([]string{"task", "uses", "derived_from", "extension"}, use.Kind) || !use.ID.Valid() || use.Revision < 1 || !use.Digest.Valid() {
 			return out, errcode.New(errcode.OperationNeedsReconciliation, "invalid current use snapshot")
 		}
 	}

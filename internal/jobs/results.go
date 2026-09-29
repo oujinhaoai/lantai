@@ -40,7 +40,8 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 		return Job{}, e
 	}
 	outcome := execution.ClassifyInvocation(out.Observation)
-	if outcome == execution.InvocationCompleted {
+	unsupported := outcome == execution.InvocationCompleted && out.Result != nil && out.Result.Status == "unsupported"
+	if outcome == execution.InvocationCompleted && !unsupported {
 		if out.Result == nil || len(out.Result.Checks) != 1 {
 			outcome = execution.InvocationRuntimeFault
 		} else {
@@ -62,22 +63,30 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 		j.State = "needs_reconciliation"
 		j.Attempt.State = "needs_reconciliation"
 	}
-	if hostErr != nil {
-		j.Failure = "host_start_failed"
-	} else if outcome != execution.InvocationCompleted {
+	switch {
+	case hostErr != nil:
+		// Admission refusals are recorded by reason; none of them dispatched.
+		j.Failure = map[errcode.Code]string{errcode.ExtensionBreakerOpen: "breaker_open", errcode.ExtensionActivationStale: "activation_stale", errcode.Forbidden: "processor_not_allowed", errcode.UnsupportedCapability: "processor_not_enabled"}[errcode.CodeOf(hostErr)]
+		if j.Failure == "" {
+			j.Failure = "host_start_failed"
+		}
+	case unsupported:
+		// A legal "unsupported input" answer is a business result, not a fault.
+		j.Failure = "unsupported_input"
+	case outcome != execution.InvocationCompleted:
 		j.Failure = string(outcome)
 	}
 	if j.CancelRequested && out.Observation.StopConfirmed {
 		j.State = "cancelled"
 		j.Attempt.Outcome = execution.InvocationCancelled
 	}
-	if outcome == execution.InvocationCompleted && !j.CancelRequested {
+	if outcome == execution.InvocationCompleted && !j.CancelRequested && !unsupported {
 		expires, parseErr := clock.Parse(j.ExpiresAt)
 		if parseErr != nil || !s.d.Clock.Now().Before(expires) || j.Epoch != c.RecoveryEpoch {
 			j.Failure = "stale_job_lease"
 		} else if e = s.auth(ctx, w, "ledger.append_check", j.Request.ProjectID); e != nil {
 			j.Failure = "worker_authorization_revoked"
-		} else if e = s.d.Host.CheckBuiltinSnapshot(ctx, j.Attempt.ActivationSnapshot, c.RecoveryEpoch); e != nil {
+		} else if e = s.d.Host.CheckSnapshot(ctx, j.Request.ProjectID, j.Attempt.ActivationSnapshot, j.Attempt.ID, c.RecoveryEpoch); e != nil {
 			j.Failure = "activation_stale"
 		} else {
 			v, err := s.target(ctx, w, j)
@@ -193,7 +202,7 @@ func (s *Service) acceptEvidence(ctx context.Context, w authz.Context, j Job) (J
 	if c.RecoveryEpoch != current.Epoch {
 		return Job{}, errcode.New(errcode.LeaseStale, "")
 	}
-	if e = s.d.Host.CheckBuiltinSnapshot(ctx, current.Attempt.ActivationSnapshot, c.RecoveryEpoch); e != nil {
+	if e = s.d.Host.CheckSnapshot(ctx, current.Request.ProjectID, current.Attempt.ActivationSnapshot, current.Attempt.ID, c.RecoveryEpoch); e != nil {
 		return Job{}, e
 	}
 	current.Evidence = evidence
@@ -256,7 +265,7 @@ func (s *Service) VerifyCheck(ctx context.Context, w authz.Context, v commit.Com
 		if epoch != j.Epoch {
 			return errcode.New(errcode.LeaseStale, "")
 		}
-		if e = s.d.Host.CheckBuiltinSnapshot(ctx, j.Attempt.ActivationSnapshot, epoch); e != nil {
+		if e = s.d.Host.CheckSnapshot(ctx, j.Request.ProjectID, j.Attempt.ActivationSnapshot, j.Attempt.ID, epoch); e != nil {
 			return e
 		}
 		if _, e = s.target(ctx, w, j); e != nil {
@@ -284,8 +293,9 @@ func (s *Service) Cancel(ctx context.Context, w authz.Context, key string, in Co
 }
 func (s *Service) Retry(ctx context.Context, w authz.Context, key string, in Control) (Job, error) {
 	return s.control(ctx, w, key, "retry", in, in, func(j *Job) error {
-		if j.CancelRequested || j.State != "failed" || j.Attempt == nil || !j.Attempt.Termination.Confirmed || j.Attempts >= 3 || j.Failure != "runtime_fault" && j.Failure != "host_start_failed" {
-			return errcode.New(errcode.OperationNeedsReconciliation, "only a confirmed runtime fault can retry; at most three attempts")
+		retryable := []string{"runtime_fault", "host_start_failed", "breaker_open", "activation_stale", "processor_not_allowed", "processor_not_enabled"}
+		if j.CancelRequested || j.State != "failed" || j.Attempt == nil || !j.Attempt.Termination.Confirmed || j.Attempts >= 3 || !slices.Contains(retryable, j.Failure) {
+			return errcode.New(errcode.OperationNeedsReconciliation, "only a confirmed runtime fault or undispatched refusal can retry; at most three attempts")
 		}
 		j.State = "queued"
 		j.Failure = ""
@@ -357,7 +367,7 @@ type ReconcileRequest struct {
 
 func (s *Service) Reconcile(ctx context.Context, w authz.Context, key string, in ReconcileRequest) (Job, error) {
 	// The complete stopping assertion participates in the idempotency digest.
-	return s.control(ctx, w, key, "reconcile", in.Control, in, func(j *Job) error {
+	j, e := s.control(ctx, w, key, "reconcile", in.Control, in, func(j *Job) error {
 		s.mu.RLock()
 		active := s.running[j.ID] != nil
 		s.mu.RUnlock()
@@ -397,4 +407,9 @@ func (s *Service) Reconcile(ctx context.Context, w authz.Context, key string, in
 		}
 		return nil
 	})
+	if e == nil && in.Stopped && j.Attempt != nil {
+		// A confirmed stop settles the host invocation once: cancelled or fault.
+		e = s.d.Host.Settle(ctx, j.Attempt.ID, j.Attempt.Outcome)
+	}
+	return j, e
 }

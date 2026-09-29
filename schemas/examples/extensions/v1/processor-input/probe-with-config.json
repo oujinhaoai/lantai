@@ -1,0 +1,22 @@
+{
+  "description": "获授权的合成探测：无业务输入，携带冻结配置",
+  "schema": "lantai.processor-input/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.processor-input/v1",
+    "operation_id": "01K00000000000000000000009",
+    "job_fence": {
+      "job_id": "01K00000000000000000000020",
+      "job_attempt_id": "01K00000000000000000000019",
+      "lease_fence": 1,
+      "recovery_epoch": 1
+    },
+    "input_refs": [],
+    "input_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "deadline": "2026-09-28T12:00:00.000Z",
+    "mode": "probe",
+    "config": {
+      "strict": true
+    }
+  }
+}

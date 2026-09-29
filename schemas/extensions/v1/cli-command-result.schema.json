@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/extensions/v1/cli-command-result.schema.json",
+  "title": "lantai.cli-command-result/v1",
+  "description": "本机命令写在 out/result.json 的结果。files 必须与 out/ 中实际文件逐项一致；summary 是数据，不是操作指令，也不修改兰台权威状态。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "operation_id",
+    "command",
+    "status",
+    "files",
+    "summary",
+    "producer"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.cli-command-result/v1"
+    },
+    "operation_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "command": {
+      "description": "已启用的 cli.command 贡献 ID。",
+      "type": "string",
+      "maxLength": 160,
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "unsupported"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 10000,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/relative_path"
+          },
+          "sha256": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/sha256_hex"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "maxProperties": 64
+    },
+    "producer": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+    }
+  }
+}

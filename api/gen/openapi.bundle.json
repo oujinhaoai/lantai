@@ -616,6 +616,15 @@
         ],
         "type": "string"
       },
+      "CommonV1ExecutionProtocolId": {
+        "description": "执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。",
+        "enum": [
+          "lantai.agent-execution/v1",
+          "lantai.processor/v1",
+          "lantai.host-control/v1"
+        ],
+        "type": "string"
+      },
       "CommonV1ExecutionResumeClass": {
         "enum": [
           "portable_artifacts",
@@ -965,6 +974,11 @@
         "description": "扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。",
         "maxLength": 128,
         "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+        "type": "string"
+      },
+      "ExtensionPointId": {
+        "description": "扩展点 ID，例如 artifact.processor、asset.validator；支持情况以 T09 登记为准。",
+        "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
         "type": "string"
       },
       "ExtensionVersion": {
@@ -2399,6 +2413,576 @@
           "result_schema"
         ],
         "title": "lantai.execution-profile/v1",
+        "type": "object"
+      },
+      "LantaiExtensionV1": {
+        "additionalProperties": false,
+        "description": "唯一包清单extension.yaml。包摘要由外部对实际包文件计算，不在自身递归保存；CLI/Web为声明保留，M1登记拒绝激活。",
+        "properties": {
+          "compatibility": {
+            "additionalProperties": false,
+            "properties": {
+              "host_api": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "required_points": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/ExtensionPointId"
+                    },
+                    "version": {
+                      "maximum": 1000,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "host_api",
+              "required_points"
+            ],
+            "type": "object"
+          },
+          "config_schema": {
+            "$ref": "#/components/schemas/RelativePath"
+          },
+          "contract": {
+            "const": "lantai.extension/v1"
+          },
+          "contributes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/ExtensionId"
+                },
+                "input_schema": {
+                  "$ref": "#/components/schemas/ContractId"
+                },
+                "output_schema": {
+                  "$ref": "#/components/schemas/ContractId"
+                },
+                "point": {
+                  "$ref": "#/components/schemas/ExtensionPointId"
+                },
+                "target": {
+                  "enum": [
+                    "server",
+                    "node",
+                    "cli",
+                    "web"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "point",
+                "target",
+                "input_schema",
+                "output_schema"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "dependencies": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/ExtensionId"
+                },
+                "version": {
+                  "$ref": "#/components/schemas/ExtensionVersion"
+                }
+              },
+              "required": [
+                "id",
+                "version"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "files": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "$ref": "#/components/schemas/RelativePath"
+                },
+                "sha256": {
+                  "$ref": "#/components/schemas/Sha256Hex"
+                },
+                "size": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "path",
+                "sha256",
+                "size"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "id": {
+            "$ref": "#/components/schemas/ExtensionId"
+          },
+          "license": {
+            "additionalProperties": false,
+            "properties": {
+              "files": {
+                "items": {
+                  "$ref": "#/components/schemas/RelativePath"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "spdx": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "spdx",
+              "files"
+            ],
+            "type": "object"
+          },
+          "permissions": {
+            "additionalProperties": false,
+            "properties": {
+              "api": {
+                "items": {
+                  "$ref": "#/components/schemas/CommandType"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "filesystem": {
+                "items": {
+                  "enum": [
+                    "granted-input:read",
+                    "run-output:write"
+                  ],
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "network": {
+                "items": {
+                  "maxLength": 253,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "secret_refs": {
+                "items": {
+                  "pattern": "^[a-z][a-z0-9._/-]{0,127}$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "api",
+              "network",
+              "filesystem",
+              "secret_refs"
+            ],
+            "type": "object"
+          },
+          "platform_artifacts": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "$ref": "#/components/schemas/RelativePath"
+                },
+                "platform": {
+                  "pattern": "^(builtin-source|(linux|darwin|windows)/(amd64|arm64))$",
+                  "type": "string"
+                },
+                "sha256": {
+                  "$ref": "#/components/schemas/Sha256Hex"
+                },
+                "size": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "platform",
+                "path",
+                "sha256",
+                "size"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "resource_limits": {
+            "additionalProperties": false,
+            "properties": {
+              "cpu_seconds": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_input_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_output_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_output_files": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "memory_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "maximum": 86400,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "max_input_bytes",
+              "max_output_bytes",
+              "max_output_files",
+              "memory_bytes",
+              "cpu_seconds",
+              "timeout_seconds"
+            ],
+            "type": "object"
+          },
+          "targets": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "cli": {
+                "additionalProperties": false,
+                "properties": {
+                  "entry": {
+                    "$ref": "#/components/schemas/RelativePath"
+                  },
+                  "lifecycle": {
+                    "enum": [
+                      "builtin",
+                      "oneshot",
+                      "view"
+                    ],
+                    "type": "string"
+                  },
+                  "processor": {
+                    "$ref": "#/components/schemas/LantaiExtensionV1Processor"
+                  },
+                  "protocol": {
+                    "$ref": "#/components/schemas/CommonV1ExecutionProtocolId"
+                  },
+                  "runtime": {
+                    "enum": [
+                      "builtin",
+                      "exec",
+                      "module",
+                      "declarative"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "lifecycle",
+                  "entry",
+                  "protocol",
+                  "processor"
+                ],
+                "type": "object"
+              },
+              "node": {
+                "additionalProperties": false,
+                "properties": {
+                  "entry": {
+                    "$ref": "#/components/schemas/RelativePath"
+                  },
+                  "lifecycle": {
+                    "enum": [
+                      "builtin",
+                      "oneshot",
+                      "view"
+                    ],
+                    "type": "string"
+                  },
+                  "processor": {
+                    "$ref": "#/components/schemas/LantaiExtensionV1Processor"
+                  },
+                  "protocol": {
+                    "$ref": "#/components/schemas/CommonV1ExecutionProtocolId"
+                  },
+                  "runtime": {
+                    "enum": [
+                      "builtin",
+                      "exec",
+                      "module",
+                      "declarative"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "lifecycle",
+                  "entry",
+                  "protocol",
+                  "processor"
+                ],
+                "type": "object"
+              },
+              "server": {
+                "additionalProperties": false,
+                "properties": {
+                  "entry": {
+                    "$ref": "#/components/schemas/RelativePath"
+                  },
+                  "lifecycle": {
+                    "enum": [
+                      "builtin",
+                      "oneshot",
+                      "view"
+                    ],
+                    "type": "string"
+                  },
+                  "processor": {
+                    "$ref": "#/components/schemas/LantaiExtensionV1Processor"
+                  },
+                  "protocol": {
+                    "$ref": "#/components/schemas/CommonV1ExecutionProtocolId"
+                  },
+                  "runtime": {
+                    "enum": [
+                      "builtin",
+                      "exec",
+                      "module",
+                      "declarative"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "lifecycle",
+                  "entry",
+                  "protocol",
+                  "processor"
+                ],
+                "type": "object"
+              },
+              "web": {
+                "additionalProperties": false,
+                "properties": {
+                  "entry": {
+                    "$ref": "#/components/schemas/RelativePath"
+                  },
+                  "lifecycle": {
+                    "enum": [
+                      "builtin",
+                      "oneshot",
+                      "view"
+                    ],
+                    "type": "string"
+                  },
+                  "processor": {
+                    "$ref": "#/components/schemas/LantaiExtensionV1Processor"
+                  },
+                  "protocol": {
+                    "$ref": "#/components/schemas/CommonV1ExecutionProtocolId"
+                  },
+                  "runtime": {
+                    "enum": [
+                      "builtin",
+                      "exec",
+                      "module",
+                      "declarative"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "lifecycle",
+                  "entry",
+                  "protocol",
+                  "processor"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [],
+            "type": "object"
+          },
+          "version": {
+            "$ref": "#/components/schemas/ExtensionVersion"
+          }
+        },
+        "required": [
+          "contract",
+          "id",
+          "version",
+          "compatibility",
+          "contributes",
+          "targets",
+          "platform_artifacts",
+          "files",
+          "permissions",
+          "resource_limits",
+          "dependencies",
+          "config_schema",
+          "license"
+        ],
+        "title": "lantai.extension/v1",
+        "type": "object"
+      },
+      "LantaiExtensionV1Processor": {
+        "additionalProperties": false,
+        "properties": {
+          "accepts": {
+            "additionalProperties": false,
+            "properties": {
+              "asset_types": {
+                "items": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "extensions": {
+                "items": {
+                  "maxLength": 24,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "extensions",
+              "asset_types"
+            ],
+            "type": "object"
+          },
+          "concurrency": {
+            "maximum": 64,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "produces": {
+            "additionalProperties": false,
+            "properties": {
+              "files": {
+                "type": "boolean"
+              },
+              "records": {
+                "items": {
+                  "$ref": "#/components/schemas/ContractId"
+                },
+                "maxItems": 100,
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "records",
+              "files"
+            ],
+            "type": "object"
+          },
+          "requires": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "timeout": {
+            "pattern": "^[1-9][0-9]*(ms|s|m)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepts",
+          "requires",
+          "timeout",
+          "concurrency",
+          "produces"
+        ],
         "type": "object"
       },
       "LantaiFlowV1": {
@@ -4337,6 +4921,102 @@
         ],
         "type": "object"
       },
+      "M2ExtensionsActivation": {
+        "properties": {
+          "enablement_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "environment": {
+            "type": "object"
+          },
+          "environment_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "failure": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "probe_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "enum": [
+              "pending_probe",
+              "ready",
+              "probe_failed"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enablement_id",
+          "generation",
+          "state",
+          "environment_digest"
+        ],
+        "type": "object"
+      },
+      "M2ExtensionsCLICommand": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          },
+          "config_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "contribution_id": {
+            "type": "string"
+          },
+          "enablement_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "entry": {
+            "type": "string"
+          },
+          "entry_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "extension_id": {
+            "type": "string"
+          },
+          "extension_version": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "package_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "producer": {
+            "$ref": "#/components/schemas/ProducerRef"
+          }
+        },
+        "required": [
+          "enablement_id",
+          "generation",
+          "extension_id",
+          "extension_version",
+          "package_digest",
+          "contribution_id",
+          "command",
+          "entry",
+          "entry_digest",
+          "config",
+          "config_digest",
+          "producer"
+        ],
+        "type": "object"
+      },
       "M2ExtensionsCheckResult": {
         "additionalProperties": false,
         "properties": {
@@ -4378,6 +5058,194 @@
           "verdict"
         ],
         "type": "object"
+      },
+      "M2ExtensionsEnablementView": {
+        "properties": {
+          "activation": {
+            "$ref": "#/components/schemas/M2ExtensionsActivation"
+          },
+          "breaker": {
+            "type": "object"
+          },
+          "config_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "config_revision": {
+            "type": "integer"
+          },
+          "enablement_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "extension_id": {
+            "type": "string"
+          },
+          "extension_version": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "host": {
+            "type": "object"
+          },
+          "package_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "review": {
+            "$ref": "#/components/schemas/M2ExtensionsPackageReview"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "scope_kind": {
+            "enum": [
+              "instance",
+              "project",
+              "user"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "server",
+              "cli"
+            ],
+            "type": "string"
+          },
+          "trust": {
+            "type": "string"
+          },
+          "unenforced": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "enablement_id",
+          "extension_id",
+          "target",
+          "state",
+          "generation",
+          "reasons"
+        ],
+        "type": "object"
+      },
+      "M2ExtensionsImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "asset_id",
+          "version_id"
+        ],
+        "type": "object"
+      },
+      "M2ExtensionsPackageRecord": {
+        "properties": {
+          "extension_id": {
+            "type": "string"
+          },
+          "extension_version": {
+            "type": "string"
+          },
+          "imported_at": {
+            "type": "string"
+          },
+          "imported_by": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/LantaiExtensionV1"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "package_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/PermanentRef"
+          },
+          "source": {
+            "const": "package"
+          },
+          "version_manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          }
+        },
+        "required": [
+          "extension_id",
+          "extension_version",
+          "package_digest",
+          "manifest_digest",
+          "source",
+          "ref",
+          "manifest"
+        ],
+        "type": "object"
+      },
+      "M2ExtensionsPackageReview": {
+        "properties": {
+          "approved": {
+            "type": "boolean"
+          },
+          "review_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "approved",
+          "state"
+        ],
+        "type": "object"
+      },
+      "M2ExtensionsPackageView": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/M2ExtensionsPackageRecord"
+          },
+          {
+            "properties": {
+              "review": {
+                "$ref": "#/components/schemas/M2ExtensionsPackageReview"
+              }
+            },
+            "required": [
+              "review"
+            ],
+            "type": "object"
+          }
+        ]
       },
       "M2HttpapiCommitRequest": {
         "additionalProperties": false,
@@ -9938,6 +10806,186 @@
         ]
       }
     },
+    "/api/v1/extensions/commands": {
+      "get": {
+        "description": "当前主体可见的已启用本机 cli.command；本机仍须显式安装并核验入口摘要，不下发令牌或人审能力。",
+        "operationId": "getExtensionsCommands",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/M2ExtensionsCLICommand"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "已启用命令的元数据。"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "extensions/commands",
+        "tags": [
+          "extensions"
+        ]
+      }
+    },
+    "/api/v1/extensions/enablements": {
+      "get": {
+        "description": "启用意图、运行激活、熔断和拒绝原因诊断；启停本身经 /api/v1/human 的 extension_enable / extension_disable。",
+        "operationId": "getExtensionsEnablements",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/M2ExtensionsEnablementView"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "诊断视图，不授予任何能力。"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "extensions/enablements",
+        "tags": [
+          "extensions"
+        ]
+      }
+    },
+    "/api/v1/extensions/enablements/{id}/probe": {
+      "post": {
+        "description": "在启用授权已允许探测时，按当前环境重跑受限合成探测；不启用、不恢复已停用或撤权的包。",
+        "operationId": "postExtensionsEnablementsIdProbe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/M2ExtensionsActivation"
+                }
+              }
+            },
+            "description": "探测证据绑定包、入口、配置与宿主环境摘要。"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "extensions/enablements/{id}/probe",
+        "tags": [
+          "extensions"
+        ]
+      }
+    },
+    "/api/v1/extensions/packages": {
+      "get": {
+        "operationId": "getExtensionsPackages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/M2ExtensionsPackageView"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "已导入包及其当前台账审定事实；导入不等于获准或启用。"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "extensions/packages",
+        "tags": [
+          "extensions"
+        ]
+      },
+      "post": {
+        "description": "静态登记一个已提交 plugin 资产版本的包字节；不执行入口、安装脚本或探测。",
+        "operationId": "postExtensionsPackages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/M2ExtensionsImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/M2ExtensionsPackageRecord"
+                }
+              }
+            },
+            "description": "包登记（同 ID/版本不可换摘要）。"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "extensions/packages",
+        "tags": [
+          "extensions"
+        ]
+      }
+    },
     "/api/v1/flows": {
       "get": {
         "operationId": "getFlows",
@@ -13702,6 +14750,10 @@
     }
   ],
   "tags": [
+    {
+      "description": "T09 扩展包静态导入、启用诊断、受限探测与本机命令投影；启停经人审授权",
+      "name": "extensions"
+    },
     {
       "description": "持久操作状态查询",
       "name": "operations"

@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox"}
+	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext"}
 }
 func Help() string {
 	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
@@ -33,6 +33,8 @@ push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复�
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
 协作命令：task | flow | run | job | node | message | review | rights | evidence | trash | human | context | events | resync | inbox。
+扩展：plugin import/list/enablements/probe/commands（启停经 human prepare 的 extension_enable/extension_disable）；
+ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
 详见 docs/contracts/client.md。`
@@ -116,10 +118,13 @@ func redactResult(command string, v any) {
 func run(ctx context.Context, args []string) (client.Response, error) {
 	command := args[0]
 	rest := args[1:]
+	if command == "ext" {
+		return extCommand(ctx, rest)
+	}
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -265,6 +270,8 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 	switch command {
 	case "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
 		return collaborationCommand(ctx, c, command, action, o)
+	case "plugin":
+		return pluginCommand(ctx, c, action, o)
 	case "meta":
 		return do(http.MethodGet, "/api/v1/meta", nil)
 	case "login":

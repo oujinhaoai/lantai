@@ -173,7 +173,7 @@ type observedHost struct {
 	run func(context.Context, extensions.ProcessorInput, []byte) (extensions.InvocationResult, error)
 }
 
-func (h observedHost) RunBuiltin(c context.Context, in extensions.ProcessorInput, b []byte) (extensions.InvocationResult, error) {
+func (h observedHost) Run(c context.Context, _ ids.ID, in extensions.ProcessorInput, b []byte) (extensions.InvocationResult, error) {
 	return h.run(c, in, b)
 }
 func TestM2JobFaultRetryAndUnknownReconciliation(t *testing.T) {
@@ -187,7 +187,7 @@ func TestM2JobFaultRetryAndUnknownReconciliation(t *testing.T) {
 			if calls == 2 {
 				return extensions.InvocationResult{Observation: execution.Invocation{Dispatched: true}}, nil
 			}
-			return h.RunBuiltin(ctx, in, b)
+			return h.Run(ctx, "", in, b)
 		}}
 	})
 	_, j := queuedCheck(t, f, js)
@@ -279,7 +279,7 @@ func TestM2JobCancellationWaitsForHostAndWorkerScope(t *testing.T) {
 func TestM2JobLegalFailRemainsEvidence(t *testing.T) {
 	f, js, n, w := jobEnvHost(t, func(h jobs.Host) jobs.Host {
 		return observedHost{h, func(ctx context.Context, in extensions.ProcessorInput, b []byte) (extensions.InvocationResult, error) {
-			out, e := h.RunBuiltin(ctx, in, b)
+			out, e := h.Run(ctx, "", in, b)
 			if e == nil && out.Result != nil {
 				out.Result.Checks[0].Verdict = execution.VerdictFail
 				out.Result.Checks[0].Findings = []string{"synthetic_validation_failure"}
@@ -340,7 +340,7 @@ func TestM2JobFinalAcceptanceRejectsExpiredLeaseAndRevokedWorker(t *testing.T) {
 			var n *node.Service
 			f, js, n, w = jobEnvHost(t, func(h jobs.Host) jobs.Host {
 				return observedHost{h, func(ctx context.Context, in extensions.ProcessorInput, b []byte) (extensions.InvocationResult, error) {
-					out, e := h.RunBuiltin(ctx, in, b)
+					out, e := h.Run(ctx, "", in, b)
 					if e != nil {
 						return out, e
 					}

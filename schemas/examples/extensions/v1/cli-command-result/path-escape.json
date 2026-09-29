@@ -1,0 +1,34 @@
+{
+  "description": "输出路径不能越界",
+  "schema": "lantai.cli-command-result/v1",
+  "valid": false,
+  "document": {
+    "contract": "lantai.cli-command-result/v1",
+    "operation_id": "01K00000000000000000000009",
+    "command": "org.example.asset-tools.inspect",
+    "status": "completed",
+    "files": [
+      {
+        "path": "../outside",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "size": 1
+      }
+    ],
+    "summary": {
+      "findings": 0
+    },
+    "producer": {
+      "extension_id": "org.example.asset-tools",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "package",
+      "contribution_id": "org.example.asset-tools.inspect"
+    }
+  },
+  "expect": [
+    {
+      "pointer": "/files/0/path",
+      "keyword": "pattern"
+    }
+  ]
+}

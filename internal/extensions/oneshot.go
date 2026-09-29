@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -31,6 +30,10 @@ type ProcessorInput struct {
 	Deadline    string                `json:"deadline"`
 	Activation  ae.ActivationSnapshot `json:"activation_snapshot"`
 	Producer    storage.Producer      `json:"producer"`
+	// Config is the frozen enablement config; builtin calls carry none.
+	Config json.RawMessage `json:"config,omitempty"`
+	// Mode "probe" is an authorized synthetic call without business input.
+	Mode string `json:"mode,omitempty"`
 }
 type ProcessorResult struct {
 	Contract    string            `json:"contract"`
@@ -117,59 +120,32 @@ func (r *Registry) RunBuiltin(ctx context.Context, in ProcessorInput, raw []byte
 	if e != nil {
 		return out, e
 	}
-	defer os.RemoveAll(dir)
-	if e = os.Mkdir(filepath.Join(dir, "in"), 0700); e != nil {
-		return out, e
+	defer removeRunDir(dir)
+	for _, d := range []string{"in", "out", "tmp"} {
+		if e = os.Mkdir(filepath.Join(dir, d), hostDirMode); e != nil {
+			return out, e
+		}
 	}
-	if e = os.Mkdir(filepath.Join(dir, "out"), 0700); e != nil {
-		return out, e
-	}
-	if e = os.WriteFile(filepath.Join(dir, "in", "manifest.json"), raw, 0600); e != nil {
+	if e = os.WriteFile(filepath.Join(dir, "in", "manifest.json"), raw, 0o400); e != nil {
 		return out, e
 	}
 	job, e := json.Marshal(in)
 	if e != nil {
 		return out, e
 	}
-	if e = os.WriteFile(filepath.Join(dir, "job.json"), job, 0600); e != nil {
+	if e = os.WriteFile(filepath.Join(dir, "job.json"), job, 0o400); e != nil {
 		return out, e
 	}
-	runCtx, cancel := context.WithDeadline(ctx, minTime(deadline, time.Now().Add(10*time.Second)))
-	defer cancel()
-	cmd := exec.CommandContext(runCtx, exe, "_processor-check")
-	cmd.Dir = dir
-	cmd.Env = []string{}
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-	if e = cmd.Start(); e != nil {
+	obs, _, e := spawn(ctx, dir, []string{exe, "_processor-check"}, oneShotEnv(dir), minTime(deadline, time.Now().Add(10*time.Second)), defaultStderrBytes)
+	out.Observation = obs
+	if e != nil {
 		return out, e
 	}
-	out.Observation.Dispatched = true
-	e = cmd.Wait()
-	out.Observation.StopConfirmed = true
-	out.Observation.Exited = true
-	out.Observation.ExitCode = cmd.ProcessState.ExitCode()
-	out.Observation.TimedOut = errors.Is(runCtx.Err(), context.DeadlineExceeded)
-	out.Observation.Cancelled = errors.Is(runCtx.Err(), context.Canceled)
-	if e != nil {
+	if !obs.StopConfirmed || obs.Cancelled || obs.TimedOut || !obs.Exited || obs.ExitCode != 0 {
 		return out, nil
 	}
-	resultPath := filepath.Join(dir, "out", "result.json")
-	info, e := os.Lstat(resultPath)
-	if e != nil || !info.Mode().IsRegular() {
-		return out, nil
-	}
-	f, e := os.Open(resultPath)
-	if e != nil {
-		return out, nil
-	}
-	defer f.Close()
-	stat, e := f.Stat()
-	if e != nil || !stat.Mode().IsRegular() || stat.Size() > 1<<20 {
-		return out, nil
-	}
-	b, e := io.ReadAll(io.LimitReader(f, (1<<20)+1))
-	if e != nil || len(b) > 1<<20 {
+	b, _, reason := collectOutputs(filepath.Join(dir, "out"), RunSpec{MaxResultBytes: defaultResultBytes})
+	if reason != "" {
 		return out, nil
 	}
 	var res ProcessorResult
@@ -249,3 +225,33 @@ func ProcessorMain() error {
 	}
 	return os.WriteFile(filepath.Join("out", "result.json"), b, 0600)
 }
+
+// Snapshot makes the compiled builtin a jobs host without package governance:
+// only the official manifest processor resolves here.
+func (r *Registry) Snapshot(ctx context.Context, _ ids.ID, processor string, epoch int64) (ae.ActivationSnapshot, storage.Producer, error) {
+	if processor != "org.lantai.corecheck.manifest" {
+		return ae.ActivationSnapshot{}, storage.Producer{}, errcode.New(errcode.UnsupportedCapability, "only the official manifest processor is compiled in")
+	}
+	s, e := r.BuiltinSnapshot(ctx, epoch)
+	if e != nil {
+		return s, storage.Producer{}, e
+	}
+	p, e := r.Producer(ctx, processor)
+	return s, p, e
+}
+
+// Run executes the builtin checker; external producers are refused.
+func (r *Registry) Run(ctx context.Context, _ ids.ID, in ProcessorInput, raw []byte) (InvocationResult, error) {
+	if in.Producer.Source != "builtin_release" {
+		return InvocationResult{}, errcode.New(errcode.UnsupportedCapability, "package processors need the extension manager")
+	}
+	return r.RunBuiltin(ctx, in, raw)
+}
+
+// CheckSnapshot re-verifies the builtin release binding for this epoch.
+func (r *Registry) CheckSnapshot(ctx context.Context, _ ids.ID, s ae.ActivationSnapshot, _ ids.ID, epoch int64) error {
+	return r.CheckBuiltinSnapshot(ctx, s, epoch)
+}
+
+// Settle has nothing to record for builtin calls; they have no breaker key.
+func (r *Registry) Settle(context.Context, ids.ID, execution.InvocationOutcome) error { return nil }

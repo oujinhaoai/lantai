@@ -1,6 +1,6 @@
 # M2 T01/T02 协作适配契约
 
-本篇描述已经实现的领域接口。它们由核心组装调用，T07 已开放任务/人审/生命周期/上下文的 REST 与 CLI 入口；MCP 仅投影允许的 Agent 操作，见[远程协作](manual-execution.md)。T03 的真实审定/生命周期与 T05 的任务查询（`tasks.Service.MilestoneTasks`）已接线，T09 的启用管理与 T08 的 GC 调度分别接线；模块验证使用真实身份、文件和 SQLite，加上明确的领域接口测试替身，不代表 M2 整体闭环完成。
+本篇描述已经实现的领域接口。它们由核心组装调用，T07 已开放任务/人审/生命周期/上下文的 REST 与 CLI 入口；MCP 仅投影允许的 Agent 操作，见[远程协作](manual-execution.md)。T03 的真实审定/生命周期与 T05 的任务查询（`tasks.Service.MilestoneTasks`）已接线，T09 的启用管理（[扩展包治理](extension-governance.md)）与 T08 的调度（[生命周期调度](lifecycle-scheduler.md)，默认关闭）已接线；模块验证使用真实身份、文件和 SQLite，加上明确的领域接口测试替身，不代表 M2 整体闭环完成。
 
 ## 人审动作与批次
 
@@ -30,7 +30,7 @@
 
 ## GC 与保留
 
-`CollectBlob` 是 T08 的内部文件接口，未增加自动调度或远程清除命令。必须提供 T03/T08 的 `GCSource`、真实提交 pin 和备份 pin 源；上传 pin 自动加入。缺任何接口即拒绝。
+`CollectBlob` 是 T08 的内部文件接口，由默认关闭的[生命周期调度器](lifecycle-scheduler.md)或本机 `lantai lifecycle` 调用，没有远程清除命令。必须提供 T03/T08 的 `GCSource`、真实提交 pin 和备份 pin 源；上传 pin 自动加入。缺任何接口即拒绝。
 
 候选必须有稳定删除 operation 和首次候选时间，等待至少 24 小时。取得与上传、安装、复用相同的哈希锁后，先拒绝尚有 ready 文件操作的实例，再重新查询候选、全部权威 manifest 根以及 upload/commit/backup pin。`GCSource.Candidate` 必须在索引损坏/重建、未完成文件操作、未决证据引用或尚未完成权威对账时拒绝；台账根必须包括所有非清除版本、回收站和相关未完成操作。备份 pin 创建须通过同一哈希协调或维护屏障，完整备份复制结束前不得释放。
 
@@ -56,4 +56,4 @@ go test ./internal/identity ./internal/storage ./internal/catalog ./internal/con
 scripts/check.sh
 ```
 
-测试涵盖批次换目标、插件配置绑定、过期和换会话重验证、当前权限撤销、部分回执恢复、跨项目进度拒绝、移动后刷盘失败恢复、共享 Blob、GC 等待/全部 pin/损坏与遗漏清单/旧删除取消，以及上下文未审定与历史版本。真实 T03/T05/T09 接线、目标平台故障演练和 M2 独立 TEST/GATE 仍需对应任务提供证据。
+测试涵盖批次换目标、插件配置绑定、过期和换会话重验证、当前权限撤销、部分回执恢复、跨项目进度拒绝、移动后刷盘失败恢复、共享 Blob、GC 等待/全部 pin/损坏与遗漏清单/旧删除取消，以及上下文未审定与历史版本。T03/T05/T09 与 T08 调度的真实接线测试见各自契约；目标平台故障演练和 M2 独立 TEST/GATE 仍需对应任务提供证据。

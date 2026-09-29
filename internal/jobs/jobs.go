@@ -43,11 +43,16 @@ type Authority interface {
 	authz.Authorizer
 	authz.EpochSource
 }
+
+// Host is the T09 processor port. Snapshot resolves the compiled builtin or a
+// reviewed, enabled and probed package without side effects; Run admits and
+// spawns one attempt; CheckSnapshot is the final activation gate; Settle
+// reports a reconciled stop for breaker bookkeeping.
 type Host interface {
-	BuiltinSnapshot(context.Context, int64) (ae.ActivationSnapshot, error)
-	CheckBuiltinSnapshot(context.Context, ae.ActivationSnapshot, int64) error
-	Producer(context.Context, string) (storage.Producer, error)
-	RunBuiltin(context.Context, extensions.ProcessorInput, []byte) (extensions.InvocationResult, error)
+	Snapshot(context.Context, ids.ID, string, int64) (ae.ActivationSnapshot, storage.Producer, error)
+	CheckSnapshot(context.Context, ids.ID, ae.ActivationSnapshot, ids.ID, int64) error
+	Run(context.Context, ids.ID, extensions.ProcessorInput, []byte) (extensions.InvocationResult, error)
+	Settle(context.Context, ids.ID, execution.InvocationOutcome) error
 }
 type Files interface {
 	ReadManifest(context.Context, commit.Committed) ([]byte, error)
@@ -276,8 +281,8 @@ func (s *Service) target(ctx context.Context, w authz.Context, j Job) (commit.Co
 	return v.Version, nil
 }
 func (s *Service) StartJob(ctx context.Context, w authz.Context, in workflow.JobRequest) (workflow.JobRef, error) {
-	if !in.OperationID.Valid() || !in.ProjectID.Valid() || in.Processor != "org.lantai.corecheck.manifest" {
-		return workflow.JobRef{}, errcode.New(errcode.UnsupportedCapability, "only the official manifest processor is enabled")
+	if !in.OperationID.Valid() || !in.ProjectID.Valid() || in.Processor == "" {
+		return workflow.JobRef{}, errcode.New(errcode.SchemaInvalid, "")
 	}
 	j := Job{Request: in}
 	ctx, release, e := s.lock(ctx, j)
@@ -299,6 +304,10 @@ func (s *Service) StartJob(ctx context.Context, w authz.Context, in workflow.Job
 		return workflow.JobRef{}, e
 	}
 	if _, e = s.target(ctx, w, j); e != nil {
+		return workflow.JobRef{}, e
+	}
+	// Fail early for a processor that is not builtin or not currently usable.
+	if _, _, e = s.d.Host.Snapshot(ctx, in.ProjectID, in.Processor, c.RecoveryEpoch); e != nil {
 		return workflow.JobRef{}, e
 	}
 	j.ID, e = s.d.IDs.New()
@@ -394,12 +403,7 @@ func (s *Service) Run(ctx context.Context, w authz.Context, key string, in Contr
 		release()
 		return Job{}, e
 	}
-	snapshot, e := s.d.Host.BuiltinSnapshot(ctxLock, c.RecoveryEpoch)
-	if e != nil {
-		release()
-		return Job{}, e
-	}
-	producer, e := s.d.Host.Producer(ctxLock, j.Request.Processor)
+	snapshot, producer, e := s.d.Host.Snapshot(ctxLock, j.Request.ProjectID, j.Request.Processor, c.RecoveryEpoch)
 	if e != nil {
 		release()
 		return Job{}, e
@@ -440,7 +444,7 @@ func (s *Service) Run(ctx context.Context, w authz.Context, key string, in Contr
 	}
 	defer func() { cancelRun(); s.mu.Lock(); delete(s.running, j.ID); s.mu.Unlock() }()
 	pi := extensions.ProcessorInput{Contract: "lantai.processor-input/v1", OperationID: c.OperationID, Fence: j.Attempt.Fence, InputRefs: input.Refs, InputDigest: v.ManifestDigest, Deadline: clock.Format(time.Now().Add(10 * time.Second)), Activation: snapshot, Producer: producer}
-	result, hostErr := s.d.Host.RunBuiltin(runCtx, pi, data)
+	result, hostErr := s.d.Host.Run(runCtx, j.Request.ProjectID, pi, data)
 	// Observe the dispatched attempt even when its caller cancelled the request.
 	finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
 	defer cancel()

@@ -1,6 +1,6 @@
 # 公共契约
 
-状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)；实例生命周期、迁移与维护屏障见 [instance.md](instance.md)（T08.1）；身份、会话、授权与人类授权见 [identity.md](identity.md)（T01），动作与策略登记见 [identity-actions.md](identity-actions.md)；路径规则、清单、引用与说明修订见 [catalog.md](catalog.md)，内容库、上传、授权下载、安装与传输准入见 [storage.md](storage.md)（T02）；持久版本提交见 [ledger.md](ledger.md)，来源证据与用途判定见 [provenance.md](provenance.md)（T03），事件收录/消费/审计见 [events.md](events.md)，投影与重同步见 [query.md](query.md)（T04）。任务与流程协议见 [tasks.md](tasks.md)（T05），执行数据协议见 [execution.md](execution.md)（T06）；REST 与薄 CLI 见 [http.md](http.md)、[client.md](client.md)（T07）；共同备份/恢复见 [backup-restore.md](backup-restore.md)（T08），M1 内置扩展契约见 [extensions.md](extensions.md)（T09）。
+状态：**M1 第一版，已实现并有自动化测试**（T00.1、T00.2）。本篇解释各模块共用的标识、摘要、幂等、错误、事件、操作阶段、跨模块接口、所有权与版本规则。字段定义以 [`schemas/`](../../schemas/) 中的 JSON Schema 为唯一权威，本篇不重复字段表；错误码与所有权表由生成器输出：[错误码表](error-codes.md)、[所有权](ownership.md)。执行与扩展宿主的公共约定见 [execution.md](execution.md)；实例生命周期、迁移与维护屏障见 [instance.md](instance.md)（T08.1）；身份、会话、授权与人类授权见 [identity.md](identity.md)（T01），动作与策略登记见 [identity-actions.md](identity-actions.md)；路径规则、清单、引用与说明修订见 [catalog.md](catalog.md)，内容库、上传、授权下载、安装与传输准入见 [storage.md](storage.md)（T02）；持久版本提交见 [ledger.md](ledger.md)，来源证据与用途判定见 [provenance.md](provenance.md)（T03），事件收录/消费/审计见 [events.md](events.md)，投影与重同步见 [query.md](query.md)（T04）。任务与流程协议见 [tasks.md](tasks.md)（T05），执行数据协议见 [execution.md](execution.md)（T06）；REST 与薄 CLI 见 [http.md](http.md)、[client.md](client.md)（T07）；共同备份/恢复见 [backup-restore.md](backup-restore.md)（T08），M1 内置扩展契约见 [extensions.md](extensions.md)（T09）；M2 扩展包治理与一次性宿主见 [extension-governance.md](extension-governance.md)，到期清除与 GC 调度见 [lifecycle-scheduler.md](lifecycle-scheduler.md)。
 
 契约通过测试只说明规则被编码并可重复校验，不代表依赖它们的业务模块已经实现；各模块最终接线须换成真实实现并通过对应验收。
 
@@ -118,3 +118,5 @@ T02 接入后契约有三处变化：安装请求带清单文件、证明记录�
 - [审定、发布与协作读取接口](review-collaboration.md)：固定目标、证据接受、人审与发布、讨论、权限事件和收件箱的内部接口及集成边界。
 
 - [M2 手动执行、检查作业与远程协作](manual-execution.md)
+- [M2 扩展包治理、一次性宿主与本机命令](extension-governance.md)：静态导入、审定引用、HumanGrant 启停、受限探测、准入/排空/撤权、熔断、`lantai ext` 与 MCP 投影。
+- [M2 到期清除与可恢复 GC 调度](lifecycle-scheduler.md)：默认关闭的 T08 调度器、作业登记与重试。

@@ -222,6 +222,9 @@ func runFSCK(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 func runRecover(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return runMaintenance(ctx, "recover", args, stdout, stderr)
 }
+func runLifecycle(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	return runMaintenance(ctx, "lifecycle", args, stdout, stderr)
+}
 func runReindex(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return runMaintenance(ctx, "reindex", args, stdout, stderr)
 }
@@ -254,6 +257,12 @@ func runMaintenance(ctx context.Context, name string, args []string, stdout, std
 				return e
 			}
 			return r.Err()
+		case "lifecycle":
+			r, e := a.RunLifecycle(c)
+			if w := outputJSON(stdout, r); w != nil {
+				return w
+			}
+			return e
 		case "recover":
 			r, e := a.Recover(c)
 			if w := outputJSON(stdout, r); w != nil {

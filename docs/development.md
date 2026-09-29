@@ -47,6 +47,12 @@
 | T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
 | M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
 | T06/T07 真实模块联调 | `go test ./tests/integration -run 'Test(M2Manual\|M2Job\|M2Real\|RemoteM2)' -count=1` |
+| T09 一次性宿主、包治理、熔断与插件 SDK（构建合成 fixture 并真实起进程） | `go test ./internal/extensions/... ./sdk/go/... -count=1` |
+| T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension' -count=1` |
+| T08 到期清除与 GC 调度 | `go test ./internal/operations -run Scheduler -count=1`；`go test ./tests/integration -run TestM2LifecycleSchedulerDuePurgeAndGC -count=1` |
+| 服务停止时运行一次到期提醒/清除与 GC | `go run ./cmd/lantai lifecycle -home <数据根>` |
+| 扩展包导入、启用诊断、命令列表（远程） | `go run ./cmd/lantai plugin import\|list\|enablements\|probe\|commands ...` |
+| 本机扩展命令（显式安装、按摘要复验后运行） | `go run ./cmd/lantai ext install --package DIR --registry FILE ...`；`ext run <plugin-id> <command> --registry FILE --output DIR ...` |
 | Python SDK 单元测试 | `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
@@ -84,7 +90,7 @@ transfer:
 
 CLI 会话保存在显式选择的私有文件中（Unix 0600、Windows 仅当前用户 ACL），凭据、口令和验证码不经命令行参数或普通输出。使用 `login --credentials-file` 或 `session exchange --token-file`，后续命令指定同一个 `--session-file`；通过 `meta` 查询能力。项目角色及 Agent 凭据通过 `identity challenge → verify → execute` 复用服务端 HumanGrant；管理员不会自动获得新项目的读取角色。`push` 固定原 create/commit 键到 `--state`，中断后重复同一命令；`pull` 只搬运清单声明文件并逐件验证 SHA-256。完整输入示例和命令见[客户端契约](contracts/client.md)，REST 见[HTTP 契约](contracts/http.md)。
 
-T05/T06 的 M2 已提供任务/Flow、手动执行与官方检查器；T07 远程接线及实际命令见[手动执行与远程协作](contracts/manual-execution.md)。自动 Runner/触发/定时清扫未启用。共同备份/空目录恢复、内置扩展登记和单 HTTPS 网关模板已经实现；目标 NAS 流量 p95、Docker/systemd 实际部署和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
+T05/T06 的 M2 已提供任务/Flow、手动执行与检查作业（官方内置或经 T09 治理启用的外部一次性检查器）；T07 远程接线及实际命令见[手动执行与远程协作](contracts/manual-execution.md)。自动 Runner/触发与任务租约定时清扫未启用，生命周期调度默认关闭。共同备份/空目录恢复、内置扩展登记和单 HTTPS 网关模板已经实现；目标 NAS 流量 p95、Docker/systemd 实际部署和全面平台故障演练继续按独立测试任务验收，不能以存取冒烟通过宣称 M1 整体完成。
 
 ## 生成物
 
@@ -126,4 +132,4 @@ CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `u
 
 存储传输开发机实测（2026-09-27，同上环境，macOS 系统临时目录）：`LANTAI_TEST_LARGE_MB=1024` 的续传测试上传 1 073 754 169 字节（17 个 64 MiB 分片，第三片中途断开后只补传缺的 15 片）、分两段 Range 下载，整件 SHA-256 一致；最终复跑上传约 2.5 秒、全程约 3.1 秒，传输期间堆占用增长约 3.6 MiB（默认 32 MiB 规模约 1.6 MiB），不随文件大小线性增长。空间不足、文件占用、硬链接不可用与改名失败只经故障注入测试覆盖，真实文件系统上的故障演练仍属 TEST-M1-06。
 
-M2 的 T01/T02 适配接口、存储迁移与接线边界见[协作适配契约](contracts/collaboration-foundation.md)。它们尚未增加远程命令或自动 GC 调度。
+M2 的 T01/T02 适配接口、存储迁移与接线边界见[协作适配契约](contracts/collaboration-foundation.md)。到期清除与 GC 由 T08 调度器执行，`serve` 中默认关闭，需在 `config.yaml` 设置 `lifecycle.scheduler: true`，见[生命周期调度](contracts/lifecycle-scheduler.md)；扩展包导入、启用、探测、熔断和 `lantai ext` 见[扩展包治理](contracts/extension-governance.md)。

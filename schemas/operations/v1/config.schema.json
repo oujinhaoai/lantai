@@ -131,6 +131,29 @@
           "maximum": 1099511627776
         }
       }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "T08 到期清除、提醒与 GC 调度。默认关闭；开启是明确的部署决定，业务是否允许清除仍由台账规则与项目策略 trash.auto_purge 裁决。",
+      "properties": {
+        "scheduler": {
+          "type": "boolean",
+          "description": "是否在 serve 中周期运行调度；默认 false。"
+        },
+        "interval_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "description": "两次调度之间的秒数；默认 300。"
+        },
+        "batch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "每次调度每类最多处理的条目；默认 100。"
+        }
+      }
     }
   }
 }

@@ -65,6 +65,7 @@
     { "code": "RESULT_NOT_READY", "http_status": 409, "retryable": true, "recovery_action": "poll_operation", "owner": "agent_execution", "summary": "结果尚未封存；稍后查询" },
     { "code": "SIDE_EFFECT_UNKNOWN", "http_status": 409, "retryable": false, "recovery_action": "reconcile", "owner": "agent_execution", "summary": "外部副作用结果不明；先对账，禁止换键重试" },
     { "code": "EXTENSION_ACTIVATION_STALE", "http_status": 409, "retryable": false, "recovery_action": "refresh_state", "owner": "extensions", "summary": "扩展激活代次、包摘要或启用状态已不是当前值" },
+    { "code": "EXTENSION_BREAKER_OPEN", "http_status": 503, "retryable": true, "recovery_action": "retry", "owner": "extensions", "summary": "扩展熔断键处于 open 或半开试探名额已占用；冷却结束前不派发新调用" },
 
     { "code": "INTERNAL", "http_status": 500, "retryable": false, "recovery_action": "poll_operation", "owner": "common", "summary": "服务端内部错误；先查询 operation，再按其结果决定，不盲重启外部副作用" },
     { "code": "MAINTENANCE_MODE", "http_status": 503, "retryable": true, "recovery_action": "retry", "owner": "operations", "summary": "实例处于维护、迁移或恢复状态，暂不接受该请求" },

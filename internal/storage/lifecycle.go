@@ -661,3 +661,15 @@ func (s *Service) SnapshotLifecycleRecords(ctx context.Context, proofs []install
 	})
 	return out, nil
 }
+
+// GCState reports storage's physical progress for one candidate operation:
+// "" (never started), "deleting", "done" or "cancelled". T08 uses it only to
+// stop rescheduling finished candidates; collection itself always rechecks.
+func (s *Service) GCState(ctx context.Context, op ids.ID) (string, error) {
+	var state string
+	err := s.db.QueryRowContext(ctx, `SELECT state FROM storage_gc_deletions WHERE operation_id=?`, op).Scan(&state)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return state, err
+}

@@ -45,7 +45,9 @@ main 中的 `extensions_registrations`、`extensions_contributions` 和 `extensi
 
 历史证据字节、package 来源身份及旧发布绑定保持不可变。Go 的可选字段使用 `omitempty`，缺省来源的旧证据读回及重新规范化仍得到相同字节和摘要。新发布不重写旧证据；新结果接受要求当前发布身份。历史证据是否适用由固定 Profile/业务规则判断，不通过重放旧来源获得新接受权。
 
-当前编译包 `org.lantai.corecheck` v0.1.0 只提供 `org.lantai.corecheck.manifest`。`ValidateManifest` 在调用方提供的已获授权固定字节上校验 manifest 身份及内容摘要，输入最多 8 MiB，输出带 producer 的结构检查结果；它不读取素材目录、不写数据库，也不完成 Profile 验收或人审。合法 `fail` 是证据；解析或身份不符不会变成 pass。processor 的输入/输出 schema 在 M1 固定，文件协议进程宿主到 M2 实现。
+当前编译包 `org.lantai.corecheck` v0.1.0 只提供 `org.lantai.corecheck.manifest`。`ValidateManifest` 在调用方提供的已获授权固定字节上校验 manifest 身份及内容摘要，输入最多 8 MiB，输出带 producer 的结构检查结果；它不读取素材目录、不写数据库，也不完成 Profile 验收或人审。合法 `fail` 是证据；解析或身份不符不会变成 pass。processor 的输入/输出 schema 在 M1 固定；M2 的文件协议宿主、外部包导入与治理见[扩展包治理](extension-governance.md)。
+
+M2 起 `VerifyProducer` 另接受 `source=package`：只核对已导入包的 ID/版本/包摘要与已声明贡献，不要求核心发布摘要，也不代表该包当前启用、获审定或可用于某项目；新结果的接受仍由 T06/T09 的激活代次与最终门禁决定。processor-input 可带冻结 `config` 与 `mode: probe`，均为可选字段，旧文档保持有效。
 
 ## 验证
 

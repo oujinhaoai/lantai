@@ -10,4 +10,4 @@ M1 只登记内置服务端/节点 processor、validator；M2 用文件协议 sp
 
 当前 `corecheck/` 是随核心编译的纯 manifest 结构校验器。`packages.go` 显式嵌入清单、配置 schema、许可证据和源制品，由 `internal/extensions` 在维护屏障内统一登记；它不扫描其他目录。修改包文件须更新清单中的文件 SHA256/大小并升级版本。包内容摘要与当前可执行制品摘要分别绑定，产物/证据带 `builtin_release` 和两个摘要；算法及接口见[内置登记契约](../docs/contracts/extensions.md)。合法检查不合格不会变成人审批准，M1 不执行外部 processor。
 
-M2 的受信任 corecheck 已由 `internal/extensions/oneshot.go` 通过当前核心二进制的私有入口运行；独立 Job 和证据接受归 T06。此路径不开放外部包导入或通用沙箱，见[手动执行与检查作业](../docs/contracts/manual-execution.md)。
+M2 的受信任 corecheck 由 `internal/extensions/oneshot.go` 通过当前核心二进制的私有入口运行；独立 Job 和证据接受归 T06。独立安装的外部包不放入本目录编译：它们作为 `plugin` 资产提交，经台账审定、管理员导入与 HumanGrant 启用后由一次性宿主运行，见[扩展包治理](../docs/contracts/extension-governance.md)。合成的一次性检查器/本机命令示例位于 [`tests/fixtures/public/oneshot`](../tests/fixtures/public/oneshot/)，使用 [`sdk/go/extension`](../sdk/go/extension/)。

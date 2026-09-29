@@ -17,6 +17,8 @@ security:
   - bearerSession: []
   - cookieSession: []
 tags:
+  - name: extensions
+    description: T09 扩展包静态导入、启用诊断、受限探测与本机命令投影；启停经人审授权
   - name: operations
     description: 持久操作状态查询
   - name: transfer
@@ -1375,6 +1377,119 @@ paths:
       summary: inbox/read
       tags:
         - collaboration
+  /api/v1/extensions/packages:
+    get:
+      operationId: getExtensionsPackages
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2ExtensionsPackageView'
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 已导入包及其当前台账审定事实；导入不等于获准或启用。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: extensions/packages
+      tags:
+        - extensions
+    post:
+      operationId: postExtensionsPackages
+      description: 静态登记一个已提交 plugin 资产版本的包字节；不执行入口、安装脚本或探测。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2ExtensionsImportRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2ExtensionsPackageRecord'
+          description: 包登记（同 ID/版本不可换摘要）。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: extensions/packages
+      tags:
+        - extensions
+  /api/v1/extensions/enablements:
+    get:
+      operationId: getExtensionsEnablements
+      description: 启用意图、运行激活、熔断和拒绝原因诊断；启停本身经 /api/v1/human 的 extension_enable / extension_disable。
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2ExtensionsEnablementView'
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 诊断视图，不授予任何能力。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: extensions/enablements
+      tags:
+        - extensions
+  /api/v1/extensions/enablements/{id}/probe:
+    post:
+      operationId: postExtensionsEnablementsIdProbe
+      description: 在启用授权已允许探测时，按当前环境重跑受限合成探测；不启用、不恢复已停用或撤权的包。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2ExtensionsActivation'
+          description: 探测证据绑定包、入口、配置与宿主环境摘要。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: extensions/enablements/{id}/probe
+      tags:
+        - extensions
+  /api/v1/extensions/commands:
+    get:
+      operationId: getExtensionsCommands
+      description: 当前主体可见的已启用本机 cli.command；本机仍须显式安装并核验入口摘要，不下发令牌或人审能力。
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/M2ExtensionsCLICommand'
+                    type: array
+                required:
+                  - items
+                type: object
+          description: 已启用命令的元数据。
+        default:
+          $ref: '#/components/responses/Error'
+      summary: extensions/commands
+      tags:
+        - extensions
   /api/v1/jobs:
     get:
       operationId: getJobs
@@ -4469,6 +4584,202 @@ components:
       required:
         - action
         - operation_id
+      type: object
+    M2ExtensionsImportRequest:
+      additionalProperties: false
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required:
+        - asset_id
+        - version_id
+      type: object
+    M2ExtensionsPackageRecord:
+      properties:
+        extension_id:
+          type: string
+        extension_version:
+          type: string
+        package_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        source:
+          const: package
+        ref:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        imported_by:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        imported_at:
+          type: string
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        manifest:
+          $ref: ../schemas/extensions/v1/extension.schema.json
+      required:
+        - extension_id
+        - extension_version
+        - package_digest
+        - manifest_digest
+        - source
+        - ref
+        - manifest
+      type: object
+    M2ExtensionsPackageReview:
+      properties:
+        approved:
+          type: boolean
+        review_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        state:
+          type: string
+      required:
+        - approved
+        - state
+      type: object
+    M2ExtensionsPackageView:
+      allOf:
+        - $ref: '#/components/schemas/M2ExtensionsPackageRecord'
+        - properties:
+            review:
+              $ref: '#/components/schemas/M2ExtensionsPackageReview'
+          required:
+            - review
+          type: object
+    M2ExtensionsActivation:
+      properties:
+        enablement_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        generation:
+          type: integer
+        state:
+          enum:
+            - pending_probe
+            - ready
+            - probe_failed
+          type: string
+        environment_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        environment:
+          type: object
+        probe_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        failure:
+          type: string
+        updated_at:
+          type: string
+      required:
+        - enablement_id
+        - generation
+        - state
+        - environment_digest
+      type: object
+    M2ExtensionsEnablementView:
+      properties:
+        enablement_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        extension_id:
+          type: string
+        extension_version:
+          type: string
+        package_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        target:
+          enum:
+            - server
+            - cli
+          type: string
+        scope_kind:
+          enum:
+            - instance
+            - project
+            - user
+          type: string
+        state:
+          enum:
+            - enabled
+            - disabled
+          type: string
+        revision:
+          type: integer
+        generation:
+          type: integer
+        config_revision:
+          type: integer
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        trust:
+          type: string
+        unenforced:
+          items:
+            type: string
+          type: array
+        review:
+          $ref: '#/components/schemas/M2ExtensionsPackageReview'
+        activation:
+          $ref: '#/components/schemas/M2ExtensionsActivation'
+        breaker:
+          type: object
+        reasons:
+          items:
+            type: string
+          type: array
+        host:
+          type: object
+      required:
+        - enablement_id
+        - extension_id
+        - target
+        - state
+        - generation
+        - reasons
+      type: object
+    M2ExtensionsCLICommand:
+      additionalProperties: false
+      properties:
+        enablement_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        generation:
+          type: integer
+        extension_id:
+          type: string
+        extension_version:
+          type: string
+        package_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        contribution_id:
+          type: string
+        command:
+          type: string
+        entry:
+          type: string
+        entry_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        config:
+          type: object
+        config_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        producer:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/producer_ref
+      required:
+        - enablement_id
+        - generation
+        - extension_id
+        - extension_version
+        - package_digest
+        - contribution_id
+        - command
+        - entry
+        - entry_digest
+        - config
+        - config_digest
+        - producer
       type: object
     M2JobsControl:
       additionalProperties: false

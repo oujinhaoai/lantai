@@ -83,8 +83,8 @@ type DatabaseRule struct {
 var Databases = []DatabaseRule{
 	{Main, []string{"identity", "extensions"}, "身份、权限、策略、敏感授权与扩展登记/启用配置"},
 	{Ledger, []string{"ledger", "provenance"}, "版本登记、审定、发布、锁定、生命周期与限制生效修订"},
-	{Runtime, []string{"identity", "storage", "tasks", "workflow", "agent_execution", "jobs", "node", "extensions", "query"},
-		"会话、上传与内容授权、任务与租约、流程、执行与作业、扩展激活、收件箱已读位置"},
+	{Runtime, []string{"identity", "storage", "tasks", "workflow", "agent_execution", "jobs", "node", "extensions", "query", "operations"},
+		"会话、上传与内容授权、任务与租约、流程、执行与作业、扩展激活、收件箱已读位置、生命周期调度登记"},
 	{Events, []string{"events"}, "事件收录、全局序号与审计水位"},
 	{Index, []string{"query"}, "可删除重建的投影"},
 }

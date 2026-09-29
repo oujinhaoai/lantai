@@ -157,6 +157,27 @@ func (e CommonV1ExecutionInvocationOutcome) Valid() bool {
 	}
 }
 
+// Defines values for CommonV1ExecutionProtocolId.
+const (
+	CommonV1ExecutionProtocolIdLantaiAgentExecutionv1 CommonV1ExecutionProtocolId = "lantai.agent-execution/v1"
+	CommonV1ExecutionProtocolIdLantaiHostControlv1    CommonV1ExecutionProtocolId = "lantai.host-control/v1"
+	CommonV1ExecutionProtocolIdLantaiProcessorv1      CommonV1ExecutionProtocolId = "lantai.processor/v1"
+)
+
+// Valid indicates whether the value is a known member of the CommonV1ExecutionProtocolId enum.
+func (e CommonV1ExecutionProtocolId) Valid() bool {
+	switch e {
+	case CommonV1ExecutionProtocolIdLantaiAgentExecutionv1:
+		return true
+	case CommonV1ExecutionProtocolIdLantaiHostControlv1:
+		return true
+	case CommonV1ExecutionProtocolIdLantaiProcessorv1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CommonV1ExecutionResumeClass.
 const (
 	CommonV1ExecutionResumeClassBackendCheckpoint CommonV1ExecutionResumeClass = "backend_checkpoint"
@@ -487,6 +508,228 @@ func (e LantaiExecutionProfileV1NetworkPolicy) Valid() bool {
 	}
 }
 
+// Defines values for LantaiExtensionV1ContributesTarget.
+const (
+	LantaiExtensionV1ContributesTargetCli    LantaiExtensionV1ContributesTarget = "cli"
+	LantaiExtensionV1ContributesTargetNode   LantaiExtensionV1ContributesTarget = "node"
+	LantaiExtensionV1ContributesTargetServer LantaiExtensionV1ContributesTarget = "server"
+	LantaiExtensionV1ContributesTargetWeb    LantaiExtensionV1ContributesTarget = "web"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1ContributesTarget enum.
+func (e LantaiExtensionV1ContributesTarget) Valid() bool {
+	switch e {
+	case LantaiExtensionV1ContributesTargetCli:
+		return true
+	case LantaiExtensionV1ContributesTargetNode:
+		return true
+	case LantaiExtensionV1ContributesTargetServer:
+		return true
+	case LantaiExtensionV1ContributesTargetWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1PermissionsFilesystem.
+const (
+	LantaiExtensionV1PermissionsFilesystemGrantedInputRead LantaiExtensionV1PermissionsFilesystem = "granted-input:read"
+	LantaiExtensionV1PermissionsFilesystemRunOutputWrite   LantaiExtensionV1PermissionsFilesystem = "run-output:write"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1PermissionsFilesystem enum.
+func (e LantaiExtensionV1PermissionsFilesystem) Valid() bool {
+	switch e {
+	case LantaiExtensionV1PermissionsFilesystemGrantedInputRead:
+		return true
+	case LantaiExtensionV1PermissionsFilesystemRunOutputWrite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsCliLifecycle.
+const (
+	LantaiExtensionV1TargetsCliLifecycleBuiltin LantaiExtensionV1TargetsCliLifecycle = "builtin"
+	LantaiExtensionV1TargetsCliLifecycleOneshot LantaiExtensionV1TargetsCliLifecycle = "oneshot"
+	LantaiExtensionV1TargetsCliLifecycleView    LantaiExtensionV1TargetsCliLifecycle = "view"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsCliLifecycle enum.
+func (e LantaiExtensionV1TargetsCliLifecycle) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsCliLifecycleBuiltin:
+		return true
+	case LantaiExtensionV1TargetsCliLifecycleOneshot:
+		return true
+	case LantaiExtensionV1TargetsCliLifecycleView:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsCliRuntime.
+const (
+	LantaiExtensionV1TargetsCliRuntimeBuiltin     LantaiExtensionV1TargetsCliRuntime = "builtin"
+	LantaiExtensionV1TargetsCliRuntimeDeclarative LantaiExtensionV1TargetsCliRuntime = "declarative"
+	LantaiExtensionV1TargetsCliRuntimeExec        LantaiExtensionV1TargetsCliRuntime = "exec"
+	LantaiExtensionV1TargetsCliRuntimeModule      LantaiExtensionV1TargetsCliRuntime = "module"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsCliRuntime enum.
+func (e LantaiExtensionV1TargetsCliRuntime) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsCliRuntimeBuiltin:
+		return true
+	case LantaiExtensionV1TargetsCliRuntimeDeclarative:
+		return true
+	case LantaiExtensionV1TargetsCliRuntimeExec:
+		return true
+	case LantaiExtensionV1TargetsCliRuntimeModule:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsNodeLifecycle.
+const (
+	LantaiExtensionV1TargetsNodeLifecycleBuiltin LantaiExtensionV1TargetsNodeLifecycle = "builtin"
+	LantaiExtensionV1TargetsNodeLifecycleOneshot LantaiExtensionV1TargetsNodeLifecycle = "oneshot"
+	LantaiExtensionV1TargetsNodeLifecycleView    LantaiExtensionV1TargetsNodeLifecycle = "view"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsNodeLifecycle enum.
+func (e LantaiExtensionV1TargetsNodeLifecycle) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsNodeLifecycleBuiltin:
+		return true
+	case LantaiExtensionV1TargetsNodeLifecycleOneshot:
+		return true
+	case LantaiExtensionV1TargetsNodeLifecycleView:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsNodeRuntime.
+const (
+	LantaiExtensionV1TargetsNodeRuntimeBuiltin     LantaiExtensionV1TargetsNodeRuntime = "builtin"
+	LantaiExtensionV1TargetsNodeRuntimeDeclarative LantaiExtensionV1TargetsNodeRuntime = "declarative"
+	LantaiExtensionV1TargetsNodeRuntimeExec        LantaiExtensionV1TargetsNodeRuntime = "exec"
+	LantaiExtensionV1TargetsNodeRuntimeModule      LantaiExtensionV1TargetsNodeRuntime = "module"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsNodeRuntime enum.
+func (e LantaiExtensionV1TargetsNodeRuntime) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsNodeRuntimeBuiltin:
+		return true
+	case LantaiExtensionV1TargetsNodeRuntimeDeclarative:
+		return true
+	case LantaiExtensionV1TargetsNodeRuntimeExec:
+		return true
+	case LantaiExtensionV1TargetsNodeRuntimeModule:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsServerLifecycle.
+const (
+	LantaiExtensionV1TargetsServerLifecycleBuiltin LantaiExtensionV1TargetsServerLifecycle = "builtin"
+	LantaiExtensionV1TargetsServerLifecycleOneshot LantaiExtensionV1TargetsServerLifecycle = "oneshot"
+	LantaiExtensionV1TargetsServerLifecycleView    LantaiExtensionV1TargetsServerLifecycle = "view"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsServerLifecycle enum.
+func (e LantaiExtensionV1TargetsServerLifecycle) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsServerLifecycleBuiltin:
+		return true
+	case LantaiExtensionV1TargetsServerLifecycleOneshot:
+		return true
+	case LantaiExtensionV1TargetsServerLifecycleView:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsServerRuntime.
+const (
+	LantaiExtensionV1TargetsServerRuntimeBuiltin     LantaiExtensionV1TargetsServerRuntime = "builtin"
+	LantaiExtensionV1TargetsServerRuntimeDeclarative LantaiExtensionV1TargetsServerRuntime = "declarative"
+	LantaiExtensionV1TargetsServerRuntimeExec        LantaiExtensionV1TargetsServerRuntime = "exec"
+	LantaiExtensionV1TargetsServerRuntimeModule      LantaiExtensionV1TargetsServerRuntime = "module"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsServerRuntime enum.
+func (e LantaiExtensionV1TargetsServerRuntime) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsServerRuntimeBuiltin:
+		return true
+	case LantaiExtensionV1TargetsServerRuntimeDeclarative:
+		return true
+	case LantaiExtensionV1TargetsServerRuntimeExec:
+		return true
+	case LantaiExtensionV1TargetsServerRuntimeModule:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsWebLifecycle.
+const (
+	LantaiExtensionV1TargetsWebLifecycleBuiltin LantaiExtensionV1TargetsWebLifecycle = "builtin"
+	LantaiExtensionV1TargetsWebLifecycleOneshot LantaiExtensionV1TargetsWebLifecycle = "oneshot"
+	LantaiExtensionV1TargetsWebLifecycleView    LantaiExtensionV1TargetsWebLifecycle = "view"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsWebLifecycle enum.
+func (e LantaiExtensionV1TargetsWebLifecycle) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsWebLifecycleBuiltin:
+		return true
+	case LantaiExtensionV1TargetsWebLifecycleOneshot:
+		return true
+	case LantaiExtensionV1TargetsWebLifecycleView:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LantaiExtensionV1TargetsWebRuntime.
+const (
+	LantaiExtensionV1TargetsWebRuntimeBuiltin     LantaiExtensionV1TargetsWebRuntime = "builtin"
+	LantaiExtensionV1TargetsWebRuntimeDeclarative LantaiExtensionV1TargetsWebRuntime = "declarative"
+	LantaiExtensionV1TargetsWebRuntimeExec        LantaiExtensionV1TargetsWebRuntime = "exec"
+	LantaiExtensionV1TargetsWebRuntimeModule      LantaiExtensionV1TargetsWebRuntime = "module"
+)
+
+// Valid indicates whether the value is a known member of the LantaiExtensionV1TargetsWebRuntime enum.
+func (e LantaiExtensionV1TargetsWebRuntime) Valid() bool {
+	switch e {
+	case LantaiExtensionV1TargetsWebRuntimeBuiltin:
+		return true
+	case LantaiExtensionV1TargetsWebRuntimeDeclarative:
+		return true
+	case LantaiExtensionV1TargetsWebRuntimeExec:
+		return true
+	case LantaiExtensionV1TargetsWebRuntimeModule:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LantaiJobAttemptV1State.
 const (
 	LantaiJobAttemptV1StateCancelling          LantaiJobAttemptV1State = "cancelling"
@@ -760,6 +1003,84 @@ func (e LantaiTasksDefsV1TaskState) Valid() bool {
 	case LantaiTasksDefsV1TaskStateTodo:
 		return true
 	case LantaiTasksDefsV1TaskStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for M2ExtensionsActivationState.
+const (
+	M2ExtensionsActivationStatePendingProbe M2ExtensionsActivationState = "pending_probe"
+	M2ExtensionsActivationStateProbeFailed  M2ExtensionsActivationState = "probe_failed"
+	M2ExtensionsActivationStateReady        M2ExtensionsActivationState = "ready"
+)
+
+// Valid indicates whether the value is a known member of the M2ExtensionsActivationState enum.
+func (e M2ExtensionsActivationState) Valid() bool {
+	switch e {
+	case M2ExtensionsActivationStatePendingProbe:
+		return true
+	case M2ExtensionsActivationStateProbeFailed:
+		return true
+	case M2ExtensionsActivationStateReady:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for M2ExtensionsEnablementViewScopeKind.
+const (
+	M2ExtensionsEnablementViewScopeKindInstance M2ExtensionsEnablementViewScopeKind = "instance"
+	M2ExtensionsEnablementViewScopeKindProject  M2ExtensionsEnablementViewScopeKind = "project"
+	M2ExtensionsEnablementViewScopeKindUser     M2ExtensionsEnablementViewScopeKind = "user"
+)
+
+// Valid indicates whether the value is a known member of the M2ExtensionsEnablementViewScopeKind enum.
+func (e M2ExtensionsEnablementViewScopeKind) Valid() bool {
+	switch e {
+	case M2ExtensionsEnablementViewScopeKindInstance:
+		return true
+	case M2ExtensionsEnablementViewScopeKindProject:
+		return true
+	case M2ExtensionsEnablementViewScopeKindUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for M2ExtensionsEnablementViewState.
+const (
+	M2ExtensionsEnablementViewStateDisabled M2ExtensionsEnablementViewState = "disabled"
+	M2ExtensionsEnablementViewStateEnabled  M2ExtensionsEnablementViewState = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the M2ExtensionsEnablementViewState enum.
+func (e M2ExtensionsEnablementViewState) Valid() bool {
+	switch e {
+	case M2ExtensionsEnablementViewStateDisabled:
+		return true
+	case M2ExtensionsEnablementViewStateEnabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for M2ExtensionsEnablementViewTarget.
+const (
+	M2ExtensionsEnablementViewTargetCli    M2ExtensionsEnablementViewTarget = "cli"
+	M2ExtensionsEnablementViewTargetServer M2ExtensionsEnablementViewTarget = "server"
+)
+
+// Valid indicates whether the value is a known member of the M2ExtensionsEnablementViewTarget enum.
+func (e M2ExtensionsEnablementViewTarget) Valid() bool {
+	switch e {
+	case M2ExtensionsEnablementViewTargetCli:
+		return true
+	case M2ExtensionsEnablementViewTargetServer:
 		return true
 	default:
 		return false
@@ -1423,6 +1744,9 @@ type CommonV1ExecutionEffectState string
 // CommonV1ExecutionInvocationOutcome 一次性处理器或作业单次调用的运行结论，与检查的业务结论分开：completed 表示退出码 0 且结果完整、schema 合法（业务结论可以是 fail）；runtime_fault 表示崩溃、非零退出、超时、结果缺失或畸形，只有它计入熔断；not_dispatched（派发前拒绝或排队失败）、cancelled（已确认停止的取消）不计故障；unresolved 表示已派发但停止状态未知，须先回收或对账。
 type CommonV1ExecutionInvocationOutcome string
 
+// CommonV1ExecutionProtocolId 执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。
+type CommonV1ExecutionProtocolId string
+
 // CommonV1ExecutionResumeClass defines model for CommonV1ExecutionResumeClass.
 type CommonV1ExecutionResumeClass string
 
@@ -1575,6 +1899,9 @@ type ExpectedRevision = int
 
 // ExtensionId 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
 type ExtensionId = string
+
+// ExtensionPointId 扩展点 ID，例如 artifact.processor、asset.validator；支持情况以 T09 登记为准。
+type ExtensionPointId = string
 
 // ExtensionVersion 扩展包语义化版本。
 type ExtensionVersion = string
@@ -2085,6 +2412,171 @@ type LantaiExecutionProfileV1AdapterKind string
 
 // LantaiExecutionProfileV1NetworkPolicy defines model for LantaiExecutionProfileV1.NetworkPolicy.
 type LantaiExecutionProfileV1NetworkPolicy string
+
+// LantaiExtensionV1 唯一包清单extension.yaml。包摘要由外部对实际包文件计算，不在自身递归保存；CLI/Web为声明保留，M1登记拒绝激活。
+type LantaiExtensionV1 struct {
+	Compatibility struct {
+		HostApi        string `json:"host_api"`
+		RequiredPoints []struct {
+			// Id 扩展点 ID，例如 artifact.processor、asset.validator；支持情况以 T09 登记为准。
+			Id      ExtensionPointId `json:"id"`
+			Version int              `json:"version"`
+		} `json:"required_points"`
+	} `json:"compatibility"`
+
+	// ConfigSchema 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+	ConfigSchema RelativePath `json:"config_schema"`
+	Contract     interface{}  `json:"contract"`
+	Contributes  []struct {
+		// Id 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+		Id ExtensionId `json:"id"`
+
+		// InputSchema 契约标识 lantai.<name>/v<major>。
+		InputSchema ContractId `json:"input_schema"`
+
+		// OutputSchema 契约标识 lantai.<name>/v<major>。
+		OutputSchema ContractId `json:"output_schema"`
+
+		// Point 扩展点 ID，例如 artifact.processor、asset.validator；支持情况以 T09 登记为准。
+		Point  ExtensionPointId                   `json:"point"`
+		Target LantaiExtensionV1ContributesTarget `json:"target"`
+	} `json:"contributes"`
+	Dependencies []struct {
+		// Id 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+		Id ExtensionId `json:"id"`
+
+		// Version 扩展包语义化版本。
+		Version ExtensionVersion `json:"version"`
+	} `json:"dependencies"`
+	Files []struct {
+		// Path 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+		Path RelativePath `json:"path"`
+
+		// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+		Sha256 Sha256Hex `json:"sha256"`
+		Size   int       `json:"size"`
+	} `json:"files"`
+
+	// Id 扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。
+	Id      ExtensionId `json:"id"`
+	License struct {
+		Files []RelativePath `json:"files"`
+		Spdx  string         `json:"spdx"`
+	} `json:"license"`
+	Permissions struct {
+		Api        []CommandType                            `json:"api"`
+		Filesystem []LantaiExtensionV1PermissionsFilesystem `json:"filesystem"`
+		Network    []string                                 `json:"network"`
+		SecretRefs []string                                 `json:"secret_refs"`
+	} `json:"permissions"`
+	PlatformArtifacts []struct {
+		// Path 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+		Path     RelativePath `json:"path"`
+		Platform string       `json:"platform"`
+
+		// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+		Sha256 Sha256Hex `json:"sha256"`
+		Size   int       `json:"size"`
+	} `json:"platform_artifacts"`
+	ResourceLimits struct {
+		CpuSeconds     int `json:"cpu_seconds"`
+		MaxInputBytes  int `json:"max_input_bytes"`
+		MaxOutputBytes int `json:"max_output_bytes"`
+		MaxOutputFiles int `json:"max_output_files"`
+		MemoryBytes    int `json:"memory_bytes"`
+		TimeoutSeconds int `json:"timeout_seconds"`
+	} `json:"resource_limits"`
+	Targets struct {
+		Cli *struct {
+			// Entry 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+			Entry     RelativePath                         `json:"entry"`
+			Lifecycle LantaiExtensionV1TargetsCliLifecycle `json:"lifecycle"`
+			Processor LantaiExtensionV1Processor           `json:"processor"`
+
+			// Protocol 执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。
+			Protocol CommonV1ExecutionProtocolId        `json:"protocol"`
+			Runtime  LantaiExtensionV1TargetsCliRuntime `json:"runtime"`
+		} `json:"cli,omitempty"`
+		Node *struct {
+			// Entry 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+			Entry     RelativePath                          `json:"entry"`
+			Lifecycle LantaiExtensionV1TargetsNodeLifecycle `json:"lifecycle"`
+			Processor LantaiExtensionV1Processor            `json:"processor"`
+
+			// Protocol 执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。
+			Protocol CommonV1ExecutionProtocolId         `json:"protocol"`
+			Runtime  LantaiExtensionV1TargetsNodeRuntime `json:"runtime"`
+		} `json:"node,omitempty"`
+		Server *struct {
+			// Entry 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+			Entry     RelativePath                            `json:"entry"`
+			Lifecycle LantaiExtensionV1TargetsServerLifecycle `json:"lifecycle"`
+			Processor LantaiExtensionV1Processor              `json:"processor"`
+
+			// Protocol 执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。
+			Protocol CommonV1ExecutionProtocolId           `json:"protocol"`
+			Runtime  LantaiExtensionV1TargetsServerRuntime `json:"runtime"`
+		} `json:"server,omitempty"`
+		Web *struct {
+			// Entry 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
+			Entry     RelativePath                         `json:"entry"`
+			Lifecycle LantaiExtensionV1TargetsWebLifecycle `json:"lifecycle"`
+			Processor LantaiExtensionV1Processor           `json:"processor"`
+
+			// Protocol 执行相关协议族。agent-execution 是任务内 Agent 执行的业务协议；processor 是一次性处理器文件协议（spawn/run/exit，无控制动作）；host-control 是常驻实例控制协议，按真实需求实现，M1/M2 不启用。
+			Protocol CommonV1ExecutionProtocolId        `json:"protocol"`
+			Runtime  LantaiExtensionV1TargetsWebRuntime `json:"runtime"`
+		} `json:"web,omitempty"`
+	} `json:"targets"`
+
+	// Version 扩展包语义化版本。
+	Version ExtensionVersion `json:"version"`
+}
+
+// LantaiExtensionV1ContributesTarget defines model for LantaiExtensionV1.Contributes.Target.
+type LantaiExtensionV1ContributesTarget string
+
+// LantaiExtensionV1PermissionsFilesystem defines model for LantaiExtensionV1.Permissions.Filesystem.
+type LantaiExtensionV1PermissionsFilesystem string
+
+// LantaiExtensionV1TargetsCliLifecycle defines model for LantaiExtensionV1.Targets.Cli.Lifecycle.
+type LantaiExtensionV1TargetsCliLifecycle string
+
+// LantaiExtensionV1TargetsCliRuntime defines model for LantaiExtensionV1.Targets.Cli.Runtime.
+type LantaiExtensionV1TargetsCliRuntime string
+
+// LantaiExtensionV1TargetsNodeLifecycle defines model for LantaiExtensionV1.Targets.Node.Lifecycle.
+type LantaiExtensionV1TargetsNodeLifecycle string
+
+// LantaiExtensionV1TargetsNodeRuntime defines model for LantaiExtensionV1.Targets.Node.Runtime.
+type LantaiExtensionV1TargetsNodeRuntime string
+
+// LantaiExtensionV1TargetsServerLifecycle defines model for LantaiExtensionV1.Targets.Server.Lifecycle.
+type LantaiExtensionV1TargetsServerLifecycle string
+
+// LantaiExtensionV1TargetsServerRuntime defines model for LantaiExtensionV1.Targets.Server.Runtime.
+type LantaiExtensionV1TargetsServerRuntime string
+
+// LantaiExtensionV1TargetsWebLifecycle defines model for LantaiExtensionV1.Targets.Web.Lifecycle.
+type LantaiExtensionV1TargetsWebLifecycle string
+
+// LantaiExtensionV1TargetsWebRuntime defines model for LantaiExtensionV1.Targets.Web.Runtime.
+type LantaiExtensionV1TargetsWebRuntime string
+
+// LantaiExtensionV1Processor defines model for LantaiExtensionV1Processor.
+type LantaiExtensionV1Processor struct {
+	Accepts struct {
+		AssetTypes []string `json:"asset_types"`
+		Extensions []string `json:"extensions"`
+	} `json:"accepts"`
+	Concurrency int `json:"concurrency"`
+	Produces    struct {
+		Files   bool         `json:"files"`
+		Records []ContractId `json:"records"`
+	} `json:"produces"`
+	Requires []string `json:"requires"`
+	Timeout  string   `json:"timeout"`
+}
 
 // LantaiFlowV1 defines model for LantaiFlowV1.
 type LantaiFlowV1 struct {
@@ -2745,6 +3237,52 @@ type M2CommandsResultRef struct {
 	Uri      *string `json:"uri,omitempty"`
 }
 
+// M2ExtensionsActivation defines model for M2ExtensionsActivation.
+type M2ExtensionsActivation struct {
+	// EnablementId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EnablementId Ulid                    `json:"enablement_id"`
+	Environment  *map[string]interface{} `json:"environment,omitempty"`
+
+	// EnvironmentDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	EnvironmentDigest Digest  `json:"environment_digest"`
+	Failure           *string `json:"failure,omitempty"`
+	Generation        int     `json:"generation"`
+
+	// ProbeId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProbeId   *Ulid                       `json:"probe_id,omitempty"`
+	State     M2ExtensionsActivationState `json:"state"`
+	UpdatedAt *string                     `json:"updated_at,omitempty"`
+}
+
+// M2ExtensionsActivationState defines model for M2ExtensionsActivation.State.
+type M2ExtensionsActivationState string
+
+// M2ExtensionsCLICommand defines model for M2ExtensionsCLICommand.
+type M2ExtensionsCLICommand struct {
+	Command string                 `json:"command"`
+	Config  map[string]interface{} `json:"config"`
+
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest   Digest `json:"config_digest"`
+	ContributionId string `json:"contribution_id"`
+
+	// EnablementId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EnablementId Ulid   `json:"enablement_id"`
+	Entry        string `json:"entry"`
+
+	// EntryDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	EntryDigest      Digest `json:"entry_digest"`
+	ExtensionId      string `json:"extension_id"`
+	ExtensionVersion string `json:"extension_version"`
+	Generation       int    `json:"generation"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest `json:"package_digest"`
+
+	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
+	Producer ProducerRef `json:"producer"`
+}
+
 // M2ExtensionsCheckResult defines model for M2ExtensionsCheckResult.
 type M2ExtensionsCheckResult struct {
 	Contract string    `json:"contract"`
@@ -2757,6 +3295,126 @@ type M2ExtensionsCheckResult struct {
 	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
 	Ref     PermanentRef `json:"ref"`
 	Verdict string       `json:"verdict"`
+}
+
+// M2ExtensionsEnablementView defines model for M2ExtensionsEnablementView.
+type M2ExtensionsEnablementView struct {
+	Activation *M2ExtensionsActivation `json:"activation,omitempty"`
+	Breaker    *map[string]interface{} `json:"breaker,omitempty"`
+
+	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ConfigDigest   *Digest `json:"config_digest,omitempty"`
+	ConfigRevision *int    `json:"config_revision,omitempty"`
+
+	// EnablementId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	EnablementId     Ulid                    `json:"enablement_id"`
+	ExtensionId      string                  `json:"extension_id"`
+	ExtensionVersion *string                 `json:"extension_version,omitempty"`
+	Generation       int                     `json:"generation"`
+	Host             *map[string]interface{} `json:"host,omitempty"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest *Digest                              `json:"package_digest,omitempty"`
+	Reasons       []string                             `json:"reasons"`
+	Review        *M2ExtensionsPackageReview           `json:"review,omitempty"`
+	Revision      *int                                 `json:"revision,omitempty"`
+	ScopeKind     *M2ExtensionsEnablementViewScopeKind `json:"scope_kind,omitempty"`
+	State         M2ExtensionsEnablementViewState      `json:"state"`
+	Target        M2ExtensionsEnablementViewTarget     `json:"target"`
+	Trust         *string                              `json:"trust,omitempty"`
+	Unenforced    *[]string                            `json:"unenforced,omitempty"`
+}
+
+// M2ExtensionsEnablementViewScopeKind defines model for M2ExtensionsEnablementView.ScopeKind.
+type M2ExtensionsEnablementViewScopeKind string
+
+// M2ExtensionsEnablementViewState defines model for M2ExtensionsEnablementView.State.
+type M2ExtensionsEnablementViewState string
+
+// M2ExtensionsEnablementViewTarget defines model for M2ExtensionsEnablementView.Target.
+type M2ExtensionsEnablementViewTarget string
+
+// M2ExtensionsImportRequest defines model for M2ExtensionsImportRequest.
+type M2ExtensionsImportRequest struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
+// M2ExtensionsPackageRecord defines model for M2ExtensionsPackageRecord.
+type M2ExtensionsPackageRecord struct {
+	ExtensionId      string  `json:"extension_id"`
+	ExtensionVersion string  `json:"extension_version"`
+	ImportedAt       *string `json:"imported_at,omitempty"`
+
+	// ImportedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ImportedBy *Ulid `json:"imported_by,omitempty"`
+
+	// Manifest 唯一包清单extension.yaml。包摘要由外部对实际包文件计算，不在自身递归保存；CLI/Web为声明保留，M1登记拒绝激活。
+	Manifest LantaiExtensionV1 `json:"manifest"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId *Ulid `json:"operation_id,omitempty"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest `json:"package_digest"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId *Ulid `json:"project_id,omitempty"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref    PermanentRef `json:"ref"`
+	Source interface{}  `json:"source"`
+
+	// VersionManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	VersionManifestDigest *Digest `json:"version_manifest_digest,omitempty"`
+}
+
+// M2ExtensionsPackageReview defines model for M2ExtensionsPackageReview.
+type M2ExtensionsPackageReview struct {
+	Approved bool `json:"approved"`
+
+	// ReviewId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ReviewId *Ulid  `json:"review_id,omitempty"`
+	State    string `json:"state"`
+}
+
+// M2ExtensionsPackageView defines model for M2ExtensionsPackageView.
+type M2ExtensionsPackageView struct {
+	ExtensionId      string  `json:"extension_id"`
+	ExtensionVersion string  `json:"extension_version"`
+	ImportedAt       *string `json:"imported_at,omitempty"`
+
+	// ImportedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ImportedBy *Ulid `json:"imported_by,omitempty"`
+
+	// Manifest 唯一包清单extension.yaml。包摘要由外部对实际包文件计算，不在自身递归保存；CLI/Web为声明保留，M1登记拒绝激活。
+	Manifest LantaiExtensionV1 `json:"manifest"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId *Ulid `json:"operation_id,omitempty"`
+
+	// PackageDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	PackageDigest Digest `json:"package_digest"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId *Ulid `json:"project_id,omitempty"`
+
+	// Ref 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Ref    PermanentRef              `json:"ref"`
+	Review M2ExtensionsPackageReview `json:"review"`
+	Source interface{}               `json:"source"`
+
+	// VersionManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	VersionManifestDigest *Digest `json:"version_manifest_digest,omitempty"`
 }
 
 // M2HttpapiCommitRequest defines model for M2HttpapiCommitRequest.
@@ -4849,6 +5507,13 @@ type PostEvidenceParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// PostExtensionsPackagesParams defines parameters for PostExtensionsPackages.
+type PostExtensionsPackagesParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // GetFlowsParams defines parameters for GetFlows.
 type GetFlowsParams struct {
 	ProjectId Ulid  `form:"project_id" json:"project_id"`
@@ -5434,6 +6099,9 @@ type IssueReadGrantJSONRequestBody = ReadGrantRequest
 
 // PostEvidenceJSONRequestBody defines body for PostEvidence for application/json ContentType.
 type PostEvidenceJSONRequestBody = M2LedgerReviewEvidenceInput
+
+// PostExtensionsPackagesJSONRequestBody defines body for PostExtensionsPackages for application/json ContentType.
+type PostExtensionsPackagesJSONRequestBody = M2ExtensionsImportRequest
 
 // PostFlowsJSONRequestBody defines body for PostFlows for application/json ContentType.
 type PostFlowsJSONRequestBody = M2WorkflowStartRequest

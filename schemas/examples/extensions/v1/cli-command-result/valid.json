@@ -1,0 +1,28 @@
+{
+  "description": "结果文件与摘要；不修改权威状态",
+  "schema": "lantai.cli-command-result/v1",
+  "valid": true,
+  "document": {
+    "contract": "lantai.cli-command-result/v1",
+    "operation_id": "01K00000000000000000000009",
+    "command": "org.example.asset-tools.inspect",
+    "status": "completed",
+    "files": [
+      {
+        "path": "report/summary.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "size": 42
+      }
+    ],
+    "summary": {
+      "findings": 0
+    },
+    "producer": {
+      "extension_id": "org.example.asset-tools",
+      "extension_version": "0.1.0",
+      "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "package",
+      "contribution_id": "org.example.asset-tools.inspect"
+    }
+  }
+}

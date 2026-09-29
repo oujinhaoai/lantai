@@ -110,14 +110,18 @@ type Point struct {
 	InputSchema  string `json:"input_schema,omitempty"`
 	OutputSchema string `json:"output_schema,omitempty"`
 	Supported    bool   `json:"m1_registration"`
+	// ExternalTarget is the only target an independently imported M2 package may
+	// use for this point. Empty means external packages cannot contribute it.
+	ExternalTarget string `json:"m2_external_target,omitempty"`
 }
 
 func Points() []Point {
 	return []Point{
-		{"asset.validator", 1, "ledger", "lantai.check-input/v1", "lantai.check-result/v1", true},
-		{"artifact.processor", 1, "jobs", "lantai.processor-input/v1", "lantai.processor-result/v1", true},
-		{"asset.type", 1, "catalog", "", "", false}, {"metadata.extractor", 1, "provenance", "", "", false}, {"ingest.importer", 1, "catalog", "", "", false}, {"export.connector", 1, "ledger", "", "", false}, {"search.provider", 1, "query", "", "", false}, {"workflow.template", 1, "workflow", "", "", false}, {"agent.backend", 1, "agent_execution", "", "", false}, {"notification.channel", 1, "events", "", "", false}, {"event.consumer", 1, "events", "", "", false}, {"service.api", 1, "extensions", "", "", false}, {"storage.driver", 1, "storage", "", "", false}, {"file.install", 1, "storage", "", "", false}, {"db.driver", 1, "operations", "", "", false},
-		{"ui.asset.preview", 1, "web", "", "", false}, {"ui.asset.inspector", 1, "web", "", "", false}, {"ui.asset.action", 1, "web", "", "", false}, {"ui.task.result", 1, "web", "", "", false}, {"ui.navigation", 1, "web", "", "", false}, {"ui.page", 1, "web", "", "", false}, {"ui.settings", 1, "web", "", "", false}, {"ui.dashboard", 1, "web", "", "", false}, {"ui.annotation", 1, "web", "", "", false},
+		{"asset.validator", 1, "ledger", "lantai.check-input/v1", "lantai.check-result/v1", true, "server"},
+		{"artifact.processor", 1, "jobs", "lantai.processor-input/v1", "lantai.processor-result/v1", true, ""},
+		{"cli.command", 1, "cli", "lantai.cli-command-input/v1", "lantai.cli-command-result/v1", false, "cli"},
+		{"asset.type", 1, "catalog", "", "", false, ""}, {"metadata.extractor", 1, "provenance", "", "", false, ""}, {"ingest.importer", 1, "catalog", "", "", false, ""}, {"export.connector", 1, "ledger", "", "", false, ""}, {"search.provider", 1, "query", "", "", false, ""}, {"workflow.template", 1, "workflow", "", "", false, ""}, {"agent.backend", 1, "agent_execution", "", "", false, ""}, {"notification.channel", 1, "events", "", "", false, ""}, {"event.consumer", 1, "events", "", "", false, ""}, {"service.api", 1, "extensions", "", "", false, ""}, {"storage.driver", 1, "storage", "", "", false, ""}, {"file.install", 1, "storage", "", "", false, ""}, {"db.driver", 1, "operations", "", "", false, ""},
+		{"ui.asset.preview", 1, "web", "", "", false, ""}, {"ui.asset.inspector", 1, "web", "", "", false, ""}, {"ui.asset.action", 1, "web", "", "", false, ""}, {"ui.task.result", 1, "web", "", "", false, ""}, {"ui.navigation", 1, "web", "", "", false, ""}, {"ui.page", 1, "web", "", "", false, ""}, {"ui.settings", 1, "web", "", "", false, ""}, {"ui.dashboard", 1, "web", "", "", false, ""}, {"ui.annotation", 1, "web", "", "", false, ""},
 	}
 }
 func failure(code errcode.Code, reason string) error {
@@ -244,6 +248,104 @@ func CheckM1(m Manifest, tools []HostTool) error {
 		return failure(errcode.SchemaInvalid, "target_without_contribution")
 	}
 	return nil
+}
+
+// CheckExternal is the M2 static gate for an independently imported package.
+// It reads only the manifest: no entry, probe or install step runs here. M2
+// hosts run server-side asset.validator and local cli.command one-shot entries;
+// node hosts, web targets, host tools, credentials, network and plugin
+// dependencies are rejected rather than silently ignored.
+func CheckExternal(m Manifest) error {
+	if err := validate(Contract, m); err != nil {
+		return err
+	}
+	if m.Compatibility.HostAPI != "1.0.0" && m.Compatibility.HostAPI != ">=1.0.0 <2.0.0" {
+		return failure(errcode.ExtensionPointUnsupported, "host_api_incompatible")
+	}
+	if len(m.Dependencies) > 0 {
+		return failure(errcode.ExtensionPointUnsupported, "plugin_dependencies_unsupported")
+	}
+	if len(m.Permissions.API) > 0 || len(m.Permissions.Network) > 0 || len(m.Permissions.SecretRefs) > 0 {
+		return failure(errcode.ExtensionPointUnsupported, "external_permission_unsupported")
+	}
+	points := map[string]Point{}
+	for _, p := range Points() {
+		points[p.ID] = p
+	}
+	required := map[string]bool{}
+	for _, r := range m.Compatibility.RequiredPoints {
+		p, ok := points[r.ID]
+		if !ok || p.ExternalTarget == "" || p.Version != r.Version {
+			return failure(errcode.ExtensionPointUnsupported, "point_version_unsupported")
+		}
+		if required[r.ID] {
+			return failure(errcode.IdempotencyConflict, "duplicate_required_point")
+		}
+		required[r.ID] = true
+	}
+	for name, t := range m.Targets {
+		switch name {
+		case "server", "cli":
+		case "node":
+			return failure(errcode.ExtensionPointUnsupported, "node_host_unavailable")
+		default:
+			return failure(errcode.ExtensionPointUnsupported, "target_reserved")
+		}
+		if t.Runtime != "exec" || t.Lifecycle != "oneshot" || t.Protocol != "lantai.processor/v1" {
+			return failure(errcode.ExtensionPointUnsupported, "runtime_or_protocol_unsupported")
+		}
+		if len(t.Processor.Requires) > 0 {
+			return failure(errcode.ExtensionPointUnsupported, "host_tool_unregistered")
+		}
+		if t.Processor.Concurrency < 1 || t.Processor.Concurrency > 64 {
+			return failure(errcode.SchemaInvalid, "processor_concurrency_invalid")
+		}
+		for _, s := range t.Processor.Produces.Records {
+			r, _ := schema.Default()
+			if err := r.Check(s); err != nil {
+				return failure(errcode.ExtensionPointUnsupported, "output_schema_unregistered")
+			}
+		}
+	}
+	seen := map[string]bool{}
+	usedTargets := map[string]bool{}
+	for _, c := range m.Contributes {
+		if seen[c.ID] {
+			return failure(errcode.IdempotencyConflict, "duplicate_contribution_id")
+		}
+		seen[c.ID] = true
+		if !strings.HasPrefix(c.ID, m.ID+".") {
+			return failure(errcode.SchemaInvalid, "contribution_namespace_mismatch")
+		}
+		p, ok := points[c.Point]
+		if !ok || p.ExternalTarget == "" {
+			return failure(errcode.ExtensionPointUnsupported, "point_unsupported")
+		}
+		if c.Target != p.ExternalTarget {
+			return failure(errcode.ExtensionPointUnsupported, "point_target_unsupported")
+		}
+		if c.InputSchema != p.InputSchema || c.OutputSchema != p.OutputSchema || !required[c.Point] {
+			return failure(errcode.ExtensionPointUnsupported, "point_contract_mismatch")
+		}
+		if _, ok := m.Targets[c.Target]; !ok {
+			return failure(errcode.SchemaInvalid, "contribution_target_missing")
+		}
+		usedTargets[c.Target] = true
+	}
+	if len(usedTargets) != len(m.Targets) {
+		return failure(errcode.SchemaInvalid, "target_without_contribution")
+	}
+	return nil
+}
+
+// Contribution returns one declared contribution by full ID.
+func (m Manifest) Contribution(id string) (Contribution, bool) {
+	for _, c := range m.Contributes {
+		if c.ID == id {
+			return c, true
+		}
+	}
+	return Contribution{}, false
 }
 
 // Package is verified immutable bytes, not an activation or executable handle.

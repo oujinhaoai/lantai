@@ -62,7 +62,7 @@ runtime 中的收件箱只保存对象引用、事件去重和读取位置；排
 
 `Restore` 限原删除者或当前 owner/admin，且仍须有项目读取、整理和当前敏感来源权限。原路径被占时返回 `PATH_CONFLICT`，调用者须明确选择新路径。普通整资产删除与清除继续占名；只有符合新建宽限条件的整资产删除自动释放名称。`ReleaseNameHuman` 要求人类 admin 的独立精确 HumanGrant，绑定资产、路径、代次、占名修订和原因；不能释放活跃资产的当前名称。恢复可以使用本资产仍保留的名称，遇其他资产占名时仍需明确新路径。整资产恢复分配新的别名代次，保留旧分配记录；原 ID、版本号、历史 Review、停用和归档限制保留。旧 submitted 目标保持撤回，重新审定须新目标。旧 prepared 版本/元数据操作和旧下载授权使用状态修订栅栏，恢复不能使它们重新生效。
 
-`MutateTrashHuman` 的 Hold/Unhold 和提前 Purge 仅接受管理员本人的精确 HumanGrant。Hold 不延长原到期日，但阻止任何清除。`RunDueJob` 只供 T08 已注册服务端作业调用，必须提供独立的 `LifecycleJobs` 权威端口；人或 Agent 会话不能代替它。到期前 72 小时可持久生成一次提醒；到期且无 Hold 才接受清除。未启动定时器或自动触发。
+`MutateTrashHuman` 的 Hold/Unhold 和提前 Purge 仅接受管理员本人的精确 HumanGrant。Hold 不延长原到期日，但阻止任何清除。`RunDueJob` 只供 T08 已注册服务端作业调用，必须提供独立的 `LifecycleJobs` 权威端口；人或 Agent 会话不能代替它。到期前 72 小时可持久生成一次提醒；到期、无 Hold 且项目策略 `trash.auto_purge` 为 true 才接受定时清除（策略关闭返回 `PRECONDITION_FAILED`/`auto_purge_disabled`）。调度器默认关闭，见[生命周期调度](lifecycle-scheduler.md)。
 
 稳定回收状态的读取复验当前敏感来源权限；文件已清除或仍在移动时，只允许原删除者/owner/admin 在当前项目权限下读取有限墓碑，旧路径、恢复路径和删除原因置空。
 

@@ -26,11 +26,14 @@ func (a *App) assembleCollaboration() error {
 	if e != nil {
 		return e
 	}
+	if e = a.assembleExtensions(); e != nil {
+		return e
+	}
 	a.Nodes, e = node.New(node.Deps{DB: db, Gate: i.Gate(), Authority: auth, Clock: i.Clock(), IDs: i.IDs()})
 	if e != nil {
 		return e
 	}
-	a.Jobs, e = jobs.New(jobs.Deps{DB: db, Gate: i.Gate(), Authority: auth, Tasks: a.Tasks, Catalog: a.Catalog, Ledger: a.Ledger, Files: a.Storage, Rights: a.Rights, Host: a.Extensions, Nodes: a.Nodes, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
+	a.Jobs, e = jobs.New(jobs.Deps{DB: db, Gate: i.Gate(), Authority: auth, Tasks: a.Tasks, Catalog: a.Catalog, Ledger: a.Ledger, Files: a.Storage, Rights: a.Rights, Host: a.ExtensionManager, Nodes: a.Nodes, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
 	if e != nil {
 		return e
 	}
@@ -58,6 +61,9 @@ func (a *App) assembleCollaboration() error {
 	a.Tasks.SetExecutions(a.Execution)
 	a.Lifecycle, e = a.Ledger.NewLifecycle(a.Storage, lifecycleUses{a}, a.Rights, a.Identity, a.Catalog)
 	if e != nil {
+		return e
+	}
+	if e = a.assembleScheduler(); e != nil {
 		return e
 	}
 	a.Discussions, e = a.Ledger.NewDiscussionObjects(a.Catalog, a.Rights, a.Identity, a.Tasks)
@@ -117,6 +123,11 @@ func (x lifecycleUses) CurrentUses(ctx context.Context, w authz.Context, project
 		}
 		out = append(out, ledger.LifecycleUse{Kind: "task", ID: u.TaskID, Revision: u.Revision, Digest: digest.Of(b)})
 	}
+	extensionUses, e := a.extensionUses(ctx, refs)
+	if e != nil {
+		return nil, e
+	}
+	out = append(out, extensionUses...)
 	// Flow bindings can reserve an asset between tasks; fail closed while such
 	// work remains active, even if the current task list is momentarily empty.
 	if len(uses) == 0 {
@@ -134,6 +145,8 @@ func (a *App) ValidateHumanTarget(ctx context.Context, w authz.Context, in ident
 		return a.Reviews.ValidateHumanTarget(ctx, w, in)
 	case "ledger.trash", "ledger.force_trash", identity.ActHold, identity.ActUnhold, identity.ActPurge, identity.ActReleaseName:
 		return a.Lifecycle.ValidateHumanTarget(ctx, w, in)
+	case identity.ActEnableExtension, identity.ActDisableExtension:
+		return a.ExtensionManager.ValidateHumanTarget(ctx, w, in)
 	default:
 		return a.Ledger.ValidateHumanTarget(ctx, w, in)
 	}

@@ -253,6 +253,9 @@ func (r *Registry) VerifyProducer(ctx context.Context, p storage.Producer) error
 	if err := validate("lantai.common-defs/v1#/$defs/producer_ref", p); err != nil {
 		return err
 	}
+	if p.Source == "package" {
+		return r.verifyPackageProducer(ctx, p)
+	}
 	if p.Source != "builtin_release" || p.CoreReleaseDigest != r.release {
 		return failure(errcode.ExtensionActivationStale, "producer_release_untrusted")
 	}
@@ -298,6 +301,32 @@ func (r *Registry) VerifyProducer(ctx context.Context, p storage.Producer) error
 	}
 	return failure(errcode.ExtensionPointUnsupported, "producer_contribution_unknown")
 }
+
+// verifyPackageProducer checks identity against an imported package: same
+// version, same immutable digest and a declared contribution. It proves who
+// produced a result, never that the package is enabled, reviewed or allowed.
+func (r *Registry) verifyPackageProducer(ctx context.Context, p storage.Producer) error {
+	if p.CoreReleaseDigest != "" || p.ContributionID == "" {
+		return failure(errcode.SchemaInvalid, "package_producer_invalid")
+	}
+	var raw string
+	err := r.db.QueryRowContext(ctx, `SELECT record FROM extensions_packages WHERE extension_id=? AND extension_version=? AND package_digest=?`, p.ExtensionID, p.ExtensionVersion, p.PackageDigest).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return failure(errcode.ExtensionActivationStale, "producer_package_unregistered")
+	}
+	if err != nil {
+		return err
+	}
+	var rec PackageRecord
+	if err = json.Unmarshal([]byte(raw), &rec); err != nil {
+		return err
+	}
+	if _, ok := rec.Manifest.Contribution(p.ContributionID); !ok || rec.Source != "package" {
+		return failure(errcode.ExtensionPointUnsupported, "producer_contribution_unknown")
+	}
+	return nil
+}
+
 func (r *Registry) Producer(ctx context.Context, contribution string) (storage.Producer, error) {
 	packages, e := builtinPackages()
 	if e != nil {

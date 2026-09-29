@@ -46,6 +46,7 @@ var commands = []command{
 	{"fsck", "本机只读核验领域文件、提交证明和暂存残留", runFSCK},
 	{"recover", "维护屏障内按原操作和原授权分派恢复", runRecover},
 	{"reindex", "从台账与领域文件重建派生查询索引", runReindex},
+	{"lifecycle", "维护屏障内运行一次到期提醒/清除与 GC 调度（serve 中默认关闭）", runLifecycle},
 	{"serve", "启动真实 REST 与流式传输服务（内部监听；TLS 由外部网关负责）", runServe},
 }
 

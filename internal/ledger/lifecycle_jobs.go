@@ -3,6 +3,7 @@ package ledger
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/commands"
@@ -89,6 +90,15 @@ func (l *Lifecycle) RunDueJob(ctx context.Context, cmd commands.Context, in DueT
 			return errcode.New(errcode.InvalidStateTransition, "")
 		}
 		if cmd.CommandType == "ledger.purge_due" {
+			// Scheduled purge honors the project's automatic purge policy; a
+			// disabled project keeps due entries until a human purges them.
+			policies, err := l.policies.ResolvePolicies(ctx, entry.ProjectID)
+			if err != nil {
+				return err
+			}
+			if !policyBool(policies, "trash.auto_purge") {
+				return errcode.New(errcode.PreconditionFailed, "").WithDetails(errcode.Detail{Reason: "auto_purge_disabled"})
+			}
 			receipt, err = l.acceptPurge(ctx, cmd, entry, false)
 			return err
 		}
@@ -131,6 +141,81 @@ func (l *Lifecycle) RunDueJob(ctx context.Context, cmd commands.Context, in DueT
 		return l.Resume(ctx, receipt.OperationID)
 	}
 	return receipt, nil
+}
+
+// DueTrash is a trusted T08 inventory row: a trashed, unheld entry without a
+// pending operation whose reminder or retention boundary is at or before horizon.
+type DueTrash struct {
+	ProjectID ids.ID    `json:"project_id"`
+	TrashID   ids.ID    `json:"trash_id"`
+	Revision  int64     `json:"revision"`
+	DueAt     time.Time `json:"due_at"`
+	Reminded  bool      `json:"reminded"`
+}
+
+// DueTrash lists entries for the scheduler. It is a read port only: each job
+// is re-decided by RunDueJob under the ledger's own locks and rules.
+func (l *Lifecycle) DueTrash(ctx context.Context, horizon time.Time, limit int) ([]DueTrash, error) {
+	if limit < 1 || limit > 1000 {
+		return nil, invalid("limit must be 1-1000")
+	}
+	rows, err := l.ledger.db.QueryContext(ctx, `SELECT e.record, EXISTS(SELECT 1 FROM ledger_trash_reminders r WHERE r.trash_id=e.trash_id) FROM ledger_trash_entries e WHERE e.state='trashed' AND e.hold=0 AND e.due_at<=? ORDER BY e.due_at,e.trash_id LIMIT ?`, clock.Millis(horizon), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []DueTrash{}
+	for rows.Next() {
+		var raw string
+		var reminded bool
+		if err = rows.Scan(&raw, &reminded); err != nil {
+			return nil, err
+		}
+		var e TrashEntry
+		if err = json.Unmarshal([]byte(raw), &e); err != nil {
+			return nil, err
+		}
+		if e.PendingOperationID != "" {
+			continue
+		}
+		due, err := clock.Parse(e.DueAt)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, DueTrash{ProjectID: e.ProjectID, TrashID: e.ID, Revision: e.Revision, DueAt: due, Reminded: reminded})
+	}
+	return out, rows.Err()
+}
+
+// GCCandidateRow is one purged content hash waiting for T08 collection.
+type GCCandidateRow struct {
+	SHA256      string    `json:"sha256"`
+	OperationID ids.ID    `json:"operation_id"`
+	Since       time.Time `json:"since"`
+}
+
+// GCCandidates lists candidates for scheduling. Collection still re-reads the
+// candidate, every authoritative root and all pins under the hash lock.
+func (l *Lifecycle) GCCandidates(ctx context.Context, after string, limit int) ([]GCCandidateRow, error) {
+	if limit < 1 || limit > 1000 {
+		return nil, invalid("limit must be 1-1000")
+	}
+	rows, err := l.ledger.db.QueryContext(ctx, `SELECT sha256,operation_id,since FROM ledger_gc_candidates WHERE sha256>? ORDER BY sha256 LIMIT ?`, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []GCCandidateRow{}
+	for rows.Next() {
+		var c GCCandidateRow
+		var at int64
+		if err = rows.Scan(&c.SHA256, &c.OperationID, &at); err != nil {
+			return nil, err
+		}
+		c.Since = clock.FromMillis(at)
+		out = append(out, c)
+	}
+	return out, rows.Err()
 }
 
 type LifecycleFailure struct {

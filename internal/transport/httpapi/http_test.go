@@ -21,6 +21,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/yamljson"
+	"github.com/oujinhaoai/lantai/internal/extensions"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/httpauth"
 	"github.com/oujinhaoai/lantai/internal/jobs"
@@ -349,6 +350,7 @@ func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 	f.h.deps.Execution = &ax.Service{}
 	f.h.deps.Jobs = &jobs.Service{}
 	f.h.deps.Nodes = &node.Service{}
+	f.h.deps.Extensions = &extensions.Manager{}
 	f.h.deps.Ledger = &ledger.Service{}
 	f.h.deps.Reviews = &ledger.Reviews{}
 	f.h.deps.Lifecycle = &ledger.Lifecycle{}

@@ -30,10 +30,19 @@ type Config struct {
 	// MinFreeBytes 低于它时实例不开放写入。
 	MinFreeBytes uint64
 	// Present 表示 config.yaml 存在。
-	Present  bool
-	Listen   ListenConfig
-	HTTP     HTTPConfig
-	Transfer TransferConfig
+	Present   bool
+	Listen    ListenConfig
+	HTTP      HTTPConfig
+	Transfer  TransferConfig
+	Lifecycle LifecycleConfig
+}
+
+// LifecycleConfig enables the T08 due-purge/GC scheduler. It is off by default:
+// automatic deletion starts only by an explicit deployment decision.
+type LifecycleConfig struct {
+	Scheduler       bool `json:"scheduler"`
+	IntervalSeconds int  `json:"interval_seconds"`
+	Batch           int  `json:"batch"`
 }
 
 // ListenConfig 的地址都是核心内部监听，不是客户端传输 URL。公网 TLS 与路径
@@ -70,9 +79,10 @@ type configWire struct {
 	Storage struct {
 		MinFreeBytes *uint64 `json:"min_free_bytes"`
 	} `json:"storage"`
-	Listen   ListenConfig   `json:"listen"`
-	HTTP     HTTPConfig     `json:"http"`
-	Transfer TransferConfig `json:"transfer"`
+	Listen    ListenConfig    `json:"listen"`
+	HTTP      HTTPConfig      `json:"http"`
+	Transfer  TransferConfig  `json:"transfer"`
+	Lifecycle LifecycleConfig `json:"lifecycle"`
 }
 
 // LoadConfig 读取并校验数据根下的 config.yaml；文件不存在时返回默认配置。
@@ -84,6 +94,7 @@ func LoadConfig(l Layout) (Config, error) {
 		Listen:       ListenConfig{API: "127.0.0.1:8080", Transfer: "127.0.0.1:8081", Operations: "127.0.0.1:9090"},
 		HTTP:         HTTPConfig{MaxJSONBytes: 8 << 20, APITimeoutSeconds: 30},
 		Transfer:     TransferConfig{InteractiveSlots: 4, BatchSlots: 8, BatchPerPrincipal: 4},
+		Lifecycle:    LifecycleConfig{IntervalSeconds: 300, Batch: 100},
 	}
 	raw, err := os.ReadFile(l.ConfigPath())
 	if errors.Is(err, fs.ErrNotExist) {
@@ -107,7 +118,7 @@ func LoadConfig(l Layout) (Config, error) {
 	if err != nil {
 		return cfg, err
 	}
-	w := configWire{Listen: cfg.Listen, HTTP: cfg.HTTP, Transfer: cfg.Transfer}
+	w := configWire{Listen: cfg.Listen, HTTP: cfg.HTTP, Transfer: cfg.Transfer, Lifecycle: cfg.Lifecycle}
 	if err := json.Unmarshal(b, &w); err != nil {
 		return cfg, fmt.Errorf("operations: %s: %w", l.ConfigPath(), err)
 	}
@@ -125,6 +136,6 @@ func LoadConfig(l Layout) (Config, error) {
 	if w.Storage.MinFreeBytes != nil {
 		cfg.MinFreeBytes = *w.Storage.MinFreeBytes
 	}
-	cfg.Listen, cfg.HTTP, cfg.Transfer = w.Listen, w.HTTP, w.Transfer
+	cfg.Listen, cfg.HTTP, cfg.Transfer, cfg.Lifecycle = w.Listen, w.HTTP, w.Transfer, w.Lifecycle
 	return cfg, nil
 }

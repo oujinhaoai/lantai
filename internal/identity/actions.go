@@ -107,6 +107,12 @@ const (
 	ActUnhold                 authz.Action = "ledger.unhold"
 	ActEnableExtension        authz.Action = "extensions.enable"
 	ActDisableExtension       authz.Action = "extensions.disable"
+	// Package import only registers verified bytes; probe runs the restricted
+	// capability probe already authorized by an enable grant. Neither enables.
+	ActImportExtension   authz.Action = "extensions.import"
+	ActProbeExtension    authz.Action = "extensions.probe"
+	ActReadExtensions    authz.Action = "extensions.read"
+	ActListExtensionCLIs authz.Action = "extensions.list_commands"
 )
 
 // T05 任务与业务流程动作。领取、交付等仍须在 tasks 最终接受时复验
@@ -173,6 +179,10 @@ var actionList = []ActionSpec{
 	{Action: ActWorkflowManage, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator}},
 	{Action: ActEnableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActDisableExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
+	{Action: ActImportExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActProbeExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActReadExtensions, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActListExtensionCLIs, Scope: ScopeSelf},
 	{Action: ActWhoAmI, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActEndSession, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActNarrowSession, Scope: ScopeSelf},

@@ -5,6 +5,7 @@ package httpapi
 import (
 	"context"
 	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
+	"github.com/oujinhaoai/lantai/internal/extensions"
 	"github.com/oujinhaoai/lantai/internal/jobs"
 	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/node"
@@ -86,6 +87,7 @@ type Deps struct {
 	Execution      *ax.Service
 	Jobs           *jobs.Service
 	Nodes          *node.Service
+	Extensions     *extensions.Manager
 	Identity       IdentityService
 	Catalog        CatalogService
 	Storage        StorageService

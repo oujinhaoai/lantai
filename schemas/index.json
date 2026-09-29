@@ -56,6 +56,8 @@
     { "contract": "lantai.check-result/v1", "path": "extensions/v1/check-result.schema.json", "kind": "document", "owner": "T09" },
     { "contract": "lantai.processor-input/v1", "path": "extensions/v1/processor-input.schema.json", "kind": "document", "owner": "T09" },
     { "contract": "lantai.processor-result/v1", "path": "extensions/v1/processor-result.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.cli-command-input/v1", "path": "extensions/v1/cli-command-input.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.cli-command-result/v1", "path": "extensions/v1/cli-command-result.schema.json", "kind": "document", "owner": "T09" },
     { "contract": "lantai.backup/v1", "path": "operations/v1/backup.schema.json", "kind": "document", "owner": "T08" },
     { "contract": "lantai.recovery-review/v1", "path": "operations/v1/recovery-review.schema.json", "kind": "document", "owner": "T08" }
   ]

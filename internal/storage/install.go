@@ -796,6 +796,73 @@ func (s *Service) orphanCheck(ctx context.Context, dir string) (*Orphan, error) 
 	return nil, nil
 }
 
+// ReadVersionFiles 是可信的服务端读取端口（T09 读取已登记扩展包的字节）：核对
+// 安装记录与台账一致、版本可读且不在移动或已清除，再逐件从内容库读取并核验
+// SHA-256 与大小，总量受 limit 约束。本方法不做授权，调用方负责；不接受主机路径。
+func (s *Service) ReadVersionFiles(ctx context.Context, v commit.Committed, limit int64) (map[string][]byte, error) {
+	if err := s.checkInstalledFor(ctx, v); err != nil {
+		return nil, err
+	}
+	if controls, ok := s.ledger.(commit.Controls); ok {
+		if err := controls.CheckVersionRead(ctx, v.AssetID, v.VersionID); err != nil {
+			return nil, err
+		}
+	}
+	if source, ok := s.ledger.(commit.FileLocations); ok {
+		location, err := source.VersionFileLocation(ctx, v.AssetID, v.VersionID)
+		if err != nil {
+			return nil, err
+		}
+		if location.Purged {
+			return nil, errcode.New(errcode.AssetPurged, "")
+		}
+		if location.PendingOperationID != "" || location.TrashID != "" {
+			return nil, errcode.New(errcode.AssetInTrash, "version files are not in service")
+		}
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT path, sha256, size FROM storage_version_files WHERE version_id = ? ORDER BY path`, v.VersionID)
+	if err != nil {
+		return nil, err
+	}
+	var files []VersionFile
+	total := int64(0)
+	for rows.Next() {
+		var f VersionFile
+		if err = rows.Scan(&f.Path, &f.SHA256, &f.Size); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		total += f.Size
+		files = append(files, f)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	if total > limit || len(files) > 10000 {
+		return nil, errcode.New(errcode.QuotaExceeded, "version exceeds the trusted read limit")
+	}
+	out := make(map[string][]byte, len(files))
+	for _, f := range files {
+		if err = ctx.Err(); err != nil {
+			return nil, err
+		}
+		b, err := readBoundedRegular(s.layout.Home, s.layout.BlobPath(f.SHA256), f.Size)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil, errcode.New(errcode.OperationNeedsReconciliation, "stored content is missing")
+			}
+			return nil, fileop.Wrap("reading stored content", err)
+		}
+		if int64(len(b)) != f.Size || sha256Hex(b) != f.SHA256 {
+			return nil, errcode.New(errcode.HashMismatch, "stored content differs from its recorded hash")
+		}
+		out[f.Path] = b
+	}
+	return out, nil
+}
+
 // ReadManifest 返回已提交版本的清单文件内容：安装记录必须与台账一致，文件的
 // SHA-256 必须与安装时记录的相同。本方法不做授权，调用方（catalog）负责。
 func (s *Service) ReadManifest(ctx context.Context, v commit.Committed) ([]byte, error) {

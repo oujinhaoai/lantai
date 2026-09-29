@@ -74,7 +74,7 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	if err := validateAddress(cfg.Listen.Operations, true); err != nil {
 		return nil, err
 	}
-	h, err := httpapi.New(httpapi.Deps{Rights: a.Rights, Ledger: a.Ledger, Reviews: a.Reviews, Lifecycle: a.Lifecycle, Discussions: a.Discussions, Evidence: a.Evidence, Collaboration: a.Collaboration, ContextCatalog: a.Catalog, Human: a.Identity, HumanTargets: a, Tasks: a.Tasks, Flows: a.Flows, Execution: a.Execution, Jobs: a.Jobs, Nodes: a.Nodes, Identity: a.Identity, Catalog: a.Catalog, Storage: a.Storage, Query: a.Query, Operations: a}, httpapi.Config{InstanceID: a.Instance.InstanceID(), AllowedOrigins: cfg.HTTP.AllowedOrigins, MaxJSONBytes: cfg.HTTP.MaxJSONBytes, APITimeout: time.Duration(cfg.HTTP.APITimeoutSeconds) * time.Second})
+	h, err := httpapi.New(httpapi.Deps{Rights: a.Rights, Ledger: a.Ledger, Reviews: a.Reviews, Lifecycle: a.Lifecycle, Discussions: a.Discussions, Evidence: a.Evidence, Collaboration: a.Collaboration, ContextCatalog: a.Catalog, Human: a.Identity, HumanTargets: a, Tasks: a.Tasks, Flows: a.Flows, Execution: a.Execution, Jobs: a.Jobs, Nodes: a.Nodes, Extensions: a.ExtensionManager, Identity: a.Identity, Catalog: a.Catalog, Storage: a.Storage, Query: a.Query, Operations: a}, httpapi.Config{InstanceID: a.Instance.InstanceID(), AllowedOrigins: cfg.HTTP.AllowedOrigins, MaxJSONBytes: cfg.HTTP.MaxJSONBytes, APITimeout: time.Duration(cfg.HTTP.APITimeoutSeconds) * time.Second})
 	if err != nil {
 		return nil, err
 	}

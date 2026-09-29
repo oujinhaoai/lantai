@@ -8,4 +8,4 @@
 
 M1 handler 在 `internal/transport/httpapi`，已接会话、最小身份管理、项目、类型、上传与版本提交、精确读取、授权下载、条件著录、检索和操作状态。API 与传输面使用同一认证策略；分面监听与合并模式复用相同 handler。分片上传和 GET/HEAD/Range 下载调用现有 `internal/storage` 流式实现。组装与监听生命周期在 `internal/application` 和 `cmd/lantai`；命令见[开发与验证](../docs/development.md)，行为和限制见 [HTTP 接口契约](../docs/contracts/http.md)。公开 SDK 仍归 `sdk/`，内部 client 归 `internal/client`。
 
-M2 已接入任务/执行、审定、生命周期、讨论和权限过滤事件长轮询，见[实际接口](../docs/contracts/manual-execution.md)。动态扩展路由尚未启用。后续扩展仅注册 `/api/v1/ext/<plugin-id>/` 内明确的方法与 schema，经核心统一认证、授权、配额与回执；不代理任意 URL，不开放运维入口。包治理归 [T09](../docs/tasks/T09-extension-platform.md)，通用 service 调用仍由所属领域保存副作用 intent/receipt，见[扩展设计](../docs/extensions.md)。
+M2 已接入任务/执行、审定、生命周期、讨论和权限过滤事件长轮询，见[实际接口](../docs/contracts/manual-execution.md)。扩展包治理使用固定核心路由 `/api/v1/extensions/packages|enablements|commands`（启停经 `/api/v1/human`），见[扩展包治理](../docs/contracts/extension-governance.md)；插件自定义的动态扩展路由尚未启用。后续扩展仅注册 `/api/v1/ext/<plugin-id>/` 内明确的方法与 schema，经核心统一认证、授权、配额与回执；不代理任意 URL，不开放运维入口。包治理归 [T09](../docs/tasks/T09-extension-platform.md)，通用 service 调用仍由所属领域保存副作用 intent/receipt，见[扩展设计](../docs/extensions.md)。
