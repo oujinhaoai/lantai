@@ -128,8 +128,9 @@ func (s *Store) ExportAudit(ctx context.Context, dir string, limit int) (AuditMa
 }
 
 // verifiedPrefix 返回可续写的已核验前缀。本进程上次成功导出后文件摘要未变
-// 时，只重算整文件摘要（顺序读取，不逐行解析、不逐行查库），续写代价不再随
-// 历史增长；否则逐行完整核验，截断未完成末行、拒绝中间损坏与序号缺口。
+// 时，只重算整文件摘要（顺序读取，不逐行解析、不逐行查库）；读取量仍随文件
+// 大小线性增长，但远低于逐行核验。否则逐行完整核验，截断未完成末行、拒绝
+// 中间损坏与序号缺口。
 func (s *Store) verifiedPrefix(ctx context.Context, f *os.File, path string) (AuditManifest, int64, error) {
 	if c := s.audit; c.path == path {
 		if st, err := f.Stat(); err == nil && st.Size() == c.manifest.Size {
