@@ -22,6 +22,17 @@ type Store struct {
 	clock   clock.Clock
 	gate    *commands.Gate
 	auditMu sync.Mutex
+	// audit 记录本进程上次成功导出后已逐行核验的审计文件状态（受 auditMu
+	// 保护）。只有整个文件的摘要仍与之相同才跳过逐行核验；进程重启、导出
+	// 失败或文件被改动都回到完整核验。
+	audit verifiedAudit
+	// auditScans 统计完整逐行核验次数，供测试确认续写不随文件增长重扫。
+	auditScans int
+}
+
+type verifiedAudit struct {
+	path     string
+	manifest AuditManifest
 }
 
 // New 创建收录器。写入必须传入实例共享 Gate；无 Gate 的实例只能读取。

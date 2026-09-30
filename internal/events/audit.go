@@ -34,6 +34,7 @@ type AuditManifest struct {
 
 // ExportAudit 恢复并追加一批审计记录。顺序为文件 fsync→摘要清单原子安装→DB 水位。
 // 崩溃后按 event_id 逻辑去重，截断未完成末行；中间行损坏或历史丢失明确报错。
+// 进程内续写只核对整文件摘要，进程首次导出或文件被改动时逐行完整核验。
 // 一个实例只配置一个审计目录；单实例 Gate 与 auditMu 协调本进程写入。
 func (s *Store) ExportAudit(ctx context.Context, dir string, limit int) (AuditManifest, error) {
 	if limit < 1 || limit > 1000 {
@@ -55,10 +56,12 @@ func (s *Store) ExportAudit(ctx context.Context, dir string, limit int) (AuditMa
 		return AuditManifest{}, err
 	}
 	defer f.Close()
-	m, validBytes, err := s.scanAudit(ctx, f)
+	m, validBytes, err := s.verifiedPrefix(ctx, f, path)
 	if err != nil {
 		return AuditManifest{}, err
 	}
+	// 修改文件前作废缓存；只有本次导出完整成功才记录新的已核验状态。
+	s.audit = verifiedAudit{}
 	var pruned int64
 	if err = s.db.QueryRowContext(ctx, `SELECT pruned_through FROM events_retention WHERE singleton=1`).Scan(&pruned); err != nil {
 		return m, err
@@ -117,7 +120,33 @@ func (s *Store) ExportAudit(ctx context.Context, dir string, limit int) (AuditMa
 	if _, err = tx.ExecContext(ctx, `UPDATE events_retention SET audit_through=? WHERE singleton=1`, m.Through); err != nil {
 		return m, err
 	}
-	return m, tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return m, err
+	}
+	s.audit = verifiedAudit{path: path, manifest: m}
+	return m, nil
+}
+
+// verifiedPrefix 返回可续写的已核验前缀。本进程上次成功导出后文件摘要未变
+// 时，只重算整文件摘要（顺序读取，不逐行解析、不逐行查库），续写代价不再随
+// 历史增长；否则逐行完整核验，截断未完成末行、拒绝中间损坏与序号缺口。
+func (s *Store) verifiedPrefix(ctx context.Context, f *os.File, path string) (AuditManifest, int64, error) {
+	if c := s.audit; c.path == path {
+		if st, err := f.Stat(); err == nil && st.Size() == c.manifest.Size {
+			d, size, err := hashReader(f)
+			if err != nil {
+				return AuditManifest{}, 0, err
+			}
+			if d == c.manifest.Digest && size == c.manifest.Size {
+				return c.manifest, size, nil
+			}
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return AuditManifest{}, 0, err
+		}
+	}
+	s.auditScans++
+	return s.scanAudit(ctx, f)
 }
 
 func (s *Store) scanAudit(ctx context.Context, r io.Reader) (AuditManifest, int64, error) {

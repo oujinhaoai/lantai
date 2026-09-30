@@ -118,6 +118,43 @@ func TestAuditRejectsCorruptInterior(t *testing.T) {
 	}
 }
 
+// 进程内续写只核对整文件摘要，不随历史增长逐行重扫；两批之间被改动的文件
+// 回到完整核验并被拒绝；新进程首次导出仍逐行核验（BUG-20260930-06）。
+func TestAuditContinuesWithoutRescanningAndStillDetectsTampering(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	for i := range 20 {
+		f.collect(t, f.record(t, int64(i+1)))
+		if _, err := f.store.ExportAudit(f.ctx, dir, 1000); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if f.store.auditScans != 1 {
+		t.Fatalf("appending batches rescanned the audit file %d times", f.store.auditScans)
+	}
+	restarted := New(f.db, f.clock, f.gate)
+	m, err := restarted.ExportAudit(f.ctx, dir, 1000)
+	if err != nil || m.Through != 20 || restarted.auditScans != 1 {
+		t.Fatalf("a new process must verify the whole file once: %+v scans=%d %v", m, restarted.auditScans, err)
+	}
+	path := filepath.Join(dir, "events.jsonl")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	corrupt := bytes.Replace(data, []byte(`"revision":3`), []byte(`"revision":9`), 1)
+	if bytes.Equal(data, corrupt) {
+		t.Fatal("fixture replacement failed")
+	}
+	if err = os.WriteFile(path, corrupt, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t, f.record(t, 21))
+	if _, err = restarted.ExportAudit(f.ctx, dir, 1000); err == nil {
+		t.Fatal("tampered audit accepted between batches of the same process")
+	}
+}
+
 func TestPruneRequiresAuditConsumerBackupAndHotWindow(t *testing.T) {
 	f := newFixture(t)
 	r1, r2 := f.record(t, 1), f.record(t, 2)
