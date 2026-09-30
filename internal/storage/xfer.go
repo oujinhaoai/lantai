@@ -12,6 +12,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 )
 
@@ -127,7 +128,8 @@ func (h *TransferHandler) read(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "", time.Time{}, tk.ReadSeeker(r.Context(), handle.File))
 }
 
-// writeError 以错误信封写出错误；非结构化错误一律为 INTERNAL，不带内部细节。
+// writeError 以错误信封写出错误；存储锁竞争为可重试的 STORAGE_UNAVAILABLE，
+// 其他非结构化错误一律为 INTERNAL，不带内部细节。
 func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	var e *errcode.Error
 	switch {
@@ -137,8 +139,9 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		// 客户端已断开或取消：状态码不会被看到，写一个可重试的维护外错误即可。
 		e = errcode.New(errcode.StorageUnavailable, "the transfer was cancelled")
 	default:
-		e = errcode.From(err)
+		e = sqlite.Structured(err)
 	}
+	errcode.Observe(r.Context(), e.Code, err)
 	if e.RetryAfter > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(int(max(1, e.RetryAfter/time.Second))))
 	}

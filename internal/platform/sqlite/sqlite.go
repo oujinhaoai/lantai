@@ -4,7 +4,9 @@
 // synchronous=FULL（已提交事务在断电后仍持久；macOS 另开 fullfsync）、
 // busy_timeout、外键检查、
 // defensive 模式，写事务用 BEGIN IMMEDIATE 避免读锁升级死锁；只读连接
-// 额外设置 query_only。数据库文件必须位于服务端本机文件系统，不支持网络盘。
+// 额外设置 query_only。可写库的写事务与事务外写语句先在进程内按到达
+// 顺序排队（见 gate.go），再向 SQLite 取锁。数据库文件必须位于服务端
+// 本机文件系统，不支持网络盘。
 // 五库的连接编排、迁移与维护屏障归 operations 模块（T08），本包只提供
 // 经过验证的连接方式与能力探测。
 package sqlite
@@ -21,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	msqlite "modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
@@ -35,6 +38,9 @@ type Options struct {
 	ReadOnly bool
 	// BusyTimeout 是等待其他写者释放锁的时长，默认 5 秒。
 	BusyTimeout time.Duration
+	// WriteQueueTimeout 是在进程内写入队列中的最长等待，默认 15 秒；
+	// 超时返回 ErrWriteQueueTimeout。只读模式不排队。
+	WriteQueueTimeout time.Duration
 }
 
 // DSN 返回带兰台基线参数的连接串。path 不能包含 '?'。
@@ -82,13 +88,14 @@ func Open(ctx context.Context, path string, opts Options) (*sql.DB, error) {
 			return nil, fmt.Errorf("sqlite: read-only open: %s is not a regular file", path)
 		}
 	}
-	db, err := sql.Open(DriverName, dsn)
-	if err != nil {
-		return nil, err
-	}
+	var db *sql.DB
 	if opts.ReadOnly {
+		if db, err = sql.Open(DriverName, dsn); err != nil {
+			return nil, err
+		}
 		err = db.PingContext(ctx)
 	} else {
+		db = sql.OpenDB(&gatedConnector{dsn: dsn, gate: newWriteGate(opts.WriteQueueTimeout)})
 		err = verifyBaseline(ctx, db)
 	}
 	if err != nil {
@@ -140,7 +147,7 @@ type Class string
 
 const (
 	ClassNone       Class = ""
-	ClassBusy       Class = "busy"       // 锁等待超时，可稍后重试
+	ClassBusy       Class = "busy"       // 锁等待或写入排队超时，可稍后重试
 	ClassFull       Class = "full"       // 磁盘或数据库已满
 	ClassReadOnly   Class = "read_only"  // 只读介质或 query_only 连接
 	ClassIO         Class = "io"         // I/O 失败，结果不可假设
@@ -154,6 +161,9 @@ const (
 func Classify(err error) Class {
 	if err == nil {
 		return ClassNone
+	}
+	if errors.Is(err, ErrWriteQueueTimeout) {
+		return ClassBusy
 	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return ClassCanceled
@@ -180,6 +190,20 @@ func Classify(err error) Class {
 	default:
 		return ClassOther
 	}
+}
+
+// Structured 把错误转为对外结构化错误。领域已给出的错误码不变；落到
+// INTERNAL 的锁竞争（BUSY/LOCKED 或写入排队超时）改为可重试的
+// STORAGE_UNAVAILABLE，调用方用同一幂等键稍后重试即可，已持久的操作阶段
+// 由幂等回放续上。其他非结构化错误仍为 INTERNAL。
+func Structured(err error) *errcode.Error {
+	e := errcode.From(err)
+	if e == nil || e.Code != errcode.Internal || Classify(err) != ClassBusy {
+		return e
+	}
+	return errcode.Wrap(errcode.StorageUnavailable, "the database is busy; retry the same request later", err).
+		WithRetryAfter(time.Second).
+		WithDetails(errcode.Detail{Reason: "database_busy"})
 }
 
 // IsUniqueViolation 报告错误是否为唯一约束冲突。

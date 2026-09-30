@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/jobs"
 	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/node"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 	"github.com/oujinhaoai/lantai/internal/provenance"
 	"github.com/oujinhaoai/lantai/internal/query"
 	"github.com/oujinhaoai/lantai/internal/storage"
@@ -253,6 +255,31 @@ func TestRequestIDsErrorsAndUnsupportedContext(t *testing.T) {
 	delete(h, "X-Request-Id")
 	h["X-Lantai-Task"] = "task"
 	code(t, call(f.h.API(), "GET", "/api/v1/whoami", "", h), errcode.SchemaInvalid)
+}
+
+// 未被领域映射的存储锁竞争是可重试的 503，带 Retry-After；原始错误交给观测者。
+func TestDatabaseBusyIsRetryableAndObserved(t *testing.T) {
+	f := newFixture(t)
+	f.identity.err = fmt.Errorf("private-path: %w", sqlite.ErrWriteQueueTimeout)
+	var observed error
+	var observedCode errcode.Code
+	r := httptest.NewRequest("GET", "/api/v1/whoami", nil)
+	r.Header.Set("Authorization", "Bearer lts_test")
+	r = r.WithContext(errcode.WithObserver(r.Context(), func(c errcode.Code, err error) { observedCode, observed = c, err }))
+	w := httptest.NewRecorder()
+	f.h.API().ServeHTTP(w, r)
+	code(t, w, errcode.StorageUnavailable)
+	var out errcode.Envelope
+	if err := json.Unmarshal(w.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != 503 || w.Header().Get("Retry-After") != "1" || !out.Error.Retryable || out.Error.RetryAfterMS == nil || *out.Error.RetryAfterMS != 1000 ||
+		len(out.Error.Details) != 1 || out.Error.Details[0].Reason != "database_busy" || strings.Contains(w.Body.String(), "private-path") {
+		t.Fatalf("busy response: %d %v %s", w.Code, w.Header(), w.Body.String())
+	}
+	if observedCode != errcode.StorageUnavailable || !errors.Is(observed, sqlite.ErrWriteQueueTimeout) {
+		t.Fatalf("observer got %s %v", observedCode, observed)
+	}
 }
 
 func TestBrowserLoginAndCookieWrites(t *testing.T) {

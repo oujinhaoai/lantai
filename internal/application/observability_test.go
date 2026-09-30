@@ -3,8 +3,11 @@ package application
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,7 +17,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/operations"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 )
 
 func TestOperationsReadinessAndUnavailableMetrics(t *testing.T) {
@@ -120,6 +125,66 @@ func TestAccessLogContainsOnlySafeFieldsAndPreservesStreaming(t *testing.T) {
 	}
 	if safeMethod("secret") != "OTHER" {
 		t.Fatal("untrusted method is logged")
+	}
+}
+
+// 错误响应可按 request_id 定位：服务端生成的原样记录，客户端自带的只记
+// SHA-256；记录错误码与 5xx 的原因类别，不记错误文本。
+func TestAccessLogLocatesErrorsByRequestID(t *testing.T) {
+	var b bytes.Buffer
+	l := accessLogger{out: &b}
+	h := l.wrap("api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.Header.Get("X-Request-Id")
+		if id == "" {
+			id = "0123456789abcdef0123456789abcdef"
+		}
+		w.Header().Set("X-Request-Id", id)
+		var err error
+		switch r.URL.Path {
+		case "/busy":
+			err = fmt.Errorf("secret /private/path: %w", sqlite.ErrWriteQueueTimeout)
+		case "/internal":
+			err = errors.New("secret /private/path")
+		case "/missing":
+			err = errcode.New(errcode.NotFound, "")
+		}
+		e := sqlite.Structured(err)
+		errcode.Observe(r.Context(), e.Code, err)
+		w.WriteHeader(e.HTTPStatus())
+	}))
+	for _, c := range []struct{ path, clientID string }{{"/busy", ""}, {"/internal", "secret-client-id"}, {"/missing", ""}} {
+		r := httptest.NewRequest("POST", c.path, nil)
+		if c.clientID != "" {
+			r.Header.Set("X-Request-Id", c.clientID)
+		}
+		h.ServeHTTP(httptest.NewRecorder(), r)
+	}
+	if strings.Contains(b.String(), "secret") || strings.Contains(b.String(), "private") {
+		t.Fatalf("access log leaked: %s", b.String())
+	}
+	sum := sha256.Sum256([]byte("secret-client-id"))
+	want := []map[string]any{
+		{"status": float64(503), "request_id": "0123456789abcdef0123456789abcdef", "error_code": "STORAGE_UNAVAILABLE", "error_cause": "busy"},
+		{"status": float64(500), "request_id_sha256": hex.EncodeToString(sum[:]), "error_code": "INTERNAL", "error_cause": "other"},
+		{"status": float64(404), "request_id": "0123456789abcdef0123456789abcdef", "error_code": "NOT_FOUND"},
+	}
+	lines := strings.Split(strings.TrimSpace(b.String()), "\n")
+	if len(lines) != len(want) {
+		t.Fatal(len(lines))
+	}
+	for i, line := range lines {
+		var row map[string]any
+		if err := json.Unmarshal([]byte(line), &row); err != nil {
+			t.Fatal(err)
+		}
+		if len(row) != 9+len(want[i])-1 {
+			t.Fatalf("unexpected fields: %v", row)
+		}
+		for k, v := range want[i] {
+			if row[k] != v {
+				t.Fatalf("%s: %s=%v, want %v (%v)", lines[i], k, row[k], v, row)
+			}
+		}
 	}
 }
 

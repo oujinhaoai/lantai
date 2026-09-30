@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
 	"github.com/oujinhaoai/lantai/internal/operations"
 	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 )
 
@@ -89,8 +91,11 @@ func (l *accessLogger) wrap(surface string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ow := &observedWriter{ResponseWriter: w}
-		// 不记录客户端提供的 request ID：即便语法合法，也可能是凭据。
 		id := observationID()
+		clientID := r.Header.Get("X-Request-Id")
+		var code errcode.Code
+		var cause error
+		r = r.WithContext(errcode.WithObserver(r.Context(), func(c errcode.Code, err error) { code, cause = c, err }))
 		defer func() {
 			panicked := recover()
 			status := ow.status
@@ -110,7 +115,24 @@ func (l *accessLogger) wrap(surface string, next http.Handler) http.Handler {
 				Bytes     int64   `json:"bytes"`
 				Seconds   float64 `json:"duration_seconds"`
 				Cancelled bool    `json:"cancelled"`
-			}{start.UTC().Format(time.RFC3339Nano), "http_request", id, surface, safeMethod(r.Method), status, ow.bytes, time.Since(start).Seconds(), r.Context().Err() != nil}
+				RequestID string  `json:"request_id,omitempty"`
+				ClientID  string  `json:"request_id_sha256,omitempty"`
+				Code      string  `json:"error_code,omitempty"`
+				Cause     string  `json:"error_cause,omitempty"`
+			}{Time: start.UTC().Format(time.RFC3339Nano), Event: "http_request", ID: id, Surface: surface, Method: safeMethod(r.Method), Status: status, Bytes: ow.bytes, Seconds: time.Since(start).Seconds(), Cancelled: r.Context().Err() != nil}
+			// 服务端生成的 request ID 原样记录；客户端自带的即便语法合法也可能是
+			// 凭据，只记 SHA-256，运维对错误信封中的 request_id 求值后定位。
+			if rid := ow.Header().Get("X-Request-Id"); rid != "" && rid == clientID {
+				sum := sha256.Sum256([]byte(rid))
+				entry.ClientID = hex.EncodeToString(sum[:])
+			} else {
+				entry.RequestID = rid
+			}
+			// 只记错误码与原因类别，不记错误文本：其中可能有路径或对象 ID。
+			entry.Code = string(code)
+			if code != "" && status >= 500 {
+				entry.Cause = string(sqlite.Classify(cause))
+			}
 			l.mu.Lock()
 			_ = json.NewEncoder(l.out).Encode(entry)
 			l.mu.Unlock()

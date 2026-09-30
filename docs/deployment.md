@@ -110,7 +110,7 @@ systemd 模板需要先创建 `lantai` 服务账户、准备路径并安装已�
 
 ## 日志与验证
 
-核心默认向 stderr 输出白名单 JSONL：时间、内部随机 `observation_id`、监听面、标准方法、响应状态、字节数、耗时及取消状态。未知方法归为 `OTHER`；不记录 URL、query、请求/响应头、正文、原始异常、客户端 request ID 或真实对象 ID。日志写入经锁串行化，保持流式传输与 ResponseController 的超时能力。
+核心默认向 stderr 输出白名单 JSONL：时间、内部随机 `observation_id`、监听面、标准方法、响应状态、字节数、耗时及取消状态。未知方法归为 `OTHER`；不记录 URL、query、请求/响应头、正文、原始异常或真实对象 ID。请求编号用于按错误信封中的 `request_id` 定位：服务端生成的记为 `request_id`；客户端自带的即便语法合法也可能是凭据，只记其 SHA-256（`request_id_sha256`，对原值求十六进制摘要即可检索）。错误响应另记错误码 `error_code`，5xx 再记原因类别 `error_cause`（如 `busy`、`io`、`full`、`other`），不记错误文本。日志写入经锁串行化，保持流式传输与 ResponseController 的超时能力。
 
 网关关闭访问日志，运行日志过滤请求、头、URL、原始错误与消息字段，保留级别、时间及结构化定位字段；配置依据[官方日志过滤文档](https://caddyserver.com/docs/caddyfile/directives/log)。本机显式初始化/诊断命令可能显示部署者指定路径或一次性初始化材料，不能把整个终端记录作为公开日志上传。
 

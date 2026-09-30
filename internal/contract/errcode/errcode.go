@@ -7,6 +7,7 @@
 package errcode
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -203,6 +204,21 @@ func From(err error) *Error {
 		return e
 	}
 	return Wrap(Internal, byCode[Internal].Summary, err)
+}
+
+type observerKey struct{}
+
+// WithObserver 让传输层写出错误信封前把对外错误码与原始错误交给 fn，供本机
+// 访问日志记录错误码与原因类别；fn 不得记录错误文本，其中可能有路径或对象 ID。
+func WithObserver(ctx context.Context, fn func(Code, error)) context.Context {
+	return context.WithValue(ctx, observerKey{}, fn)
+}
+
+// Observe 把即将写出的错误码与原始错误交给 ctx 中的观测者；没有观测者时什么也不做。
+func Observe(ctx context.Context, code Code, cause error) {
+	if fn, ok := ctx.Value(observerKey{}).(func(Code, error)); ok {
+		fn(code, cause)
+	}
 }
 
 // Envelope 是 lantai.error/v1 的 JSON 形态。

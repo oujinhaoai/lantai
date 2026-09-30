@@ -63,7 +63,7 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 
 - **Go 版本**：1.26.8 为当时 1.26 系列的最新补丁；x/sync v0.23.0 要求 Go ≥ 1.26.0，驱动要求 ≥ 1.25.0。升级工具链时整体重跑 `scripts/check.sh` 与平台验证。
 - **HTTP**：使用标准库 `net/http`（1.22 起支持方法与路径通配），不引入路由框架；生成的传输类型基于标准库。
-- **SQLite 驱动**：modernc.org/sqlite 为纯 Go，六个目标均可在 `CGO_ENABLED=0` 下交叉编译，并在开发机通过能力实测（见[开发与验证](development.md#平台验证状态)）。连接基线为 WAL、synchronous=FULL、busy_timeout、外键、defensive 模式、写事务 `BEGIN IMMEDIATE`；macOS 另开 `fullfsync`，因为其 `fsync` 不保证数据落到介质。只读连接只打开已存在的文件，设置 `query_only`，不改日志模式也不用 `BEGIN IMMEDIATE`，核验快照与备份时不改动被核验的库。mattn/go-sqlite3 需要 CGo，作为实测不达标时的对照，未引入。
+- **SQLite 驱动**：modernc.org/sqlite 为纯 Go，六个目标均可在 `CGO_ENABLED=0` 下交叉编译，并在开发机通过能力实测（见[开发与验证](development.md#平台验证状态)）。连接基线为 WAL、synchronous=FULL、busy_timeout、外键、defensive 模式、写事务 `BEGIN IMMEDIATE`；macOS 另开 `fullfsync`，因为其 `fsync` 不保证数据落到介质。SQLite 的 busy handler 是定时轮询而非排队，多写者竞争时个别写者可能等满 busy_timeout，因此可写库的写事务和事务外写语句先在进程内按到达顺序排队（默认最长 15 秒，超时按可重试忙碌处理），busy_timeout 只兜底其他进程；只读事务与 `VACUUM INTO` 不排队。只读连接只打开已存在的文件，设置 `query_only`，不改日志模式也不用 `BEGIN IMMEDIATE`，核验快照与备份时不改动被核验的库。mattn/go-sqlite3 需要 CGo，作为实测不达标时的对照，未引入。
 - **SQL 查询**：采用 `database/sql` 与显式 SQL，事务边界在调用处可见。sqlc v1.31.1 已验证可在 macOS/arm64 以 `CGO_ENABLED=0` 构建，但 T00 只有三张基础设施表，不为此引入生成器；首个采用 sqlc 的模块在 `scripts/tools/go.mod` 锁定版本，并把生成接入 `scripts/generate.sh` 与 `scripts/check.sh`，同时验证其对 STRICT 表等 SQLite 语法的支持。
 - **JSON Schema**：santhosh-tekuri/jsonschema v6 支持 2020-12、格式断言与自定义加载器；本项目禁用远程加载，只从内嵌文件解析引用。
 - **YAML**：go.yaml.in/yaml/v3 是 YAML 组织维护的 yaml.v3 后续版本；解析后再按 JSON 数据模型逐节点转换并拒绝锚点、别名、非字符串键等。

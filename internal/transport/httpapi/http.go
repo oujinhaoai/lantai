@@ -20,6 +20,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/identity/httpauth"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 )
@@ -172,8 +173,12 @@ func (h *Handler) route(mux *http.ServeMux, pattern string, public bool, fn endp
 }
 
 func invalid(message string) error { return errcode.New(errcode.SchemaInvalid, message) }
+
+// writeError 写出错误信封；未被领域映射的存储锁竞争为可重试的 STORAGE_UNAVAILABLE。
 func writeError(w http.ResponseWriter, r *http.Request, err error) {
-	httpauth.WriteError(w, err, r.Header.Get("X-Request-Id"))
+	e := sqlite.Structured(err)
+	errcode.Observe(r.Context(), e.Code, err)
+	httpauth.WriteError(w, e, r.Header.Get("X-Request-Id"))
 }
 func respond(w http.ResponseWriter, status int, v any) error {
 	// Encode before writing headers so a serialization failure has one error envelope.
