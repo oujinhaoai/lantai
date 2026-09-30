@@ -71,9 +71,14 @@ type App struct {
 	Lifecycle     *ledger.Lifecycle
 	Discussions   *ledger.DiscussionObjects
 	Collaboration *query.Collaboration
-	syncMu        sync.Mutex
-	healthMu      sync.RWMutex
-	syncFailed    bool
+	// coreMu 串行化 outbox 收录与查询追赶，tailMu 串行化收件箱与审计导出；
+	// 完整同步（启动、备份、恢复）同时持有两者。运行期两段各自推进，慢的
+	// 收件箱逐事件提交或审计导出不能拖住事件收录与查询投影。
+	coreMu     sync.Mutex
+	tailMu     sync.Mutex
+	healthMu   sync.RWMutex
+	coreFailed bool
+	tailFailed bool
 }
 
 // Open 在任何监听开放前检查身份、收录 outbox、重建或追平查询投影。
@@ -175,31 +180,61 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 			}
 		})
 	}
-	i.Go("outbox-query-audit", func(ctx context.Context) error {
-		t := time.NewTicker(time.Second)
+	// 失败反映在 readiness；保留原操作并在下次恢复同一进度。
+	i.Go("outbox-query", every(time.Second, func(ctx context.Context) { _ = a.syncCore(ctx, false) }))
+	i.Go("inbox-audit", every(time.Second, func(ctx context.Context) { _ = a.syncTail(ctx) }))
+	return a, nil
+}
+
+// every 在上一轮结束后按间隔重复执行，直到上下文取消。
+func every(interval time.Duration, run func(context.Context)) func(context.Context) error {
+	return func(ctx context.Context) error {
+		t := time.NewTicker(interval)
 		defer t.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return nil
 			case <-t.C:
-				_ = a.Sync(ctx) // 失败反映在 readiness；保留原操作并在下次恢复同一进度。
+				run(ctx)
 			}
 		}
-	})
-	return a, nil
+	}
 }
 
 func (a *App) Close(ctx context.Context) error { return a.Instance.Close(ctx) }
 
-// Sync 每来源最多收录四批，再推进查询和审计水位。持续写入不能让一个来源
-// 饿住其他库或投影。没有自动确认备份或裁剪。
+// Sync 每来源最多收录四批，再推进查询、收件箱和审计水位。持续写入不能让一个
+// 来源饿住其他库或投影。没有自动确认备份或裁剪。
 func (a *App) Sync(ctx context.Context) error { return a.sync(ctx, false) }
 
-func (a *App) sync(ctx context.Context, startup bool) (err error) {
-	a.syncMu.Lock()
-	defer a.syncMu.Unlock()
-	defer func() { a.healthMu.Lock(); a.syncFailed = err != nil; a.healthMu.Unlock() }()
+// sync 依次执行两段；持有两把锁，运行期的分段推进不会与之交错。
+func (a *App) sync(ctx context.Context, startup bool) error {
+	a.coreMu.Lock()
+	defer a.coreMu.Unlock()
+	a.tailMu.Lock()
+	defer a.tailMu.Unlock()
+	if err := a.syncCoreLocked(ctx, startup); err != nil {
+		return err
+	}
+	return a.syncTailLocked(ctx)
+}
+
+func (a *App) syncCore(ctx context.Context, startup bool) error {
+	a.coreMu.Lock()
+	defer a.coreMu.Unlock()
+	return a.syncCoreLocked(ctx, startup)
+}
+
+func (a *App) syncTail(ctx context.Context) error {
+	a.tailMu.Lock()
+	defer a.tailMu.Unlock()
+	return a.syncTailLocked(ctx)
+}
+
+// syncCoreLocked 收录 outbox 并追平查询投影。
+func (a *App) syncCoreLocked(ctx context.Context, startup bool) (err error) {
+	defer func() { a.healthMu.Lock(); a.coreFailed = err != nil; a.healthMu.Unlock() }()
 	for _, db := range []ownership.Database{ownership.Main, ownership.Ledger, ownership.Runtime} {
 		src := commands.OutboxSource{Label: string(db), DB: a.Instance.DB(db), Gate: a.Instance.Gate()}
 		// 启动尚无监听或后台业务写者，可安全排空现存 outbox；运行期有界轮转。
@@ -221,6 +256,12 @@ func (a *App) sync(ctx context.Context, startup bool) (err error) {
 			return err
 		}
 	}
+	return nil
+}
+
+// syncTailLocked 推进收件箱消费与审计导出。
+func (a *App) syncTailLocked(ctx context.Context) (err error) {
+	defer func() { a.healthMu.Lock(); a.tailFailed = err != nil; a.healthMu.Unlock() }()
 	if a.Collaboration != nil {
 		if _, err = a.Collaboration.CatchUpInbox(ctx, 1000); err != nil {
 			return err
@@ -234,5 +275,5 @@ func (a *App) sync(ctx context.Context, startup bool) (err error) {
 func (a *App) Ready() bool {
 	a.healthMu.RLock()
 	defer a.healthMu.RUnlock()
-	return a.Instance.Readiness().Ready && !a.syncFailed
+	return a.Instance.Readiness().Ready && !a.coreFailed && !a.tailFailed
 }
