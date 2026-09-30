@@ -10,16 +10,20 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/provenance"
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 )
 
-// T02 使用的授权动作都登记在身份模块的权限矩阵中（未登记的动作一律拒绝）。
-func TestT02ActionsAreRegistered(t *testing.T) {
+// 各模块导出的授权动作都登记在身份模块的权限矩阵中（未登记的动作一律拒绝；
+// 授权桩只放行显式授予的动作，不能替代这项核对）。
+func TestDomainActionsAreRegistered(t *testing.T) {
 	for _, a := range []authz.Action{storage.ActionUpload, storage.ActionReadContent, catalog.ActionRead, catalog.ActionCreateAsset,
-		catalog.ActionPatchMetadata, catalog.ActionPatchOwnMetadata, catalog.ActionCreateProject, catalog.ActionPatchProject} {
+		catalog.ActionPatchMetadata, catalog.ActionPatchOwnMetadata, catalog.ActionCreateProject, catalog.ActionPatchProject,
+		commit.ActionCommitVersion, commit.ActionCreateProject, provenance.ActionAppendEvidence, provenance.ActionPersonalRead} {
 		if _, ok := identity.Spec(a); !ok {
 			t.Errorf("action %s is not registered in identity", a)
 		}

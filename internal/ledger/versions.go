@@ -384,7 +384,9 @@ func (s *Service) replayVersion(ctx context.Context, o versionOp, who authz.Cont
 	if who.PrincipalID != o.Command.ActorID {
 		return commit.Committed{}, errcode.New(errcode.Forbidden, "only the accepting actor can replay this operation")
 	}
-	if err := s.authorize(ctx, who, commit.ActionReadVersion, o.Prepared.ProjectID, "version", o.Prepared.VersionID); err != nil {
+	// 重放是同一操作者对同一提交命令的重复请求：复核与最终接受相同的已登记
+	// 动作（仅 ingest 范围的会话也能取回原结果），撤权后同样拒绝。
+	if err := s.authorize(ctx, who, commit.ActionCommitVersion, o.Prepared.ProjectID, "project", o.Prepared.ProjectID); err != nil {
 		return commit.Committed{}, err
 	}
 	pd, err := proof.Digest()

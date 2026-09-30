@@ -68,7 +68,7 @@ type fixture struct {
 }
 
 var agentActions = []authz.Action{storage.ActionUpload, storage.ActionReadContent, ActionRead, ActionCreateAsset,
-	commit.ActionCommitVersion, commit.ActionReadVersion, ActionPatchOwnMetadata}
+	commit.ActionCommitVersion, ActionPatchOwnMetadata}
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()

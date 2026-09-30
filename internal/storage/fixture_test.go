@@ -135,7 +135,7 @@ type placeholderReader struct{ commit.Reader }
 func (f *fixture) agent(project ids.ID) authz.Context {
 	p := ids.New()
 	f.az.AddPrincipal(p, authz.Agent)
-	f.az.Grant(p, project, ActionUpload, ActionReadContent, commit.ActionCommitVersion, commit.ActionReadVersion)
+	f.az.Grant(p, project, ActionUpload, ActionReadContent, commit.ActionCommitVersion)
 	return f.az.OpenSession(p, 12*time.Hour)
 }
 

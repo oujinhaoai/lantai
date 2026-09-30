@@ -583,6 +583,23 @@ func (m *Memory) Versions(_ context.Context, after ids.ID, limit int) ([]commit.
 	return out, nil
 }
 
+// AssetVersions 实现 commit.Reader。
+func (m *Memory) AssetVersions(_ context.Context, assetID ids.ID, afterNumber int64, limit int) ([]commit.Committed, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []commit.Committed{}
+	for _, c := range m.versions {
+		if c.AssetID == assetID && c.VersionNumber > afterNumber {
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].VersionNumber < out[j].VersionNumber })
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 // VersionByNumber 实现 commit.Reader。
 func (m *Memory) VersionByNumber(_ context.Context, assetID ids.ID, number int64) (commit.Committed, error) {
 	m.mu.Lock()

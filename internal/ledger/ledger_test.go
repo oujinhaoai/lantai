@@ -79,7 +79,7 @@ func newFixture(t *testing.T) *fixture {
 	f.az.Grant(principal, "", commit.ActionCreateProject)
 	f.who = f.az.OpenSession(principal, time.Hour)
 	f.project = f.newProject(t)
-	f.az.Grant(principal, f.project, commit.ActionCommitVersion, commit.ActionReadVersion, "catalog.read", "catalog.patch_metadata", "catalog.patch_own_metadata", "catalog.patch_project")
+	f.az.Grant(principal, f.project, commit.ActionCommitVersion, "catalog.read", "catalog.patch_metadata", "catalog.patch_own_metadata", "catalog.patch_project")
 	return f
 }
 func (f *fixture) newProject(t *testing.T) ids.ID {
@@ -369,7 +369,7 @@ func TestContextAndMetadataAuthorizationCannotBeForged(t *testing.T) {
 	if _, err := f.s.Commit(t.Context(), p.OperationID, f.who, proof); err != nil {
 		t.Fatal(err)
 	}
-	r := commit.MetadataRequest{Who: f.who, Target: commit.MetadataTarget{Kind: commit.TargetAsset, ProjectID: f.project, ID: p.AssetID}, ContentDigest: digest.Of([]byte("x")), Action: commit.ActionReadVersion}
+	r := commit.MetadataRequest{Who: f.who, Target: commit.MetadataTarget{Kind: commit.TargetAsset, ProjectID: f.project, ID: p.AssetID}, ContentDigest: digest.Of([]byte("x")), Action: commit.ActionCommitVersion}
 	_, err := f.s.PrepareMetadata(t.Context(), f.command(commit.CommandCommitMetadata, f.project, "wrong-action", r), r)
 	wantCode(t, err, errcode.SchemaInvalid)
 }

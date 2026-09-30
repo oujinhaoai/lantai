@@ -93,13 +93,14 @@ func (s *Service) scan(ctx context.Context) (map[ids.ID]projection, error) {
 	return out, nil
 }
 
-// refresh 重读整个资产；事件 payload 只是定位提示，绝不作为可见事实。M1 的
-// Reader 只提供全库版本枚举，关联刷新因此是线性扫描；不建立第二份权威清单。
+// refresh 重读整个资产；事件 payload 只是定位提示，绝不作为可见事实。只按
+// 资产读取权威版本登记（不建立第二份清单），代价与该资产的版本数相关，与
+// 全库规模无关。
 func (s *Service) refresh(ctx context.Context, asset ids.ID) (projection, error) {
 	p := projection{}
-	var after ids.ID
+	var after int64
 	for {
-		versions, err := s.reader.Versions(ctx, after, 256)
+		versions, err := s.reader.AssetVersions(ctx, asset, after, 256)
 		if err != nil {
 			return projection{}, err
 		}
@@ -107,13 +108,10 @@ func (s *Service) refresh(ctx context.Context, asset ids.ID) (projection, error)
 			break
 		}
 		for _, v := range versions {
-			if v.VersionID <= after {
-				return projection{}, errors.New("query: authoritative version enumeration did not advance")
+			if v.VersionNumber <= after || v.AssetID != asset {
+				return projection{}, errors.New("query: authoritative asset version enumeration did not advance")
 			}
-			after = v.VersionID
-			if v.AssetID != asset {
-				continue
-			}
+			after = v.VersionNumber
 			if roots, ok := s.reader.(commit.ReferenceRoots); ok {
 				live, err := roots.RetainsReferences(ctx, v.AssetID, v.VersionID)
 				if err != nil {
@@ -213,8 +211,8 @@ func (s *Service) readThrough(ctx context.Context, after, through int64, apply f
 // 事务里替换全部投影与消费水位。读者要么看到上一代，要么看到完整新代。
 // 文件扫描期间的新提交（含排在已扫 ID 前的预留版本）由重放补入。
 func (s *Service) Rebuild(ctx context.Context) (State, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.build.Lock()
+	defer s.build.Unlock()
 	if err := s.registerRetention(ctx); err != nil {
 		return State{}, err
 	}
@@ -262,6 +260,9 @@ func (s *Service) Rebuild(ctx context.Context) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
+	// 扫描与重放期间读者继续看上一代；只有整代替换事务持有读者锁。
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	tx, err := s.db.BeginTx(lctx, nil)
 	if err != nil {
 		return State{}, err
@@ -302,99 +303,156 @@ func (s *Service) Rebuild(ctx context.Context) (State, error) {
 	return st, s.acknowledgeRetention(ctx, st)
 }
 
-// CatchUp 消费至调用时的事件高水位。投影、按事件 ID 去重、对象修订与消费
-// 水位在 index 内同事务提交。重试可以重复读权威事实，但不会跳过未写入状态。
+// CatchUp 消费至调用时的事件高水位。每页事件（最多 256 条）先在读者锁外读取
+// 权威事实并计算投影，同一页内同一资产只刷新一次；随后在 index 的一个事务里
+// 提交投影、按事件 ID 去重、对象修订与消费水位。页与页之间释放读者锁，追赶
+// 期间的搜索总看到某个已提交页边界上的完整状态，不会被整段追赶阻塞。重试
+// 可以重复读权威事实，但不会跳过未写入状态。
 func (s *Service) CatchUp(ctx context.Context) (State, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.build.Lock()
+	defer s.build.Unlock()
 	if err := s.registerRetention(ctx); err != nil {
 		return State{}, err
 	}
+	// 维护期间拒绝增量写入，即使没有待消费事件；每页提交前再各自取得写入口。
 	lctx, h, err := s.gate.Acquire(ctx, commands.Request{})
 	if err != nil {
 		return State{}, err
 	}
-	defer h.Release()
 	st, err := s.State(lctx)
-	if err != nil {
-		return State{}, err
+	if err == nil && st.Generation == 0 {
+		err = expired("index requires a full rebuild")
 	}
-	if st.Generation == 0 {
-		return st, expired("index requires a full rebuild")
-	}
-	end, err := s.events.HighWater(lctx)
-	if err != nil {
-		return State{}, err
-	}
-	for st.HighWater < end {
-		page, err := s.events.Read(lctx, st.HighWater, 256)
-		if err != nil {
-			return st, err
-		}
-		if page.HighWater <= st.HighWater {
-			return st, errors.New("query: event scan did not advance")
-		}
-		tx, err := s.db.BeginTx(lctx, nil)
-		if err != nil {
-			return st, err
-		}
-		err = func() error {
-			defer tx.Rollback()
-			for _, e := range page.Entries {
-				if e.GlobalSeq > end {
-					break
-				}
-				var seen int
-				if err := tx.QueryRowContext(lctx, `SELECT count(*) FROM query_processed_events WHERE event_id=?`, e.Envelope.EventID).Scan(&seen); err != nil {
-					return err
-				}
-				if seen != 0 {
-					continue
-				}
-				asset, err := affected(e.Envelope)
-				if err != nil {
-					return err
-				}
-				k := streamKey(e.Envelope)
-				var rev int64
-				err = tx.QueryRowContext(lctx, `SELECT revision FROM query_revisions WHERE aggregate_type=? AND aggregate_id=?`, k.Stream, k.ID).Scan(&rev)
-				if err != nil && !errors.Is(err, sql.ErrNoRows) {
-					return err
-				}
-				if rev < e.Envelope.AggregateRevision {
-					if asset != "" {
-						p, err := s.refresh(lctx, asset)
-						if errcode.CodeOf(err) == errcode.NotFound {
-							if err = deleteProjection(lctx, tx, asset); err != nil {
-								return err
-							}
-						} else if err != nil {
-							return err
-						} else if err = putProjection(lctx, tx, p); err != nil {
-							return err
-						}
-					}
-					if err = putRevision(lctx, tx, k, e.Envelope.AggregateRevision); err != nil {
-						return err
-					}
-				}
-				if err = putSeen(lctx, tx, e); err != nil {
-					return err
-				}
-			}
-			next := min(page.HighWater, end)
-			if _, err := tx.ExecContext(lctx, `UPDATE query_state SET high_water=? WHERE singleton=1`, next); err != nil {
-				return err
-			}
-			return tx.Commit()
-		}()
-		if err != nil {
-			return st, err
-		}
-		st.HighWater = min(page.HighWater, end)
+	var end int64
+	if err == nil {
+		end, err = s.events.HighWater(lctx)
 	}
 	h.Release()
+	if err != nil {
+		return st, err
+	}
+	for st.HighWater < end {
+		next, err := s.catchUpPage(ctx, st, end)
+		if err != nil {
+			return st, err
+		}
+		st = next
+	}
 	return st, s.acknowledgeRetention(ctx, st)
+}
+
+type catchUpStep struct {
+	entry events.Entry
+	key   revisionKey
+	bump  bool
+}
+
+// catchUpPage 处理 st.HighWater 之后的一页事件。只有持有 s.build 的写者修改
+// index，所以去重与修订可以在事务外读取；写入只在 s.mu 内的一个事务中完成。
+func (s *Service) catchUpPage(ctx context.Context, st State, end int64) (State, error) {
+	lctx, h, err := s.gate.Acquire(ctx, commands.Request{})
+	if err != nil {
+		return st, err
+	}
+	defer h.Release()
+	page, err := s.events.Read(lctx, st.HighWater, 256)
+	if err != nil {
+		return st, err
+	}
+	if page.HighWater <= st.HighWater {
+		return st, errors.New("query: event scan did not advance")
+	}
+	revisions := map[revisionKey]int64{}
+	seen := map[ids.ID]bool{}
+	refresh := map[ids.ID]bool{}
+	var steps []catchUpStep
+	for _, e := range page.Entries {
+		if e.GlobalSeq > end {
+			break
+		}
+		if seen[e.Envelope.EventID] {
+			continue
+		}
+		var done int
+		if err := s.db.QueryRowContext(lctx, `SELECT count(*) FROM query_processed_events WHERE event_id=?`, e.Envelope.EventID).Scan(&done); err != nil {
+			return st, err
+		}
+		if done != 0 {
+			continue
+		}
+		asset, err := affected(e.Envelope)
+		if err != nil {
+			return st, err
+		}
+		k := streamKey(e.Envelope)
+		rev, ok := revisions[k]
+		if !ok {
+			err = s.db.QueryRowContext(lctx, `SELECT revision FROM query_revisions WHERE aggregate_type=? AND aggregate_id=?`, k.Stream, k.ID).Scan(&rev)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return st, err
+			}
+		}
+		step := catchUpStep{entry: e, key: k}
+		if rev < e.Envelope.AggregateRevision {
+			step.bump = true
+			rev = e.Envelope.AggregateRevision
+			if asset != "" {
+				refresh[asset] = true
+			}
+		}
+		revisions[k] = rev
+		seen[e.Envelope.EventID] = true
+		steps = append(steps, step)
+	}
+	updated := make([]projection, 0, len(refresh))
+	var removed []ids.ID
+	for asset := range refresh {
+		p, err := s.refresh(lctx, asset)
+		switch {
+		case errcode.CodeOf(err) == errcode.NotFound:
+			removed = append(removed, asset)
+		case err != nil:
+			return st, err
+		default:
+			updated = append(updated, p)
+		}
+	}
+	next := min(page.HighWater, end)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tx, err := s.db.BeginTx(lctx, nil)
+	if err != nil {
+		return st, err
+	}
+	defer tx.Rollback()
+	for _, asset := range removed {
+		if err = deleteProjection(lctx, tx, asset); err != nil {
+			return st, err
+		}
+	}
+	for _, p := range updated {
+		if err = putProjection(lctx, tx, p); err != nil {
+			return st, err
+		}
+	}
+	for _, step := range steps {
+		if step.bump {
+			if err = putRevision(lctx, tx, step.key, step.entry.Envelope.AggregateRevision); err != nil {
+				return st, err
+			}
+		}
+		if err = putSeen(lctx, tx, step.entry); err != nil {
+			return st, err
+		}
+	}
+	if _, err = tx.ExecContext(lctx, `UPDATE query_state SET high_water=? WHERE singleton=1`, next); err != nil {
+		return st, err
+	}
+	if err = tx.Commit(); err != nil {
+		return st, err
+	}
+	st.HighWater = next
+	return st, nil
 }
 
 func putRevision(ctx context.Context, tx *sql.Tx, k revisionKey, r int64) error {

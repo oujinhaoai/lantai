@@ -94,7 +94,9 @@ type Service struct {
 	authz    authz.Authorizer
 	rights   rights.Evaluator
 	instance ids.ID
-	// 单核心进程内只允许一个构建/增量写入者，读者看到原子切换后的整代投影。
+	// build 保证单核心进程内只有一个构建/增量写入者；mu 只在提交 index 写事务
+	// 时持有，读者在其内读取，看到的是原子切换后的整代或某个已提交页边界。
+	build  sync.Mutex
 	mu     sync.Mutex
 	cursor cipher.AEAD
 }

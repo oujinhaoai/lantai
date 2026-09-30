@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 
 	"github.com/oujinhaoai/lantai/internal/catalog/pathrule"
@@ -83,6 +84,26 @@ func (s *Service) Versions(ctx context.Context, after ids.ID, limit int) ([]comm
 	if err != nil {
 		return nil, err
 	}
+	return scanVersions(rows)
+}
+
+// AssetVersions 走 UNIQUE(asset_id, version_number) 的索引，代价与该资产的
+// 版本数相关，与全库规模无关。
+func (s *Service) AssetVersions(ctx context.Context, asset ids.ID, afterNumber int64, limit int) ([]commit.Committed, error) {
+	if limit <= 0 {
+		limit = 1000
+	}
+	if limit > 10000 {
+		return nil, invalid("version enumeration limit must not exceed 10000")
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT record FROM ledger_versions WHERE asset_id = ? AND version_number > ? ORDER BY version_number LIMIT ?`, asset, afterNumber, limit)
+	if err != nil {
+		return nil, err
+	}
+	return scanVersions(rows)
+}
+
+func scanVersions(rows *sql.Rows) ([]commit.Committed, error) {
 	defer rows.Close()
 	out := []commit.Committed{}
 	for rows.Next() {

@@ -6,10 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -34,6 +37,9 @@ type authority struct {
 	versions map[ids.ID]catalog.VersionInfo
 	onList   func()
 	failure  error
+	// listed 统计全库版本枚举次数；onAsset 在按资产读取时调用一次。
+	listed  atomic.Int64
+	onAsset func()
 }
 
 func (a *authority) ReadProjection(_ context.Context, id ids.ID) (catalog.AssetInfo, error) {
@@ -61,6 +67,7 @@ func (a *authority) Version(ctx context.Context, asset, version ids.ID) (commit.
 	return v.Version, err
 }
 func (a *authority) Versions(_ context.Context, after ids.ID, limit int) ([]commit.Committed, error) {
+	a.listed.Add(1)
 	var all []commit.Committed
 	for id, v := range a.versions {
 		if id > after {
@@ -75,6 +82,24 @@ func (a *authority) Versions(_ context.Context, after ids.ID, limit int) ([]comm
 		fn := a.onList
 		a.onList = nil
 		fn()
+	}
+	return all, nil
+}
+func (a *authority) AssetVersions(_ context.Context, asset ids.ID, afterNumber int64, limit int) ([]commit.Committed, error) {
+	if a.onAsset != nil {
+		fn := a.onAsset
+		a.onAsset = nil
+		fn()
+	}
+	all := []commit.Committed{}
+	for _, v := range a.versions {
+		if v.Version.AssetID == asset && v.Version.VersionNumber > afterNumber {
+			all = append(all, v.Version)
+		}
+	}
+	slices.SortFunc(all, func(a, b commit.Committed) int { return int(a.VersionNumber - b.VersionNumber) })
+	if len(all) > limit {
+		all = all[:limit]
 	}
 	return all, nil
 }
@@ -279,6 +304,69 @@ func TestFilteredChangesAdvanceAndExpiredCursorReplacesScope(t *testing.T) {
 	snapshot, err := f.s.Snapshot(t.Context(), f.who, Filter{ProjectID: f.project})
 	if err != nil || !snapshot.ReplaceScope || len(snapshot.Items) != 0 || snapshot.State.HighWater < snapshot.Start {
 		t.Fatalf("invalid replacement snapshot: %+v %v", snapshot, err)
+	}
+}
+
+// 增量追赶只按资产读取权威版本、不枚举全库，代价与全库规模无关；追赶读取
+// 权威事实期间搜索不被阻塞（BUG-20260930-06）。
+func TestCatchUpRefreshesOnlyAffectedAssetsWithoutBlockingSearch(t *testing.T) {
+	f := setup(t)
+	var target catalog.AssetInfo
+	for i := range 50 {
+		a := f.add(f.project, fmt.Sprintf("asset %02d", i))
+		if i == 7 {
+			target = a
+		}
+	}
+	f.build()
+	f.source.listed.Store(0)
+	target.Description.Title = "refreshed title"
+	target.Description.Revision = 2
+	f.source.assets[target.Asset.AssetID] = target
+	f.log.add("ledger.metadata_committed", target.Asset.AssetID, 2)
+	f.log.add("ledger.metadata_committed", target.Asset.AssetID, 2)
+	entered, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	unblock := func() { once.Do(func() { close(release) }) }
+	defer unblock()
+	f.source.onAsset = func() {
+		close(entered)
+		<-release
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := f.s.CatchUp(t.Context())
+		done <- err
+	}()
+	select {
+	case <-entered:
+	case err := <-done:
+		t.Fatalf("catch-up finished without a per-asset authoritative read (err %v, whole-ledger enumerations %d)", err, f.source.listed.Load())
+	case <-time.After(10 * time.Second):
+		t.Fatal("catch-up did not reach the per-asset authoritative read")
+	}
+	searched := make(chan error, 1)
+	go func() {
+		_, err := f.s.Search(t.Context(), SearchRequest{Who: f.who, Limit: 10})
+		searched <- err
+	}()
+	select {
+	case err := <-searched:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("search was blocked while catch-up read authoritative facts")
+	}
+	unblock()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if n := f.source.listed.Load(); n != 0 {
+		t.Fatalf("catch-up enumerated the whole ledger %d times", n)
+	}
+	if p := f.search(Filter{Text: "refreshed title"}); len(p.Items) != 1 {
+		t.Fatal(p)
 	}
 }
 

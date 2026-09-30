@@ -6,7 +6,7 @@
 
 `ledger.New(ledger.Deps{DB, Gate, Authority, Clock, IDs})` 使用已经过实例迁移的数据库。`Authority` 组合身份授权与实例恢复代次；同一实例的 identity、ledger、catalog、storage 必须共用 `Gate`。先创建台账，再创建 storage/catalog，最后通过 `SetInstaller`、`SetRevisionVerifier`、`SetAcceptanceVerifier` 接线。缺失最终验收或安装复核时提交拒绝，不能把缺失依赖当作许可通过。
 
-`ledger_projects`、`ledger_assets`、`ledger_versions`、`ledger_version_states`、`ledger_namespace_claims` 与修订相关表均由 ledger 独占写入。版本、资产与项目登记可由 `Reader` / `Projects` 精确读取；`Versions` 按版本 ID 分页枚举。未提交版本没有 `ledger_versions` 行，不因文件安装或索引出现而变成可见。上层必须另行核对读取权限。
+`ledger_projects`、`ledger_assets`、`ledger_versions`、`ledger_version_states`、`ledger_namespace_claims` 与修订相关表均由 ledger 独占写入。版本、资产与项目登记可由 `Reader` / `Projects` 精确读取；`Versions` 按版本 ID 分页枚举全库，`AssetVersions` 按版本号分页枚举单个资产（走 `(asset_id, version_number)` 唯一索引，未知资产返回空列表）。未提交版本没有 `ledger_versions` 行，不因文件安装或索引出现而变成可见。上层必须另行核对读取权限。
 
 ## 版本提交
 
@@ -17,7 +17,7 @@
 
 撤权、过期恢复代次或输入限制变化使操作变为 blocked，字节保留；证明不符或安装损坏使操作进入 quarantined，并通过安装器隔离。逻辑隔离先持久化，物理隔离在释放安全锁后执行；崩溃后可再次调用恢复 hook 完成隔离。不能凭版本目录反推业务成功。
 
-已提交 operation 的相同证明重放返回原版本，不执行安装或验收。重放仍校验当前读取权限，在维护期间也可进行。相同幂等键的不同请求摘要、不同证明重放、旧基线和占名冲突分别返回确定错误。同一 operation ID 不能绑定另一命令。`LookupPrepared` 只读取冻结身份，不重新解析 `@latest` 等浮动输入；它不返回完整命令响应缓存。
+已提交 operation 的相同证明重放返回原版本，不执行安装或验收。重放只接受原操作者，并复核其当前的 `ledger.commit_version` 权限（与最终接受同一已登记动作，仅 ingest 范围的会话也能取回原结果；撤权后拒绝），在维护期间也可进行。同键并发的重复请求得到原版本或可重试的忙碌，不报告为权限错误。相同幂等键的不同请求摘要、不同证明重放、旧基线和占名冲突分别返回确定错误。同一 operation ID 不能绑定另一命令。`LookupPrepared` 只读取冻结身份，不重新解析 `@latest` 等浮动输入；它不返回完整命令响应缓存。
 
 `Cancel` 只允许发起主体取消尚未结束的操作，释放当前操作持有的资产占用和未生效的名称。取消不回收版本号，新资产占名取消不消耗别名代次。已经隔离或终结的操作不能借取消释放别人的占用。
 

@@ -65,7 +65,7 @@ func newActor(h Harness) actor {
 		project = h.NewProject()
 	}
 	h.Authz.AddPrincipal(p, authz.Agent)
-	h.Authz.Grant(p, project, commit.ActionCommitVersion, commit.ActionReadVersion, "catalog.read")
+	h.Authz.Grant(p, project, commit.ActionCommitVersion, "catalog.read")
 	return actor{who: h.Authz.OpenSession(p, time.Hour), project: project}
 }
 
@@ -520,6 +520,23 @@ func RunLedgerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		}
 		if _, err := h.Reader.LatestVersion(t.Context(), ids.New()); errcode.CodeOf(err) != errcode.NotFound {
 			t.Fatalf("unknown asset: %v", err)
+		}
+		// 按资产枚举只返回本资产的已提交版本，按号码升序分页；另一资产不混入。
+		other, otherProof := prepareInstalled(t, h, a, "seq/other", "x1")
+		if _, err := h.Ledger.Commit(t.Context(), other.OperationID, a.who, otherProof); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := h.Reader.AssetVersions(t.Context(), p1.AssetID, 0, 10); err != nil || len(got) != 2 || got[0] != c1 || got[1] != c2 {
+			t.Fatalf("AssetVersions = %+v %v", got, err)
+		}
+		if got, err := h.Reader.AssetVersions(t.Context(), p1.AssetID, 0, 1); err != nil || len(got) != 1 || got[0] != c1 {
+			t.Fatalf("AssetVersions first page = %+v %v", got, err)
+		}
+		if got, err := h.Reader.AssetVersions(t.Context(), p1.AssetID, 1, 10); err != nil || len(got) != 1 || got[0] != c2 {
+			t.Fatalf("AssetVersions after 1 = %+v %v", got, err)
+		}
+		if got, err := h.Reader.AssetVersions(t.Context(), ids.New(), 0, 10); err != nil || len(got) != 0 {
+			t.Fatalf("AssetVersions unknown asset = %+v %v", got, err)
 		}
 	})
 

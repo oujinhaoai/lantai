@@ -27,11 +27,9 @@ import (
 // CommandType 是版本提交命令类型。
 const CommandType = "ledger.commit_version"
 
-// ActionCommitVersion 是提交版本所需的授权动作。
+// ActionCommitVersion 是提交版本所需的授权动作；已提交操作的重放由同一
+// 操作者以同一动作复核，撤权后不能取回结果。
 const ActionCommitVersion authz.Action = "ledger.commit_version"
-
-// ActionReadVersion 是读取已提交版本所需的授权动作。
-const ActionReadVersion authz.Action = "ledger.read_version"
 
 // PrepareRequest 是创建资产首版或追加版本的请求，清单已冻结、内容已上传。
 type PrepareRequest struct {
@@ -149,6 +147,10 @@ type Reader interface {
 	Version(ctx context.Context, assetID, versionID ids.ID) (Committed, error)
 	// Versions 按 version_id 升序枚举已提交版本，after 为空从头开始。
 	Versions(ctx context.Context, after ids.ID, limit int) ([]Committed, error)
+	// AssetVersions 按版本号升序枚举一个资产的已提交版本，afterNumber 为 0
+	// 从头开始；未知资产返回空列表。读取同一权威登记，只是按资产定位，供
+	// 投影刷新单个资产时不必枚举全库。
+	AssetVersions(ctx context.Context, assetID ids.ID, afterNumber int64, limit int) ([]Committed, error)
 	// VersionByNumber 返回资产第 number 号已提交版本；号码被保留但未提交时为 NOT_FOUND。
 	VersionByNumber(ctx context.Context, assetID ids.ID, number int64) (Committed, error)
 	// LatestVersion 返回资产号码最大的已提交版本。
