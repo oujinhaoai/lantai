@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -305,6 +306,87 @@ func TestFilteredChangesAdvanceAndExpiredCursorReplacesScope(t *testing.T) {
 	if err != nil || !snapshot.ReplaceScope || len(snapshot.Items) != 0 || snapshot.State.HighWater < snapshot.Start {
 		t.Fatalf("invalid replacement snapshot: %+v %v", snapshot, err)
 	}
+}
+
+// 翻页游标只绑定查询范围与构建代次：范围外的投影变化不使其失效；范围内新增
+// 对象出现在后续页、被删除对象不再返回，跨页不重复；重建仍使游标失效
+// （BUG-20260930-07）。
+func TestPaginationSurvivesUnrelatedProjectionChanges(t *testing.T) {
+	f := setup(t)
+	var scope []catalog.AssetInfo
+	for i := range 6 {
+		scope = append(scope, f.add(f.project, fmt.Sprintf("scope %d", i)))
+	}
+	elsewhere := f.add(ids.New(), "elsewhere")
+	f.build()
+	filter := Filter{ProjectID: f.project}
+	page := func(cursor string) Page {
+		t.Helper()
+		p, err := f.s.Search(t.Context(), SearchRequest{Who: f.who, Filter: filter, Limit: 2, Cursor: cursor})
+		if err != nil {
+			t.Fatalf("page after cursor %q: %v", cursor, err)
+		}
+		return p
+	}
+	catchUp := func() State {
+		t.Helper()
+		st, err := f.s.CatchUp(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st
+	}
+	seen := map[ids.ID]int{}
+	p := page("")
+	for _, it := range p.Items {
+		seen[it.AssetID]++
+	}
+	before, _ := f.s.State(t.Context())
+	elsewhere.Description.Title = "changed elsewhere"
+	elsewhere.Description.Revision = 2
+	f.source.assets[elsewhere.Asset.AssetID] = elsewhere
+	f.log.add("ledger.metadata_committed", elsewhere.Asset.AssetID, 2)
+	if st := catchUp(); st.HighWater <= before.HighWater {
+		t.Fatalf("the unrelated change was not projected: %+v", st)
+	}
+	p = page(p.NextCursor)
+	for _, it := range p.Items {
+		seen[it.AssetID]++
+	}
+	// 新增对象的 ULID 时间部分晚于已返回位置；被删除的是尚未返回的对象。
+	time.Sleep(2 * time.Millisecond)
+	late := f.add(f.project, "scope late")
+	f.log.add("ledger.metadata_committed", late.Asset.AssetID, 1)
+	var gone catalog.AssetInfo
+	for _, a := range scope {
+		if seen[a.Asset.AssetID] == 0 {
+			gone = a
+		}
+	}
+	delete(f.source.assets, gone.Asset.AssetID)
+	delete(f.source.versions, gone.Latest.VersionID)
+	f.log.add("ledger.metadata_committed", gone.Asset.AssetID, 2)
+	catchUp()
+	last := p.NextCursor
+	for p.NextCursor != "" {
+		last = p.NextCursor
+		p = page(p.NextCursor)
+		for _, it := range p.Items {
+			seen[it.AssetID]++
+		}
+	}
+	want := map[ids.ID]int{late.Asset.AssetID: 1}
+	for _, a := range scope {
+		if a.Asset.AssetID != gone.Asset.AssetID {
+			want[a.Asset.AssetID] = 1
+		}
+	}
+	if !maps.Equal(seen, want) {
+		t.Fatalf("walk across projection changes returned %v, want %v", seen, want)
+	}
+	f.build()
+	_, err := f.s.Search(t.Context(), SearchRequest{Who: f.who, Filter: filter, Limit: 2, Cursor: last})
+	code(t, err, errcode.CursorExpired)
 }
 
 // 增量追赶只按资产读取权威版本、不枚举全库，代价与全库规模无关；追赶读取

@@ -43,7 +43,7 @@ JSON 请求默认最大 8 MiB，可由应用配置调整；只接受 `applicatio
 | `GET /assets?q&project_id&asset_type&cursor&limit&view` | 当前权限过滤的查询投影，附代次与水位；不因 GET 自动重建 |
 | `GET /operations/{id}` | 本人操作的安全视图，查询权限收紧后不继续泄露结果 |
 
-列表 `limit` 默认 50、最大 100。`view` 默认 `brief`，另接受 `full`：项目/资产 brief 省去自由扩展字段，项目 full 还带建立者和时间；版本 full 增加 manifest。检索的两种视图均保持安全目录摘要，不展开文件、uses 或来源细节；需要详细内容时调用精确读取。查询游标绑定身份、会话、过滤条件和投影代次/水位；失效后按 `CURSOR_EXPIRED` 重新分页。
+列表 `limit` 默认 50、最大 100。`view` 默认 `brief`，另接受 `full`：项目/资产 brief 省去自由扩展字段，项目 full 还带建立者和时间；版本 full 增加 manifest。检索的两种视图均保持安全目录摘要，不展开文件、uses 或来源细节；需要详细内容时调用精确读取。查询游标绑定身份、会话、过滤条件和投影代次（按 `asset_id` 键集续读，不绑定全实例水位，范围外事件不使其失效）；失效后按 `CURSOR_EXPIRED` 重新分页，语义见 [query](query.md)。
 
 ## 人类授权与初始设置
 

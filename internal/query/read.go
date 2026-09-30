@@ -39,9 +39,12 @@ type Page struct {
 	NextCursor string `json:"next_cursor,omitempty"`
 	State      State  `json:"state"`
 }
+
+// cursorData 是键集分页位置。不绑定全实例消费水位：范围外的事件（其他项目
+// 写入、任何主体登录）不会使翻页失效；构建代次、过滤范围、主体或会话变化
+// 仍使游标失效。
 type cursorData struct {
 	Generation int64
-	HighWater  int64
 	After      ids.ID
 	Filter     digest.Digest
 	Principal  ids.ID
@@ -151,7 +154,10 @@ func (s *Service) visible(ctx context.Context, who authz.Context, asset, version
 
 // Search 在 security_guard 共享锁内组装响应；已完成的撤权使新读取立即过滤。
 // 游标用 AEAD 加密，避免把最后扫描到的无权对象 ID 暴露给调用者；绑定主体、
-// 会话、查询范围、构建代次和水位。投影变化/进程重启后必须重新开始分页。
+// 会话、查询范围与构建代次，按 asset_id 键集续读。每页取自同一已提交状态并
+// 按当前授权过滤；跨页不重复，遍历期间范围内的新增对象（ID 排在当前位置之后）
+// 出现在后续页，被删除或撤权的对象不再返回。需要精确时间点范围时用
+// Snapshot 加 Changes。重建或进程重启后必须重新开始分页。
 func (s *Service) Search(ctx context.Context, req SearchRequest) (Page, error) {
 	f, err := cleanFilter(req.Filter)
 	if err != nil {
@@ -183,7 +189,7 @@ func (s *Service) Search(ctx context.Context, req SearchRequest) (Page, error) {
 		if err != nil {
 			return Page{}, err
 		}
-		if c.Generation != st.Generation || c.HighWater != st.HighWater || c.Filter != filterDigest(f) || c.Principal != req.Who.PrincipalID || c.Session != req.Who.SessionID {
+		if c.Generation != st.Generation || c.Filter != filterDigest(f) || c.Principal != req.Who.PrincipalID || c.Session != req.Who.SessionID {
 			return Page{}, expired("query cursor scope or projection has changed")
 		}
 		after = c.After
@@ -194,7 +200,7 @@ func (s *Service) Search(ctx context.Context, req SearchRequest) (Page, error) {
 	}
 	out := Page{Items: items, State: st}
 	if more {
-		out.NextCursor, err = s.sealCursor(cursorData{st.Generation, st.HighWater, last, filterDigest(f), req.Who.PrincipalID, req.Who.SessionID})
+		out.NextCursor, err = s.sealCursor(cursorData{st.Generation, last, filterDigest(f), req.Who.PrincipalID, req.Who.SessionID})
 	}
 	return out, err
 }
