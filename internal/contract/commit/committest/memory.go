@@ -561,7 +561,7 @@ func (m *Memory) Version(_ context.Context, assetID, versionID ids.ID) (commit.C
 		return commit.Committed{}, errcode.New(errcode.NotFound, "")
 	}
 	if c.AssetID != assetID {
-		return commit.Committed{}, errcode.New(errcode.RefMismatch, "")
+		return commit.Committed{}, errcode.New(errcode.NotFound, "")
 	}
 	return c, nil
 }

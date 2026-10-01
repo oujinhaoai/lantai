@@ -351,10 +351,14 @@ func RunLedgerContract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		dup := a.newAsset(h, "asset/named", "other")
 		_, err := h.Ledger.Prepare(t.Context(), a.cmd(t, "dup", dup), dup)
 		wantCode(t, err, errcode.PathConflict)
-		_, err = h.Reader.Version(t.Context(), ids.New(), p.VersionID)
-		wantCode(t, err, errcode.RefMismatch)
-		_, err = h.Reader.Version(t.Context(), p.AssetID, ids.New())
-		wantCode(t, err, errcode.NotFound)
+		// 版本属于别的资产与不存在不可区分，避免泄露版本存在性。
+		_, mismatched := h.Reader.Version(t.Context(), ids.New(), p.VersionID)
+		_, absent := h.Reader.Version(t.Context(), p.AssetID, ids.New())
+		wantCode(t, mismatched, errcode.NotFound)
+		wantCode(t, absent, errcode.NotFound)
+		if mismatched.Error() != absent.Error() {
+			t.Fatalf("mismatched version %q differs from an absent one %q", mismatched, absent)
+		}
 	})
 
 	t.Run("unauthorized prepare leaves no reservation", func(t *testing.T) {

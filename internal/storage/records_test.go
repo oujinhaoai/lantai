@@ -59,6 +59,13 @@ func TestEvidenceRecordsAreAppendOnlyAndBound(t *testing.T) {
 	orphan.RecordID, orphan.VersionID = ids.New(), ids.New()
 	_, err = f.svc.AppendRecord(t.Context(), orphan)
 	wantCode(t, err, errcode.NotFound)
+	// 调用方只按所给项目授权：版本属于别的项目时与不存在一样，不泄露存在性。
+	foreign := rec
+	foreign.RecordID, foreign.ProjectID = ids.New(), ids.New()
+	_, err = f.svc.AppendRecord(t.Context(), foreign)
+	wantCode(t, err, errcode.NotFound)
+	_, err = f.svc.ReadRecord(t.Context(), ids.New(), c.AssetID, c.VersionID, rec.RecordID)
+	wantCode(t, err, errcode.NotFound)
 
 	// 生产者身份必须完整（扩展 ID、版本与包摘要）。
 	anonymous := rec

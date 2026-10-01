@@ -196,11 +196,13 @@ func (w *Service) readable(ctx context.Context, who authz.Context, r ids.Permane
 	if err != nil {
 		return err
 	}
-	if v.AssetID != r.AssetID || project != "" && v.ProjectID != project {
-		return errcode.New(errcode.RefMismatch, "")
-	}
+	// 先按版本实际所属项目授权，再比较归属：无权读取时与不存在一样，
+	// 不泄露版本是否存在。
 	if err = w.authorize(ctx, who, "catalog.read", v.ProjectID, "version", v.VersionID); err != nil {
 		return err
+	}
+	if v.AssetID != r.AssetID || project != "" && v.ProjectID != project {
+		return errcode.New(errcode.RefMismatch, "")
 	}
 	return w.d.Ledger.CheckVersionRead(ctx, v.AssetID, v.VersionID)
 }

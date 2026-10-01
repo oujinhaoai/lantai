@@ -28,11 +28,16 @@ type fakeAuth struct {
 	mu    sync.Mutex
 	deny  map[string]bool
 	epoch int64
+	// hidden 中的项目对所有调用者不可见，像非成员一样得到 NOT_FOUND。
+	hidden map[ids.ID]bool
 }
 
-func (a *fakeAuth) Authorize(_ context.Context, who authz.Context, action authz.Action, _ authz.Resource) (authz.Decision, error) {
+func (a *fakeAuth) Authorize(_ context.Context, who authz.Context, action authz.Action, res authz.Resource) (authz.Decision, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.hidden[res.ProjectID] {
+		return authz.Decision{Code: errcode.NotFound}, nil
+	}
 	if a.deny[string(action)+"|"+string(who.PrincipalID)] || a.deny[string(action)] {
 		return authz.Decision{Code: errcode.Forbidden}, nil
 	}

@@ -60,10 +60,14 @@ func (s *Service) VersionByID(ctx context.Context, id ids.ID) (commit.Committed,
 func (s *Service) Asset(ctx context.Context, id ids.ID) (commit.Asset, error) {
 	return readJSON[commit.Asset](ctx, s.db, `SELECT record FROM ledger_assets WHERE asset_id = ? AND record IS NOT NULL`, id)
 }
+
+// Version 返回资产下的精确版本。版本属于别的资产时与不存在一样返回
+// NOT_FOUND：调用方通常只按所给资产授权，区分两者会泄露版本是否存在于
+// 调用者无权读取的资产中。
 func (s *Service) Version(ctx context.Context, asset, id ids.ID) (commit.Committed, error) {
 	v, err := readJSON[commit.Committed](ctx, s.db, `SELECT record FROM ledger_versions WHERE version_id = ?`, id)
 	if err == nil && v.AssetID != asset {
-		return commit.Committed{}, errcode.New(errcode.RefMismatch, "")
+		return commit.Committed{}, errcode.New(errcode.NotFound, "")
 	}
 	return v, err
 }

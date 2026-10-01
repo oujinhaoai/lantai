@@ -8,7 +8,7 @@
 
 - 所有对象 ID 是服务端生成的 ULID，只接受 26 位**大写** Crockford Base32 规范形式（`^[0-7][0-9A-HJKMNP-TV-Z]{25}$`）。小写、`I/L/O/U` 等变体一律拒绝，保证一个对象只有一种拼写，可以直接作唯一键。ID 的时间成分只用于诊断，业务先后以 `revision` 为准。实现：[`internal/contract/ids`](../../internal/contract/ids/ids.go)。
 - 子操作 ID 由父 `operation_id` 与稳定步骤键确定性派生：保留父 ID 的时间成分，后 80 位取 `SHA-256("lantai.child-operation/v1" 0x00 父ID 0x00 步骤键)`。同一父操作与步骤键永远得到同一子 ID，重试不会生成新子操作；步骤键由调用方稳定给出，例如 `item:<target_id>`。
-- 永久引用 `lantai://<instance_id>/assets/<asset_id>/versions/<version_id>`。本馆入口可以省略 `instance_id`，持久保存（uses、审定、发布、任务输入、检查、迁移映射）前必须补齐。版本是否属于资产由所属模块判定，不符返回 `REF_MISMATCH`。
+- 永久引用 `lantai://<instance_id>/assets/<asset_id>/versions/<version_id>`。本馆入口可以省略 `instance_id`，持久保存（uses、审定、发布、任务输入、检查、迁移映射）前必须补齐。版本是否属于资产由所属模块判定：只按所给资产授权的读取与解析（版本详情、读取授权、永久引用、`uses`）在不符时与不存在一样返回 `NOT_FOUND`；任务与流程的输入引用先按版本实际所属项目授权，调用者能读该版本时，不符才返回 `REF_MISMATCH`。
 - 路径别名按代次记录（[`alias-generation`](../../schemas/common/v1/alias-generation.schema.json)），同一路径的代次单调递增、历史不可覆盖；当前占名由台账的 [`namespace-claim`](../../schemas/common/v1/namespace-claim.schema.json) 控制，孤立的别名历史文件不能抢占现名。
 
 ## 时间、修订与摘要
@@ -90,7 +90,7 @@
 
 T02 接入后契约有三处变化：安装请求带清单文件、证明记录其 `manifest_sha256`，路径长度按码点计（与 schema 一致）；台账契约补齐上表中的读取、占名、说明修订、项目登记与取消；新增用途限制查询。取舍见 [ADR 0007](../adr/0007-storage-layout-and-catalog-ledger-split.md)。
 
-授权契约套件覆盖：授予与撤权对之后的判定立即生效、收窄的会话不能扩大、验证返回可信上下文、结束或到期的会话与整馆恢复之前的会话一律失效。台账与安装契约套件覆盖：Prepare/Commit 按键与 operation 幂等、同键异摘要冲突、撤权或旧会话提交被拒且版本不可见（操作 `blocked`，字节保留）、整馆恢复前接受的操作即使换新会话也须先对账（`OPERATION_NEEDS_RECONCILIATION`）、未经安装器签发的证明被拒、证明不符或内容损坏时隔离、基线落后、同资产进行中提交返回 `RESOURCE_BUSY`、取消已终结的操作不释放别人的占用、占名冲突、取消后版本号不回收、`REF_MISMATCH`，以及安装端的幂等、冲突、缺内容、大小不符、路径越界与非法 UTF-8、只认本安装器签发的证明与隔离。
+授权契约套件覆盖：授予与撤权对之后的判定立即生效、收窄的会话不能扩大、验证返回可信上下文、结束或到期的会话与整馆恢复之前的会话一律失效。台账与安装契约套件覆盖：Prepare/Commit 按键与 operation 幂等、同键异摘要冲突、撤权或旧会话提交被拒且版本不可见（操作 `blocked`，字节保留）、整馆恢复前接受的操作即使换新会话也须先对账（`OPERATION_NEEDS_RECONCILIATION`）、未经安装器签发的证明被拒、证明不符或内容损坏时隔离、基线落后、同资产进行中提交返回 `RESOURCE_BUSY`、取消已终结的操作不释放别人的占用、占名冲突、取消后版本号不回收、版本不属于所给资产时与不存在不可区分，以及安装端的幂等、冲突、缺内容、大小不符、路径越界与非法 UTF-8、只认本安装器签发的证明与隔离。
 
 ## 所有权与锁顺序
 

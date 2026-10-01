@@ -9,6 +9,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -486,4 +487,40 @@ func TestContextSnapshotAndCandidateGroupAuthorization(t *testing.T) {
 	v = f.view(task)
 	_, err := f.s.Complete(ctx, f.owner, f.key(), CompleteRequest{TaskRef: TaskRef{ProjectID: f.project, TaskID: task, ExpectedRevision: v.Task.Revision}, AuthorityOperationID: op})
 	expectCode(t, err, errcode.ReviewTargetStale)
+}
+
+// 任务输入引用先按版本实际所属项目授权，再比较归属：可见资产配无权版本与
+// 配不存在的版本得到相同错误；能读取该版本时才报告 REF_MISMATCH
+// （BUG-20260930-04）。
+func TestInputRefToUnreadableVersionIsIndistinguishableFromAbsent(t *testing.T) {
+	f := newFixture(t)
+	own := f.version("", f.owner.PrincipalID)
+	foreignProject := ids.New()
+	foreignAsset := ids.New()
+	foreign := commit.Committed{OperationID: ids.New(), ProjectID: foreignProject, AssetID: foreignAsset, VersionID: ids.New(), VersionNumber: 1}
+	f.res.mu.Lock()
+	f.res.assets[foreignAsset] = commit.Asset{AssetID: foreignAsset, ProjectID: foreignProject}
+	f.res.versions[foreign.VersionID] = foreign
+	f.res.mu.Unlock()
+	f.auth.mu.Lock()
+	f.auth.hidden = map[ids.ID]bool{foreignProject: true}
+	f.auth.mu.Unlock()
+	create := func(ref ids.PermanentRef) error {
+		_, err := f.s.Create(t.Context(), f.owner, f.key(), CreateRequest{ProjectID: f.project, Type: "produce", Title: "synthetic task",
+			AcceptanceCriteria: []string{"matches the synthetic brief"}, InputRefs: []ids.PermanentRef{ref}})
+		return err
+	}
+	unreadable := own
+	unreadable.VersionID = foreign.VersionID
+	absent := own
+	absent.VersionID = ids.New()
+	errUnreadable, errAbsent := create(unreadable), create(absent)
+	expectCode(t, errUnreadable, errcode.NotFound)
+	if errAbsent == nil || errUnreadable.Error() != errAbsent.Error() {
+		t.Fatalf("unreadable %v differs from absent %v", errUnreadable, errAbsent)
+	}
+	f.auth.mu.Lock()
+	f.auth.hidden = nil
+	f.auth.mu.Unlock()
+	expectCode(t, create(unreadable), errcode.RefMismatch)
 }

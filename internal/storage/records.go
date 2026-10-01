@@ -110,8 +110,8 @@ func (s *Service) AppendRecord(ctx context.Context, r Record) (RecordRef, error)
 	if err != nil {
 		return RecordRef{}, err
 	}
-	if v.ProjectID != r.ProjectID {
-		return RecordRef{}, errcode.New(errcode.RefMismatch, "the version does not belong to this project")
+	if v.ProjectID != r.ProjectID { // 调用方只按所给项目授权，归属不符按不存在处理
+		return RecordRef{}, errcode.New(errcode.NotFound, "")
 	}
 	if v.ManifestDigest != r.ManifestDigest {
 		return RecordRef{}, reasonErr(errcode.PreconditionFailed, "manifest_digest_mismatch",
@@ -158,8 +158,8 @@ func (s *Service) ReadRecord(ctx context.Context, project, asset, version, recor
 		if err != nil {
 			return nil, err
 		}
-		if v.ProjectID != project {
-			return nil, errcode.New(errcode.RefMismatch, "")
+		if v.ProjectID != project { // 调用方只按所给项目授权，归属不符按不存在处理
+			return nil, errcode.New(errcode.NotFound, "")
 		}
 		location, err := source.VersionFileLocation(ctx, asset, version)
 		if err != nil {

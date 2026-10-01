@@ -142,7 +142,8 @@ type Asset struct {
 }
 
 // Reader 提供不依赖检索索引的权威读取与枚举。未提交或不存在的对象返回
-// NOT_FOUND；版本不属于给定资产返回 REF_MISMATCH。调用方另行做读取授权。
+// NOT_FOUND；版本不属于给定资产时同样返回 NOT_FOUND，不泄露该版本是否存在
+// 于别的资产中。调用方另行做读取授权。
 type Reader interface {
 	Version(ctx context.Context, assetID, versionID ids.ID) (Committed, error)
 	// Versions 按 version_id 升序枚举已提交版本，after 为空从头开始。

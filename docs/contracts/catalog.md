@@ -45,7 +45,7 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 
 | 形式 | 解析 |
 |---|---|
-| 永久引用（`asset_id` + `version_id`，或 `lantai://<instance>/assets/<asset>/versions/<version>`） | 精确寻址；版本不属于资产 `REF_MISMATCH`；别的馆 `SCHEMA_INVALID`（`federation_unsupported`，M8） |
+| 永久引用（`asset_id` + `version_id`，或 `lantai://<instance>/assets/<asset>/versions/<version>`） | 精确寻址；版本不属于该资产时与不存在一样返回 `NOT_FOUND`，不泄露版本是否存在于别的资产中；别的馆 `SCHEMA_INVALID`（`federation_unsupported`，M8） |
 | `<项目>/<路径>@vNNN` | 路径从未被复用（当前代次为 1）时直接解析；复用过则 `REF_AMBIGUOUS`（`path_reused`），须带代次或改用永久引用 |
 | `<项目>/<路径>@vNNN` + `alias_generation` | 当前代次查台账占名；更早的代次查别名历史文件，并核对该资产在台账中已提交 |
 | `@latest` / `@approved` / `@published` | 只解析当前代次的 active 占名，返回具体永久引用；不接受代次参数。`@latest` 为号码最大的已提交版本；`@approved`、`@published` 由 M2 的审定与发布提供，M1 分别返回 `NOT_FOUND` 与 `NOT_PUBLISHED` |
