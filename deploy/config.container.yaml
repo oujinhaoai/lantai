@@ -5,6 +5,11 @@ secrets:
   dir: /var/lib/lantai-secrets
 storage:
   min_free_bytes: 5368709120
+  max_file_bytes: 1099511627776
+  max_upload_bytes: 4398046511104
+  max_upload_files: 100000
+  upload_idle_expiry_seconds: 86400
+  upload_absolute_expiry_seconds: 604800
 listen:
   # 仅容器私有网络；compose 不将这两个端口发布到宿主机。
   api: 0.0.0.0:8080

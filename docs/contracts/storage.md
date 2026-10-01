@@ -27,7 +27,7 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 ## 上传会话与分片续传
 
 1. **创建会话**（`CreateUpload`，需要项目的 `storage.upload`）：申报要上传的内容（哈希与大小，按哈希去重），幂等键作用域为 `(主体, 项目, storage.create_upload)`。会话分配 `operation_id`——它就是之后提交版本所用的操作（上传是提交操作的 `receiving` 阶段），会话签发的复用授权只对这个操作有效。空会话也可以创建，用于只复用已授权来源的提交。
-2. **限额**：单文件、单会话总字节与文件数可配置（`storage.Config`），超限在接受上传前返回 `QUOTA_EXCEEDED`，`details.reason` 为 `file_too_large`、`upload_too_large` 或 `too_many_files` 并给出限额；不静默截断。可用空间不足以容纳申报内容时返回 `STORAGE_FULL`。
+2. **限额**：单文件、单会话总字节与文件数可在实例 `config.yaml` 的 `storage` 下配置（`max_file_bytes`、`max_upload_bytes`、`max_upload_files`，默认 1 TiB、4 TiB、100000），超限在接受上传前返回 `QUOTA_EXCEEDED`，`details.reason` 为 `file_too_large`、`upload_too_large` 或 `too_many_files` 并给出限额；不静默截断。可用空间不足以容纳申报内容时返回 `STORAGE_FULL`。
 3. **分片**：不超过 `SinglePartMax`（默认 100 MB）的文件整件一个分片，更大的按 `PartSize`（默认 64 MiB）分片。`PUT {parts_url}{sha256}/parts/{n}` 带 `Content-Length` 与 `Lantai-Part-Sha256`；每次请求都复核当前上传权限与会话状态。字节流式写到暂存文件的对应位置并同时计算摘要，**刷盘之后才记录**。长度与布局不符 `SCHEMA_INVALID`（`part_size`）；实际字节不足或超出 `HASH_MISMATCH`（`part_length`）；摘要不符 `HASH_MISMATCH`（`part_digest`），不记录。已记录的分片再次到达时，摘要相同视为重复、不再写入；**摘要不同一律拒绝（`part_conflict`），原分片保持不变**。
 4. **续传**：分片记录持久化，重启不清空暂存；`GetUpload` 返回每个文件已收到的分片号，客户端只补缺的分片。
 5. **完成文件**（`CompleteFile`）：全部分片到齐后流式重算整件 SHA-256 与大小，一致才放入内容库（已有同一哈希时去重，只核对大小，不覆盖），在一个事务中把文件标为已核验、签发 `uploaded` 复用授权、把原件加入会话的 upload pin。缺分片 `INVALID_STATE_TRANSITION`（`parts_missing`，列出缺的分片号）；整件不符 `HASH_MISMATCH`（`file_digest`），该内容标为失败、分片清除，须以正确哈希重新上传。并发的完成请求返回同一授权。
@@ -41,7 +41,7 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 
 ## 到期与 pin
 
-- 会话空闲 24 小时、绝对 7 天到期（可配置），取较早者。`SweepExpiredUploads` 在事务内再次核对到期时间，避免扫描后已续期的会话被关闭：删除暂存、撤销**未消费**的复用授权、释放 upload pin，同时清理已关闭或未知会话残留的暂存目录。
+- 会话空闲 24 小时、绝对 7 天到期，取较早者；可在 `storage` 下用 `upload_idle_expiry_seconds`、`upload_absolute_expiry_seconds` 配置（60 秒至 30 天）。修改后重启生效：绝对到期在创建会话时写定，只影响之后的会话；空闲到期在下次活动时按新值续期。`SweepExpiredUploads` 在事务内再次核对到期时间，避免扫描后已续期的会话被关闭：删除暂存、撤销**未消费**的复用授权、释放 upload pin，同时清理已关闭或未知会话残留的暂存目录。
 - **到期不删除内容库中的原件**：已被 prepared 操作消费的内容由台账的提交 pin 保留，其余原件由 GC（M2，T02.6）按全部 pin 来源与引用核对后回收。storage 实现 `pin.Source`（`PinsFor`）供 GC 查询 upload pin。
 - 版本提交后 catalog 调用 `CompleteUpload` 关闭会话；本人可 `CancelUpload` 放弃。
 

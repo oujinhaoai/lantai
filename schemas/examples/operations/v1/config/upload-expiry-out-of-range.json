@@ -1,0 +1,10 @@
+{
+  "description": "上传会话到期不能短于 60 秒",
+  "schema": "lantai.config/v1",
+  "valid": false,
+  "expect": [{ "pointer": "/storage/upload_idle_expiry_seconds", "keyword": "minimum" }],
+  "document": {
+    "contract": "lantai.config/v1",
+    "storage": { "upload_idle_expiry_seconds": 10 }
+  }
+}

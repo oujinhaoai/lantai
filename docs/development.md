@@ -69,6 +69,13 @@
 
 ```yaml
 contract: lantai.config/v1
+storage:
+  min_free_bytes: 1073741824
+  max_file_bytes: 1099511627776
+  max_upload_bytes: 4398046511104
+  max_upload_files: 100000
+  upload_idle_expiry_seconds: 86400
+  upload_absolute_expiry_seconds: 604800
 listen:
   api: 127.0.0.1:8080
   transfer: 127.0.0.1:8081
@@ -86,7 +93,7 @@ transfer:
   batch_bytes_per_second_while_interactive: 0
 ```
 
-这些是核心内部地址。对外只通过一个 HTTPS 网关路由 `/api/` 与 `/xfer/`，运维 `/healthz`、`/readyz`、`/metrics` 只在数字 loopback 地址开放；[部署模板](deployment.md)提供 Caddy、容器和 systemd 配置，实际证书安装与目标环境部署由运维执行。开发 `-merged` 共用 API 监听，客户端只有在显式 `--allow-http` 时才接受本机 loopback HTTP。API 的 JSON 限额不限制分片流；文件传输使用逐次 I/O 空闲超时。带宽 0 代表不限，具体限额须在目标环境实测。
+`storage` 下是最低可用空间、上传限额与上传会话到期，以上均为默认值；超限返回 `QUOTA_EXCEEDED` 及具体原因，语义见[存储契约](contracts/storage.md)。文件数很多时，创建会话的 JSON 请求还受 `http.max_json_bytes` 限制。分片大小与版本清单字节上限不开放配置。`listen` 下是核心内部地址。对外只通过一个 HTTPS 网关路由 `/api/` 与 `/xfer/`，运维 `/healthz`、`/readyz`、`/metrics` 只在数字 loopback 地址开放；[部署模板](deployment.md)提供 Caddy、容器和 systemd 配置，实际证书安装与目标环境部署由运维执行。开发 `-merged` 共用 API 监听，客户端只有在显式 `--allow-http` 时才接受本机 loopback HTTP。API 的 JSON 限额不限制分片流；文件传输使用逐次 I/O 空闲超时。带宽 0 代表不限，具体限额须在目标环境实测。
 
 CLI 会话保存在显式选择的私有文件中（Unix 0600、Windows 仅当前用户 ACL），凭据、口令和验证码不经命令行参数或普通输出。使用 `login --credentials-file` 或 `session exchange --token-file`，后续命令指定同一个 `--session-file`；通过 `meta` 查询能力。项目角色及 Agent 凭据通过 `identity challenge → verify → execute` 复用服务端 HumanGrant；管理员不会自动获得新项目的读取角色。`push` 固定原 create/commit 键到 `--state`，中断后重复同一命令；`pull` 只搬运清单声明文件并逐件验证 SHA-256。完整输入示例和命令见[客户端契约](contracts/client.md)，REST 见[HTTP 契约](contracts/http.md)。
 

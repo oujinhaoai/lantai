@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/schema"
 	"github.com/oujinhaoai/lantai/internal/contract/yamljson"
@@ -29,12 +30,23 @@ type Config struct {
 	SecretsDir string
 	// MinFreeBytes 低于它时实例不开放写入。
 	MinFreeBytes uint64
+	// Uploads 是上传限额与会话到期；零值表示采用存储模块默认值。
+	Uploads UploadLimits
 	// Present 表示 config.yaml 存在。
 	Present   bool
 	Listen    ListenConfig
 	HTTP      HTTPConfig
 	Transfer  TransferConfig
 	Lifecycle LifecycleConfig
+}
+
+// UploadLimits 是 config.yaml storage 下的上传限额与会话到期。
+type UploadLimits struct {
+	MaxFileBytes   int64
+	MaxUploadBytes int64
+	MaxUploadFiles int
+	IdleExpiry     time.Duration
+	AbsoluteExpiry time.Duration
 }
 
 // LifecycleConfig enables the T08 due-purge/GC scheduler. It is off by default:
@@ -77,7 +89,12 @@ type configWire struct {
 		Dir string `json:"dir"`
 	} `json:"secrets"`
 	Storage struct {
-		MinFreeBytes *uint64 `json:"min_free_bytes"`
+		MinFreeBytes          *uint64 `json:"min_free_bytes"`
+		MaxFileBytes          int64   `json:"max_file_bytes"`
+		MaxUploadBytes        int64   `json:"max_upload_bytes"`
+		MaxUploadFiles        int     `json:"max_upload_files"`
+		IdleExpirySeconds     int64   `json:"upload_idle_expiry_seconds"`
+		AbsoluteExpirySeconds int64   `json:"upload_absolute_expiry_seconds"`
 	} `json:"storage"`
 	Listen    ListenConfig    `json:"listen"`
 	HTTP      HTTPConfig      `json:"http"`
@@ -136,6 +153,17 @@ func LoadConfig(l Layout) (Config, error) {
 	if w.Storage.MinFreeBytes != nil {
 		cfg.MinFreeBytes = *w.Storage.MinFreeBytes
 	}
+	// 取值范围由 schema 校验；这里只拒绝两项同时设置且互相矛盾的组合，
+	// 只设一项时由存储模块按较小者生效。
+	st := w.Storage
+	if st.MaxFileBytes > 0 && st.MaxUploadBytes > 0 && st.MaxFileBytes > st.MaxUploadBytes {
+		return cfg, fmt.Errorf("operations: %s: storage.max_file_bytes (%d) exceeds storage.max_upload_bytes (%d)", l.ConfigPath(), st.MaxFileBytes, st.MaxUploadBytes)
+	}
+	if st.IdleExpirySeconds > 0 && st.AbsoluteExpirySeconds > 0 && st.IdleExpirySeconds > st.AbsoluteExpirySeconds {
+		return cfg, fmt.Errorf("operations: %s: storage.upload_idle_expiry_seconds (%d) exceeds storage.upload_absolute_expiry_seconds (%d)", l.ConfigPath(), st.IdleExpirySeconds, st.AbsoluteExpirySeconds)
+	}
+	cfg.Uploads = UploadLimits{MaxFileBytes: st.MaxFileBytes, MaxUploadBytes: st.MaxUploadBytes, MaxUploadFiles: st.MaxUploadFiles,
+		IdleExpiry: time.Duration(st.IdleExpirySeconds) * time.Second, AbsoluteExpiry: time.Duration(st.AbsoluteExpirySeconds) * time.Second}
 	cfg.Listen, cfg.HTTP, cfg.Transfer, cfg.Lifecycle = w.Listen, w.HTTP, w.Transfer, w.Lifecycle
 	return cfg, nil
 }

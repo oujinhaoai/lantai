@@ -43,6 +43,36 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
+        },
+        "max_file_bytes": {
+          "description": "上传会话中单个文件的最大字节数，超限返回 QUOTA_EXCEEDED（file_too_large）。默认 1 TiB。与 max_upload_bytes 同时设置时不能大于它。",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_upload_bytes": {
+          "description": "单个上传会话申报的总字节数上限，超限返回 QUOTA_EXCEEDED（upload_too_large）。默认 4 TiB。",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_upload_files": {
+          "description": "单个上传会话（即一个版本清单）的文件数上限，超限返回 QUOTA_EXCEEDED（too_many_files）。默认 100000。创建会话的请求是 JSON，文件很多时还需相应调高 http.max_json_bytes。",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "upload_idle_expiry_seconds": {
+          "description": "上传会话无活动后的到期秒数，每次活动按此值续期，且不超过绝对到期。默认 86400（24 小时）。与 upload_absolute_expiry_seconds 同时设置时不能大于它。",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
+        },
+        "upload_absolute_expiry_seconds": {
+          "description": "上传会话自创建起的绝对到期秒数，创建时写定，修改只影响之后创建的会话。默认 604800（7 天）。",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
         }
       }
     },

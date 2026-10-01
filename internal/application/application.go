@@ -3,6 +3,7 @@
 package application
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
@@ -130,9 +131,7 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if opts.Storage.MinFreeBytes == 0 {
-		opts.Storage.MinFreeBytes = i.Config().MinFreeBytes
-	}
+	opts.Storage = storageConfig(opts.Storage, i.Config())
 	a.Storage, err = storage.New(storage.Deps{Runtime: i.DB(ownership.Runtime), Home: i.Layout().Home, Gate: i.Gate(), Clock: i.Clock(), IDs: i.IDs(), Authz: a.Identity, Reads: a.Identity, Ledger: a.Ledger, Rights: a.Rights, ReadGrantKey: grantKey, InstanceID: i.InstanceID()}, opts.Storage)
 	if err != nil {
 		return nil, err
@@ -276,4 +275,19 @@ func (a *App) Ready() bool {
 	a.healthMu.RLock()
 	defer a.healthMu.RUnlock()
 	return a.Instance.Readiness().Ready && !a.coreFailed && !a.tailFailed
+}
+
+// storageConfig 合并存储配置：调用方显式给出的值优先（测试用），其余取实例
+// 配置，两者都未设置的由存储模块取默认值。
+func storageConfig(c storage.Config, cfg operations.Config) storage.Config {
+	if c.MinFreeBytes == 0 {
+		c.MinFreeBytes = cfg.MinFreeBytes
+	}
+	u := cfg.Uploads
+	c.MaxFileBytes = cmp.Or(c.MaxFileBytes, u.MaxFileBytes)
+	c.MaxUploadBytes = cmp.Or(c.MaxUploadBytes, u.MaxUploadBytes)
+	c.MaxUploadFiles = cmp.Or(c.MaxUploadFiles, u.MaxUploadFiles)
+	c.UploadIdleTTL = cmp.Or(c.UploadIdleTTL, u.IdleExpiry)
+	c.UploadMaxTTL = cmp.Or(c.UploadMaxTTL, u.AbsoluteExpiry)
+	return c
 }
