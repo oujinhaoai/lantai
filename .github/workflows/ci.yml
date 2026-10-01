@@ -48,7 +48,9 @@ jobs:
         with:
           go-version-file: go.mod
       - name: go test
-        run: go test -count=1 ./...
+        # Windows 上真实实例集成包累计执行可超过 Go 默认的 10 分钟；
+        # 这是整个测试包的防挂死上限，不修改用例断言或性能验收阈值。
+        run: go test -timeout=20m -count=1 ./...
       - name: sqlite capability report
         shell: bash
         run: |

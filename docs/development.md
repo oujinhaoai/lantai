@@ -121,7 +121,7 @@ T05/T06 的 M2 已提供任务/Flow、手动执行与检查作业（官方内置
 
 ## 持续集成
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：Linux 上运行 `scripts/check.sh` 与 govulncheck；Linux、macOS、Windows 上运行 `go test` 并上传 SQLite 能力报告；六个目标（linux/darwin/windows × amd64/arm64）交叉编译。第三方 action 固定到提交 SHA。
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：Linux 上运行 `scripts/check.sh` 与 govulncheck；Linux、macOS、Windows 上运行 `go test -timeout=20m -count=1 ./...` 并上传 SQLite 能力报告（20 分钟为单个测试包的累计执行上限，用于覆盖较慢 Windows runner 的真实实例集成，不替代业务性能阈值）；六个目标（linux/darwin/windows × amd64/arm64）交叉编译。第三方 action 固定到提交 SHA。
 
 ## 平台验证状态
 
