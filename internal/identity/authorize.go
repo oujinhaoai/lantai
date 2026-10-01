@@ -25,20 +25,6 @@ func (s *Service) decide(ctx context.Context, q commands.DBTX, v verified, spec 
 		// 受限恢复会话不能取得资源访问、敏感操作或任何普通权限。
 		return errcode.Forbidden, nil
 	}
-	scope := spec.Scope
-	if p.Kind == authz.Worker && spec.WorkerScope {
-		scope = ScopeWorker
-	}
-	if !slices.Contains(sess.Scopes, scope) {
-		return errcode.Forbidden, nil
-	}
-	// 委托会话只能执行所列动作；查看自己、结束自己不受此限。
-	if len(sess.Actions) > 0 && spec.Scope != ScopeSelf && !slices.Contains(sess.Actions, spec.Action) {
-		return errcode.Forbidden, nil
-	}
-	if spec.HumanOnly && !interactiveHuman(v) {
-		return errcode.Forbidden, nil
-	}
 	switch spec.Level {
 	case InstanceLevel:
 		if res.ProjectID != "" {
@@ -84,6 +70,22 @@ func (s *Service) decide(ctx context.Context, q commands.DBTX, v verified, spec 
 				return errcode.Forbidden, nil
 			}
 		}
+	}
+	// 先判项目可见性，避免缺少操作 scope 的非成员通过拒绝码探测资源。
+	// 会话有效性与恢复会话限制已在此前核对；成员仍须满足以下全部操作限制。
+	scope := spec.Scope
+	if p.Kind == authz.Worker && spec.WorkerScope {
+		scope = ScopeWorker
+	}
+	if !slices.Contains(sess.Scopes, scope) {
+		return errcode.Forbidden, nil
+	}
+	// 委托会话只能执行所列动作；查看自己、结束自己不受此限。
+	if len(sess.Actions) > 0 && spec.Scope != ScopeSelf && !slices.Contains(sess.Actions, spec.Action) {
+		return errcode.Forbidden, nil
+	}
+	if spec.HumanOnly && !interactiveHuman(v) {
+		return errcode.Forbidden, nil
 	}
 	if spec.Action == ActPersonalRead {
 		policies, err := resolvePolicies(ctx, q, res.ProjectID)
