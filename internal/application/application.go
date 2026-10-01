@@ -45,6 +45,8 @@ type Options struct {
 	Instance operations.Options
 	Identity identity.Config
 	Storage  storage.Config
+	// UploadSweepInterval 是 serve 清扫到期上传会话的间隔；默认 1 分钟。
+	UploadSweepInterval time.Duration
 }
 
 type App struct {
@@ -80,6 +82,15 @@ type App struct {
 	healthMu   sync.RWMutex
 	coreFailed bool
 	tailFailed bool
+	sweepMu    sync.Mutex
+	sweep      UploadSweepStats
+}
+
+// UploadSweepStats 是 serve 后台清扫到期上传会话的累计观测。
+type UploadSweepStats struct {
+	LastSuccess time.Time
+	Failures    int64
+	Expired     int64
 }
 
 // Open 在任何监听开放前检查身份、收录 outbox、重建或追平查询投影。
@@ -182,7 +193,32 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	// 失败反映在 readiness；保留原操作并在下次恢复同一进度。
 	i.Go("outbox-query", every(time.Second, func(ctx context.Context) { _ = a.syncCore(ctx, false) }))
 	i.Go("inbox-audit", every(time.Second, func(ctx context.Context) { _ = a.syncTail(ctx) }))
+	i.Go("upload-expiry", every(cmp.Or(opts.UploadSweepInterval, time.Minute), a.SweepUploads))
 	return a, nil
+}
+
+// SweepUploads 关闭到期上传会话、删除其暂存并释放 upload pin，撤销未消费的
+// 复用授权。它只处理未提交的暂存，不删除内容库原件或已提交内容，所以默认
+// 运行，不受 lifecycle.scheduler 开关约束。维护期间写入口拒绝时本轮跳过，
+// 不计为失败，下一轮重试。
+func (a *App) SweepUploads(ctx context.Context) {
+	rep, err := a.Storage.SweepExpiredUploads(ctx)
+	a.sweepMu.Lock()
+	defer a.sweepMu.Unlock()
+	a.sweep.Expired += int64(rep.Expired)
+	switch {
+	case err == nil:
+		a.sweep.LastSuccess = a.Instance.Clock().Now()
+	case errcode.CodeOf(err) != errcode.MaintenanceMode && ctx.Err() == nil:
+		a.sweep.Failures++
+	}
+}
+
+// UploadSweep 返回到期上传清扫的累计观测。
+func (a *App) UploadSweep() UploadSweepStats {
+	a.sweepMu.Lock()
+	defer a.sweepMu.Unlock()
+	return a.sweep
 }
 
 // every 在上一轮结束后按间隔重复执行，直到上下文取消。

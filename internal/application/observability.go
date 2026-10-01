@@ -285,6 +285,10 @@ func (a *App) observationCollectors(scheduler *transfer.Scheduler) []collector {
 			}
 			return []metric{gauge("uploads_open", float64(m.OpenUploads)), gauge("upload_staging_bytes", float64(m.UploadStagingBytes)), gauge("upload_pins", float64(m.ActiveUploadPins)), gauge("upload_retained_bytes", float64(m.UploadRetainedBytes)), gauge("gc_supported", boolean(m.GCSupported))}, nil
 		}},
+		{"upload_sweep", func(context.Context) ([]metric, error) {
+			s := a.UploadSweep()
+			return []metric{gauge("upload_sweep_last_success_timestamp_seconds", unixTime(s.LastSuccess)), gauge("upload_sweep_failures_total", float64(s.Failures)), gauge("uploads_expired_total", float64(s.Expired))}, nil
+		}},
 	}
 	for _, db := range []ownership.Database{ownership.Main, ownership.Ledger, ownership.Runtime} {
 		cs = append(cs, collector{"commands_" + string(db), func(ctx context.Context) ([]metric, error) {

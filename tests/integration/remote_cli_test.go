@@ -30,16 +30,24 @@ import (
 
 func reopenApplication(t *testing.T, e *env, config ...storage.Config) *application.App {
 	t.Helper()
+	cfg := storage.Config{PartSize: 64 << 10}
+	if len(config) > 0 {
+		cfg = config[0]
+	}
+	return reopenApplicationWith(t, e, application.Options{Storage: cfg})
+}
+
+// reopenApplicationWith 关闭夹具实例，以完整应用（含后台任务）在同一数据根与
+// 可控时钟上重新打开；实例、身份与时钟参数由夹具补齐。
+func reopenApplicationWith(t *testing.T, e *env, opts application.Options) *application.App {
+	t.Helper()
 	e.xfer.Close()
 	home := e.inst.Layout().Home
 	if err := e.inst.Close(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	cfg := storage.Config{PartSize: 64 << 10}
-	if len(config) > 0 {
-		cfg = config[0]
-	}
-	a, err := application.Open(t.Context(), application.Options{Instance: operations.Options{Home: home, Clock: e.clk}, Identity: identity.Config{Password: fastPassword}, Storage: cfg})
+	opts.Instance, opts.Identity = operations.Options{Home: home, Clock: e.clk}, identity.Config{Password: fastPassword}
+	a, err := application.Open(t.Context(), opts)
 	if err != nil {
 		t.Fatal(err)
 	}
