@@ -41,7 +41,7 @@ quarantine/<operation_id>/                            隔离区（保留字节�
 
 ## 到期与 pin
 
-- 会话空闲 24 小时、绝对 7 天到期，取较早者；可在 `storage` 下用 `upload_idle_expiry_seconds`、`upload_absolute_expiry_seconds` 配置（60 秒至 30 天）。修改后重启生效：绝对到期在创建会话时写定，只影响之后的会话；空闲到期在下次活动时按新值续期。`SweepExpiredUploads` 在事务内再次核对到期时间，避免扫描后已续期的会话被关闭：删除暂存、撤销**未消费**的复用授权、释放 upload pin，同时清理已关闭或未知会话残留的暂存目录。`serve` 默认每分钟在后台运行一次清扫，不受 `lifecycle.scheduler` 开关约束（它只处理未提交的暂存，不删内容库原件或已提交内容）；清扫经实例写入口，维护期间跳过，下一轮重试。到期会话最迟约一分钟后被关闭，观测指标见[部署文档](../deployment.md)。
+- 会话空闲 24 小时、绝对 7 天到期，取较早者；可在 `storage` 下用 `upload_idle_expiry_seconds`、`upload_absolute_expiry_seconds` 配置（60 秒至 30 天）。修改后重启生效：绝对到期在创建会话时写定，只影响之后的会话；空闲到期在下次活动时按新值续期。`SweepExpiredUploads` 在事务内再次核对到期时间，避免扫描后已续期的会话被关闭：删除暂存、撤销**未消费**的复用授权、释放 upload pin，同时清理已关闭或未知会话残留的暂存目录。`serve` 默认每分钟在后台运行一次清扫，不受 `lifecycle.scheduler` 开关约束（它只处理未提交的暂存，不删内容库原件或已提交内容）；清扫经实例写入口，维护期间跳过，下一轮重试；暂存删除失败时已完成的关闭保留，本轮计为失败且不更新最近成功时间，残留目录下一轮再删。到期会话最迟约一分钟后被关闭，观测指标见[部署文档](../deployment.md)。
 - **到期不删除内容库中的原件**：已被 prepared 操作消费的内容由台账的提交 pin 保留，其余原件由 GC（M2，T02.6）按全部 pin 来源与引用核对后回收。storage 实现 `pin.Source`（`PinsFor`）供 GC 查询 upload pin。
 - 版本提交后 catalog 调用 `CompleteUpload` 关闭会话；本人可 `CancelUpload` 放弃。
 

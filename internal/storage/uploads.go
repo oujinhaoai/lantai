@@ -936,6 +936,8 @@ type SweepReport struct {
 // 撤销未消费的复用授权并释放 upload pin；同时删除已关闭或未知会话残留的
 // 暂存目录。内容库中的原件不在这里删除——已被 prepared 操作消费的内容由
 // 台账的提交 pin 保留，其余原件由 GC（M2）按全部 pin 与引用核对后回收。
+// 暂存删除失败时已完成的关闭保留，其余目录继续处理，最后返回汇总错误；
+// 残留目录在下一轮再次删除。
 func (s *Service) SweepExpiredUploads(ctx context.Context) (SweepReport, error) {
 	var rep SweepReport
 	now := s.now()
@@ -975,6 +977,7 @@ func (s *Service) SweepExpiredUploads(ctx context.Context) (SweepReport, error) 
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return rep, fileop.Wrap("listing upload staging", err)
 	}
+	var failed []error
 	for _, e := range entries {
 		id := ids.ID(e.Name())
 		var state string
@@ -983,18 +986,21 @@ func (s *Service) SweepExpiredUploads(ctx context.Context) (SweepReport, error) 
 			continue
 		}
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return rep, err
+			return rep, errors.Join(append(failed, err)...)
 		}
 		_, release, err := s.write(ctx, commands.Request{})
 		if err != nil {
-			return rep, err
+			return rep, errors.Join(append(failed, err)...)
 		}
-		if err := os.RemoveAll(s.layout.uploadDir(id)); err == nil {
-			rep.StagingRemoved++
-		}
+		err = os.RemoveAll(s.layout.uploadDir(id))
 		release()
+		if err != nil {
+			failed = append(failed, fileop.Wrap("removing upload staging", err))
+			continue
+		}
+		rep.StagingRemoved++
 	}
-	return rep, nil
+	return rep, errors.Join(failed...)
 }
 
 func (s *Service) layoutUploadsRoot() string {

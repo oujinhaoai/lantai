@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -95,5 +96,61 @@ func TestServeSweepsExpiredUploadsInBackground(t *testing.T) {
 	}
 	if _, err := os.Stat(a.Storage.Layout().BlobPath(shaOf(verified))); err != nil {
 		t.Fatalf("the sweep must not delete content-addressed originals: %v", err)
+	}
+}
+
+// 暂存删不掉时，后台清扫计为失败且不更新最近成功时间，会话照常关闭；恢复
+// 权限后下一轮删除残留并重新记为成功。
+func TestServeSweepCountsStagingRemovalFailure(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("directory permission bits do not block removal on this platform or for root")
+	}
+	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	_, session := e.agent("sweep-fail@node-a", identity.RoleContributor)
+	who := session.Context
+	ctx := t.Context()
+	data := []byte("staging that cannot be removed yet")
+	u, err := e.storage.CreateUpload(ctx, storage.CreateUploadRequest{Who: who, IdempotencyKey: e.key(), ProjectID: e.project.ProjectID, Files: []storage.FileSpec{{SHA256: shaOf(data), Size: int64(len(data))}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.storage.PutPart(ctx, storage.PartRequest{Who: who, UploadID: u.UploadID, SHA256: shaOf(data), PartNumber: 1, PartSHA256: shaOf(data), Size: int64(len(data)), Body: bytes.NewReader(data)}); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(e.inst.Layout().Home, "staging", "uploads", string(u.UploadID))
+	if err = os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o700) })
+	a := reopenApplicationWith(t, e, application.Options{Storage: storage.Config{MinFreeBytes: 1 << 20}, UploadSweepInterval: 20 * time.Millisecond})
+	waitFor := func(what string, ok func(application.UploadSweepStats) bool) application.UploadSweepStats {
+		t.Helper()
+		deadline := time.Now().Add(10 * time.Second)
+		for {
+			s := a.UploadSweep()
+			if ok(s) {
+				return s
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: %+v", what, s)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	before := waitFor("first successful sweep", func(s application.UploadSweepStats) bool { return !s.LastSuccess.IsZero() })
+	e.clk.Advance(25 * time.Hour)
+	failed := waitFor("removal failure counted", func(s application.UploadSweepStats) bool { return s.Failures >= 2 })
+	if failed.Expired != 1 || !failed.LastSuccess.Equal(before.LastSuccess) {
+		t.Fatalf("a failed sweep must not look successful: before %+v, after %+v", before, failed)
+	}
+	if _, err = os.Stat(dir); err != nil {
+		t.Fatalf("staging should remain until removal succeeds: %v", err)
+	}
+	if err = os.Chmod(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	waitFor("success after permissions are restored", func(s application.UploadSweepStats) bool { return s.LastSuccess.Equal(e.clk.Now()) })
+	if _, err = os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("leftover staging not removed: %v", err)
 	}
 }

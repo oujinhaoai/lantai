@@ -200,15 +200,16 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 // SweepUploads 关闭到期上传会话、删除其暂存并释放 upload pin，撤销未消费的
 // 复用授权。它只处理未提交的暂存，不删除内容库原件或已提交内容，所以默认
 // 运行，不受 lifecycle.scheduler 开关约束。维护期间写入口拒绝时本轮跳过，
-// 不计为失败，下一轮重试。
+// 不计为失败；暂存删除等其他失败计入失败数且不更新最近成功时间，下一轮重试。
 func (a *App) SweepUploads(ctx context.Context) {
+	started := a.Instance.Clock().Now() // 成功时间记本轮开始时刻：它只证明此前到期的会话已处理
 	rep, err := a.Storage.SweepExpiredUploads(ctx)
 	a.sweepMu.Lock()
 	defer a.sweepMu.Unlock()
 	a.sweep.Expired += int64(rep.Expired)
 	switch {
 	case err == nil:
-		a.sweep.LastSuccess = a.Instance.Clock().Now()
+		a.sweep.LastSuccess = started
 	case errcode.CodeOf(err) != errcode.MaintenanceMode && ctx.Err() == nil:
 		a.sweep.Failures++
 	}

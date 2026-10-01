@@ -98,7 +98,7 @@ systemd 模板需要先创建 `lantai` 服务账户、准备路径并安装已�
 | `events_*` / `query_*` | 热事件、relay 失败、关键消费者滞后、审计/备份水位、投影代次与重建起点 |
 | `transfer_*` / `lock_*` | 当前执行/等待数，累计准入与实际竞争等待次数/时长；累计值随进程重启归零 |
 | `uploads_open` / `upload_staging_bytes` / `upload_pins` / `upload_retained_bytes` | storage 权威记录的已接收暂存字节与上传保留事实；不含尚未落记录的在途私有文件或孤儿文件，不是磁盘全盘占用 |
-| `upload_sweep_last_success_timestamp_seconds` / `upload_sweep_failures_total` / `uploads_expired_total` | serve 每分钟清扫到期上传会话的最近一次成功时间、失败次数（维护期间跳过不计）与累计关闭的会话数；从未成功为 0。时间长期不前进或失败持续增长说明暂存不会回落 |
+| `upload_sweep_last_success_timestamp_seconds` / `upload_sweep_failures_total` / `uploads_expired_total` | serve 每分钟清扫到期上传会话的最近一次成功时间、失败次数（暂存删除失败等计入，维护期间跳过不计）与累计关闭的会话数；成功时间为成功那一轮的开始时刻，从未成功为 0。时间长期不前进或失败持续增长说明暂存不会回落 |
 | `gc_supported` | M1 固定 0，未运行 GC；不输出伪造的 GC 已释放字节 |
 | `disk_available_bytes` / `disk_min_free_bytes` | data/database 所在文件系统的普通账户可用空间与配置阈值；两者可能同一文件系统，不能相加 |
 | `sqlite_wal_bytes` | 五库当前 WAL 文件大小；没有 WAL 时为零，数据库缺失/非普通文件时采样失败；采样不执行 checkpoint |

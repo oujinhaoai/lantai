@@ -109,6 +109,44 @@ func TestExpirySweepDoesNotCloseRenewedUpload(t *testing.T) {
 	}
 }
 
+// 暂存目录删不掉时，清扫保留已完成的关闭并报告失败，不能当作已回收；
+// 恢复权限后下一轮删除残留。
+func TestExpirySweepReportsStagingRemovalFailure(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("directory permission bits do not block removal on this platform or for root")
+	}
+	f := newFixture(t, testConfig(), nil)
+	content := synthetic("sweep-remove-failure", 2*64<<10)
+	u := f.createUpload(f.who, f.project, content)
+	f.putPart(f.who, u.UploadID, content, u.Files[0], 1)
+	dir := f.svc.layout.uploadDir(u.UploadID)
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o700) })
+	f.clk.Advance(25 * time.Hour)
+	rep, err := f.svc.SweepExpiredUploads(t.Context())
+	if err == nil || rep.Expired != 1 || rep.StagingRemoved != 0 {
+		t.Fatalf("removal failure hidden: %+v %v", rep, err)
+	}
+	if got, _ := f.svc.loadUpload(t.Context(), f.svc.db, u.UploadID); got.State != UploadExpired {
+		t.Fatalf("the close must stand even when staging removal fails: %s", got.State)
+	}
+	if _, err := os.Stat(f.svc.layout.uploadData(u.UploadID, shaOf(content))); err != nil {
+		t.Fatalf("staging should still be present: %v", err)
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	rep, err = f.svc.SweepExpiredUploads(t.Context())
+	if err != nil || rep.Expired != 0 || rep.StagingRemoved != 1 {
+		t.Fatalf("next sweep: %+v %v", rep, err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("leftover staging not removed: %v", err)
+	}
+}
+
 func wantCode(t *testing.T, err error, code errcode.Code) *errcode.Error {
 	t.Helper()
 	if err == nil {
