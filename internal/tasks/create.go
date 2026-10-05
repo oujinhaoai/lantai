@@ -120,6 +120,29 @@ func (in *CreateRequest) normalize() error {
 	return nil
 }
 
+// contextSnapshot 固定任务开始时生效的上下文。读取自带 security 读保护，并在
+// 返回边界复核整组权威集合；全局加锁顺序不允许在项目锁内再取该保护，因此
+// 在取锁前读取，随后与任务一起提交。错误由 Create 在授权、幂等重放与输入
+// 核对之后报告，与在锁内读取时的优先级相同。
+func (s *Service) contextSnapshot(ctx context.Context, who authz.Context, in CreateRequest) (*ContextSnapshot, error) {
+	if in.ContextAssetType == "" {
+		return nil, nil
+	}
+	contexts := s.contextAuthority()
+	if contexts == nil {
+		return nil, errcode.New(errcode.InvalidStateTransition, "context authority is not configured")
+	}
+	b, err := contexts.EffectiveContext(ctx, who, in.ProjectID, manifest.AssetType(in.ContextAssetType))
+	if err != nil {
+		return nil, err
+	}
+	out := &ContextSnapshot{AssetType: in.ContextAssetType, Refs: []ids.PermanentRef{}, Digest: b.Digest}
+	for _, d := range b.Documents {
+		out.Refs = append(out.Refs, d.Ref)
+	}
+	return out, nil
+}
+
 // SpecDigest 是流程步骤核对任务规格所用的摘要（不含 flow/step 字段本身）。
 func SpecDigest(in CreateRequest) (digest.Digest, error) {
 	in.FlowID, in.StepRunID = "", ""
@@ -137,6 +160,7 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 	if err := in.normalize(); err != nil {
 		return Result{}, err
 	}
+	snapshot, contextErr := s.contextSnapshot(ctx, who, in)
 	ctx, release, err := s.lock(ctx, in.ProjectID, "")
 	if err != nil {
 		return Result{}, err
@@ -208,19 +232,8 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 	}
 	slices.Sort(distinct)
 	distinct = slices.Compact(distinct)
-	var snapshot *ContextSnapshot
-	if in.ContextAssetType != "" {
-		if s.d.Contexts == nil {
-			return Result{}, errcode.New(errcode.InvalidStateTransition, "context authority is not configured")
-		}
-		b, err := s.d.Contexts.EffectiveContext(ctx, who, in.ProjectID, manifest.AssetType(in.ContextAssetType))
-		if err != nil {
-			return Result{}, err
-		}
-		snapshot = &ContextSnapshot{AssetType: in.ContextAssetType, Refs: []ids.PermanentRef{}, Digest: b.Digest}
-		for _, d := range b.Documents {
-			snapshot.Refs = append(snapshot.Refs, d.Ref)
-		}
+	if contextErr != nil {
+		return Result{}, contextErr
 	}
 	inputDigest, err := tc.SnapshotDigest(in.InputRefs)
 	if err != nil {

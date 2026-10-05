@@ -101,6 +101,7 @@ type Service struct {
 	wiring     sync.RWMutex
 	steps      Steps
 	facts      Authorities
+	contexts   Contexts
 	executions ExecutionGuard
 }
 
@@ -139,7 +140,7 @@ func New(d Deps) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{d: d, store: st, facts: d.Authorities}, nil
+	return &Service{d: d, store: st, facts: d.Authorities, contexts: d.Contexts}, nil
 }
 
 // SetSteps 在组装后接入 workflow；未接入时拒绝流程创建的任务。
@@ -154,6 +155,19 @@ func (s *Service) SetAuthorities(v Authorities) {
 	s.wiring.Lock()
 	defer s.wiring.Unlock()
 	s.facts = v
+}
+
+// SetContexts 在组装后接入当前上下文权威（T03 审定集合在任务服务之后才建立）。
+func (s *Service) SetContexts(v Contexts) {
+	s.wiring.Lock()
+	defer s.wiring.Unlock()
+	s.contexts = v
+}
+
+func (s *Service) contextAuthority() Contexts {
+	s.wiring.RLock()
+	defer s.wiring.RUnlock()
+	return s.contexts
 }
 
 func (s *Service) wired() (Steps, Authorities) {

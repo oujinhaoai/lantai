@@ -53,6 +53,7 @@ func (a *App) assembleCollaboration() error {
 	a.Jobs.SetEvidence(a.Evidence)
 	a.Jobs.SetExecution(a.Flows.ReviewExecution())
 	a.Tasks.SetAuthorities(tasks.LedgerAuthorities{Reviews: a.Reviews, Evidence: a.Evidence})
+	a.Tasks.SetContexts(tasks.CatalogContexts{Catalog: a.Catalog, Reviews: a.Reviews})
 	a.Ledger.SetCheckoutGuard(a.Tasks)
 	a.Execution, e = ax.New(ax.Deps{DB: db, Gate: i.Gate(), Authority: auth, Tasks: a.Tasks, Assets: ax.CatalogAssets{Files: a.Storage, Evidence: a.Rights, Catalog: a.Catalog, InstanceID: i.InstanceID()}, Clock: i.Clock(), IDs: i.IDs()})
 	if e != nil {

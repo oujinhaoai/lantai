@@ -463,14 +463,14 @@ func TestContextSnapshotAndCandidateGroupAuthorization(t *testing.T) {
 	f := newFixture(t)
 	ctx := t.Context()
 	doc := f.version("", f.owner.PrincipalID)
-	f.s.d.Contexts = fakeContexts{catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{{Ref: doc}}, Digest: digest.Of([]byte("effective context"))}}
+	f.s.SetContexts(fakeContexts{catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{{Ref: doc}}, Digest: digest.Of([]byte("effective context"))}})
 	task := f.create(CreateRequest{ContextAssetType: "model", ExpectedOutputs: []tc.OutputRequirement{{Slug: "pose", AssetType: "model", CandidateCount: 1}}}).TaskID
 	v := f.view(task)
 	if v.Meta.Context == nil || v.Meta.Context.Digest != digest.Of([]byte("effective context")) || len(v.Meta.Context.Refs) != 1 || v.Meta.Context.Refs[0] != doc {
 		t.Fatal("task must pin the effective context version set", v.Meta.Context)
 	}
 	// 生效集合之后变化不改变已固定的任务输入。
-	f.s.d.Contexts = fakeContexts{catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{}, Digest: digest.Of([]byte("newer"))}}
+	f.s.SetContexts(fakeContexts{catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{}, Digest: digest.Of([]byte("newer"))}})
 	if f.view(task).Meta.Context.Digest != digest.Of([]byte("effective context")) {
 		t.Fatal("pinned context drifted")
 	}
@@ -487,6 +487,43 @@ func TestContextSnapshotAndCandidateGroupAuthorization(t *testing.T) {
 	v = f.view(task)
 	_, err := f.s.Complete(ctx, f.owner, f.key(), CompleteRequest{TaskRef: TaskRef{ProjectID: f.project, TaskID: task, ExpectedRevision: v.Task.Revision}, AuthorityOperationID: op})
 	expectCode(t, err, errcode.ReviewTargetStale)
+}
+
+type failingContexts struct{ err error }
+
+func (c failingContexts) EffectiveContext(context.Context, authz.Context, ids.ID, manifest.AssetType) (catalog.ContextBundle, error) {
+	return catalog.ContextBundle{}, c.err
+}
+
+// 生效上下文在取项目锁之前读取（全局加锁顺序），读取错误仍排在授权与幂等
+// 重放之后报告：同键重放返回原任务，无权者先得到授权错误，新请求才报告
+// 上下文错误（BUG-20261001-03）。
+func TestContextReadErrorKeepsAuthorizationAndReplayPrecedence(t *testing.T) {
+	f := newFixture(t)
+	ctx := t.Context()
+	doc := f.version("", f.owner.PrincipalID)
+	f.s.SetContexts(fakeContexts{catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{{Ref: doc}}, Digest: digest.Of([]byte("effective context"))}})
+	in := CreateRequest{ProjectID: f.project, Type: "produce", Title: "synthetic task", AcceptanceCriteria: []string{"matches the synthetic brief"}, ContextAssetType: "model", ExpectedOutputs: []tc.OutputRequirement{{Slug: "pose", AssetType: "model", CandidateCount: 1}}}
+	key := f.key()
+	first, err := f.s.Create(ctx, f.owner, key, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.s.SetContexts(failingContexts{errcode.New(errcode.RefMismatch, "context belongs to another project")})
+	again, err := f.s.Create(ctx, f.owner, key, in)
+	if err != nil || again.TaskID != first.TaskID {
+		t.Fatal("replay must return the original task", again, err)
+	}
+	if v := f.view(first.TaskID); v.Meta.Context == nil || len(v.Meta.Context.Refs) != 1 || v.Meta.Context.Refs[0] != doc {
+		t.Fatal("replay changed the fixed context", v.Meta.Context)
+	}
+	f.auth.mu.Lock()
+	f.auth.deny = map[string]bool{"tasks.create|" + string(f.makerA.PrincipalID): true}
+	f.auth.mu.Unlock()
+	_, err = f.s.Create(ctx, f.makerA, f.key(), in)
+	expectCode(t, err, errcode.Forbidden)
+	_, err = f.s.Create(ctx, f.owner, f.key(), in)
+	expectCode(t, err, errcode.RefMismatch)
 }
 
 // 任务输入引用先按版本实际所属项目授权，再比较归属：可见资产配无权版本与
