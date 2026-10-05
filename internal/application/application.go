@@ -149,7 +149,7 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	}
 	a.Ledger.SetInstaller(a.Storage)
 	a.Rights.SetFiles(a.Storage)
-	a.Catalog, err = catalog.New(catalog.Deps{Producers: a.Extensions, Home: i.Layout().Home, Gate: i.Gate(), Storage: a.Storage, Ledger: a.Ledger, Authz: a.Identity, Rights: a.Rights, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
+	a.Catalog, err = catalog.New(catalog.Deps{Producers: a.Extensions, Home: i.Layout().Home, Gate: i.Gate(), Storage: a.Storage, Ledger: a.Ledger, Authz: a.Identity, Rights: a.Rights, Publications: a.Ledger, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
 	if err != nil {
 		return nil, err
 	}

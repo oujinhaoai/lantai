@@ -145,6 +145,7 @@ func (f *reviewFixture) decide(t *testing.T, target ReviewTarget, in ReviewDecis
 func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 	f := newReviewFixture(t)
 	target := f.submit(t)
+	wantAliases(t, f.s, f.v.AssetID, "", "")
 	replay, err := f.r.Submit(t.Context(), f.who, "submit", f.input)
 	if err != nil || replay.ID != target.ID {
 		t.Fatal(replay, err)
@@ -157,6 +158,7 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 	if err != nil || a.PublicationState != "unpublished" {
 		t.Fatal("approval must not publish", a, err)
 	}
+	wantAliases(t, f.s, f.v.AssetID, "", f.v.VersionID)
 	requests, err := f.r.PublicationRequests(t.Context(), f.who, f.v.AssetID)
 	if err != nil || len(requests) != 1 {
 		t.Fatal(requests, err)
@@ -169,6 +171,7 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 	if err != nil || pub.ID != again.ID {
 		t.Fatal(again, err)
 	}
+	wantAliases(t, f.s, f.v.AssetID, f.v.VersionID, f.v.VersionID)
 	_, err = f.decide(t, target, ReviewDecision{Action: identity.ActRevokeReview, ExpectedRevision: 3, EffectiveReviewID: review.ID, Verdict: "revoke"})
 	if err != nil {
 		t.Fatal(err)
@@ -186,6 +189,7 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 	if state.ReviewState != "withdrawn" || state.EffectiveReviewID != "" {
 		t.Fatal(state)
 	}
+	wantAliases(t, f.s, f.v.AssetID, "", "")
 	f.input.ExpectedRevision = state.Revision
 	next, err := f.r.Submit(t.Context(), f.who, "resubmit", f.input)
 	if err != nil || next.ID == target.ID {
@@ -382,6 +386,8 @@ func TestReviewNewApprovalPreservesPublicationAndAllowsAuditedRollback(t *testin
 	if err != nil || a.PublishedVersionID != f.v.VersionID || a.PublicationRevision != first.Revision {
 		t.Fatal("approval changed old publication", a, err)
 	}
+	// @approved follows the newest approval; @published stays on the release.
+	wantAliases(t, f.s, v.AssetID, f.v.VersionID, v.VersionID)
 	in := PublishRequest{ProjectID: f.project, VersionID: v.VersionID, ReviewID: secondReview.ID, ExpectedRevision: first.Revision, Action: "rollback", Reason: "cannot roll back to never published version"}
 	_, err = f.r.Publish(ctx, f.who, "invalid-rollback", in)
 	wantCode(t, err, errcode.NotPublishable)
@@ -390,6 +396,7 @@ func TestReviewNewApprovalPreservesPublicationAndAllowsAuditedRollback(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
+	wantAliases(t, f.s, v.AssetID, v.VersionID, v.VersionID)
 	rollback, err := f.r.Publish(ctx, f.who, "rollback-first", PublishRequest{ProjectID: f.project, VersionID: f.v.VersionID, ReviewID: firstReview.ID, ExpectedRevision: second.Revision, Action: "rollback", Reason: "restore previous release"})
 	if err != nil || rollback.FromVersionID != v.VersionID || rollback.ToVersionID != f.v.VersionID || rollback.Revision != 3 {
 		t.Fatal(rollback, err)
@@ -401,6 +408,7 @@ func TestReviewNewApprovalPreservesPublicationAndAllowsAuditedRollback(t *testin
 	if err != nil || a.PublishedVersionID != f.v.VersionID || a.PublicationRevision != rollback.Revision {
 		t.Fatal("replayed release moved rollback pointer", a, err)
 	}
+	wantAliases(t, f.s, v.AssetID, f.v.VersionID, v.VersionID)
 	rows, err := f.db.QueryContext(ctx, `SELECT record FROM ledger_publications WHERE asset_id=? ORDER BY revision`, v.AssetID)
 	if err != nil {
 		t.Fatal(err)
@@ -645,5 +653,23 @@ func TestReviewWaiverStableIdentityAndExpiryAtPublication(t *testing.T) {
 	stored, err := readJSON[Review](ctx, f.db, `SELECT record FROM ledger_reviews WHERE review_id=?`, review.ID)
 	if err != nil || stored.WaiverRecords[0].ID != waiver.ID {
 		t.Fatal(stored, err)
+	}
+}
+
+// wantAliases checks the catalog selector port: an empty ID means the selector
+// must report NOT_PUBLISHED (@published) or NOT_FOUND (@approved).
+func wantAliases(t *testing.T, s *Service, asset, published, approved ids.ID) {
+	t.Helper()
+	got, err := s.Published(t.Context(), asset)
+	if published == "" {
+		wantCode(t, err, errcode.NotPublished)
+	} else if err != nil || got != published {
+		t.Fatal("@published", got, published, err)
+	}
+	got, err = s.Approved(t.Context(), asset)
+	if approved == "" {
+		wantCode(t, err, errcode.NotFound)
+	} else if err != nil || got != approved {
+		t.Fatal("@approved", got, approved, err)
 	}
 }

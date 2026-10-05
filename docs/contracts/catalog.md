@@ -48,7 +48,7 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 | 永久引用（`asset_id` + `version_id`，或 `lantai://<instance>/assets/<asset>/versions/<version>`） | 精确寻址；版本不属于该资产时与不存在一样返回 `NOT_FOUND`，不泄露版本是否存在于别的资产中；别的馆 `SCHEMA_INVALID`（`federation_unsupported`，M8） |
 | `<项目>/<路径>@vNNN` | 路径从未被复用（当前代次为 1）时直接解析；复用过则 `REF_AMBIGUOUS`（`path_reused`），须带代次或改用永久引用 |
 | `<项目>/<路径>@vNNN` + `alias_generation` | 当前代次查台账占名；更早的代次查别名历史文件，并核对该资产在台账中已提交 |
-| `@latest` / `@approved` / `@published` | 只解析当前代次的 active 占名，返回具体永久引用；不接受代次参数。`@latest` 为号码最大的已提交版本；`@approved`、`@published` 由 M2 的审定与发布提供，M1 分别返回 `NOT_FOUND` 与 `NOT_PUBLISHED` |
+| `@latest` / `@approved` / `@published` | 只解析当前代次的 active 占名，返回具体永久引用；不接受代次参数。`@latest` 为号码最大的已提交版本。`@approved`、`@published` 由台账（T03）回答：`@approved` 为号码最大、当前仍为 approved、enabled、active 且无在途操作的版本，与发布的接受条件一致，没有时 `NOT_FOUND`（`no_approved_version`）；`@published` 为当前发布指针，未发布或已暂停（停用、撤回审定、人工暂停）时 `NOT_PUBLISHED`。新的批准不移动发布指针 |
 
 - 调用者须能读取项目，否则无论对象是否存在一律 `NOT_FOUND`。
 - 名称释放后同名新资产取得新代次，旧永久引用始终指向原资产，不会被接管。M1 没有释放名称的业务命令（宽限删除与管理员释放属于 M2），测试用台账桩的构造器建立名称复用历史。
@@ -81,5 +81,5 @@ catalog 没有数据库表：说明与别名历史是数据根下的文件（内
 
 ## 限制
 
-- 资产移动、名称释放、回收站与发布别名属 M2；`@published`、`@approved` 在 M1 没有提供者。
+- 资产移动、名称释放与回收站属 M2；`@published`、`@approved` 在没有接入台账发布端口时（只组装 M1 模块）分别返回 `NOT_PUBLISHED` 与 `NOT_FOUND`。
 - 目标 NAS 上的规模、三平台文件语义与故障矩阵属 TEST-M1-03/06/07。

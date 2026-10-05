@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 
+	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
@@ -245,4 +247,31 @@ func (r *Reviews) RunPublication(ctx context.Context, who authz.Context, id ids.
 		}
 	}
 	return out, err
+}
+
+var _ catalog.Publications = (*Service)(nil)
+
+// Published 实现 catalog 的 @published：只读台账当前发布指针，未发布或已暂停时
+// NOT_PUBLISHED。新的批准不移动指针，发布与回退由 Publish 追加记录。
+func (s *Service) Published(ctx context.Context, asset ids.ID) (ids.ID, error) {
+	a, err := assetControl(ctx, s.db, asset)
+	if err != nil {
+		return "", err
+	}
+	if a.PublicationState != "published" || a.PublishedVersionID == "" {
+		return "", errcode.New(errcode.NotPublished, "")
+	}
+	return a.PublishedVersionID, nil
+}
+
+// Approved 实现 catalog 的 @approved：号码最大且当前仍为 approved、enabled、
+// active、没有在途操作的版本，与发布的接受条件一致；没有时 NOT_FOUND。
+func (s *Service) Approved(ctx context.Context, asset ids.ID) (ids.ID, error) {
+	var id ids.ID
+	err := s.db.QueryRowContext(ctx, `SELECT v.version_id FROM ledger_versions v JOIN ledger_version_states s ON s.version_id=v.version_id WHERE v.asset_id=? AND s.state='approved' AND s.availability='enabled' AND s.lifecycle='active' AND s.pending_operation_id='' ORDER BY v.version_number DESC LIMIT 1`, asset).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		const msg = "the asset has no approved version"
+		return "", errcode.New(errcode.NotFound, msg).WithDetails(errcode.Detail{Reason: "no_approved_version", Message: msg})
+	}
+	return id, err
 }
