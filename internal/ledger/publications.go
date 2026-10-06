@@ -231,8 +231,14 @@ func (r *Reviews) RunPublication(ctx context.Context, who authz.Context, id ids.
 	if err != nil {
 		return Publication{}, err
 	}
-	if err = r.sources.Task(ctx, who, v, t.Flow, "auto_publish"); err != nil {
-		return Publication{}, err
+	// 已成功的请求只能重放首次回执：流程此时通常已完成，不再要求执行权，交给
+	// publish 在核对当前读取权限后查回执。查不到回执（例如换了调用者）时，
+	// publish 仍复核发布指针修订（已随首次发布前进）与请求状态（只接受
+	// pending/failed），不会再执行发布，也不会复活已暂停的指针。
+	if p.Status != "succeeded" {
+		if err = r.sources.Task(ctx, who, v, t.Flow, "auto_publish"); err != nil {
+			return Publication{}, err
+		}
 	}
 	out, err := r.publish(ctx, who, "publication-request-"+string(id), PublishRequest{ProjectID: v.ProjectID, VersionID: v.VersionID, ReviewID: p.ReviewID, ExpectedRevision: p.ExpectedRevision, Action: "publish", Reason: "approved flow publication request"}, id)
 	if err != nil {

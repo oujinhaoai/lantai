@@ -172,14 +172,39 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 		t.Fatal(again, err)
 	}
 	wantAliases(t, f.s, f.v.AssetID, f.v.VersionID, f.v.VersionID)
+	// After the flow completes the dispatcher no longer holds execution rights;
+	// replaying the succeeded request still returns the first receipt
+	// (BUG-20261001-06) and adds no history.
+	f.src.taskErr = errcode.New(errcode.InvalidStateTransition, "").WithDetails(errcode.Detail{Reason: "flow_completed"})
+	completed, err := f.r.RunPublication(t.Context(), f.who, requests[0].ID)
+	if err != nil || completed.ID != pub.ID || completed.OperationID != pub.OperationID || completed.Revision != pub.Revision {
+		t.Fatal("replay after flow completion", completed, err)
+	}
+	// Another caller has no receipt for this request; the pointer revision has
+	// moved past the request's expectation, so it cannot publish it again.
+	otherID := ids.New()
+	f.az.AddPrincipal(otherID, authz.Human)
+	f.az.Grant(otherID, f.project, "catalog.read")
+	other := f.az.OpenSession(otherID, time.Hour)
+	_, err = f.r.RunPublication(t.Context(), other, requests[0].ID)
+	wantCode(t, err, errcode.PublicationConflict)
+	if n := publicationCount(t, f); n != 1 {
+		t.Fatal("replays added publication history", n)
+	}
+	if requests, err = f.r.PublicationRequests(t.Context(), f.who, f.v.AssetID); err != nil || requests[0].Status != "succeeded" {
+		t.Fatal("a refused replay changed the request status", requests, err)
+	}
 	_, err = f.decide(t, target, ReviewDecision{Action: identity.ActRevokeReview, ExpectedRevision: 3, EffectiveReviewID: review.ID, Verdict: "revoke"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	// A completed old operation may return its historical receipt, but cannot
 	// update the publication pointer after the same-transaction suspension.
-	if _, err = f.r.RunPublication(t.Context(), f.who, requests[0].ID); err != nil {
-		t.Fatal(err)
+	if old, err := f.r.RunPublication(t.Context(), f.who, requests[0].ID); err != nil || old.ID != pub.ID {
+		t.Fatal(old, err)
+	}
+	if n := publicationCount(t, f); n != 2 {
+		t.Fatal("history must hold the release and its suspension only", n)
 	}
 	a, err = f.s.AssetControl(t.Context(), f.v.AssetID)
 	if err != nil || a.PublicationState != "suspended" || a.PublishedVersionID != "" || a.PublicationRevision != 2 {
@@ -190,6 +215,8 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 		t.Fatal(state)
 	}
 	wantAliases(t, f.s, f.v.AssetID, "", "")
+	// A new production round brings back an active flow for the resubmission.
+	f.src.taskErr = nil
 	f.input.ExpectedRevision = state.Revision
 	next, err := f.r.Submit(t.Context(), f.who, "resubmit", f.input)
 	if err != nil || next.ID == target.ID {
@@ -672,4 +699,13 @@ func wantAliases(t *testing.T, s *Service, asset, published, approved ids.ID) {
 	} else if err != nil || got != approved {
 		t.Fatal("@approved", got, approved, err)
 	}
+}
+
+func publicationCount(t *testing.T, f *reviewFixture) int {
+	t.Helper()
+	var n int
+	if err := f.db.QueryRowContext(t.Context(), `SELECT count(*) FROM ledger_publications WHERE asset_id=?`, f.v.AssetID).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
 }
