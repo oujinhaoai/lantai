@@ -9,3 +9,15 @@
 性能和平台支持结果必须记录代码版本、环境类别、输入摘要与测量结果。真实素材与私有环境原始记录不进入公开 fixture。包内单元测试与契约测试已随源码提交。跨模块接口的契约套件放在接口旁的 `internal/contract/*/…test` 包中（例如 `committest.RunLedgerContract`、`installtest.RunInstallerContract`），内存桩与真实实现运行同一套件；本目录的集成、故障注入与端到端测试随真实模块接线建立。
 
 已有 [`integration/`](integration/)：真实实例、身份、存储、目录、SQLite 台账与溯源模块接线，验证 T02 动作已登记、Agent 凭据换会话后经传输面分片上传、入藏、Range 下载，转发地址与撤权后的下一个请求被拒，著录修订的角色边界，批量档占满时交互下载不受影响，以及大文件断点续传与流式内存（默认 32 MiB，`LANTAI_TEST_LARGE_MB=1024` 为 1 GiB 规模）。同一批传输测试使用真实台账复跑；新增事件 relay→查询重建/增量→审计链路、noai 传播、未知来源证据、更正保留历史、personal 显式授权与撤权、维护屏障验证。独立 TEST/GATE 的跨平台故障与备份验收仍分别执行。
+
+客户端一致性功能预验收使用同一个临时真实实例，通过 REST、独立 CLI 进程、官方 Go SDK stdio MCP 会话及 Python SDK 比较身份、精确版本读取、任务与检索分页、领取任务的跨客户端幂等重放，以及冲突、越权、撤权和会话失效的机器错误。错误只排除每次请求不同的 `request_id`，仍核对其存在；随机加密的检索游标通过交叉续页比较语义。MCP 另验证握手、结果大小限制和取消传递。
+
+扩展场景使用预审定的合成插件 fixture，经真实 HumanGrant 启停，比较 CLI 与 stdio MCP 的参数、产物和拒绝行为；覆盖同名命令、PATH/CWD、shell 特殊字符、子进程环境与工作目录、入口摘要变更和现有 MCP 投影的撤权复验。`oneshot` 的 `inspect` 模式只回传参数、环境变量名称和工作目录身份，不输出环境变量值。该场景不替代插件包审定流程验收，也不证明安全沙箱。
+
+在具备 Go 工具链、Python 3.11+、进程启动与 loopback HTTP 监听权限的环境运行：
+
+```sh
+go test -race -count=1 -run '^TestClientConsistency' -v ./tests/integration
+```
+
+这组测试提供功能预验收证据；目标部署、其他平台的进程行为、独立复核及阶段门禁分别记录和执行。

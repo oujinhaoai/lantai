@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -123,7 +124,31 @@ func command(r *extension.Run) error {
 			return err
 		}
 	}
-	return r.FinishCommand(extension.CommandResult{OperationID: j.OperationID, Command: j.Command, Status: "completed", Summary: map[string]any{"inputs": len(j.Inputs)}, Producer: j.Producer})
+	summary := map[string]any{"inputs": len(j.Inputs)}
+	if c.Mode == "inspect" {
+		summary["args"] = j.Args
+		names := []string{}
+		for _, kv := range os.Environ() {
+			names = append(names, strings.SplitN(kv, "=", 2)[0])
+		}
+		sort.Strings(names)
+		summary["environment_names"] = names
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		actual, err := os.Stat(cwd)
+		if err != nil {
+			return err
+		}
+		expected, err := os.Stat(filepath.Dir(os.Args[1]))
+		if err != nil {
+			return err
+		}
+		// macOS aliases /var and /private/var; compare directory identity.
+		summary["private_working_directory"] = os.SameFile(actual, expected)
+	}
+	return r.FinishCommand(extension.CommandResult{OperationID: j.OperationID, Command: j.Command, Status: "completed", Summary: summary, Producer: j.Producer})
 }
 
 func fault(r *extension.Run, c config) error {
