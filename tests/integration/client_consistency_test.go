@@ -205,11 +205,13 @@ func buildConsistencyCLI(t *testing.T) string {
 func consistencyEnv() []string {
 	var env []string
 	for _, kv := range os.Environ() {
-		if !strings.HasPrefix(kv, "LANTAI_") && !strings.HasPrefix(kv, "PYTHONPATH=") {
+		if !strings.HasPrefix(kv, "LANTAI_") && !strings.HasPrefix(kv, "PYTHONPATH=") && !strings.HasPrefix(kv, "PYTHONIOENCODING=") {
 			env = append(env, kv)
 		}
 	}
-	return env
+	// Windows 上 Python 的管道输出默认用 ANSI 代码页，打印中文错误信息会失败；
+	// 统一用 UTF-8，与其他客户端的输出编码一致。
+	return append(env, "PYTHONIOENCODING=utf-8")
 }
 
 func newConsistencyClient(t *testing.T, bin, origin, token string) *consistencyClient {
