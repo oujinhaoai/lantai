@@ -30,6 +30,8 @@ type Config struct {
 	SecretsDir string
 	// MinFreeBytes 低于它时实例不开放写入。
 	MinFreeBytes uint64
+	// AllowFUSE 为 true 时允许数据根或库目录在 FUSE 文件系统上，默认拒绝。
+	AllowFUSE bool
 	// Uploads 是上传限额与会话到期；零值表示采用存储模块默认值。
 	Uploads UploadLimits
 	// Present 表示 config.yaml 存在。
@@ -90,6 +92,7 @@ type configWire struct {
 	} `json:"secrets"`
 	Storage struct {
 		MinFreeBytes          *uint64 `json:"min_free_bytes"`
+		AllowFUSE             bool    `json:"allow_fuse"`
 		MaxFileBytes          int64   `json:"max_file_bytes"`
 		MaxUploadBytes        int64   `json:"max_upload_bytes"`
 		MaxUploadFiles        int     `json:"max_upload_files"`
@@ -153,6 +156,7 @@ func LoadConfig(l Layout) (Config, error) {
 	if w.Storage.MinFreeBytes != nil {
 		cfg.MinFreeBytes = *w.Storage.MinFreeBytes
 	}
+	cfg.AllowFUSE = w.Storage.AllowFUSE
 	// 取值范围由 schema 校验；这里只拒绝两项同时设置且互相矛盾的组合，
 	// 只设一项时由存储模块按较小者生效。
 	st := w.Storage

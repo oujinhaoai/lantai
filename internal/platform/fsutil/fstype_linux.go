@@ -44,7 +44,8 @@ func Inspect(path string) (FSInfo, error) {
 	}
 	magic := uint32(st.Type)
 	if fs, ok := linuxFS[magic]; ok {
-		return FSInfo{Type: fs.name, Remote: fs.remote, Known: fs.name != "fuse"}, nil
+		fuse := fs.name == "fuse"
+		return FSInfo{Type: fs.name, Remote: fs.remote, Known: !fuse, FUSE: fuse}, nil
 	}
 	return FSInfo{Type: fmt.Sprintf("0x%X", magic)}, nil
 }

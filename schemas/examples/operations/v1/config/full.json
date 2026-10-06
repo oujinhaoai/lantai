@@ -12,6 +12,7 @@
     },
     "storage": {
       "min_free_bytes": 5368709120,
+      "allow_fuse": false,
       "max_file_bytes": 1099511627776,
       "max_upload_bytes": 4398046511104,
       "max_upload_files": 100000,

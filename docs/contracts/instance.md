@@ -35,6 +35,7 @@
 | 库中有本构建不认识或内容被改动的迁移、未登记的表 | `schema_incompatible` |
 | 标记的数据格式版本高于本构建 | `format_newer`，不支持降级 |
 | 数据根或库目录在网络文件系统上 | `network_filesystem`，拒绝（Linux 按 `statfs` 类型、macOS 按 `MNT_LOCAL`、Windows 按驱动器类型判断；`db/` 是另一个挂载点或符号链接时单独核对；无法判断时记 `filesystem_unverified`） |
+| 数据根或库目录在 FUSE 上 | `fuse_filesystem`，默认拒绝初始化与启动（Linux 按 `statfs` 魔数、macOS 按类型名识别）；配置 `storage.allow_fuse: true` 显式接受风险时放行，并记 `filesystem_unverified` 提示 |
 | 较新构建开始的迁移尚未完成 | `format_newer`：旧构建不替它完成，由开始迁移的构建（或更新的构建）续做 |
 
 以上是“恢复诊断”类原因：`Open` 返回 `*StartupError`，不打开实例。`lantai doctor` 只读给出同样的原因，实例运行中也可调用。
@@ -83,5 +84,5 @@
 ## 已知限制
 
 - 断电与文件系统级故障演练、三平台实际文件语义属 TEST-M1-06/12，尚未执行；原子替换在 Windows 上不刷新目录。
-- 网络文件系统检测只识别已知类型；FUSE 等无法判断的类型只记提示，部署前须在实际位置用 SQLite 探针的并发模式验证（见[部署的数据位置](../deployment.md#数据位置)）。
+- 网络文件系统检测只识别已知类型；FUSE 默认拒绝，其他无法判断的类型只记提示，部署前须在实际位置用 SQLite 探针的并发模式验证（见[部署的数据位置](../deployment.md#数据位置)）。Windows 上不识别 FUSE 类文件系统。
 - 恢复点之后的撤权、删除与未知副作用需要有证据的本机对账；无法证明时不清除恢复门闩。M1 不执行物理 GC。

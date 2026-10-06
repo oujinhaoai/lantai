@@ -59,6 +59,7 @@ const (
 	CodeMigrationRequired   = "migration_required"
 	CodeMigrationIncomplete = "migration_incomplete"
 	CodeNetworkFileSystem   = "network_filesystem"
+	CodeFUSEFileSystem      = "fuse_filesystem"
 	CodeFileSystemUnknown   = "filesystem_unverified"
 	CodeDiskSpaceLow        = "disk_space_low"
 	CodeRecoveryFailed      = "recovery_failed"
@@ -220,7 +221,9 @@ func existingDBs(l Layout) []string {
 }
 
 // checkFileSystem 核对数据根与库目录（可能是另一个挂载点或符号链接）都在
-// 本机文件系统上；不存在的路径跳过。
+// 本机文件系统上；不存在的路径跳过。FUSE 上默认拒绝：某 NAS 的 FUSE 映射文件夹
+// 在并发读写下间歇性地写坏 SQLite 库，并发实测通过也不能证明安全，只有配置
+// storage.allow_fuse 显式接受风险时才放行，并记提示。
 func (i *Instance) checkFileSystem(paths ...string) error {
 	for _, p := range paths {
 		if !exists(p) {
@@ -230,15 +233,29 @@ func (i *Instance) checkFileSystem(paths ...string) error {
 		if err != nil {
 			return fmt.Errorf("operations: inspect file system of %s: %w", p, err)
 		}
-		if info.Remote {
-			return startupErr(CodeNetworkFileSystem, "%s is on a network file system (%s); the data root and databases must be on a local disk", p, info.Type)
-		}
-		if !info.Known && !slices.ContainsFunc(i.notes, func(r Reason) bool { return r.Code == CodeFileSystemUnknown }) {
-			i.notes = append(i.notes, Reason{Code: CodeFileSystemUnknown,
-				Message: fmt.Sprintf("file system type %q of %s could not be confirmed as local", info.Type, p)})
+		if r, refuse := fileSystemReason(p, info, i.cfg.AllowFUSE); refuse {
+			return startupErr(r.Code, "%s", r.Message)
+		} else if r.Code != "" && !slices.ContainsFunc(i.notes, func(n Reason) bool { return n.Code == r.Code }) {
+			i.notes = append(i.notes, r)
 		}
 	}
 	return nil
+}
+
+// fileSystemReason 判定一个路径的文件系统：refuse 为真时 r 是拒绝原因，否则
+// r 是提示（Code 为空表示没有可说的）。启动与 doctor 共用同一判定。
+func fileSystemReason(p string, info fsutil.FSInfo, allowFUSE bool) (r Reason, refuse bool) {
+	switch {
+	case info.Remote:
+		return Reason{CodeNetworkFileSystem, fmt.Sprintf("%s is on a network file system (%s); the data root and databases must be on a local disk", p, info.Type)}, true
+	case info.FUSE && !allowFUSE:
+		return Reason{CodeFUSEFileSystem, fmt.Sprintf("%s is on a FUSE file system (%s); SQLite databases there can be corrupted under concurrent access. Move the data root to a local disk, or set storage.allow_fuse: true only after verifying the location (see the data location section of the deployment guide)", p, info.Type)}, true
+	case info.FUSE:
+		return Reason{CodeFileSystemUnknown, fmt.Sprintf("%s is on a FUSE file system (%s), accepted by storage.allow_fuse; its SQLite behaviour is not verified by Lantai", p, info.Type)}, false
+	case !info.Known:
+		return Reason{CodeFileSystemUnknown, fmt.Sprintf("file system type %q of %s could not be confirmed as local", info.Type, p)}, false
+	}
+	return Reason{}, false
 }
 
 // Open 打开已初始化的实例：取得数据根写锁，检查实例标记、文件系统、权威库、

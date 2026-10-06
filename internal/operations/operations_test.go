@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -442,6 +443,49 @@ func TestDiskSpaceAndNetworkFileSystem(t *testing.T) {
 	}
 	if _, err := Create(t.Context(), CreateOptions{Options: Options{Home: t.TempDir(), inspectFS: remote}}); !HasReason(err, CodeNetworkFileSystem) {
 		t.Fatalf("init on network fs = %v", err)
+	}
+}
+
+// FUSE 上的数据根默认拒绝初始化、启动与 doctor 判定；只有 storage.allow_fuse
+// 显式接受风险时放行，并留下提示。
+func TestFUSERefusedUnlessAllowed(t *testing.T) {
+	home := createActive(t, Options{})
+	l, _ := NewLayout(home)
+	fuse := func(string) (fsutil.FSInfo, error) { return fsutil.FSInfo{Type: "fuse", FUSE: true}, nil }
+	if _, err := Open(t.Context(), Options{Home: home, inspectFS: fuse}); !HasReason(err, CodeFUSEFileSystem) {
+		t.Fatalf("open on FUSE = %v", err)
+	}
+	fresh := t.TempDir()
+	if _, err := Create(t.Context(), CreateOptions{Options: Options{Home: fresh, inspectFS: fuse}}); !HasReason(err, CodeFUSEFileSystem) {
+		t.Fatalf("init on FUSE = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(fresh, "instance.json")); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("refused init wrote a marker: %v", err)
+	}
+	rep, err := inspect(t.Context(), home, fuse)
+	if err != nil || rep.Compatible() || !hasReason(rep.Problems, CodeFUSEFileSystem) {
+		t.Fatalf("doctor on FUSE: problems=%+v err=%v", rep.Problems, err)
+	}
+	if !rep.FileSystem.FUSE {
+		t.Fatalf("doctor report hides the FUSE file system: %+v", rep.FileSystem)
+	}
+
+	if err := os.WriteFile(l.ConfigPath(), []byte(testConfig+"  allow_fuse: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	inst := open(t, home, Options{inspectFS: fuse})
+	if r := inst.Readiness(); !hasReason(r.Notes, CodeFileSystemUnknown) || hasReason(r.Reasons, CodeFUSEFileSystem) {
+		t.Fatalf("accepted FUSE must leave a note and no refusal: %+v", r)
+	}
+	inst.Close(t.Context())
+	rep, err = inspect(t.Context(), home, fuse)
+	if err != nil || hasReason(rep.Problems, CodeFUSEFileSystem) || !hasReason(rep.Notes, CodeFileSystemUnknown) {
+		t.Fatalf("doctor with allow_fuse: problems=%+v notes=%+v err=%v", rep.Problems, rep.Notes, err)
+	}
+	// 放行只针对 FUSE：网络文件系统照样拒绝。
+	remote := func(string) (fsutil.FSInfo, error) { return fsutil.FSInfo{Type: "nfs", Remote: true, Known: true}, nil }
+	if _, err := Open(t.Context(), Options{Home: home, inspectFS: remote}); !HasReason(err, CodeNetworkFileSystem) {
+		t.Fatalf("allow_fuse must not admit a network file system: %v", err)
 	}
 }
 

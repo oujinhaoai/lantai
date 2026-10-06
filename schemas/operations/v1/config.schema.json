@@ -44,6 +44,10 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
+        "allow_fuse": {
+          "description": "数据根或库目录在 FUSE 文件系统上时，默认拒绝初始化与启动。只有在该位置不同时段多次通过 SQLite 并发实测、并接受库可能被间歇性写坏的风险时才设为 true；实测通过不能证明 FUSE 位置安全，见部署文档的数据位置。默认 false。",
+          "type": "boolean"
+        },
         "max_file_bytes": {
           "description": "上传会话中单个文件的最大字节数，超限返回 QUOTA_EXCEEDED（file_too_large）。默认 1 TiB。与 max_upload_bytes 同时设置时不能大于它。",
           "type": "integer",

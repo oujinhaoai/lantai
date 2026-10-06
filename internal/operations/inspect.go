@@ -35,6 +35,10 @@ func (r Report) Compatible() bool { return r.Initialized && len(r.Problems) == 0
 // 可调用。它给出与 Open 相同类别的原因，供 lantai doctor 与恢复诊断使用；
 // 锁文件中的持有者信息只是最近一次取锁的记录，不代表锁当前一定被持有。
 func Inspect(ctx context.Context, home string) (Report, error) {
+	return inspect(ctx, home, fsutil.Inspect)
+}
+
+func inspect(ctx context.Context, home string, fsInfo func(string) (fsutil.FSInfo, error)) (Report, error) {
 	l, err := NewLayout(home)
 	if err != nil {
 		return Report{}, err
@@ -55,17 +59,17 @@ func Inspect(ctx context.Context, home string) (Report, error) {
 		if !exists(p) {
 			continue
 		}
-		info, err := fsutil.Inspect(p)
+		info, err := fsInfo(p)
 		if err != nil {
 			continue
 		}
 		if p == l.Home {
 			rep.FileSystem = info
 		}
-		if info.Remote {
-			add(CodeNetworkFileSystem, "%s is on a network file system (%s)", p, info.Type)
-		} else if !info.Known {
-			rep.Notes = append(rep.Notes, Reason{CodeFileSystemUnknown, fmt.Sprintf("file system type %q of %s could not be confirmed as local", info.Type, p)})
+		if r, refuse := fileSystemReason(p, info, cfg.AllowFUSE); refuse {
+			rep.Problems = append(rep.Problems, r)
+		} else if r.Code != "" {
+			rep.Notes = append(rep.Notes, r)
 		}
 	}
 	if free, err := freeBytes(l); err == nil {

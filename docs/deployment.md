@@ -30,7 +30,7 @@ flowchart LR
 
 ## 数据位置
 
-数据根（含 `db/`）与密钥目录必须在本机文件系统上，满足 POSIX 文件语义与 SQLite WAL 的要求。`doctor` 与 `serve` 拒绝已识别的网络文件系统；FUSE 等无法判断类型的文件系统只提示 `filesystem_unverified`，不阻止启动，这类位置必须先自行验证。
+数据根（含 `db/`）与密钥目录必须在本机文件系统上，满足 POSIX 文件语义与 SQLite WAL 的要求。`init`、`doctor` 与 `serve` 拒绝已识别的网络文件系统；FUSE 默认也拒绝（`fuse_filesystem`），只有在配置中设 `storage.allow_fuse: true` 显式接受风险时才放行，并提示 `filesystem_unverified`。其他无法判断类型的文件系统只提示 `filesystem_unverified`，不阻止启动，这类位置必须先自行验证。
 
 部署前在实际数据位置（`db/` 单独挂载时也包括它）运行 SQLite 探针，并加并发读写实测：
 
@@ -44,7 +44,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o sqlite-probe ./scripts/probe/s
 
 NAS 与容器：
 
-- 部分 NAS 系统把共享文件夹经厂商 FUSE 层映射进容器。2026-10 在一台极空间 NAS 的测试容器中实测（映射文件夹为 `zfuse`）：Lantai 的库在并发读写下出现 `SQLITE_CORRUPT` / `SQLITE_NOTADB` 并被持久写坏，有时运行中没有任何报错，只有完整性检查能发现；能力探针的低并发项照样全部通过。问题是间歇性的：同一位置在当天另外几次 10–15 分钟的并发实测中没有出现。这类映射文件夹不能放数据根或密钥目录。
+- 部分 NAS 系统把共享文件夹经厂商 FUSE 层映射进容器。2026-10 在一台极空间 NAS 的测试容器中实测（映射文件夹为 `zfuse`）：Lantai 的库在并发读写下出现 `SQLITE_CORRUPT` / `SQLITE_NOTADB` 并被持久写坏，有时运行中没有任何报错，只有完整性检查能发现；能力探针的低并发项照样全部通过。问题是间歇性的：同一位置在当天另外几次 10–15 分钟的并发实测中没有出现。这类映射文件夹不能放数据根或密钥目录；数据根放在上面时 Lantai 默认拒绝启动。
 - 同一台机器上，落在宿主本地 btrfs 上的 Docker 命名卷通过 15 分钟并发实测，并在其上完成 1 万资产 / 5 万版本的规模运行与空目录恢复。建议数据根与密钥目录各用一个命名卷，对应模板路径 `/var/lib/lantai` 与 `/var/lib/lantai-secrets`；映射的共享文件夹只放备份、导入导出与日志。在同一环境中，停机备份写到映射文件夹、校验后跨机器恢复已实测可用，备份副本的损坏由 `backup-verify` 的校验和发现。
 - 命名卷由 Docker 管理：删除卷（包括 `docker compose down -v`）或 Docker 存储损坏都会丢失数据。必须定期执行 `lantai backup`，用 `backup-verify` 校验后复制到另一台机器；密钥目录另行备份。
 - 模板 `compose.yaml` 用 `LANTAI_DATA_DIR`、`LANTAI_SECRETS_DIR` 绑定宿主目录。改用命名卷时，在私有覆盖文件中把 core 的这两项挂载改为命名卷，并在顶层 `volumes` 声明。镜像不含这两个挂载点，新建命名卷的根目录归 root，而核心容器以 65532 运行，首次启动前需让两个卷对 65532:65532 可写。上述实测的测试容器以 root 运行，覆盖文件与属主设置尚未在 Docker 引擎上实测。
