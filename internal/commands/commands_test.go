@@ -108,6 +108,60 @@ func count(t *testing.T, db *sql.DB, query string, args ...any) int {
 	return n
 }
 
+// Receipts with no result objects must serialize identically before and after
+// persistence, including accepted failures and the multi-stage pending receipt.
+func TestReceiptEmptyRefsReplay(t *testing.T) {
+	for _, status := range []ReceiptStatus{ReceiptSucceeded, ReceiptFailed, ReceiptInProgress} {
+		t.Run(string(status), func(t *testing.T) {
+			f := newFixture(t, "ledger", "l.db")
+			cmd := f.cmd(t, "empty-refs", `{}`)
+			called := 0
+			invoke := func() (Response, error) {
+				if status == ReceiptInProgress {
+					return f.store.Accept(t.Context(), f.db, cmd, StagePrepared, nil, func(context.Context, *sql.Tx) error {
+						called++
+						return nil
+					})
+				}
+				return f.store.Execute(t.Context(), f.db, cmd, func(context.Context, *sql.Tx) (Result, error) {
+					called++
+					res := Result{Status: status, ResponseCode: 200, Summary: map[string]string{"result": "synthetic"}}
+					if status == ReceiptFailed {
+						res.ResponseCode, res.FailureCode = 412, errcode.PreconditionFailed
+					}
+					return res, nil
+				})
+			}
+			first, err := invoke()
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := invoke()
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantOutcome := OutcomeReplay
+			if status == ReceiptInProgress {
+				wantOutcome = OutcomeInProgress
+			}
+			if second.Outcome != wantOutcome || called != 1 {
+				t.Fatal("duplicate request executed again", second.Outcome, called)
+			}
+			a, err := json.Marshal(first.Receipt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			b, err := json.Marshal(second.Receipt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if first.Receipt.ResultRefs == nil || string(a) != string(b) {
+				t.Fatalf("first and replay differ: %s / %s", a, b)
+			}
+		})
+	}
+}
+
 func TestRequestHash(t *testing.T) {
 	base := HashInput{CommandType: "ledger.commit_version", Targets: []string{"a"}, ExpectedRevisions: map[string]int64{"a": 3},
 		Body: json.RawMessage(`{"b":1,"a":[1,2]}`)}

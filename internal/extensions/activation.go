@@ -73,7 +73,7 @@ func (m *Manager) activation(ctx context.Context, id ids.ID, generation int64) (
 	return &a, json.Unmarshal([]byte(raw), &a)
 }
 
-func (m *Manager) saveActivation(ctx context.Context, a Activation) error {
+func (m *Manager) saveActivation(ctx context.Context, a *Activation) error {
 	a.UpdatedAt = clock.Format(m.d.Clock.Now())
 	ctx, h, err := m.d.Gate.Acquire(ctx, commands.Request{})
 	if err != nil {
@@ -140,7 +140,7 @@ func (m *Manager) runProbe(ctx context.Context, e Enablement) (Activation, error
 	if a.ProbeID, err = m.d.IDs.New(); err != nil {
 		return a, err
 	}
-	if err = m.saveActivation(ctx, a); err != nil {
+	if err = m.saveActivation(ctx, &a); err != nil {
 		return a, err
 	}
 	epoch, err := m.d.Authority.RecoveryEpoch(ctx)
@@ -187,7 +187,7 @@ func (m *Manager) runProbe(ctx context.Context, e Enablement) (Activation, error
 			a.State, a.Failure = "ready", ""
 		}
 	}
-	if serr := m.saveActivation(context.WithoutCancel(ctx), a); serr != nil {
+	if serr := m.saveActivation(context.WithoutCancel(ctx), &a); serr != nil {
 		return a, serr
 	}
 	if a.State != "ready" {

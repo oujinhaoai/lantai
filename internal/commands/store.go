@@ -320,6 +320,7 @@ func (s *Store) insertReceipt(ctx context.Context, q DBTX, cmd Context, status R
 		RequestHash: cmd.RequestHash,
 		Status:      status,
 		CreatedAt:   now,
+		ResultRefs:  []ResultRef{},
 	}
 	var code, completed, expires any
 	var summary, failure any
@@ -331,6 +332,9 @@ func (s *Store) insertReceipt(ctx context.Context, q DBTX, cmd Context, status R
 		}
 		refs, summary = b.refs, b.summary
 		r.ResultRefs, r.ResponseSummary = res.ResultRefs, b.summaryRaw
+		if r.ResultRefs == nil {
+			r.ResultRefs = []ResultRef{}
+		}
 		r.ResponseCode, r.FailureCode = res.ResponseCode, res.FailureCode
 		r.CompletedAt, r.ResponseExpiresAt = now, now.Add(ResponseTTL)
 		code, completed, expires = res.ResponseCode, clock.Millis(now), clock.Millis(r.ResponseExpiresAt)

@@ -35,7 +35,7 @@
  "config":{},"config_revision":1,"trust":"trusted_unenforced","probe":true,"reason":"…"}
 ```
 
-- 冻结的 `HumanAction` 绑定启用对象 ID（由实例 ID 与插件/target/作用域派生）与下一 revision、包摘要、target、作用域、配置 revision/摘要和实例 `plugins.*` 策略 revision。最终接受时由当前状态重算同一动作，任一变化即 `PRECONDITION_FAILED`，授权不能换用到其他包、配置或范围。
+- 冻结的 `HumanAction` 绑定启用对象 ID（由实例 ID 与插件/target/作用域派生）与下一 revision、包摘要、target、作用域、配置 revision/摘要和实例 `plugins.*` 策略 revision。未完成动作最终接受时由当前状态重算同一动作，任一变化即 `PRECONDITION_FAILED`，授权不能换用到其他包、配置或范围。已完成的同一子操作经当前人会话、权限及原授权绑定复验后返回原回执和其中的 enablement，即使原授权已过期或后来产生了新 generation。重放不再次探测或撤权；server 启用重放只读取原 generation 已有的 activation，缺失、未完成或失败的探测由单独的 `probe` 命令处理。
 - 包审定必须当前有效并被记录其 review ID；撤销或重新审定后旧启用立即失效，需重新启用。
 - 配置按包内 `config_schema` 离线校验；摘要不变沿用 revision，变化则 revision + 1。
 - server 作用域为 instance 或 project；cli 为 instance 或 user。项目仍须在 `plugins.allowed` 中显式列出插件 ID，instance 启用不推出项目可用。

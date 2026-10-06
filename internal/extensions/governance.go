@@ -70,8 +70,9 @@ type Policies interface {
 	ResolvePolicies(context.Context, ids.ID) (map[string]identity.PolicyValue, error)
 }
 
-// HumanCommands is identity's final HumanGrant acceptance.
+// HumanCommands reads identity's frozen grant items and performs final acceptance.
 type HumanCommands interface {
+	DomainItems(context.Context, authz.Context, ids.ID) ([]identity.HumanGrantItem, error)
 	AcceptHumanItem(context.Context, authz.Context, ids.ID, ids.ID, identity.HumanAction, commands.Request, identity.HumanDomain) (commands.Receipt, error)
 }
 
@@ -754,27 +755,69 @@ type ChangeResult struct {
 	Activation *Activation      `json:"activation,omitempty"`
 }
 
-// Enable consumes one HumanGrant item. After the main-database commit and
+// approvedChange preserves the approved revision on replay. Final acceptance
+// still checks the session, permission and binding; Commit rechecks current facts
+// for unfinished items. The supplied request cannot replace the frozen request.
+func approvedChange(ctx context.Context, who authz.Context, grant, child ids.ID, action authz.Action, in any, human HumanCommands) (identity.HumanAction, error) {
+	items, err := human.DomainItems(ctx, who, grant)
+	if err != nil {
+		return identity.HumanAction{}, err
+	}
+	raw, err := canonjson.CanonicalizeValue(in)
+	if err != nil {
+		return identity.HumanAction{}, failure(errcode.SchemaInvalid, "request_invalid")
+	}
+	for _, item := range items {
+		if item.OperationID != child || item.Action.Action != action {
+			continue
+		}
+		approved, err := canonjson.Canonicalize(item.Action.Request)
+		if err != nil {
+			return identity.HumanAction{}, err
+		}
+		if string(raw) == string(approved) {
+			return item.Action, nil
+		}
+		break
+	}
+	return identity.HumanAction{}, errcode.New(errcode.HumanGrantMismatch, "item request differs from approved request")
+}
+
+func changeResultFromReceipt(r commands.Receipt) (ChangeResult, error) {
+	var e Enablement
+	if err := json.Unmarshal(r.ResponseSummary, &e); err != nil {
+		return ChangeResult{}, err
+	}
+	return ChangeResult{Receipt: r, Enablement: &e}, nil
+}
+
+// Enable consumes one HumanGrant item. After a new main-database commit and
 // outside every lock, a server target runs the probe the same grant authorized.
+// Replays report the committed generation and its existing activation without
+// starting another probe; explicit Probe handles subsequent probe requests.
 func (m *Manager) Enable(ctx context.Context, who authz.Context, in EnableRequest, grant, child ids.ID, human HumanCommands) (ChangeResult, error) {
 	if human == nil {
 		return ChangeResult{}, errcode.New(errcode.HumanProofRequired, "")
 	}
-	a, err := m.EnableHumanAction(ctx, in)
+	a, err := approvedChange(ctx, who, grant, child, identity.ActEnableExtension, in, human)
 	if err != nil {
 		return ChangeResult{}, err
 	}
-	r, err := human.AcceptHumanItem(ctx, who, grant, child, a, commands.Request{Security: commands.ModeExclusive}, &changeCommand{m: m, enable: &in})
+	c := &changeCommand{m: m, enable: &in}
+	r, err := human.AcceptHumanItem(ctx, who, grant, child, a, commands.Request{Security: commands.ModeExclusive}, c)
 	if err != nil {
 		return ChangeResult{}, err
 	}
-	out := ChangeResult{Receipt: r}
-	e, err := m.enablement(ctx, m.d.Main, a.ResourceID)
-	if err != nil || e == nil {
+	out, err := changeResultFromReceipt(r)
+	if err != nil {
 		return out, err
 	}
-	out.Enablement = e
+	e := out.Enablement
 	if e.State == "enabled" && e.Target == "server" && e.ProbeAuthorized {
+		if !c.committed {
+			out.Activation, err = m.activation(ctx, e.ID, e.Generation)
+			return out, err
+		}
 		act, err := m.runProbe(context.WithoutCancel(ctx), *e)
 		out.Activation = &act
 		return out, err
@@ -787,29 +830,26 @@ func (m *Manager) Disable(ctx context.Context, who authz.Context, in DisableRequ
 	if human == nil {
 		return ChangeResult{}, errcode.New(errcode.HumanProofRequired, "")
 	}
-	a, err := m.DisableHumanAction(ctx, in)
-	if err != nil {
-		// A replay after the state changed still returns the original receipt.
-		if prior, perr := m.store.ReceiptByOperation(ctx, m.d.Main, child); perr == nil {
-			return ChangeResult{Receipt: *prior}, nil
-		}
-		return ChangeResult{}, err
-	}
-	r, err := human.AcceptHumanItem(ctx, who, grant, child, a, commands.Request{Security: commands.ModeExclusive}, &changeCommand{m: m, disable: &in})
+	a, err := approvedChange(ctx, who, grant, child, identity.ActDisableExtension, in, human)
 	if err != nil {
 		return ChangeResult{}, err
 	}
-	if in.Mode == "revoke" {
+	c := &changeCommand{m: m, disable: &in}
+	r, err := human.AcceptHumanItem(ctx, who, grant, child, a, commands.Request{Security: commands.ModeExclusive}, c)
+	if err != nil {
+		return ChangeResult{}, err
+	}
+	if c.committed && in.Mode == "revoke" {
 		m.cancelRunning(in.EnablementID)
 	}
-	e, err := m.enablement(ctx, m.d.Main, in.EnablementID)
-	return ChangeResult{Receipt: r, Enablement: e}, err
+	return changeResultFromReceipt(r)
 }
 
 type changeCommand struct {
-	m       *Manager
-	enable  *EnableRequest
-	disable *DisableRequest
+	m         *Manager
+	enable    *EnableRequest
+	disable   *DisableRequest
+	committed bool
 }
 
 func (c *changeCommand) Receipt(ctx context.Context, id ids.ID) (commands.Receipt, error) {
@@ -887,6 +927,7 @@ func (c *changeCommand) Commit(ctx context.Context, cmd commands.Context, approv
 	if err != nil {
 		return commands.Receipt{}, err
 	}
+	c.committed = res.Outcome == commands.OutcomeExecute
 	return *res.Receipt, nil
 }
 

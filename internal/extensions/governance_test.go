@@ -138,15 +138,29 @@ func (p *fakePolicies) allow(project ids.ID, ext ...string) {
 
 // fakeHuman stands in for identity: it accepts only the exact frozen action.
 type fakeHuman struct {
-	approved map[ids.ID]identity.HumanAction
+	approved  map[ids.ID]identity.HumanAction
+	items     map[ids.ID][]identity.HumanGrantItem
+	acceptErr error
 }
 
 func (h *fakeHuman) grant(a identity.HumanAction) (ids.ID, ids.ID) {
 	child := ids.New()
 	h.approved[child] = a
-	return ids.New(), child
+	grant := ids.New()
+	h.items[grant] = []identity.HumanGrantItem{{OperationID: child, Action: a}}
+	return grant, child
+}
+func (h *fakeHuman) DomainItems(_ context.Context, _ authz.Context, grant ids.ID) ([]identity.HumanGrantItem, error) {
+	items, ok := h.items[grant]
+	if !ok {
+		return nil, errcode.New(errcode.NotFound, "")
+	}
+	return items, nil
 }
 func (h *fakeHuman) AcceptHumanItem(ctx context.Context, who authz.Context, grant, child ids.ID, a identity.HumanAction, _ commands.Request, domain identity.HumanDomain) (commands.Receipt, error) {
+	if h.acceptErr != nil {
+		return commands.Receipt{}, h.acceptErr
+	}
 	x, _ := canonjson.CanonicalizeValue(a)
 	y, _ := canonjson.CanonicalizeValue(h.approved[child])
 	if string(x) != string(y) {
@@ -210,7 +224,7 @@ func newGovEnv(t *testing.T) *govEnv {
 	e.admin = authz.Context{PrincipalID: ids.New(), SessionID: ids.New(), InstanceID: instance, PrincipalKind: authz.Human}
 	e.pkgs = &fakePackages{dirs: map[ids.ID]string{}, reviews: map[ids.ID]extensions.PackageReview{}}
 	e.pol = &fakePolicies{allowed: map[ids.ID][]string{}, ints: map[string]int64{}}
-	e.human = &fakeHuman{approved: map[ids.ID]identity.HumanAction{}}
+	e.human = &fakeHuman{approved: map[ids.ID]identity.HumanAction{}, items: map[ids.ID][]identity.HumanGrantItem{}}
 	e.m = e.manager(e.reg)
 	return e
 }
@@ -392,6 +406,154 @@ func TestEnableGatesReviewTrustProbeConfigAndAllowlist(t *testing.T) {
 	if err != nil || len(views) != 1 || !slices.Contains(views[0].Reasons, "probe_failed") || views[0].Host == nil || views[0].Host.Sandbox {
 		t.Fatalf("%+v %v", views, err)
 	}
+}
+
+func TestEnableReplayRetainsGenerationAndProbe(t *testing.T) {
+	e := newGovEnv(t)
+	ctx := t.Context()
+	ref, pkg, _ := e.commit(exttest.Spec{Server: true})
+	if _, err := e.m.Import(ctx, e.admin, "import", extensions.ImportRequest{AssetID: ref.AssetID, VersionID: ref.VersionID}); err != nil {
+		t.Fatal(err)
+	}
+	e.pkgs.approve(ref)
+	req := e.enableRequest(pkg, "server", "instance", "", map[string]any{"mode": "pass"}, 1)
+	a, err := e.m.EnableHumanAction(ctx, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, child := e.human.grant(a)
+	first, err := e.m.Enable(ctx, e.admin, req, grant, child, e.human)
+	if err != nil || first.Activation == nil || first.Activation.State != "ready" {
+		t.Fatal(first, err)
+	}
+	// Equivalent JSON formatting retains the request binding. Advancing time
+	// also detects a probe re-run through its ID and UpdatedAt in the full reply.
+	req.Config = json.RawMessage(`{ "mode" : "pass" }`)
+	e.clk.Advance(time.Minute)
+	replay, err := e.m.Enable(ctx, e.admin, req, grant, child, e.human)
+	if err != nil || encodeJSON(first) != encodeJSON(replay) {
+		t.Fatal("enable replay changed the result or probe", replay, err)
+	}
+	bad := req
+	bad.Reason = "replaced after approval"
+	_, err = e.m.Enable(ctx, e.admin, bad, grant, child, e.human)
+	mustCode(t, err, errcode.HumanGrantMismatch)
+	_, err = e.m.Enable(ctx, e.admin, req, grant, ids.New(), e.human)
+	mustCode(t, err, errcode.HumanGrantMismatch)
+	// Replaying generation 1 after disable/re-enable must not expose or mutate
+	// generation 3, nor overwrite the retained generation-1 activation.
+	e.disable(first.Enablement.ID, "revoke")
+	current, err := e.enable(req)
+	if err != nil || current.Enablement.Generation != 3 {
+		t.Fatal(current, err)
+	}
+	replay, err = e.m.Enable(ctx, e.admin, req, grant, child, e.human)
+	if err != nil || encodeJSON(first) != encodeJSON(replay) {
+		t.Fatal("old enable replay returned the current generation", replay, err)
+	}
+	views, err := e.m.Enablements(ctx, e.admin)
+	if err != nil || len(views) != 1 || views[0].Generation != 3 || views[0].Activation.ProbeID != current.Activation.ProbeID {
+		t.Fatal("replay modified current activation", views, err)
+	}
+}
+
+func TestDisableReplayRechecksProofAndRetainsResult(t *testing.T) {
+	e := newGovEnv(t)
+	ctx := t.Context()
+	ref, pkg, _ := e.commit(exttest.Spec{Server: true})
+	if _, err := e.m.Import(ctx, e.admin, "import", extensions.ImportRequest{AssetID: ref.AssetID, VersionID: ref.VersionID}); err != nil {
+		t.Fatal(err)
+	}
+	e.pkgs.approve(ref)
+	req := e.enableRequest(pkg, "server", "instance", "", map[string]any{"mode": "pass"}, 1)
+	enabled, err := e.enable(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := extensions.DisableRequest{EnablementID: enabled.Enablement.ID, Mode: "revoke", Reason: "synthetic"}
+	a, err := e.m.DisableHumanAction(ctx, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, child := e.human.grant(a)
+	first, err := e.m.Disable(ctx, e.admin, in, grant, child, e.human)
+	if err != nil || first.Enablement == nil || first.Enablement.State != "disabled" {
+		t.Fatal(first, err)
+	}
+	e.human.acceptErr = errcode.New(errcode.TokenRevoked, "")
+	_, err = e.m.Disable(ctx, e.admin, in, grant, child, e.human)
+	mustCode(t, err, errcode.TokenRevoked) // persisted receipt cannot bypass identity
+	e.human.acceptErr = nil
+	bad := in
+	bad.Mode = "drain"
+	_, err = e.m.Disable(ctx, e.admin, bad, grant, child, e.human)
+	mustCode(t, err, errcode.HumanGrantMismatch)
+	req.Config = json.RawMessage(`{"mode":"pass","sleep_ms":1000}`)
+	req.ConfigRevision = 2
+	current, err := e.enable(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.pol.allow(e.project, pkg.Manifest.ID)
+	processor := pkg.Manifest.ID + ".check"
+	snapshot, _, err := e.m.Snapshot(ctx, e.project, processor, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type jobResult struct {
+		out extensions.InvocationResult
+		id  ids.ID
+		err error
+	}
+	done := make(chan jobResult, 1)
+	go func() {
+		out, id, err := e.runJob(processor, snapshot, nil)
+		done <- jobResult{out, id, err}
+	}()
+	// Wait for actual admission of a later-generation host, then let Run track
+	// its cancellation handle before replaying the old revoke operation.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		var n int
+		if err := e.runtime.QueryRowContext(ctx, `SELECT count(*) FROM extensions_invocations WHERE generation=?`, current.Enablement.Generation).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("later-generation host was not admitted")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+	replay, err := e.m.Disable(ctx, e.admin, in, grant, child, e.human)
+	if err != nil || encodeJSON(first) != encodeJSON(replay) {
+		t.Fatal("disable replay changed the committed response", replay, err)
+	}
+	views, err := e.m.Enablements(ctx, e.admin)
+	if err != nil || len(views) != 1 || views[0].State != "enabled" || views[0].Generation != current.Enablement.Generation {
+		t.Fatal("old disable replay changed the new generation", views, err)
+	}
+	select {
+	case result := <-done:
+		if result.err != nil || execution.ClassifyInvocation(result.out.Observation) != execution.InvocationCompleted {
+			t.Fatal("old revoke replay cancelled the new generation's host", result.err, result.out.Observation)
+		}
+		if err := e.m.CheckSnapshot(ctx, e.project, snapshot, result.id, 1); err != nil {
+			t.Fatal("new-generation result was rejected", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("later-generation host did not finish")
+	}
+}
+
+func encodeJSON(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
 
 func (e *govEnv) runJob(processor string, s ae.ActivationSnapshot, input []byte) (extensions.InvocationResult, ids.ID, error) {
