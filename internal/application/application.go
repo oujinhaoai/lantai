@@ -11,6 +11,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/node"
 	"github.com/oujinhaoai/lantai/internal/tasks"
 	"github.com/oujinhaoai/lantai/internal/workflow"
+	"io"
 	"path/filepath"
 	"sync"
 	"time"
@@ -47,6 +48,8 @@ type Options struct {
 	Storage  storage.Config
 	// UploadSweepInterval 是 serve 清扫到期上传会话的间隔；默认 1 分钟。
 	UploadSweepInterval time.Duration
+	// Diagnostics 接收后台同步失败与恢复的白名单 JSONL；nil 不记录。serve 指向 stderr。
+	Diagnostics io.Writer
 }
 
 type App struct {
@@ -82,6 +85,7 @@ type App struct {
 	healthMu   sync.RWMutex
 	coreFailed bool
 	tailFailed bool
+	background *backgroundLog
 	sweepMu    sync.Mutex
 	sweep      UploadSweepStats
 }
@@ -117,7 +121,7 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{Instance: i}
+	a := &App{Instance: i, background: newBackgroundLog(opts.Diagnostics)}
 	release, err := extensions.CurrentReleaseDigest()
 	if err != nil {
 		return nil, err
@@ -190,9 +194,9 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 			}
 		})
 	}
-	// 失败反映在 readiness；保留原操作并在下次恢复同一进度。
-	i.Go("outbox-query", every(time.Second, func(ctx context.Context) { _ = a.syncCore(ctx, false) }))
-	i.Go("inbox-audit", every(time.Second, func(ctx context.Context) { _ = a.syncTail(ctx) }))
+	// 失败反映在 readiness，并按阶段写脱敏诊断；保留原操作并在下次恢复同一进度。
+	i.Go("outbox-query", every(time.Second, func(ctx context.Context) { a.observeSync(ctx, taskOutboxQuery, a.syncCore(ctx, false)) }))
+	i.Go("inbox-audit", every(time.Second, func(ctx context.Context) { a.observeSync(ctx, taskInboxAudit, a.syncTail(ctx)) }))
 	i.Go("upload-expiry", every(cmp.Or(opts.UploadSweepInterval, time.Minute), a.SweepUploads))
 	return a, nil
 }
@@ -240,6 +244,14 @@ func every(interval time.Duration, run func(context.Context)) func(context.Conte
 
 func (a *App) Close(ctx context.Context) error { return a.Instance.Close(ctx) }
 
+// observeSync 记录一轮后台同步的结果；停止服务时的取消不算失败。
+func (a *App) observeSync(ctx context.Context, task string, err error) {
+	if ctx.Err() != nil {
+		return
+	}
+	a.background.observe(task, err)
+}
+
 // Sync 每来源最多收录四批，再推进查询、收件箱和审计水位。持续写入不能让一个
 // 来源饿住其他库或投影。没有自动确认备份或裁剪。
 func (a *App) Sync(ctx context.Context) error { return a.sync(ctx, false) }
@@ -277,7 +289,7 @@ func (a *App) syncCoreLocked(ctx context.Context, startup bool) (err error) {
 		for batch := 0; startup || batch < 4; batch++ {
 			n, e := a.Events.Relay(ctx, src, 256)
 			if e != nil {
-				return e
+				return atStage(stageRelay+string(db), e)
 			}
 			if n < 256 {
 				break
@@ -286,10 +298,10 @@ func (a *App) syncCoreLocked(ctx context.Context, startup bool) (err error) {
 	}
 	if _, err = a.Query.CatchUp(ctx); err != nil {
 		if errcode.CodeOf(err) != errcode.CursorExpired {
-			return err
+			return atStage(stageQuery, err)
 		}
 		if _, err = a.Query.Rebuild(ctx); err != nil {
-			return err
+			return atStage(stageRebuild, err)
 		}
 	}
 	return nil
@@ -300,11 +312,11 @@ func (a *App) syncTailLocked(ctx context.Context) (err error) {
 	defer func() { a.healthMu.Lock(); a.tailFailed = err != nil; a.healthMu.Unlock() }()
 	if a.Collaboration != nil {
 		if _, err = a.Collaboration.CatchUpInbox(ctx, 1000); err != nil {
-			return err
+			return atStage(stageInbox, err)
 		}
 	}
 	_, err = a.Events.ExportAudit(ctx, filepath.Join(a.Instance.Layout().Home, "audit"), 1000)
-	return err
+	return atStage(stageAuditExport, err)
 }
 
 // Ready 额外包含事件/索引/审计的后台健康，不把暂时失败显示为就绪。

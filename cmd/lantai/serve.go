@@ -31,7 +31,7 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		fmt.Fprintln(stderr, "usage: lantai serve -home <data root> [-merged]")
 		return exitUsage
 	}
-	a, err := application.Open(ctx, application.Options{Instance: operations.Options{Home: *home}})
+	a, err := application.Open(ctx, application.Options{Instance: operations.Options{Home: *home}, Diagnostics: stderr})
 	if err != nil {
 		return reportStartup(stderr, "serve", err)
 	}

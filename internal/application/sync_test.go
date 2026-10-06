@@ -21,8 +21,9 @@ import (
 
 var testPassword = password.Params{Algorithm: "argon2id", Version: password.Default.Version, Memory: 64, Time: 1, Threads: 1, KeyLen: 32}
 
-// openTestApp 初始化一个真实实例（首个管理员与主密钥）并以完整应用打开。
-func openTestApp(t *testing.T) *App {
+// openTestApp 初始化一个真实实例（首个管理员与主密钥）并以完整应用打开；
+// with 可调整打开选项。
+func openTestApp(t *testing.T, with ...func(*Options)) *App {
 	t.Helper()
 	ctx := t.Context()
 	home := t.TempDir()
@@ -64,7 +65,11 @@ func openTestApp(t *testing.T) *App {
 	if err = inst.Close(ctx); err != nil {
 		t.Fatal(err)
 	}
-	a, err := Open(ctx, Options{Instance: operations.Options{Home: home, Clock: clk}, Identity: identity.Config{Password: testPassword}})
+	opts := Options{Instance: operations.Options{Home: home, Clock: clk}, Identity: identity.Config{Password: testPassword}}
+	for _, f := range with {
+		f(&opts)
+	}
+	a, err := Open(ctx, opts)
 	if err != nil {
 		t.Fatal(err)
 	}

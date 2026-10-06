@@ -28,6 +28,27 @@ flowchart LR
 
 网关固定 **Caddy 2.11.4**，Apache-2.0；[官方发布](https://github.com/caddyserver/caddy/releases/tag/v2.11.4)提供二进制、SHA-512 校验和与签名，[许可证](https://github.com/caddyserver/caddy/blob/v2.11.4/LICENSE)随官方包保留。容器模板使用[官方 Caddy 镜像](https://hub.docker.com/_/caddy)，实际部署应再记录所用平台镜像摘要。Go 版本与仓库 `go.mod` 一致，BSD-3-Clause；核心其余依赖见[依赖说明](dependencies.md)。没有新增 Go 运行依赖，也不自动安装网关。
 
+## 数据位置
+
+数据根（含 `db/`）与密钥目录必须在本机文件系统上，满足 POSIX 文件语义与 SQLite WAL 的要求。`doctor` 与 `serve` 拒绝已识别的网络文件系统；FUSE 等无法判断类型的文件系统只提示 `filesystem_unverified`，不阻止启动，这类位置必须先自行验证。
+
+部署前在实际数据位置（`db/` 单独挂载时也包括它）运行 SQLite 探针，并加并发读写实测：
+
+```sh
+go run ./scripts/probe/sqlite -dir <数据位置下的目录> -stress 15m > sqlite-report.json
+# 目标机没有 Go 时，交叉编译后上传运行，例如 Linux x86_64：
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o sqlite-probe ./scripts/probe/sqlite
+```
+
+报告中 `missing_required` 非空，或 `concurrency_checked` 不为 true，该位置就不能使用。通过只说明这次运行没有发现问题：下面的损坏是间歇性的，对没有把握的位置应在不同时段多次运行；已知出过问题的位置不因一次通过而变为可用。能力项都是低并发检查；不加 `-stress` 发现不了只在多连接并发读写下出现的损坏。并发实测逐行核对内容摘要，结束后用新连接逐库做 `integrity_check`；未通过时测试库保留在报告的 `stress.kept_dir`，复查后自行删除。
+
+NAS 与容器：
+
+- 部分 NAS 系统把共享文件夹经厂商 FUSE 层映射进容器。2026-10 在一台极空间 NAS 的测试容器中实测（映射文件夹为 `zfuse`）：Lantai 的库在并发读写下出现 `SQLITE_CORRUPT` / `SQLITE_NOTADB` 并被持久写坏，有时运行中没有任何报错，只有完整性检查能发现；能力探针的低并发项照样全部通过。问题是间歇性的：同一位置在当天另外几次 10–15 分钟的并发实测中没有出现。这类映射文件夹不能放数据根或密钥目录。
+- 同一台机器上，落在宿主本地 btrfs 上的 Docker 命名卷通过 15 分钟并发实测，并在其上完成 1 万资产 / 5 万版本的规模运行与空目录恢复。建议数据根与密钥目录各用一个命名卷，对应模板路径 `/var/lib/lantai` 与 `/var/lib/lantai-secrets`；映射的共享文件夹只放备份、导入导出与日志。在同一环境中，停机备份写到映射文件夹、校验后跨机器恢复已实测可用，备份副本的损坏由 `backup-verify` 的校验和发现。
+- 命名卷由 Docker 管理：删除卷（包括 `docker compose down -v`）或 Docker 存储损坏都会丢失数据。必须定期执行 `lantai backup`，用 `backup-verify` 校验后复制到另一台机器；密钥目录另行备份。
+- 模板 `compose.yaml` 用 `LANTAI_DATA_DIR`、`LANTAI_SECRETS_DIR` 绑定宿主目录。改用命名卷时，在私有覆盖文件中把 core 的这两项挂载改为命名卷，并在顶层 `volumes` 声明。镜像不含这两个挂载点，新建命名卷的根目录归 root，而核心容器以 65532 运行，首次启动前需让两个卷对 65532:65532 可写。上述实测的测试容器以 root 运行，覆盖文件与属主设置尚未在 Docker 引擎上实测。
+
 ## 本地原生运行
 
 先在仓库外准备独立的本地磁盘数据根和密钥目录。复制原生配置，修改 `instance.name`、`secrets.dir` 和浏览器 `allowed_origins`；不要在配置里放口令或会话。服务账户需要写数据根和密钥目录，网关账户只需要读 TLS 文件。SQLite 不放在网络挂载文件系统。
@@ -112,6 +133,8 @@ systemd 模板需要先创建 `lantai` 服务账户、准备路径并安装已�
 ## 日志与验证
 
 核心默认向 stderr 输出白名单 JSONL：时间、内部随机 `observation_id`、监听面、标准方法、响应状态、字节数、耗时及取消状态。未知方法归为 `OTHER`；不记录 URL、query、请求/响应头、正文、原始异常或真实对象 ID。请求编号用于按错误信封中的 `request_id` 定位：服务端生成的记为 `request_id`；客户端自带的即便语法合法也可能是凭据，只记其 SHA-256（`request_id_sha256`，对原值求十六进制摘要即可检索）。错误响应另记错误码 `error_code`，5xx 再记原因类别 `error_cause`（如 `busy`、`io`、`full`、`other`），不记错误文本。日志写入经锁串行化，保持流式传输与 ResponseController 的超时能力。
+
+后台同步（outbox 收录与查询投影、收件箱与审计导出）失败时，同样向 stderr 写白名单 JSONL：`event` 为 `background_sync`，字段有任务 `task`（`outbox_query` / `inbox_audit`）、状态 `status`（`failing` / `recovered`）、失败阶段 `stage`（`relay_main`、`relay_ledger`、`relay_runtime`、`query_catch_up`、`query_rebuild`、`inbox`、`audit_export`）、`error_code`、`error_cause`、连续失败次数与已失败秒数，不记错误文本。首次失败及阶段、错误码或原因变化时立即记录；同一失败持续时每分钟最多一条；恢复时记一条。失败期间 `/readyz` 为 503，原因码 `synchronization_pending`；后台仍每秒重试，从原进度继续。
 
 网关关闭访问日志，运行日志过滤请求、头、URL、原始错误与消息字段，保留级别、时间及结构化定位字段；配置依据[官方日志过滤文档](https://caddyserver.com/docs/caddyfile/directives/log)。本机显式初始化/诊断命令可能显示部署者指定路径或一次性初始化材料，不能把整个终端记录作为公开日志上传。
 

@@ -26,6 +26,7 @@
 | 校验 JSON/YAML 文档 | `go run ./cmd/lantai schema validate lantai.error/v1 path/to/doc.json` |
 | 校验定义库中的单个定义 | `go run ./cmd/lantai schema validate 'lantai.execution-common/v1#/$defs/task_fence' fence.json` |
 | SQLite 能力实测（输出 JSON） | `go run ./scripts/probe/sqlite -dir <被测文件系统上的目录>` |
+| 验证实例数据位置（能力项加 15 分钟并发读写与完整性检查） | `go run ./scripts/probe/sqlite -dir <数据位置下的目录> -stress 15m` |
 | 本机初始化实例与首个管理员（交互式） | `go run ./cmd/lantai init -home <数据根> -admin <名称>` |
 | 启动同进程 API / 传输 / 本机运维监听 | `go run ./cmd/lantai serve -home <数据根>` |
 | 本机开发合并 API 与传输监听 | `go run ./cmd/lantai serve -home <数据根> -merged` |
@@ -134,6 +135,8 @@ T05/T06 的 M2 已提供任务/Flow、手动执行与检查作业（官方内置
 | Linux arm64、Windows arm64、macOS amd64 | 交叉编译通过 | 未运行 | 未运行 | 未开始 |
 
 CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `ubuntu-latest`、`windows-latest`、`macos-latest` 运行器）：全部作业通过，三个平台的 SQLite 能力报告均满足必需项，单行提交约 0.4 ms（Linux）、0.5 ms（Windows）、1.3 ms（macOS，fullfsync）。托管运行器不代表目标 NAS 或其挂载方式，部署环境仍需单独实测。
+
+能力项都是低并发检查，不足以判定一个位置能否承载实例。验证数据位置时必须加 `-stress`（至少 15 分钟）：多连接并发读写、逐行核对内容摘要，结束后用新连接做 `integrity_check`。未通过即说明该位置不能使用；通过不能证明位置安全。2026-10 的 NAS 测试中，厂商经 FUSE 映射的共享文件夹能力项全部通过，却在并发读写下间歇性地把库写坏，同一位置也有并发实测通过的时段；同机的 Docker 命名卷通过，做法见[部署的数据位置](deployment.md#数据位置)。CI 在三个平台上各跑 30 秒并发实测，只验证实测本身可用，不代表部署位置合格。
 
 开发机实测（2026-09-27，Go 1.26.8，modernc.org/sqlite v1.59.0，SQLite 3.53.4）：WAL、synchronous=FULL、fullfsync、STRICT 表、RETURNING、JSON 函数、FTS5、busy 超时后返回可分类错误、上下文取消可中断长查询、回滚、`wal_checkpoint(TRUNCATE)`、`VACUUM INTO` 快照与 `integrity_check` 均通过；写事务中强杀进程后重开，已提交数据完整、未提交数据不出现。启用 fullfsync 后单行提交约 4 ms（内置 SSD）至 10 ms（外置 SSD）。交叉编译通过不代表其他平台的文件语义、恢复或隔离已验证。
 
