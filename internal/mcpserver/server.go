@@ -173,7 +173,15 @@ func toolResult(response client.Response, e error) (*mcp.CallToolResult, error) 
 	}
 	out := &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: string(response.Body)}}, StructuredContent: value}
 	if obj, ok := value.(map[string]any); ok {
-		if ref, ok := obj["ref"].(map[string]any); ok {
+		ref, ok := obj["ref"].(map[string]any)
+		if !ok {
+			// ExactVersionView wraps the public VersionView in "version";
+			// commit receipts expose the same PermanentRef at the top level.
+			if version, nested := obj["version"].(map[string]any); nested {
+				ref, ok = version["ref"].(map[string]any)
+			}
+		}
+		if ok {
 			b, _ := json.Marshal(ref)
 			var r ids.PermanentRef
 			if json.Unmarshal(b, &r) == nil {
