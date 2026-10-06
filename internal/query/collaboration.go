@@ -19,6 +19,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/event"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/events"
+	"github.com/oujinhaoai/lantai/internal/identity"
 )
 
 // ObjectRef is an exact object locator, not a permission or cached description.
@@ -151,11 +152,11 @@ func (c *Collaboration) scan(ctx context.Context, r EventRequest) (EventPage, er
 	}
 	for _, entry := range p.Entries {
 		e := entry.Envelope
+		if scopeChanged(e, r.ProjectID) {
+			out.ReplaceRequired = true
+		}
 		if e.ProjectID != r.ProjectID {
 			continue
-		}
-		if e.EventType == "ledger.control_changed" && e.AggregateType == "project" {
-			out.ReplaceRequired = true
 		}
 		ref, ok, err := c.objects.ResolveEvent(ctx, e)
 		if err != nil {
@@ -179,6 +180,27 @@ func (c *Collaboration) scan(ctx context.Context, r EventRequest) (EventPage, er
 	}
 	out.LastSeq = p.HighWater
 	return out, nil
+}
+
+// scopeChanged 报告事件是否可能改变调用者在该项目的可见范围，而增量里没有对应
+// 对象事件：项目整理控制、项目策略（如 personal.readers、visibility）与成员角色
+// 变化，以及作用于全部项目的系统策略。收窄时客户端须移除已缓存但不再可见的
+// 条目，放宽时须取回此前看不到的旧对象，两者都只能通过替换可见集合完成。
+// 登录、会话等与可见范围无关的事件不触发替换。
+func scopeChanged(e event.Envelope, project ids.ID) bool {
+	if e.EventType == identity.EvSystemPolicySet {
+		return true
+	}
+	if e.ProjectID != project {
+		return false
+	}
+	switch e.EventType {
+	case identity.EvProjectPolicySet, identity.EvProjectRoleGranted, identity.EvProjectRoleRevoked:
+		return true
+	case "ledger.control_changed":
+		return e.AggregateType == "project"
+	}
+	return false
 }
 
 // Events releases all guards while waiting. Every wake revalidates session and

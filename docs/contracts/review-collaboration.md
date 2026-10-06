@@ -40,7 +40,7 @@ Owner 可以通过 `Publish` 手动发布或回退到曾发布过的版本；接
 
 `PostMessage` / `Messages` 保存不可变的项目、任务、资产和版本讨论，包含回复、纠正、mentions 与结构化锚点。`NewDiscussionObjects` 使用真实台账、catalog 清单、provenance 当前用途及 identity 项目成员校验资源、文件锚点和 mentions；T05 通过 `DiscussionTasks` 校验当前任务可见范围及锚点归属，未接线时拒绝任务讨论。资产/版本锚点必须属于讨论对象，文件必须存在。读取时再次过滤已不可见的锚点和 mentions。记录结构由 `lantai.discussion-message/v1` 定义。事件不携带正文，讨论不推进审定或发布。
 
-`query.NewCollaboration` 使用 T03/T05 的 `CollaborationObjects` 权威读端口提供权限过滤事件、最长 30 秒的长轮询、失效游标重同步和身份收件箱。即便本页事件全部不可见，扫描水位仍推进；已撤权或删除对象要求客户端执行替换。重同步先捕获事件水位 S，再扫描当前快照，完成替换后重放 S 之后的事件。
+`query.NewCollaboration` 使用 T03/T05 的 `CollaborationObjects` 权威读端口提供权限过滤事件、最长 30 秒的长轮询、失效游标重同步和身份收件箱。即便本页事件全部不可见，扫描水位仍推进；已撤权或删除对象要求客户端执行替换。项目策略（如 `personal.readers`、`visibility`）、项目成员角色与项目控制的变化，以及作用于全部项目的系统策略变化，也要求替换：它们会收窄或放宽可见范围，而增量里没有对应对象的事件，只有替换才能移除已不可见的缓存条目、取回此前看不到的旧对象。登录、会话等与可见范围无关的事件不触发替换。重同步先捕获事件水位 S，再扫描当前快照，完成替换后重放 S 之后的事件。
 
 `ledger.NewCollaborationSource` 与 `query.NewCoreCollaborationObjects` 组合真实台账、审定、讨论、回收状态和 identity 当前活跃项目成员。事件只提供定位，mentions、回复作者和审定角色均从当前权威记录展开；正文和锚点不进入通知。待审事项分配给当前 owner/reviewer，退回事项分配给提交者/制作者，到期回收事项分配给删除者/owner。T05 的 `CollaborationTasks` 独立提供任务可见性、当前归属及有序枚举；未配置时明确拒绝任务事件。组装不会启动消费者、任务执行器或调度。
 

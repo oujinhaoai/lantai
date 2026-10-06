@@ -153,6 +153,41 @@ func TestProjectControlEventReplacesVisibleResourceScope(t *testing.T) {
 		t.Fatal("legacy change reader retained archived project children", changes, err)
 	}
 }
+
+// Policy and membership changes alter the visible scope without an object event,
+// so they require a replacement; unrelated identity events and other projects'
+// policies do not (BUG-20261001-04).
+func TestCollaborationScopeChangesRequireReplacement(t *testing.T) {
+	for _, c := range []struct {
+		name, typ string
+		project   bool
+		want      bool
+	}{
+		{"project policy", "project.policy_set", true, true},
+		{"role granted", "project.role_granted", true, true},
+		{"role revoked", "project.role_revoked", true, true},
+		{"system policy", "policy.system_policy_set", false, true},
+		{"other project policy", "project.policy_set", false, false},
+		{"session started", "session.started", false, false},
+		{"credential issued", "principal.credential_issued", false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			f, coll, _ := collaborationFixture(t)
+			e := event.Envelope{EventID: ids.New(), EventType: c.typ, SchemaVersion: 1, AggregateType: "project", AggregateID: ids.New(), Payload: []byte(`{}`)}
+			if c.project {
+				e.ProjectID, e.AggregateID = f.project, f.project
+			} else if c.typ == "project.policy_set" {
+				e.ProjectID = ids.New()
+				e.AggregateID = e.ProjectID
+			}
+			f.log.entries = append(f.log.entries, events.Entry{GlobalSeq: 1, Envelope: e})
+			page, err := coll.Events(t.Context(), EventRequest{Who: f.who, ProjectID: f.project})
+			if err != nil || page.LastSeq != 1 || len(page.Events) != 0 || page.ReplaceRequired != c.want {
+				t.Fatal(page, err)
+			}
+		})
+	}
+}
 func TestCollaborationInboxDedupReassignmentAndReadPosition(t *testing.T) {
 	f, c, o := collaborationFixture(t)
 	ctx := t.Context()
