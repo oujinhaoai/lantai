@@ -28,6 +28,8 @@ type reviewSourcesFixture struct {
 	evidence  map[ids.ID]AcceptedEvidence
 	taskErr   error
 	useErr    error
+	// taskHook, when set, replaces taskErr and sees the caller's context.
+	taskHook func(context.Context) error
 }
 
 func (s *reviewSourcesFixture) Profile(context.Context, authz.Context, ids.PermanentRef) (ProfileSnapshot, error) {
@@ -40,7 +42,10 @@ func (s *reviewSourcesFixture) Evidence(_ context.Context, _ authz.Context, id i
 	}
 	return e, nil
 }
-func (s *reviewSourcesFixture) Task(context.Context, authz.Context, commit.Committed, ReviewFlow, string) error {
+func (s *reviewSourcesFixture) Task(ctx context.Context, _ authz.Context, _ commit.Committed, _ ReviewFlow, _ string) error {
+	if s.taskHook != nil {
+		return s.taskHook(ctx)
+	}
 	return s.taskErr
 }
 func (s *reviewSourcesFixture) Use(context.Context, authz.Context, commit.Committed, authz.Purpose) error {
@@ -180,14 +185,14 @@ func TestReviewApprovePublishRevokeAndReplay(t *testing.T) {
 	if err != nil || completed.ID != pub.ID || completed.OperationID != pub.OperationID || completed.Revision != pub.Revision {
 		t.Fatal("replay after flow completion", completed, err)
 	}
-	// Another caller has no receipt for this request; the pointer revision has
-	// moved past the request's expectation, so it cannot publish it again.
+	// Another caller has no receipt for this request; without one it must be the
+	// current flow executor, and the completed flow refuses it.
 	otherID := ids.New()
 	f.az.AddPrincipal(otherID, authz.Human)
 	f.az.Grant(otherID, f.project, "catalog.read")
 	other := f.az.OpenSession(otherID, time.Hour)
 	_, err = f.r.RunPublication(t.Context(), other, requests[0].ID)
-	wantCode(t, err, errcode.PublicationConflict)
+	wantCode(t, err, errcode.InvalidStateTransition)
 	if n := publicationCount(t, f); n != 1 {
 		t.Fatal("replays added publication history", n)
 	}
@@ -708,4 +713,82 @@ func publicationCount(t *testing.T, f *reviewFixture) int {
 		t.Fatal(err)
 	}
 	return n
+}
+
+// A replay that read the request as pending outside the lock must not be refused
+// for lacking execution rights when, meanwhile, the same caller's other replay
+// published it and the flow completed: the receipt is looked up under the lock
+// before execution rights are required (BUG-20261001-06 review).
+func TestReviewPublicationReplayAfterConcurrentCompletion(t *testing.T) {
+	f := newReviewFixture(t)
+	ctx := t.Context()
+	target := f.submit(t)
+	if _, err := f.decide(t, target, ReviewDecision{Verdict: "approve"}); err != nil {
+		t.Fatal(err)
+	}
+	requests, err := f.r.PublicationRequests(ctx, f.who, f.v.AssetID)
+	if err != nil || len(requests) != 1 || requests[0].Status != "pending" {
+		t.Fatal(requests, err)
+	}
+	completed := false
+	var other Publication
+	f.src.taskHook = func(c context.Context) error {
+		if completed {
+			return errcode.New(errcode.InvalidStateTransition, "").WithDetails(errcode.Detail{Reason: "flow_completed"})
+		}
+		if commands.HoldsSecurity(c, f.s.gate.Coordinator()) {
+			return nil // checked under the lock after the receipt lookup
+		}
+		// Checked before taking the lock: the other replay publishes and the
+		// flow completes in between, as in the reviewed interleaving.
+		f.src.taskHook = nil
+		p, err := f.r.RunPublication(ctx, f.who, requests[0].ID)
+		if err != nil {
+			t.Error("concurrent publication", err)
+		}
+		other, completed = p, true
+		f.src.taskErr = errcode.New(errcode.InvalidStateTransition, "").WithDetails(errcode.Detail{Reason: "flow_completed"})
+		return f.src.taskErr
+	}
+	first, err := f.r.RunPublication(ctx, f.who, requests[0].ID)
+	if err != nil {
+		t.Fatal("replay refused although a receipt exists", err)
+	}
+	f.src.taskHook = nil
+	f.src.taskErr = errcode.New(errcode.InvalidStateTransition, "").WithDetails(errcode.Detail{Reason: "flow_completed"})
+	again, err := f.r.RunPublication(ctx, f.who, requests[0].ID)
+	if err != nil || again != first || (other != Publication{} && other != first) {
+		t.Fatal("both callers must see the one receipt", first, again, other, err)
+	}
+	if n := publicationCount(t, f); n != 1 {
+		t.Fatal("one publication expected", n)
+	}
+}
+
+// Only a current flow executor may record queue failure diagnostics; a refused
+// caller leaves the request untouched.
+func TestReviewPublicationDiagnosticsRequireExecutor(t *testing.T) {
+	f := newReviewFixture(t)
+	ctx := t.Context()
+	target := f.submit(t)
+	if _, err := f.decide(t, target, ReviewDecision{Verdict: "approve"}); err != nil {
+		t.Fatal(err)
+	}
+	requests, err := f.r.PublicationRequests(ctx, f.who, f.v.AssetID)
+	if err != nil || len(requests) != 1 {
+		t.Fatal(requests, err)
+	}
+	f.src.taskErr = errcode.New(errcode.Forbidden, "")
+	_, err = f.r.RunPublication(ctx, f.who, requests[0].ID)
+	wantCode(t, err, errcode.Forbidden)
+	if requests, err = f.r.PublicationRequests(ctx, f.who, f.v.AssetID); err != nil || requests[0].Status != "pending" || requests[0].FailureCode != "" {
+		t.Fatal("a non-executor wrote diagnostics", requests, err)
+	}
+	f.src.taskErr = nil
+	f.src.useErr = errcode.New(errcode.UseRestricted, "")
+	_, err = f.r.RunPublication(ctx, f.who, requests[0].ID)
+	wantCode(t, err, errcode.UseRestricted)
+	if requests, err = f.r.PublicationRequests(ctx, f.who, f.v.AssetID); err != nil || requests[0].Status != "failed" || requests[0].FailureCode != "USE_RESTRICTED" {
+		t.Fatal("the executor's failure must be recorded", requests, err)
+	}
 }

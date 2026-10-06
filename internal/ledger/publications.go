@@ -26,9 +26,13 @@ type PublishRequest struct {
 }
 
 func (r *Reviews) Publish(ctx context.Context, who authz.Context, key string, in PublishRequest) (Publication, error) {
-	return r.publish(ctx, who, key, in, "")
+	return r.publish(ctx, who, key, in, "", nil)
 }
-func (r *Reviews) publish(ctx context.Context, who authz.Context, key string, in PublishRequest, request ids.ID) (Publication, error) {
+
+// publish 在持锁后先核对读取权限与原回执。自动发布请求（request 非空）在没有
+// 回执时才要求当前流程执行权：已完成的请求即使流程已经结束也能取回首次回执。
+// 通过执行权核对后置 *executor，RunPublication 据此决定能否写失败诊断。
+func (r *Reviews) publish(ctx context.Context, who authz.Context, key string, in PublishRequest, request ids.ID, executor *bool) (Publication, error) {
 	var out Publication
 	s := r.ledger
 	if !in.ProjectID.Valid() || !in.VersionID.Valid() || !in.ReviewID.Valid() || in.ExpectedRevision < 0 || (in.Action != "publish" && in.Action != "rollback") || strings.TrimSpace(in.Reason) == "" || len(in.Reason) > 4096 {
@@ -74,6 +78,20 @@ func (r *Reviews) publish(ctx context.Context, who authz.Context, key string, in
 		err = json.Unmarshal(receipt.ResponseSummary, &out)
 		return out, err
 	}
+	if request != "" {
+		review, err := readJSON[Review](ctx, s.db, `SELECT record FROM ledger_reviews WHERE review_id=?`, in.ReviewID)
+		if err != nil {
+			return out, err
+		}
+		t, err := r.target(ctx, review.TargetID)
+		if err != nil {
+			return out, err
+		}
+		if err = r.sources.Task(ctx, who, v, t.Flow, "auto_publish"); err != nil {
+			return out, err
+		}
+		*executor = true
+	}
 	if err = s.CheckAssetWrite(ctx, v.AssetID); err != nil {
 		return out, err
 	}
@@ -113,9 +131,6 @@ func (r *Reviews) publish(ctx context.Context, who authz.Context, key string, in
 		}
 		if storedReview != in.ReviewID || !review.PublicationPending || (status != "pending" && status != "failed") {
 			return out, errcode.New(errcode.ReviewTargetStale, "")
-		}
-		if err = r.sources.Task(ctx, who, v, t.Flow, "auto_publish"); err != nil {
-			return out, err
 		}
 	}
 	policies, err := r.policies.ResolvePolicies(ctx, t.ProjectID)
@@ -222,7 +237,6 @@ func (r *Reviews) RunPublication(ctx context.Context, who authz.Context, id ids.
 	if err = s.authorize(ctx, who, "catalog.read", v.ProjectID, "version", v.VersionID); err != nil {
 		return Publication{}, err
 	}
-	// Do not permit arbitrary project readers to write queue failure diagnostics.
 	review, err := readJSON[Review](ctx, s.db, `SELECT record FROM ledger_reviews WHERE review_id=?`, p.ReviewID)
 	if err != nil {
 		return Publication{}, err
@@ -231,17 +245,19 @@ func (r *Reviews) RunPublication(ctx context.Context, who authz.Context, id ids.
 	if err != nil {
 		return Publication{}, err
 	}
-	// 已成功的请求只能重放首次回执：流程此时通常已完成，不再要求执行权，交给
-	// publish 在核对当前读取权限后查回执。查不到回执（例如换了调用者）时，
-	// publish 仍复核发布指针修订（已随首次发布前进）与请求状态（只接受
-	// pending/failed），不会再执行发布，也不会复活已暂停的指针。
-	if p.Status != "succeeded" {
-		if err = r.sources.Task(ctx, who, v, t.Flow, "auto_publish"); err != nil {
-			return Publication{}, err
-		}
-	}
-	out, err := r.publish(ctx, who, "publication-request-"+string(id), PublishRequest{ProjectID: v.ProjectID, VersionID: v.VersionID, ReviewID: p.ReviewID, ExpectedRevision: p.ExpectedRevision, Action: "publish", Reason: "approved flow publication request"}, id)
+	// 执行权在 publish 持锁查过回执之后才核对：锁外读到的请求状态可能已过期，
+	// 不能据此先拒绝一个已有成功回执的重放。
+	var executor bool
+	out, err := r.publish(ctx, who, "publication-request-"+string(id), PublishRequest{ProjectID: v.ProjectID, VersionID: v.VersionID, ReviewID: p.ReviewID, ExpectedRevision: p.ExpectedRevision, Action: "publish", Reason: "approved flow publication request"}, id, &executor)
 	if err != nil {
+		// Do not permit arbitrary project readers to write queue failure diagnostics:
+		// only a current flow executor may, and publish may fail before checking.
+		if !executor {
+			executor = r.sources.Task(ctx, who, v, t.Flow, "auto_publish") == nil
+		}
+		if !executor {
+			return out, err
+		}
 		code := errcode.CodeOf(err)
 		if _, ok := errcode.Lookup(code); !ok {
 			code = errcode.OperationNeedsReconciliation
