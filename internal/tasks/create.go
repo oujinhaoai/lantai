@@ -3,9 +3,11 @@ package tasks
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"slices"
 	"strings"
 
+	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
@@ -120,28 +122,41 @@ func (in *CreateRequest) normalize() error {
 	return nil
 }
 
-// contextSnapshot 固定任务开始时生效的上下文。读取自带 security 读保护，并在
-// 返回边界复核整组权威集合；全局加锁顺序不允许在项目锁内再取该保护，因此
-// 在取锁前读取，随后与任务一起提交。错误由 Create 在授权、幂等重放与输入
-// 核对之后报告，与在锁内读取时的优先级相同。
-func (s *Service) contextSnapshot(ctx context.Context, who authz.Context, in CreateRequest) (*ContextSnapshot, error) {
+// contextRead 是取项目锁之前读取的生效上下文；err 在授权、幂等重放与输入核对
+// 之后报告，与在锁内读取时的优先级相同。
+type contextRead struct {
+	contexts Contexts
+	snapshot *ContextSnapshot
+	bundle   catalog.ContextBundle
+	err      error
+}
+
+// readContext 读取任务开始时生效的上下文。读取自带 security 读保护并在返回边界
+// 复核整组权威集合，涉及文件 I/O；全局加锁顺序不允许在项目锁内再取该保护，因此
+// 在取锁前读取，再在持锁的最终接受边界复核（见 create）。
+func (s *Service) readContext(ctx context.Context, who authz.Context, in CreateRequest) contextRead {
 	if in.ContextAssetType == "" {
-		return nil, nil
+		return contextRead{}
 	}
 	contexts := s.contextAuthority()
 	if contexts == nil {
-		return nil, errcode.New(errcode.InvalidStateTransition, "context authority is not configured")
+		return contextRead{err: errcode.New(errcode.InvalidStateTransition, "context authority is not configured")}
 	}
 	b, err := contexts.EffectiveContext(ctx, who, in.ProjectID, manifest.AssetType(in.ContextAssetType))
 	if err != nil {
-		return nil, err
+		return contextRead{err: err}
 	}
 	out := &ContextSnapshot{AssetType: in.ContextAssetType, Refs: []ids.PermanentRef{}, Digest: b.Digest}
 	for _, d := range b.Documents {
 		out.Refs = append(out.Refs, d.Ref)
 	}
-	return out, nil
+	return contextRead{contexts: contexts, snapshot: out, bundle: b}
 }
+
+// contextAttempts 限制读取与最终接受之间上下文持续变化时的重读次数。
+const contextAttempts = 3
+
+var errContextChanged = errors.New("tasks: effective context changed before acceptance")
 
 // SpecDigest 是流程步骤核对任务规格所用的摘要（不含 flow/step 字段本身）。
 func SpecDigest(in CreateRequest) (digest.Digest, error) {
@@ -160,7 +175,19 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 	if err := in.normalize(); err != nil {
 		return Result{}, err
 	}
-	snapshot, contextErr := s.contextSnapshot(ctx, who, in)
+	for attempt := 1; ; attempt++ {
+		r, err := s.create(ctx, who, key, in, s.readContext(ctx, who, in))
+		if !errors.Is(err, errContextChanged) {
+			return r, err
+		}
+		if attempt == contextAttempts {
+			const msg = "the effective context kept changing while the task was created; retry"
+			return Result{}, errcode.New(errcode.PreconditionFailed, msg).WithDetails(errcode.Detail{Reason: "context_changed", Message: msg})
+		}
+	}
+}
+
+func (s *Service) create(ctx context.Context, who authz.Context, key string, in CreateRequest, read contextRead) (Result, error) {
 	ctx, release, err := s.lock(ctx, in.ProjectID, "")
 	if err != nil {
 		return Result{}, err
@@ -232,8 +259,20 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 	}
 	slices.Sort(distinct)
 	distinct = slices.Compact(distinct)
-	if contextErr != nil {
-		return Result{}, contextErr
+	if read.err != nil {
+		return Result{}, read.err
+	}
+	if read.snapshot != nil {
+		// 最终接受边界：此时持有 security_guard 与项目锁。撤回、停用、审定与权限变化
+		// 以独占方式取 security_guard，复核通过后直到提交都不会再改变生效集合；
+		// 读取之后已变化则放弃本次结果，由 Create 重新读取。
+		same, err := read.contexts.EffectiveContextUnchanged(ctx, who, in.ProjectID, manifest.AssetType(in.ContextAssetType), read.bundle)
+		if err != nil {
+			return Result{}, err
+		}
+		if !same {
+			return Result{}, errContextChanged
+		}
 	}
 	inputDigest, err := tc.SnapshotDigest(in.InputRefs)
 	if err != nil {
@@ -276,7 +315,7 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 		if err := tc.ValidateShape("lantai.task/v1", t); err != nil {
 			return Result{}, nil, err
 		}
-		m := Meta{Round: 1, Description: in.Description, AssigneeID: in.AssigneeID, Role: in.Role, DistinctFrom: distinct, Checkouts: in.Checkouts, Context: snapshot, Subject: in.Subject,
+		m := Meta{Round: 1, Description: in.Description, AssigneeID: in.AssigneeID, Role: in.Role, DistinctFrom: distinct, Checkouts: in.Checkouts, Context: read.snapshot, Subject: in.Subject,
 			CreatedBy: who.PrincipalID, CreatedAt: now, StateSince: now, History: []RoundOutcome{}}
 		seat := Seat{Contract: "lantai.seat/v1", ID: seatID, TaskID: taskID, Revision: 1, Ordinal: 1, State: "open", RecoveryEpoch: epoch}
 		if err := tc.ValidateShape("lantai.seat/v1", seat); err != nil {
@@ -298,8 +337,8 @@ func (s *Service) Create(ctx context.Context, who authz.Context, key string, in 
 		if err := putRefs(ctx, tx, t.ID, "input", in.InputRefs); err != nil {
 			return Result{}, nil, err
 		}
-		if snapshot != nil {
-			if err := putRefs(ctx, tx, t.ID, "context", snapshot.Refs); err != nil {
+		if read.snapshot != nil {
+			if err := putRefs(ctx, tx, t.ID, "context", read.snapshot.Refs); err != nil {
 				return Result{}, nil, err
 			}
 		}

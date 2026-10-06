@@ -96,6 +96,9 @@ func (g *Gate) Acquire(ctx context.Context, req Request) (context.Context, *Held
 // RequireMaintenance binds maintenance checks to this gate's coordinator.
 func (g *Gate) RequireMaintenance(ctx context.Context) error { return RequireMaintenance(ctx, g.c) }
 
+// HoldsSecurity reports whether ctx carries a live security_guard of this gate.
+func (g *Gate) HoldsSecurity(ctx context.Context) bool { return HoldsSecurity(ctx, g.c) }
+
 func (g *Gate) check(gen uint64, compare bool) (uint64, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()

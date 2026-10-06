@@ -42,7 +42,7 @@
 
 元数据包含 context/decision 类型、标题、global/project/asset_type 适用范围、Markdown 文件路径及被替代版本的永久引用。`CommitProjectDocument` 复用上传、预留、安装与提交；它只产生草稿版本，不写生效指针。`GetContextDocument` 固定本馆资产/版本，按当前权限及用途读取并核验 Markdown 字节和摘要，单篇最多 1 MiB；历史版本仍可追溯。生效后的全局适用文档仍要求调用者拥有来源项目读取权限。
 
-T03 的 `ContextReviews` 提供一致的当前生效集合和不可变审定回执。回执绑定永久引用、manifest 摘要、review ID、批准者、生效时间和 revision；未接入时 `EffectiveContext` 明确拒绝，不以最新版本或文档自报 approved 代替。未审定新版不会改变生效集合；替代和撤销的裁决在 T03。`EffectiveContext` 组合所给快照，核对项目/类型范围、重复项和回执绑定，最多 100 篇/4 MiB，返回实际文档、确切版本和组合摘要；T05/T07 应把这个快照的引用和摘要记录到任务输入，不能执行时再解析浮动版本。
+T03 的 `ContextReviews` 提供一致的当前生效集合和不可变审定回执。回执绑定永久引用、manifest 摘要、review ID、批准者、生效时间和 revision；未接入时 `EffectiveContext` 明确拒绝，不以最新版本或文档自报 approved 代替。未审定新版不会改变生效集合；替代和撤销的裁决在 T03。`EffectiveContext` 组合所给快照，核对项目/类型范围、重复项和回执绑定，最多 100 篇/4 MiB，返回实际文档、确切版本和组合摘要；T05/T07 应把这个快照的引用和摘要记录到任务输入，不能执行时再解析浮动版本。在锁外读取的快照须在调用方持锁的最终接受边界用 `EffectiveContextUnchanged` 复核：调用方已持有 security_guard 时审定端口继承该锁而不重复申请，集合变化时调用方须重读或拒绝。
 
 ## 迁移与验证
 

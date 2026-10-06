@@ -279,3 +279,39 @@ func (s *Service) EffectiveContext(ctx context.Context, who authz.Context, proje
 	out.Digest = digest.Of(raw)
 	return out, nil
 }
+
+// EffectiveContextUnchanged 在调用方的最终接受边界复核：b 所依据的审定集合是否
+// 仍是当前生效集合。调用方持有 security_guard 时审定端口继承该锁，返回 true
+// 后到释放锁之前，撤回、停用或权限变化都不能插入。文档内容不可变，不再重读。
+func (s *Service) EffectiveContextUnchanged(ctx context.Context, who authz.Context, project ids.ID, assetType manifest.AssetType, reviews ContextReviews, b ContextBundle) (bool, error) {
+	if reviews == nil {
+		return false, errcode.New(errcode.InvalidStateTransition, "T03 context review adapter is not configured")
+	}
+	if b.ProjectID != project {
+		return false, nil
+	}
+	current, err := reviews.EffectiveContext(ctx, who, project, assetType)
+	if err != nil {
+		return false, err
+	}
+	if len(current) != len(b.Documents) {
+		return false, nil
+	}
+	for i, d := range b.Documents {
+		if d.Approval == nil {
+			return false, nil
+		}
+		before, err := canonjson.CanonicalizeValue(*d.Approval)
+		if err != nil {
+			return false, err
+		}
+		after, err := canonjson.CanonicalizeValue(current[i])
+		if err != nil {
+			return false, err
+		}
+		if string(before) != string(after) {
+			return false, nil
+		}
+	}
+	return true, nil
+}

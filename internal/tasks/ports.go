@@ -229,3 +229,6 @@ type CatalogContexts struct {
 func (c CatalogContexts) EffectiveContext(ctx context.Context, who authz.Context, project ids.ID, t manifest.AssetType) (catalog.ContextBundle, error) {
 	return c.Catalog.EffectiveContext(ctx, who, project, t, c.Reviews)
 }
+func (c CatalogContexts) EffectiveContextUnchanged(ctx context.Context, who authz.Context, project ids.ID, t manifest.AssetType, b catalog.ContextBundle) (bool, error) {
+	return c.Catalog.EffectiveContextUnchanged(ctx, who, project, t, c.Reviews, b)
+}

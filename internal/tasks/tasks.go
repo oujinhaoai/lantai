@@ -69,9 +69,12 @@ type Authorities interface {
 	EvidenceByOperation(context.Context, authz.Context, ids.ID) (ledger.AcceptedEvidence, error)
 }
 
-// Contexts 固定任务开始时生效的项目上下文与决议（T02/T03）。
+// Contexts 固定任务开始时生效的项目上下文与决议（T02/T03）。EffectiveContext
+// 在取锁前读取完整内容；EffectiveContextUnchanged 在持锁的最终接受边界复核所依据
+// 的审定集合仍是当前集合，须继承调用方已持有的 security_guard。
 type Contexts interface {
 	EffectiveContext(context.Context, authz.Context, ids.ID, manifest.AssetType) (catalog.ContextBundle, error)
+	EffectiveContextUnchanged(context.Context, authz.Context, ids.ID, manifest.AssetType, catalog.ContextBundle) (bool, error)
 }
 
 // Steps 由 workflow 实现：流程创建的任务必须对应一个仍在推进的业务步骤。

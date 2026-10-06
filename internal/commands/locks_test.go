@@ -45,6 +45,46 @@ func TestLockOrderViolationsRejected(t *testing.T) {
 	h2.Release() // 幂等
 }
 
+// 已持有的 security_guard 沿 ctx 传给嵌套调用；释放或换协调器后不再算持有。
+func TestHoldsSecurityFollowsTheHeldChain(t *testing.T) {
+	c := NewCoordinator()
+	if HoldsSecurity(t.Context(), c) {
+		t.Fatal("empty context holds nothing")
+	}
+	ctx, h, err := c.Acquire(t.Context(), Request{Security: ModeShared, Projects: []string{"p"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx2, h2, err := c.Acquire(ctx, Request{Tasks: []string{"t"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !HoldsSecurity(ctx, c) || !HoldsSecurity(ctx2, c) {
+		t.Fatal("security guard must be visible to nested calls")
+	}
+	if HoldsSecurity(ctx2, NewCoordinator()) {
+		t.Fatal("another coordinator's guard is not held")
+	}
+	_, h3, err := c.Acquire(t.Context(), Request{Projects: []string{"q"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h2.Release()
+	h.Release()
+	h3.Release()
+	if HoldsSecurity(ctx, c) || HoldsSecurity(ctx2, c) {
+		t.Fatal("released guard still reported as held")
+	}
+	pctx, hp, err := c.Acquire(t.Context(), Request{Projects: []string{"p"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hp.Release()
+	if HoldsSecurity(pctx, c) {
+		t.Fatal("a project lock alone is not the security guard")
+	}
+}
+
 func TestKeysAreMutuallyExclusiveAndSorted(t *testing.T) {
 	c := NewCoordinator()
 	var inside atomic.Int32

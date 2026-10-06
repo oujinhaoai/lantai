@@ -313,6 +313,22 @@ func (h *Held) release() {
 	})
 }
 
+// HoldsSecurity 报告 ctx 是否在本协调器上持有仍有效的 security_guard（共享或
+// 独占）。已持有时，只读的权威端口应继承它：全局顺序不允许在项目锁之后再取，
+// 而撤权、停用与审定变更以独占方式取该锁，持有期间读到的集合不会再被改变。
+func HoldsSecurity(ctx context.Context, c *Coordinator) bool {
+	h, _ := ctx.Value(heldKey{}).(*Held)
+	for p := h; p != nil; p = p.parent {
+		if p.c != c || p.released.Load() {
+			return false
+		}
+		if p.security != ModeNone {
+			return true
+		}
+	}
+	return false
+}
+
 // RequireMaintenance verifies a live exclusive barrier on this coordinator.
 // The owner must keep every ancestor Held alive until all nested calls return.
 func RequireMaintenance(ctx context.Context, c *Coordinator) error {

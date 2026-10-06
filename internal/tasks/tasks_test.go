@@ -458,6 +458,9 @@ type fakeContexts struct{ bundle catalog.ContextBundle }
 func (c fakeContexts) EffectiveContext(context.Context, authz.Context, ids.ID, manifest.AssetType) (catalog.ContextBundle, error) {
 	return c.bundle, nil
 }
+func (c fakeContexts) EffectiveContextUnchanged(_ context.Context, _ authz.Context, _ ids.ID, _ manifest.AssetType, b catalog.ContextBundle) (bool, error) {
+	return b.Digest == c.bundle.Digest, nil
+}
 
 func TestContextSnapshotAndCandidateGroupAuthorization(t *testing.T) {
 	f := newFixture(t)
@@ -493,6 +496,73 @@ type failingContexts struct{ err error }
 
 func (c failingContexts) EffectiveContext(context.Context, authz.Context, ids.ID, manifest.AssetType) (catalog.ContextBundle, error) {
 	return catalog.ContextBundle{}, c.err
+}
+func (c failingContexts) EffectiveContextUnchanged(context.Context, authz.Context, ids.ID, manifest.AssetType, catalog.ContextBundle) (bool, error) {
+	return false, c.err
+}
+
+// changingContexts 模拟读取之后、取得任务锁之前发生的撤回或停用：每次读取后
+// change 可以改写当前集合；复核按当前集合判断读取结果是否仍有效。
+type changingContexts struct {
+	mu      sync.Mutex
+	current catalog.ContextBundle
+	reads   int
+	change  func(reads int) *catalog.ContextBundle
+}
+
+func (c *changingContexts) EffectiveContext(context.Context, authz.Context, ids.ID, manifest.AssetType) (catalog.ContextBundle, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	b := c.current
+	c.reads++
+	if next := c.change(c.reads); next != nil {
+		c.current = *next
+	}
+	return b, nil
+}
+func (c *changingContexts) EffectiveContextUnchanged(_ context.Context, _ authz.Context, _ ids.ID, _ manifest.AssetType, b catalog.ContextBundle) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return b.Digest == c.current.Digest, nil
+}
+
+// 读取与最终接受之间生效集合变化时，旧快照不能写入任务：重新读取后固定当前
+// 集合；持续变化时有限次重读后拒绝，不创建任务（BUG-20261001-03 评审）。
+func TestContextChangedBeforeAcceptanceIsNotFixed(t *testing.T) {
+	f := newFixture(t)
+	ctx := t.Context()
+	doc := f.version("", f.owner.PrincipalID)
+	stale := catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{{Ref: doc}}, Digest: digest.Of([]byte("approved rules"))}
+	current := catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{}, Digest: digest.Of([]byte("rules withdrawn"))}
+	once := &changingContexts{current: stale, change: func(reads int) *catalog.ContextBundle {
+		if reads == 1 {
+			return &current
+		}
+		return nil
+	}}
+	f.s.SetContexts(once)
+	in := CreateRequest{ProjectID: f.project, Type: "produce", Title: "synthetic task", AcceptanceCriteria: []string{"matches the synthetic brief"}, ContextAssetType: "model", ExpectedOutputs: []tc.OutputRequirement{{Slug: "pose", AssetType: "model", CandidateCount: 1}}}
+	r, err := f.s.Create(ctx, f.owner, f.key(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := f.view(r.TaskID); v.Meta.Context == nil || v.Meta.Context.Digest != current.Digest || len(v.Meta.Context.Refs) != 0 || once.reads != 2 {
+		t.Fatal("a stale context was fixed or not re-read", v.Meta.Context, once.reads)
+	}
+	n := 0
+	moving := &changingContexts{current: stale, change: func(reads int) *catalog.ContextBundle {
+		n++
+		return &catalog.ContextBundle{ProjectID: f.project, Documents: []catalog.ContextDocument{}, Digest: digest.Of([]byte{byte(n)})}
+	}}
+	f.s.SetContexts(moving)
+	_, err = f.s.Create(ctx, f.owner, f.key(), in)
+	expectCode(t, err, errcode.PreconditionFailed)
+	if moving.reads != contextAttempts {
+		t.Fatal("bounded re-reads", moving.reads)
+	}
+	if list, err := f.s.List(ctx, f.owner, f.project, "", 10, true); err != nil || len(list) != 1 {
+		t.Fatal("a task was created from a changing context", list, err)
+	}
 }
 
 // 生效上下文在取项目锁之前读取（全局加锁顺序），读取错误仍排在授权与幂等

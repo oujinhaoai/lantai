@@ -105,12 +105,18 @@ func (r *Reviews) contextReview(ctx context.Context, who authz.Context, ref ids.
 	}
 	return catalog.ContextApproval{Ref: ref, ManifestDigest: v.ManifestDigest, ReviewID: review.ID, ApproverID: review.ActorID, EffectiveAt: review.CreatedAt, Revision: state.Revision}, nil
 }
+
+// EffectiveContext 在 security_guard 读保护下枚举当前生效的上下文审定。调用方
+// 已持有该锁时（例如任务创建在最终接受边界复核）继承它，不再重复取锁。
 func (r *Reviews) EffectiveContext(ctx context.Context, who authz.Context, project ids.ID, kind manifest.AssetType) ([]catalog.ContextApproval, error) {
-	ctx, held, guardErr := r.ledger.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
-	if guardErr != nil {
-		return nil, guardErr
+	if !r.ledger.gate.HoldsSecurity(ctx) {
+		guarded, held, err := r.ledger.gate.Coordinator().Acquire(ctx, commands.Request{Security: commands.ModeShared})
+		if err != nil {
+			return nil, err
+		}
+		defer held.Release()
+		ctx = guarded
 	}
-	defer held.Release()
 	if err := r.ledger.authorize(ctx, who, "catalog.read", project, "project", project); err != nil {
 		return nil, err
 	}
