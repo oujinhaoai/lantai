@@ -70,6 +70,71 @@ func TestCredentialsAndTransferOrigin(t *testing.T) {
 	}
 }
 
+func TestAPIProgressWhenTransferConnectionPoolIsFull(t *testing.T) {
+	firstStarted := make(chan struct{})
+	secondStarted := make(chan struct{})
+	release := make(chan struct{})
+	defer close(release)
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/xfer/first":
+			close(firstStarted)
+			w.WriteHeader(http.StatusOK)
+			w.(http.Flusher).Flush()
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+		case "/xfer/second":
+			close(secondStarted)
+			w.WriteHeader(http.StatusOK)
+		case "/api/v1/whoami":
+			if r.Header.Get("Authorization") != "Bearer private-session" {
+				t.Error("missing bearer")
+			}
+			writeJSON(w, map[string]string{"principal_id": "synthetic"})
+		default:
+			t.Errorf("unexpected request: %s", r.URL.Path)
+		}
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	first, err := c.transferRequest(ctx, http.MethodGet, "/xfer/first", nil, 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Body.Close()
+	<-firstStarted
+	secondDone := make(chan error, 1)
+	go func() {
+		r, err := c.transferRequest(ctx, http.MethodGet, "/xfer/second", nil, 0, nil)
+		if err == nil {
+			_, err = io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}
+		secondDone <- err
+	}()
+	select {
+	case <-secondStarted:
+		t.Fatal("transfer exceeded its one-connection limit")
+	case <-time.After(100 * time.Millisecond):
+	}
+	response, err := c.Do(ctx, http.MethodGet, "/api/v1/whoami", nil, Options{})
+	if err != nil || response.Status != http.StatusOK {
+		t.Fatalf("API blocked by full transfer pool: status=%d err=%v", response.Status, err)
+	}
+	// Closing the occupied stream frees the transfer pool for its queued request.
+	first.Body.Close()
+	select {
+	case err := <-secondDone:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("queued transfer did not progress after the stream closed")
+	}
+}
+
 func TestAPIRejectsDotSegmentsBeforeNetwork(t *testing.T) {
 	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		t.Errorf("invalid API path reached network: %s", r.URL.Path)
