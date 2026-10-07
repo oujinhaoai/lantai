@@ -32,6 +32,7 @@ T09 的 M2 已实现一次性文件协议宿主（私有目录、环境白名单
 - [公共契约](docs/contracts/README.md)
 - [共同备份与恢复](docs/contracts/backup-restore.md) / [单网关部署模板](docs/deployment.md)
 - [开发与验证命令](docs/development.md)
+- [提交定点强杀、恢复与原生文件故障驱动](docs/testing/commit-fault-matrix.md)
 - [模块任务与开发顺序](docs/tasks/README.md)
 - [服务端、客户端与网页扩展设计](docs/extensions.md)
 - [文档导航](docs/README.md)
