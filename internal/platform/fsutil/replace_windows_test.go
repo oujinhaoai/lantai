@@ -96,3 +96,33 @@ func TestWriteFileAtomicWindowsPersistentDenialPreservesTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A read-only target produces permanent ACCESS_DENIED without any occupied
+// handle. It must remain an error after the same bounded replacement retry.
+func TestWriteFileAtomicWindowsReadOnlyDenialPreservesTarget(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+	if err := WriteFileAtomic(path, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0400); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(path, 0600)
+	start := time.Now()
+	err := WriteFileAtomic(path, []byte("new"), 0600)
+	if !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		t.Fatal("permanent read-only denial did not propagate", err)
+	}
+	if elapsed := time.Since(start); elapsed < 2*time.Second || elapsed > 10*time.Second {
+		t.Fatal("permanent denial retry was not bounded", elapsed)
+	}
+	old, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(old, []byte("old")) {
+		t.Fatal("denied replacement changed target", err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 {
+		t.Fatal("denied replacement left temporary file", entries, err)
+	}
+}
