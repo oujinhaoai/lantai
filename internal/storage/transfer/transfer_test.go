@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
@@ -101,38 +102,40 @@ func TestPerPrincipalLimitKeepsOthersProgressing(t *testing.T) {
 }
 
 func TestWaitingBatchIsServedInOrder(t *testing.T) {
-	s := New(Limits{BatchSlots: 1, BatchPerPrincipal: 1})
-	first := mustAdmit(t, s, caller(authz.Agent))
-	var mu sync.Mutex
-	var order []int
-	var wg sync.WaitGroup
-	start := make(chan struct{})
-	for i := range 3 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			<-start
-			time.Sleep(time.Duration(i) * 10 * time.Millisecond) // 固定到达顺序
-			tk, err := s.Admit(context.Background(), caller(authz.Agent))
-			if err != nil {
-				t.Error(err)
-				return
+	synctest.Test(t, func(t *testing.T) {
+		s := New(Limits{BatchSlots: 1, BatchPerPrincipal: 1})
+		first := mustAdmit(t, s, caller(authz.Agent))
+		var mu sync.Mutex
+		var order []int
+		var wg sync.WaitGroup
+		for i := range 3 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				tk, err := s.Admit(t.Context(), caller(authz.Agent))
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				mu.Lock()
+				order = append(order, i)
+				mu.Unlock()
+				tk.Release()
+			}()
+			// The held slot makes each admission durably block in the queue.
+			// Start the next caller only after that has happened; sleeps cannot
+			// establish arrival order when the machine is busy.
+			synctest.Wait()
+			if waiting := s.Stats().WaitingBatch; waiting != i+1 {
+				t.Fatalf("queued callers = %d, want %d", waiting, i+1)
 			}
-			mu.Lock()
-			order = append(order, i)
-			mu.Unlock()
-			tk.Release()
-		}()
-	}
-	close(start)
-	for s.Stats().WaitingBatch < 3 {
-		time.Sleep(time.Millisecond)
-	}
-	first.Release()
-	wg.Wait()
-	if len(order) != 3 || order[0] != 0 || order[1] != 1 || order[2] != 2 {
-		t.Fatalf("admission order = %v, want FIFO", order)
-	}
+		}
+		first.Release()
+		wg.Wait()
+		if len(order) != 3 || order[0] != 0 || order[1] != 1 || order[2] != 2 {
+			t.Fatalf("admission order = %v, want FIFO", order)
+		}
+	})
 }
 
 func TestCancelledWaitDoesNotLeak(t *testing.T) {

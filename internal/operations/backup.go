@@ -206,7 +206,7 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 			return err
 		}
 	}
-	for _, base := range []string{"projects", "staging", "quarantine", "audit", "logs"} {
+	for _, base := range []string{"projects", "trash", "staging", "quarantine", "audit", "logs"} {
 		area := filepath.Join(i.layout.Home, base)
 		if _, e := independentTarget(area, i.cfg.SecretsDir); e != nil {
 			return errors.New("operations: secret directory overlaps a captured file area")
@@ -306,7 +306,7 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 	}
 	// These are file-owner roots, not a recursive copy of the instance: secrets,
 	// lock files, index.db, and previous backups can never enter the archive.
-	for _, base := range []string{"instance.json", "config.yaml", "projects", "staging", "quarantine", "audit", "logs"} {
+	for _, base := range []string{"instance.json", "config.yaml", "projects", "trash", "staging", "quarantine", "audit", "logs"} {
 		err = fs.WalkDir(src.FS(), base, func(p string, d fs.DirEntry, e error) error {
 			if errors.Is(e, fs.ErrNotExist) && p == base {
 				return nil
@@ -534,7 +534,7 @@ func verifyBackupContents(ctx context.Context, dir string, m BackupManifest) err
 		}
 		seen[strings.ToLower(f.Path)] = true
 		first := strings.Split(f.Path, "/")[0]
-		if !slices.Contains([]string{"db", "instance.json", "config.yaml", "projects", "staging", "quarantine", "audit", "logs", "blobs"}, first) {
+		if !slices.Contains([]string{"db", "instance.json", "config.yaml", "projects", "trash", "staging", "quarantine", "audit", "logs", "blobs"}, first) {
 			return errors.New("operations: backup contains a forbidden file area")
 		}
 		if first == "db" && !slices.Contains([]string{"db/main.db", "db/ledger.db", "db/runtime.db", "db/events.db"}, f.Path) {
