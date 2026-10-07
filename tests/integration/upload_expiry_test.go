@@ -61,7 +61,9 @@ func TestServeSweepsExpiredUploadsInBackground(t *testing.T) {
 
 	e.clk.Advance(25 * time.Hour) // 超过默认 24 小时空闲到期
 	deadline := time.Now().Add(10 * time.Second)
-	for s := stats(); s.OpenUploads != 0 || s.UploadStagingBytes != 0; s = stats() {
+	// 数据库关闭会话先于整轮清扫完成后的内存统计；同时等到推进时钟后的
+	// 一轮清扫完成，不能把可见的数据库状态当成后台统计也已经更新。
+	for s := stats(); s.OpenUploads != 0 || s.UploadStagingBytes != 0 || !a.UploadSweep().LastSuccess.Equal(e.clk.Now()); s = stats() {
 		if time.Now().After(deadline) {
 			t.Fatalf("expired uploads were not swept: %+v %+v", s, a.UploadSweep())
 		}
