@@ -84,8 +84,7 @@ func (r *Registry) CheckBuiltinSnapshot(ctx context.Context, s ae.ActivationSnap
 // RunBuiltin executes the same immutable core binary's private processor entry.
 // This is a bounded trusted process, not a sandbox for third-party code. The
 // official checker cannot spawn children or perform network/storage operations.
-func (r *Registry) RunBuiltin(ctx context.Context, in ProcessorInput, raw []byte) (InvocationResult, error) {
-	var out InvocationResult
+func (r *Registry) RunBuiltin(ctx context.Context, in ProcessorInput, raw []byte) (out InvocationResult, err error) {
 	if e := validate("lantai.processor-input/v1", in); e != nil {
 		return out, e
 	}
@@ -120,7 +119,15 @@ func (r *Registry) RunBuiltin(ctx context.Context, in ProcessorInput, raw []byte
 	if e != nil {
 		return out, e
 	}
-	defer removeRunDir(dir)
+	defer func() {
+		if cleanupErr := removeRunDir(dir); cleanupErr != nil {
+			out.Observation.ResultValid = false
+			out.Result = nil
+			if !out.Observation.Dispatched && err == nil {
+				err = errcode.New(errcode.Internal, "builtin private work directory could not be reclaimed")
+			}
+		}
+	}()
 	for _, d := range []string{"in", "out", "tmp"} {
 		if e = os.Mkdir(filepath.Join(dir, d), hostDirMode); e != nil {
 			return out, e

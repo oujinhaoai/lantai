@@ -52,3 +52,5 @@ func (t *processTree) kill() error {
 }
 
 func (t *processTree) release() {}
+
+func runDirRemovalRetryable(error) bool { return false }

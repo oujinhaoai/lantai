@@ -37,10 +37,14 @@ func (h hostCase) job(t *testing.T, config map[string]any) []byte {
 	return b
 }
 
-func (h hostCase) run(t *testing.T, ctx context.Context, config map[string]any, timeout time.Duration) extensions.RunResult {
+func (h hostCase) spec(t *testing.T, config map[string]any, timeout time.Duration) extensions.RunSpec {
 	t.Helper()
 	manifest := []byte(`{"instance_id":"01K00000000000000000000000","asset_id":"01K00000000000000000000001","version_id":"01K00000000000000000000002","manifest_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}`)
-	out, err := extensions.RunOneShot(ctx, extensions.RunSpec{Package: h.pkg, Files: os.DirFS(h.dir), Target: "server", Job: h.job(t, config), Inputs: []extensions.InputFile{{Name: "manifest.yaml", Data: manifest}}, Deadline: time.Now().Add(timeout), MaxOutputFiles: h.pkg.Manifest.ResourceLimits.MaxOutputFiles})
+	return extensions.RunSpec{Package: h.pkg, Files: os.DirFS(h.dir), Target: "server", Job: h.job(t, config), Inputs: []extensions.InputFile{{Name: "manifest.yaml", Data: manifest}}, Deadline: time.Now().Add(timeout), MaxOutputFiles: h.pkg.Manifest.ResourceLimits.MaxOutputFiles}
+}
+func (h hostCase) run(t *testing.T, ctx context.Context, config map[string]any, timeout time.Duration) extensions.RunResult {
+	t.Helper()
+	out, err := extensions.RunOneShot(ctx, h.spec(t, config, timeout))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,28 +89,57 @@ func TestOneShotFileProtocolAndFaultClasses(t *testing.T) {
 
 func TestOneShotTimeoutAndCancelReclaimProcessTree(t *testing.T) {
 	h := newHostCase(t, exttest.Spec{Server: true})
-	beat := filepath.Join(t.TempDir(), "heartbeat")
-	out := h.run(t, t.Context(), map[string]any{"mode": "hang_child", "heartbeat": beat}, 1500*time.Millisecond)
+	run := func(cancelAfterStart bool) (extensions.RunResult, string) {
+		t.Helper()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		beat := filepath.Join(t.TempDir(), "heartbeat")
+		type response struct {
+			out extensions.RunResult
+			err error
+		}
+		result := make(chan response, 1)
+		spec := h.spec(t, map[string]any{"mode": "hang_child", "heartbeat": beat}, 20*time.Second)
+		go func() { out, err := extensions.RunOneShot(ctx, spec); result <- response{out, err} }()
+		// A cold Windows executable can take longer than the former 1.5s timeout
+		// to start its grandchild. Prove the descendant exists before testing its
+		// reclamation; this is a bounded fixture readiness wait, not a product SLA.
+		startup := time.NewTimer(10 * time.Second)
+		defer startup.Stop()
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			if _, err := os.Stat(beat); err == nil {
+				if cancelAfterStart {
+					cancel()
+				}
+				r := <-result
+				if r.err != nil {
+					t.Fatal(r.err)
+				}
+				return r.out, beat
+			}
+			select {
+			case out := <-result:
+				t.Fatalf("host finished before descendant readiness: %+v", out.out.Observation)
+			case <-startup.C:
+				cancel()
+				out := <-result
+				t.Fatalf("descendant did not become ready; reclaimed fixture: %+v", out.out.Observation)
+			case <-ticker.C:
+			}
+		}
+	}
+	out, beat := run(false)
 	if !out.Observation.TimedOut || !out.Observation.StopConfirmed || execution.ClassifyInvocation(out.Observation) != execution.InvocationRuntimeFault {
 		t.Fatal(out.Observation)
 	}
 	assertStopped(t, beat)
-	ctx, cancel := context.WithCancel(t.Context())
-	beat2 := filepath.Join(t.TempDir(), "heartbeat")
-	go func() {
-		for {
-			if _, err := os.Stat(beat2); err == nil {
-				cancel()
-				return
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
-	out = h.run(t, ctx, map[string]any{"mode": "hang_child", "heartbeat": beat2}, 20*time.Second)
+	out, beat = run(true)
 	if !out.Observation.Cancelled || !out.Observation.StopConfirmed || execution.ClassifyInvocation(out.Observation) != execution.InvocationCancelled {
 		t.Fatal(out.Observation)
 	}
-	assertStopped(t, beat2)
+	assertStopped(t, beat)
 }
 
 // assertStopped proves the grandchild stopped writing after the host returned.

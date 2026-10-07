@@ -145,3 +145,12 @@ CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `u
 容量与性能：最终性能取决于部署环境的系统与硬件。1 万资产 / 5 万版本公共合成集的查询、写入、重建与库增长基线，以及接口 p95 等阈值，只在实际部署环境测量；开发机只用小规模合成集做正确性回归，测得的时延与吞吐不作为基线或阈值。
 
 M2 的 T01/T02 适配接口、存储迁移与接线边界见[协作适配契约](contracts/collaboration-foundation.md)。到期清除与 GC 由 T08 调度器执行，`serve` 中默认关闭，需在 `config.yaml` 设置 `lifecycle.scheduler: true`，见[生命周期调度](contracts/lifecycle-scheduler.md)；扩展包导入、启用、探测、熔断和 `lantai ext` 见[扩展包治理](contracts/extension-governance.md)。
+
+
+一次性宿主的 Windows 临时目录回收使用原生文件占用反例验证：
+
+```powershell
+go test -count=1 -run '^TestOneShotWindowsCleanup' ./internal/extensions
+```
+
+测试分别持有已核验入口的无删除共享句柄，再验证释放后的有界回收和持续占用时的结果拒绝。进程退出不自动证明目录已删除；最多 2 秒的清理重试只处理 Windows 占用/访问错误，不能替代停止未知进程的对账或独立平台验收。
