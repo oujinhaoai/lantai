@@ -24,7 +24,9 @@ T05 的 M2 已新增内部任务与流程服务：单席位任务的创建、指
 
 T06/T07 已接入手动会话执行、持久检查点与累积预算、人机问答、取消/对账，独立 Job 租约和官方 corecheck 一次性子进程；REST/CLI 覆盖任务、Flow、执行、审定、生命周期、上下文与协作读取。官方 Go SDK stdio MCP 和最小 Python 客户端调用同一 API。候选和检查结果须经核心复验，执行成功不代替人审。详见[手动执行与远程协作](docs/contracts/manual-execution.md)。
 
-T09 的 M2 已实现一次性文件协议宿主（私有目录、环境白名单、入口核验副本、期限与输出限额、进程组/作业对象回收，如实发布不具备的隔离能力）、外部包静态导入与台账审定引用、HumanGrant 启停与配置 revision、启用前受限探测、项目白名单、排空/撤权、§11.2 熔断，外部检查器可在固定 Flow 中产出证据；`lantai plugin`/`lantai ext` 与 MCP 投影提供显式本机命令，[`sdk/go/extension`](sdk/go/extension/) 是最小插件 SDK。T08 的到期提醒/清除与可恢复 GC 调度器按作业登记执行、中断续跑，默认关闭。详见[扩展包治理](docs/contracts/extension-governance.md)与[生命周期调度](docs/contracts/lifecycle-scheduler.md)。
+Windows 审计清单等原子替换对文件占用错误做有界重试，持续失败保留旧文件与审计水位并明确报错。
+
+T09 的 M2 已实现一次性文件协议宿主（私有目录、环境白名单、入口核验副本、期限与输出限额、进程组/作业对象回收、临时目录清理失败时拒绝结果，如实发布不具备的隔离能力）、外部包静态导入与台账审定引用、HumanGrant 启停与配置 revision、启用前受限探测、项目白名单、排空/撤权、§11.2 熔断，外部检查器可在固定 Flow 中产出证据；`lantai plugin`/`lantai ext` 与 MCP 投影提供显式本机命令，[`sdk/go/extension`](sdk/go/extension/) 是最小插件 SDK。T08 的到期提醒/清除与可恢复 GC 调度器按作业登记执行、中断续跑，默认关闭。详见[扩展包治理](docs/contracts/extension-governance.md)与[生命周期调度](docs/contracts/lifecycle-scheduler.md)。
 
 网页、常驻扩展实例、第三方网页插件和自动执行器尚未启用；一次性宿主不是安全沙箱。生产部署、目标 NAS 流量、平台故障与整馆恢复的独立门禁仍须按实际环境验收；开发测试通过不等于 M1 整体门禁通过。
 

@@ -140,8 +140,7 @@ func EntryPath(m Manifest, target string) (File, error) {
 // job.json, read-only in/, private out/ and a verified pkg/ copy. The child
 // receives the job path as its only argument, an allowlisted environment and no
 // core credentials. It returns an error only when nothing was dispatched.
-func RunOneShot(ctx context.Context, spec RunSpec) (RunResult, error) {
-	var out RunResult
+func RunOneShot(ctx context.Context, spec RunSpec) (out RunResult, err error) {
 	entry, err := EntryPath(spec.Package.Manifest, spec.Target)
 	if err != nil {
 		return out, err
@@ -171,7 +170,16 @@ func RunOneShot(ctx context.Context, spec RunSpec) (RunResult, error) {
 	if err != nil {
 		return out, err
 	}
-	defer removeRunDir(dir)
+	defer func() {
+		if cleanupErr := removeRunDir(dir); cleanupErr != nil {
+			out.Observation.ResultValid = false
+			out.Result, out.Files = nil, nil
+			out.Failure = "workdir_cleanup_failed"
+			if !out.Observation.Dispatched && err == nil {
+				err = errcode.New(errcode.Internal, "one-shot private work directory could not be reclaimed")
+			}
+		}
+	}()
 	for _, d := range []string{"in", "out", "pkg", "tmp"} {
 		if err = os.Mkdir(filepath.Join(dir, d), hostDirMode); err != nil {
 			return out, err
@@ -547,16 +555,26 @@ func deliverOutputs(src, dst string, files []File) error {
 
 // removeRunDir restores owner permissions before removal; read-only inputs and
 // package copies must not survive a failed cleanup as executable residue.
-func removeRunDir(dir string) {
-	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, e error) error {
-		if e == nil && d.Type()&fs.ModeSymlink == 0 {
-			if d.IsDir() {
-				_ = os.Chmod(p, hostDirMode)
-			} else {
-				_ = os.Chmod(p, 0o600)
+func removeRunDir(dir string) error {
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, e error) error {
+			if e == nil && d.Type()&fs.ModeSymlink == 0 {
+				if d.IsDir() {
+					_ = os.Chmod(p, hostDirMode)
+				} else {
+					_ = os.Chmod(p, 0o600)
+				}
 			}
+			return nil
+		})
+		err := os.RemoveAll(dir)
+		remaining := time.Until(deadline)
+		if err == nil || !runDirRemovalRetryable(err) || remaining <= 0 {
+			return err
 		}
-		return nil
-	})
-	_ = os.RemoveAll(dir)
+		// Windows can still hold the executable image after process exit. Only
+		// retry platform file-occupation errors, within this bounded cleanup.
+		time.Sleep(min(25*time.Millisecond, remaining))
+	}
 }
