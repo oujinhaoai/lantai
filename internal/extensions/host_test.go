@@ -104,6 +104,22 @@ func TestOneShotTimeoutAndCancelReclaimProcessTree(t *testing.T) {
 		// A cold Windows executable can take longer than the former 1.5s timeout
 		// to start its grandchild. Prove the descendant exists before testing its
 		// reclamation; this is a bounded fixture readiness wait, not a product SLA.
+		// Bound the test's own wait independently of the host. A regression in
+		// cancellation or teardown must fail this case instead of hanging the
+		// whole package until its much longer test timeout.
+		waitForHost := func(timeout time.Duration) response {
+			t.Helper()
+			timer := time.NewTimer(timeout)
+			defer timer.Stop()
+			select {
+			case r := <-result:
+				return r
+			case <-timer.C:
+				cancel()
+				t.Fatal("host did not return within fixture limit; stop remains unconfirmed")
+				return response{}
+			}
+		}
 		startup := time.NewTimer(10 * time.Second)
 		defer startup.Stop()
 		ticker := time.NewTicker(10 * time.Millisecond)
@@ -113,7 +129,11 @@ func TestOneShotTimeoutAndCancelReclaimProcessTree(t *testing.T) {
 				if cancelAfterStart {
 					cancel()
 				}
-				r := <-result
+				wait := time.Until(spec.Deadline) + 10*time.Second
+				if cancelAfterStart {
+					wait = 10 * time.Second
+				}
+				r := waitForHost(wait)
 				if r.err != nil {
 					t.Fatal(r.err)
 				}
@@ -124,8 +144,8 @@ func TestOneShotTimeoutAndCancelReclaimProcessTree(t *testing.T) {
 				t.Fatalf("host finished before descendant readiness: %+v", out.out.Observation)
 			case <-startup.C:
 				cancel()
-				out := <-result
-				t.Fatalf("descendant did not become ready; reclaimed fixture: %+v", out.out.Observation)
+				out := waitForHost(10 * time.Second)
+				t.Fatalf("descendant did not become ready; reclaimed fixture: %+v; error: %v", out.out.Observation, out.err)
 			case <-ticker.C:
 			}
 		}
