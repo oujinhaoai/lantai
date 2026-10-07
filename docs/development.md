@@ -154,3 +154,12 @@ go test -count=1 -run '^TestOneShotWindowsCleanup' ./internal/extensions
 ```
 
 测试分别持有已核验入口的无删除共享句柄，再验证释放后的有界回收和持续占用时的结果拒绝。进程退出不自动证明目录已删除；最多 2 秒的清理重试只处理 Windows 占用/访问错误，不能替代停止未知进程的对账或独立平台验收。
+
+Windows 原子替换与审计占用恢复的原生验证：
+
+```powershell
+go test -count=1 -run '^TestWriteFileAtomicWindows' ./internal/platform/fsutil
+go test -count=1 -run '^TestAuditWindowsOccupiedManifestRecovery$' ./internal/events
+```
+
+反例持有无删除共享句柄，核对释放后替换、持续失败时旧文件/水位保留、临时文件清理与同事实重试恢复。重试不改变仅创建一次文件的排他语义。

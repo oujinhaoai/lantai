@@ -41,7 +41,7 @@ func WriteFileAtomic(path string, data []byte, perm fs.FileMode) (err error) {
 	if err = tmp.Close(); err != nil {
 		return fmt.Errorf("fsutil: close temp file: %w", err)
 	}
-	if err = os.Rename(tmpName, path); err != nil {
+	if err = replaceAtomicFile(tmpName, path); err != nil {
 		return fmt.Errorf("fsutil: replace %s: %w", path, err)
 	}
 	return SyncDir(dir)
