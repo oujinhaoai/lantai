@@ -6,7 +6,7 @@ M1 实现由 `operations` 编排、各领域所有者核验；实现见 [`intern
 
 1. 关闭写入口、等待前台和后台在途写入结束。通过所属模块执行深度 fsck，排空已持久 outbox 并记录事件、审计及裁剪水位。
 2. 枚举并核验 CAS 原件，将整个 Blob 清单持久写入源实例的 `backups/records/<backup_id>.json`。该记录是 `operations` 的 backup pin，复制未完成时不按 TTL 释放。
-3. 在同一个独占窗口内对 `main`、`ledger`、`runtime`、`events` 执行 `VACUUM INTO`，包括已提交 WAL 内容；核对完整性、实例绑定及迁移摘要。复制 `instance.json`、可选 `config.yaml` 和 `projects/`、`staging/`、`quarantine/`、`audit/`、`logs/` 中的可变文件。每件记录相对路径、大小和 SHA-256。
+3. 在同一个独占窗口内对 `main`、`ledger`、`runtime`、`events` 执行 `VACUUM INTO`，包括已提交 WAL 内容；核对完整性、实例绑定及迁移摘要。复制 `instance.json`、可选 `config.yaml` 和 `projects/`、`trash/`、`staging/`、`quarantine/`、`audit/`、`logs/` 中的可变文件。每件记录相对路径、大小和 SHA-256。
 4. 持久发布 `copying` 清单后才恢复写入。其后只复制已固定的不可变 Blob，流式读写，不把整个原件装入内存。
 5. 四库及所有文件再次校验后写 `complete` 清单和绑定其精确字节摘要的 `COMPLETE` 文件，最后释放源 backup pin。应用层仅在此后向事件模块确认冻结的备份水位；确认失败可重试，不自动裁剪事件。
 
