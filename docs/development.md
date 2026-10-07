@@ -18,7 +18,7 @@
 |---|---|
 | 全部检查（格式、依赖整洁、vet、staticcheck、生成物无漂移、`-race` 测试、构建） | `scripts/check.sh` |
 | 同上，但不用 `-race` | `LANTAI_RACE=0 scripts/check.sh` |
-| 只跑测试 | `go test ./...` |
+| 只跑测试 | `go test -timeout=20m ./...` |
 | 重新生成派生文件 | `scripts/generate.sh` |
 | 构建入口 | `go build -o bin/lantai ./cmd/lantai` |
 | 查看版本、契约与协议支持状态 | `go run ./cmd/lantai version` |
@@ -44,6 +44,8 @@
 | Argon2id 默认参数在本机的耗时 | `go test -run '^$' -bench Default ./internal/identity/password/` |
 | 跨模块集成测试（真实实例、身份、存储、目录、台账、来源限制、事件与查询） | `go test ./tests/integration/` |
 | 1 GiB 分片续传与流式内存（默认 32 MiB） | `LANTAI_TEST_LARGE_MB=1024 go test -run TestLargeResumableTransfer -v ./tests/integration/` |
+| 提交定点子进程强杀与恢复矩阵（原生运行；可保存 JSON 证据） | `go test ./tests/integration -run '^TestCommitCrashMatrix$' -count=1 -v`；详见[故障矩阵驱动](testing/commit-fault-matrix.md) |
+| 提交文件错误、非法路径与无权威孤立目录 | `go test ./tests/integration -run '^TestCommit(FileFaultMatrix\|RejectsUnsafeManifestBeforeWriting\|OrphansNeverCreateAuthority)$' -count=1 -v` |
 | 台账/事件/查询单元与故障验证 | `go test ./internal/ledger ./internal/provenance ./internal/events ./internal/query` |
 | T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
 | M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
@@ -57,6 +59,8 @@
 | Python SDK 单元测试 | `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
+
+`scripts/check.sh` 与三平台 CI 均将 Go 测试的单包累计上限设为 20 分钟，用于真实实例与进程强杀矩阵；单个用例断言和性能验收阈值不变。
 
 本机实例/schema 命令退出码：0 成功；1 校验或实例状态拒绝；2 用法错误；3 读写或内部错误。远程 CLI 以 JSON 输出，0 成功，1 领域拒绝，2 输入错误，3 读写/协议错误，4 冲突或旧 ETag，5 认证失败，6 可重试/限流，130 取消。详见[薄 CLI](contracts/client.md)。
 
@@ -128,7 +132,8 @@ T05/T06 的 M2 已提供任务/Flow、手动执行与检查作业（官方内置
 
 | 平台 | 构建 | 单元与契约测试 | SQLite 能力实测 | 文件系统故障演练 |
 |---|---|---|---|---|
-| macOS arm64（开发机，APFS） | 通过 | 通过（含 `-race`） | 通过，见下 | 未开始（T02/T08） |
+| macOS arm64（开发机，APFS） | 通过 | 通过（含 `-race`） | 通过，见下 | [提交强杀与原生文件子集](testing/commit-fault-matrix.md)已运行；断电未测 |
+| Linux amd64（测试容器，btrfs） | 测试二进制通过 | 提交矩阵与关联组件通过 | 未重测能力清单 | 强杀、句柄与跨卷子集已运行；真实满卷与断电未测 |
 | macOS arm64（CI） | 通过 | 通过 | 通过 | 未开始 |
 | Linux amd64（CI） | 通过 | 通过（含 `-race`） | 通过 | 未开始 |
 | Windows amd64（CI） | 通过 | 通过 | 通过 | 未开始 |
@@ -140,7 +145,7 @@ CI 结果来自 2026-09-27 首次运行（提交 `985fa0f`，GitHub 托管的 `u
 
 开发机实测（2026-09-27，Go 1.26.8，modernc.org/sqlite v1.59.0，SQLite 3.53.4）：WAL、synchronous=FULL、fullfsync、STRICT 表、RETURNING、JSON 函数、FTS5、busy 超时后返回可分类错误、上下文取消可中断长查询、回滚、`wal_checkpoint(TRUNCATE)`、`VACUUM INTO` 快照与 `integrity_check` 均通过；写事务中强杀进程后重开，已提交数据完整、未提交数据不出现。启用 fullfsync 后单行提交约 4 ms（内置 SSD）至 10 ms（外置 SSD）。交叉编译通过不代表其他平台的文件语义、恢复或隔离已验证。
 
-存储传输开发机实测（2026-09-27，同上环境，macOS 系统临时目录）：`LANTAI_TEST_LARGE_MB=1024` 的续传测试上传 1 073 754 169 字节（17 个 64 MiB 分片，第三片中途断开后只补传缺的 15 片）、分两段 Range 下载，整件 SHA-256 一致；最终复跑上传约 2.5 秒、全程约 3.1 秒，传输期间堆占用增长约 3.6 MiB（默认 32 MiB 规模约 1.6 MiB），不随文件大小线性增长。空间不足、文件占用、硬链接不可用与改名失败只经故障注入测试覆盖，真实文件系统上的故障演练仍属 TEST-M1-06。
+存储传输开发机实测（2026-09-27，同上环境，macOS 系统临时目录）：`LANTAI_TEST_LARGE_MB=1024` 的续传测试上传 1 073 754 169 字节（17 个 64 MiB 分片，第三片中途断开后只补传缺的 15 片）、分两段 Range 下载，整件 SHA-256 一致；最终复跑上传约 2.5 秒、全程约 3.1 秒，传输期间堆占用增长约 3.6 MiB（默认 32 MiB 规模约 1.6 MiB），不随文件大小线性增长。提交定点强杀、文件错误与原生句柄/跨卷/小容量满卷驱动见[提交故障矩阵](testing/commit-fault-matrix.md)。错误注入、真实进程终止、原生文件语义和断电分别记证据；现有结果不代表 TEST-M1-06 三平台全部通过。
 
 容量与性能：最终性能取决于部署环境的系统与硬件。1 万资产 / 5 万版本公共合成集的查询、写入、重建与库增长基线，以及接口 p95 等阈值，只在实际部署环境测量；开发机只用小规模合成集做正确性回归，测得的时延与吞吐不作为基线或阈值。
 

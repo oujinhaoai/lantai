@@ -43,11 +43,13 @@ step "Python SDK 契约与测试"
 python3 sdk/python/generate.py --check
 PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v
 
+# 与三平台 CI 一致：20 分钟限制整个包的累计测试，避免真实实例/强杀
+# 矩阵增长后触及 Go 默认的 10 分钟；不改变单个用例断言或性能阈值。
 step "go test"
 if [ "${LANTAI_RACE:-1}" = "1" ]; then
-  go test -race -count=1 ./...
+  go test -timeout=20m -race -count=1 ./...
 else
-  go test -count=1 ./...
+  go test -timeout=20m -count=1 ./...
 fi
 
 step "构建 lantai"
