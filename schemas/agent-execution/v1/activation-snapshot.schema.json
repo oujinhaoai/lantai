@@ -26,6 +26,9 @@
     },
     "enablement_policy_revision": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
+    },
+    "effective_config_digest": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
     }
   }
 }

@@ -98,6 +98,7 @@ type JobResult struct {
 // CheckExecutions 由 T06 实现：核实检查证据来自真实完成的作业与当前激活代次。
 type CheckExecutions interface {
 	VerifyCheck(context.Context, authz.Context, commit.Committed, ids.ID, ledger.ReviewEvidenceInput, bool) error
+	CheckApplicable(context.Context, authz.Context, commit.Committed, ids.ID, ledger.ReviewEvidenceInput, ids.ID) error
 }
 
 type Deps struct {

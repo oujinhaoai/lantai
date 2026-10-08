@@ -17,6 +17,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/workflow"
+	"github.com/oujinhaoai/lantai/plugins/corecheck"
 )
 
 func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, out extensions.InvocationResult, hostErr error) (Job, error) {
@@ -41,8 +42,8 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 	}
 	outcome := execution.ClassifyInvocation(out.Observation)
 	unsupported := outcome == execution.InvocationCompleted && out.Result != nil && out.Result.Status == "unsupported"
-	if outcome == execution.InvocationCompleted && !unsupported {
-		if out.Result == nil || len(out.Result.Checks) != 1 {
+	if outcome == execution.InvocationCompleted {
+		if out.Result == nil || !unsupported && (len(out.Result.Checks) != 1 || out.Result.Checks[0].CheckKey != "" && out.Result.Checks[0].CheckKey != "schema" && !j.Attempt.ActivationSnapshot.EffectiveConfigDigest.Valid()) {
 			outcome = execution.InvocationRuntimeFault
 		} else {
 			b, e := canonjson.CanonicalizeValue(out.Result)
@@ -96,6 +97,20 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 				j.Failure = "invalid_result"
 			} else {
 				base := out.Result.Checks[0]
+				businessKey := base.CheckKey
+				named := businessKey != "" && businessKey != "schema"
+				structural := base
+				structural.CheckKey = ""
+				if named {
+					// A business verdict cannot replace the mandatory manifest check.
+					raw, readErr := s.d.Files.ReadManifest(ctx, v)
+					structural.Verdict = execution.VerdictFail
+					structural.Findings = []string{"manifest_identity_or_content_invalid"}
+					if readErr == nil && corecheck.Check(raw, j.Request.Target, v.ManifestDigest) {
+						structural.Verdict = execution.VerdictPass
+						structural.Findings = []string{}
+					}
+				}
 				// File integrity and current rights are core-owned facts, independently
 				// checked in addition to the one-shot plugin's structural result.
 				integrity := s.d.Files.VerifyDeep(ctx, v.OperationID)
@@ -110,7 +125,7 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 				}
 				j.Checks = []ledger.ReviewEvidenceInput{}
 				for _, key := range []string{"integrity", "schema", "license_evidence", "purpose"} {
-					check := base
+					check := structural
 					if key != "schema" {
 						check.Verdict = execution.VerdictPass
 						check.Findings = []string{}
@@ -122,7 +137,10 @@ func (s *Service) finish(ctx context.Context, w authz.Context, dispatched Job, o
 							}
 						}
 					}
-					j.Checks = append(j.Checks, ledger.ReviewEvidenceInput{ProjectID: j.Request.ProjectID, Ref: j.Request.Target, ManifestDigest: v.ManifestDigest, Flow: j.Request.Flow, Kind: "check_result", CheckKey: key, SchemaVersion: 1, ConfigDigest: ConfigDigest(), Check: &check})
+					j.Checks = append(j.Checks, ledger.ReviewEvidenceInput{CheckRunID: j.Attempt.ID, ProjectID: j.Request.ProjectID, Ref: j.Request.Target, ManifestDigest: v.ManifestDigest, Flow: j.Request.Flow, Kind: "check_result", CheckKey: key, SchemaVersion: 1, ConfigDigest: ConfigDigest(), Check: &check})
+				}
+				if named {
+					j.Checks = append(j.Checks, ledger.ReviewEvidenceInput{CheckRunID: j.Attempt.ID, ProjectID: j.Request.ProjectID, Ref: j.Request.Target, ManifestDigest: v.ManifestDigest, Flow: j.Request.Flow, Kind: "check_result", CheckKey: businessKey, SchemaVersion: 1, ConfigDigest: j.Attempt.ActivationSnapshot.EffectiveConfigDigest, Check: &base})
 				}
 				b, err := canonjson.CanonicalizeValue(j.Checks)
 				if err != nil {
@@ -224,34 +242,9 @@ func (s *Service) JobResult(ctx context.Context, id ids.ID) (workflow.JobResult,
 	return workflow.JobResult{State: state, Evidence: j.Evidence, Failure: j.Failure}, nil
 }
 func (s *Service) VerifyCheck(ctx context.Context, w authz.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, historical bool) error {
-	rows, e := s.d.DB.QueryContext(ctx, `SELECT record FROM jobs_jobs WHERE project_id=? AND state IN ('accepting','succeeded')`, v.ProjectID)
+	found, e := s.matchCheck(ctx, v, actor, in)
 	if e != nil {
 		return e
-	}
-	var found *Job
-	for rows.Next() {
-		var b string
-		var j Job
-		if e = rows.Scan(&b); e != nil {
-			rows.Close()
-			return e
-		}
-		if e = json.Unmarshal([]byte(b), &j); e != nil {
-			rows.Close()
-			return e
-		}
-		if j.WorkerID == actor && j.Request.Target.VersionID == v.VersionID && slices.ContainsFunc(j.Checks, func(x ledger.ReviewEvidenceInput) bool { return raw(x) == raw(in) }) {
-			found = &j
-			break
-		}
-	}
-	e = rows.Err()
-	rows.Close()
-	if e != nil {
-		return e
-	}
-	if found == nil {
-		return errcode.New(errcode.ChecksNotSatisfied, "no completed job matches this evidence")
 	}
 	if !historical {
 		j := *found
@@ -273,6 +266,69 @@ func (s *Service) VerifyCheck(ctx context.Context, w authz.Context, v commit.Com
 		}
 	}
 	return nil
+}
+
+// CheckApplicable revalidates acceptance without changing readable history.
+func (s *Service) CheckApplicable(ctx context.Context, w authz.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, evidenceID ids.ID) error {
+	j, e := s.matchCheck(ctx, v, actor, in, evidenceID)
+	if e != nil {
+		return e
+	}
+	if j.State != "succeeded" || j.CancelRequested {
+		return errcode.New(errcode.ChecksNotSatisfied, "check job is not complete")
+	}
+	epoch, e := s.d.Authority.RecoveryEpoch(ctx)
+	if e != nil {
+		return e
+	}
+	if epoch != j.Epoch {
+		return errcode.New(errcode.LeaseStale, "")
+	}
+	if e = s.d.Host.CheckCurrentSnapshot(ctx, j.Request.ProjectID, j.Attempt.ActivationSnapshot, j.Attempt.ID, epoch); e != nil {
+		return e
+	}
+	// Review and publication enforce their own task/flow transition. Publication
+	// may follow completion of the same production round; no old fence or output
+	// may become applicable merely because that task is done.
+	_, e = s.currentTarget(ctx, w, *j, true)
+	return e
+}
+func (s *Service) matchCheck(ctx context.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, evidenceIDs ...ids.ID) (*Job, error) {
+	rows, e := s.d.DB.QueryContext(ctx, `SELECT record FROM jobs_jobs WHERE project_id=? AND state IN ('accepting','succeeded')`, v.ProjectID)
+	if e != nil {
+		return nil, e
+	}
+	var found *Job
+	for rows.Next() {
+		var b string
+		var j Job
+		if e = rows.Scan(&b); e != nil {
+			rows.Close()
+			return nil, e
+		}
+		if e = json.Unmarshal([]byte(b), &j); e != nil {
+			rows.Close()
+			return nil, e
+		}
+		// New evidence names the exact frozen JobAttempt. Legacy accepted
+		// evidence is additionally matched by the ledger ID recorded by that Job.
+		if in.CheckRunID != "" && (j.Attempt == nil || j.Attempt.ID != in.CheckRunID) || len(evidenceIDs) > 0 && !slices.ContainsFunc(j.Evidence, func(e workflow.JobEvidence) bool { return e.EvidenceID == evidenceIDs[0] }) {
+			continue
+		}
+		if j.WorkerID == actor && j.Request.Target.VersionID == v.VersionID && slices.ContainsFunc(j.Checks, func(x ledger.ReviewEvidenceInput) bool { return raw(x) == raw(in) }) {
+			found = &j
+			break
+		}
+	}
+	e = rows.Err()
+	rows.Close()
+	if e != nil {
+		return nil, e
+	}
+	if found == nil {
+		return nil, errcode.New(errcode.ChecksNotSatisfied, "no completed job matches this evidence")
+	}
+	return found, nil
 }
 func (s *Service) Cancel(ctx context.Context, w authz.Context, key string, in Control) (Job, error) {
 	return s.control(ctx, w, key, "cancel", in, in, func(j *Job) error {

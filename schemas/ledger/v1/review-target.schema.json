@@ -137,6 +137,9 @@
           },
           "completed_at": {
             "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/timestamp"
+          },
+          "check_run_id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/review-evidence.schema.json#/$defs/check_run_id"
           }
         },
         "allOf": [

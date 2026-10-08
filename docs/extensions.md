@@ -51,7 +51,7 @@ M1 固定扩展点 ID 与领域所有者，并为处理器/校验器定义输入
 
 搜索扩展不得接收无权对象后靠最后过滤补救。连接器不能借通知通路外传全部资产。自定义路由仅在 `/api/v1/ext/<plugin-id>/` 下注册明确方法和 schema，不覆盖核心路由、不提供任意 URL 代理；目标服务地址由管理员部署配置选择。
 
-不在提交事务里调用第三方同步钩子。需要阻止发布的外部检查先生成证据，由 AcceptanceProfile 在审定/发布时检查。解析超时、schema 错误或能力缺失应产生明确失败或 unknown，不能当成 pass。
+不在提交事务里调用第三方同步钩子。需要阻止发布的外部检查先生成证据，由 AcceptanceProfile 在审定/发布时检查。解析超时、schema 错误或能力缺失应产生明确失败或 unknown，不能当成 pass。M2 校验器单次返回一项检查；[`lantai.check-result/v1`](../schemas/extensions/v1/check-result.schema.json) 的可选 `check_key` 标识业务检查，省略或 `schema` 保留旧结构检查语义。命名业务检查使用冻结的有效配置摘要，由 Profile 核对处理器身份和配置；核心独立产生 integrity、schema、license_evidence、purpose，插件不能替代核心完整性、权利、用途、身份、授权、当前用途或目标检查。合法业务 fail 可按 Profile 的明确规则由人负责豁免，缺失、过期或绑定不同的结果不能以豁免补齐。
 
 ## 4. 客户端扩展
 
@@ -238,7 +238,7 @@ M1 自举采用独立的 `builtin_release` 来源：只有绑定当前核心发�
 2. 宿主创建 `job.json`、只读 `in/` 与独立 `out/`。`job.json` 固定协议版本、扩展 ID/版本/包摘要、operation/attempt、输入摘要、参数、预期 schema 与 deadline；启动已登记入口，传入 job 文件路径。
 3. 插件只在 `out/` 生成候选文件和 `out/result.json` 后退出。标准错误有界记录，日志不是协议；一次调用不启动 Describe/Negotiate/Configure/Health/Drain/Stop 服务。协议兼容性通过清单、任务和结果 schema 版本校验。
 4. 退出码 0 仅表示程序正常结束；还必须存在完整且 schema 合法的结果。结果可含合法检查 `fail`，它属于业务不合格；崩溃、超时、缺失/畸形结果不能伪装为 pass。退出非 0 属运行失败，不作为表达合法检查 fail 的方式；输入不支持用 schema 规定的分类结果并正常退出，或由宿主派发前拒绝，不能靠崩溃来表达。
-5. 宿主检查输出数量/大小/路径与摘要，拒绝越界、穿越、符号链接逃逸与未声明产物；worker/服务端再按领域契约接受。最终提交复验权限、包启用/代次与 fence，产物身份和证据可追溯。`result.json` 记录 `status`、`records`、`checks`、`files`，处理器/校验器为 `lantai.processor-result/v1`，本机命令为 `lantai.cli-command-result/v1`；校验器以只读 `in/manifest.yaml` 取得目标版本清单，`status: unsupported` 表达不支持的输入。
+5. 宿主检查输出数量/大小/路径与摘要，拒绝越界、穿越、符号链接逃逸与未声明产物；worker/服务端再按领域契约接受。最终提交复验权限、包启用/代次与 fence，产物身份和证据可追溯。`result.json` 在反序列化前按完整原始 JSON 协议校验，拒绝顶层和嵌套禁止字段；之后再核对 operation、producer 及当前调用语义。它记录 `status`、`records`、`checks`、`files`，处理器/校验器为 `lantai.processor-result/v1`，本机命令为 `lantai.cli-command-result/v1`；校验器以只读 `in/manifest.yaml` 取得目标版本清单，`status: unsupported` 表达不支持的输入。
 6. 超时或取消由宿主处理进程树、deadline 与目录回收，不依赖插件正确响应 Stop。Windows 文件占用导致临时目录删除失败时，宿主在最多 2 秒内重试；最终仍无法回收时不接受结果，原本可接受的已完成调用记运行故障；取消与停止未知仍按原有分类和对账处理。可用 OS 约束按平台实测，不能承诺子进程天然隔离。
 
 ### 10.3 常驻实例：按需控制协议
@@ -251,7 +251,7 @@ Stop 区分宿主托管进程与外部共享服务/人工会话。后者默认�
 
 ### 10.4 共用撤权、升级与回执规则
 
-正常升级停止派发旧版本新调用，可让已接受调用在限定旧代次与 deadline 内完成；一次性插件的排空就是等待这些调用结束，不向它发送 Drain RPC。权限撤销/安全隔离则立即失效能力与结果接受权，必要时由宿主取消进程。任务 fence 与 activation generation 均须通过。
+正常升级停止派发旧版本新调用，可让已接受调用在限定旧代次与 deadline 内完成；一次性插件的排空就是等待这些调用结束，不向它发送 Drain RPC。排空例外只用于已准入调用的结果收尾；已完成检查用于新的审定或发布时，必须仍绑定当前启用且探测有效的同一代次，正常停用或代次切换也使旧检查不再具备当前适用性。历史检查与审定记录保持可读且不改写。权限撤销/安全隔离则立即失效能力与结果接受权，必要时由宿主取消进程。任务 fence 与 activation generation 均须通过。
 
 每个有副作用调用有持久 intent/receipt 所有者：执行归 T06 Job/TaskRun，投递归 T04 delivery，其他动作归原命令模块；T09 只保存插件生命周期操作。固定 operation_id/request_hash，同键异摘要拒绝。未知效果进入 `needs_reconciliation`；协议不具备幂等或状态查询时不能换键、版本、实例盲目重试。业务幂等保留期覆盖允许重试期。
 

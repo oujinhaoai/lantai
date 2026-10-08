@@ -4937,6 +4937,8 @@ components:
           $ref: '#/components/schemas/M2ExtensionsCheckResult'
         check_key:
           type: string
+        check_run_id:
+          $ref: ../schemas/ledger/v1/review-evidence.schema.json#/$defs/check_run_id
         completed_at:
           type: string
         config_digest:
@@ -5262,6 +5264,8 @@ components:
           $ref: '#/components/schemas/M2ExtensionsCheckResult'
         check_key:
           type: string
+        check_run_id:
+          $ref: ../schemas/ledger/v1/review-evidence.schema.json#/$defs/check_run_id
         config_digest:
           $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
         flow:

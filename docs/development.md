@@ -51,7 +51,8 @@
 | M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
 | T06/T07 真实模块联调 | `go test ./tests/integration -run 'Test(M2Manual\|M2Job\|M2Real\|RemoteM2)' -count=1` |
 | T09 一次性宿主、包治理、熔断与插件 SDK（构建合成 fixture 并真实起进程） | `go test ./internal/extensions/... ./sdk/go/... -count=1` |
-| T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension' -count=1` |
+| T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension\|TestM2Business\|TestM2Governance' -count=1` |
+| 检查适用性、raw 协议与公开来源包装回归 | `go test -race ./tests/integration -run 'TestM2BusinessCompletedCheckRetirementBeforeReview\|TestM2BusinessPublicContractPreservesActualRun\|TestM2GovernanceProbeCompleteRawProtocol\|TestM2GovernanceJobRejectsRawForbiddenFields' -count=1` |
 | T08 到期清除与 GC 调度 | `go test ./internal/operations -run Scheduler -count=1`；`go test ./tests/integration -run TestM2LifecycleSchedulerDuePurgeAndGC -count=1` |
 | 服务停止时运行一次到期提醒/清除与 GC | `go run ./cmd/lantai lifecycle -home <数据根>` |
 | 扩展包导入、启用诊断、命令列表（远程） | `go run ./cmd/lantai plugin import\|list\|enablements\|probe\|commands ...` |

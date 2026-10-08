@@ -156,10 +156,10 @@ func (r *Registry) RunBuiltin(ctx context.Context, in ProcessorInput, raw []byte
 		return out, nil
 	}
 	var res ProcessorResult
-	if e = json.Unmarshal(b, &res); e != nil {
+	if e = validateJSON("lantai.processor-result/v1", b); e != nil {
 		return out, nil
 	}
-	if e = validate("lantai.processor-result/v1", res); e != nil {
+	if e = json.Unmarshal(b, &res); e != nil {
 		return out, nil
 	}
 	if res.OperationID != in.OperationID || res.Producer != in.Producer || len(res.Files) != 0 || len(res.Records) != 0 || len(res.Checks) != 1 {
@@ -257,6 +257,11 @@ func (r *Registry) Run(ctx context.Context, _ ids.ID, in ProcessorInput, raw []b
 
 // CheckSnapshot re-verifies the builtin release binding for this epoch.
 func (r *Registry) CheckSnapshot(ctx context.Context, _ ids.ID, s ae.ActivationSnapshot, _ ids.ID, epoch int64) error {
+	return r.CheckBuiltinSnapshot(ctx, s, epoch)
+}
+
+// CheckCurrentSnapshot has no drain exception for compiled builtin releases.
+func (r *Registry) CheckCurrentSnapshot(ctx context.Context, _ ids.ID, s ae.ActivationSnapshot, _ ids.ID, epoch int64) error {
 	return r.CheckBuiltinSnapshot(ctx, s, epoch)
 }
 
