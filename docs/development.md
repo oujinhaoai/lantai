@@ -61,7 +61,7 @@
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 
-`scripts/check.sh` 与三平台 CI 均将 Go 测试的单包累计上限设为 20 分钟，用于真实实例与进程强杀矩阵；单个用例断言和性能验收阈值不变。
+`scripts/check.sh` 默认 race 测试的单包累计上限为 30 分钟；`LANTAI_RACE=0` 及三平台普通 CI 测试保持 20 分钟。较慢 runner 上的真实实例与进程强杀矩阵需要容纳 race 开销；单个用例断言和性能验收阈值不变。
 
 本机实例/schema 命令退出码：0 成功；1 校验或实例状态拒绝；2 用法错误；3 读写或内部错误。远程 CLI 以 JSON 输出，0 成功，1 领域拒绝，2 输入错误，3 读写/协议错误，4 冲突或旧 ETag，5 认证失败，6 可重试/限流，130 取消。详见[薄 CLI](contracts/client.md)。
 
@@ -127,7 +127,7 @@ T05/T06 的 M2 已提供任务/Flow、手动执行与检查作业（官方内置
 
 ## 持续集成
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：Linux 上运行 `scripts/check.sh` 与 govulncheck；Linux、macOS、Windows 上运行 `go test -timeout=20m -count=1 ./...` 并上传 SQLite 能力报告（20 分钟为单个测试包的累计执行上限，用于覆盖较慢 Windows runner 的真实实例集成，不替代业务性能阈值）；六个目标（linux/darwin/windows × amd64/arm64）交叉编译。第三方 action 固定到提交 SHA。
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：Linux 上运行 `scripts/check.sh`（race 单包累计上限 30 分钟）与 govulncheck；Linux、macOS、Windows 上运行 `go test -timeout=20m -count=1 ./...` 并上传 SQLite 能力报告（20 分钟为单个测试包的累计执行上限，用于覆盖较慢 Windows runner 的真实实例集成，不替代业务性能阈值）；六个目标（linux/darwin/windows × amd64/arm64）交叉编译。第三方 action 固定到提交 SHA。
 
 ## 平台验证状态
 

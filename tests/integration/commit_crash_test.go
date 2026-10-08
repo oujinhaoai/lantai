@@ -398,7 +398,11 @@ func TestCommitCrashMatrix(t *testing.T) {
 					t.Fatalf("checkpoint timed out: %s", point)
 				case <-tick.C:
 					b, err := os.ReadFile(ready)
-					if errors.Is(err, os.ErrNotExist) {
+					// The handshake is atomically published, but Windows may briefly
+					// deny a read while another process holds a native file handle.
+					// Retry only missing/sharing errors within the same 45s deadline;
+					// permission failures and invalid JSON remain immediate failures.
+					if crashReadyReadPending(err) {
 						continue
 					}
 					if err != nil {
