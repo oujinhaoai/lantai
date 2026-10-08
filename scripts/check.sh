@@ -43,8 +43,8 @@ step "Python SDK 契约与测试"
 python3 sdk/python/generate.py --check
 PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v
 
-# 普通测试与三平台 CI 保持 20 分钟单包累计上限；race 的额外开销
-# 在较慢 runner 上需要 30 分钟。只约束防挂死，不改变用例断言或性能阈值。
+# 本脚本普通测试保持 20 分钟单包累计上限；race 的额外开销需要 30 分钟。
+# Windows CI 普通测试另设 30 分钟。只约束防挂死，不改变用例断言或性能阈值。
 step "go test"
 if [ "${LANTAI_RACE:-1}" = "1" ]; then
   go test -timeout=30m -race -count=1 ./...
