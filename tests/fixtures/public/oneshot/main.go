@@ -47,6 +47,42 @@ func run(r *extension.Run) error {
 			return err
 		}
 	}
+	if j.Mode == "probe" {
+		switch c.Mode {
+		case "probe_unknown_field", "probe_unknown_producer_field":
+			if err = r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "completed", Producer: *j.Producer}); err != nil {
+				return err
+			}
+			return injectForbiddenField(r, c)
+		case "probe_checks":
+			return r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "completed", Producer: *j.Producer, Checks: []extension.Check{{Contract: extension.CheckResultContract, Ref: extension.Ref{InstanceID: j.OperationID, AssetID: j.OperationID, VersionID: j.OperationID}, ManifestDigest: j.InputDigest, Verdict: "pass", Findings: []string{}, Producer: *j.Producer}}})
+		case "probe_files":
+			path, err := r.Output("unexpected.bin")
+			if err != nil {
+				return err
+			}
+			if err = os.WriteFile(path, []byte("synthetic"), 0600); err != nil {
+				return err
+			}
+			return r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "completed", Producer: *j.Producer})
+		case "probe_hang":
+			c.Mode = "hang"
+			return fault(r, c)
+		case "probe_big_output":
+			c.Mode = "big_output"
+			return fault(r, c)
+		case "probe_bad_schema":
+			return os.WriteFile(outPath(r), []byte(`{"status":"pass"}`), 0600)
+		case "probe_no_result":
+			return nil
+		case "probe_unsupported":
+			return r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "unsupported", Producer: *j.Producer})
+		case "probe_records":
+			return r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "completed", Producer: *j.Producer, Records: []extension.Record{{Schema: "lantai.synthetic/v1", Payload: map[string]any{"unexpected": true}}}})
+		case "probe_delay":
+			time.Sleep(time.Duration(c.SleepMS) * time.Millisecond)
+		}
+	}
 	if j.Mode == "probe" && c.Mode != "probe_crash" {
 		return r.FinishProcessor(extension.ProcessorResult{OperationID: j.OperationID, Status: "completed", Producer: *j.Producer})
 	}
@@ -64,10 +100,33 @@ func run(r *extension.Run) error {
 			res.Checks = append(res.Checks, check(r, j, ref, c.Mode == "fail"))
 		}
 	}
+	if c.Mode == "business" {
+		res.Contract = extension.ProcessorResultContract
+		res.Files = []extension.File{}
+		res.Records = []extension.Record{}
+		raw, err := json.Marshal(res)
+		if err != nil {
+			return err
+		}
+		var doc map[string]any
+		if err = json.Unmarshal(raw, &doc); err != nil {
+			return err
+		}
+		for _, x := range doc["checks"].([]any) {
+			x.(map[string]any)["check_key"] = "media_structure"
+		}
+		raw, err = json.Marshal(doc)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(outPath(r), raw, 0600)
+	}
 	if err = r.FinishProcessor(res); err != nil {
 		return err
 	}
 	switch c.Mode {
+	case "unknown_field", "unknown_producer_field", "unknown_check_field":
+		return injectForbiddenField(r, c)
 	case "extra_file":
 		p, _ := r.Output("undeclared.bin")
 		return os.WriteFile(p, []byte("late"), 0o600)
@@ -80,6 +139,37 @@ func run(r *extension.Run) error {
 	return nil
 }
 
+// The SDK emits a valid result first. Deliberately alter its actual wire bytes
+// afterward, so tests detect fields lost by permissive struct decoding.
+func injectForbiddenField(r *extension.Run, c config) error {
+	b, err := os.ReadFile(outPath(r))
+	if err != nil {
+		return err
+	}
+	var doc map[string]any
+	if err = json.Unmarshal(b, &doc); err != nil {
+		return err
+	}
+	switch c.Mode {
+	case "probe_unknown_producer_field", "unknown_producer_field":
+		doc["producer"].(map[string]any)["unexpected"] = true
+	case "unknown_check_field":
+		doc["checks"].([]any)[0].(map[string]any)["unexpected"] = true
+	default:
+		doc["unexpected_business_payload"] = map[string]any{"unexpected": true}
+	}
+	b, err = json.Marshal(doc)
+	if err != nil {
+		return err
+	}
+	if c.Heartbeat != "" {
+		if err = os.WriteFile(c.Heartbeat, b, 0600); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(outPath(r), b, 0600)
+}
+
 // check compares the host-supplied manifest.yaml identity with the fixed input.
 func check(r *extension.Run, j extension.ProcessorJob, ref extension.Ref, forceFail bool) extension.Check {
 	c := extension.Check{Contract: extension.CheckResultContract, Ref: ref, ManifestDigest: j.InputDigest, Verdict: "fail", Findings: []string{"manifest_identity_mismatch"}, Producer: *j.Producer}
@@ -89,9 +179,20 @@ func check(r *extension.Run, j extension.ProcessorJob, ref extension.Ref, forceF
 		AssetID        string `yaml:"asset_id"`
 		VersionID      string `yaml:"version_id"`
 		ManifestDigest string `yaml:"manifest_digest"`
+		Content        struct {
+			Metadata map[string]any `yaml:"metadata"`
+		} `yaml:"content"`
 	}
 	if err == nil && yaml.Unmarshal(raw, &doc) == nil && !forceFail && doc.InstanceID == ref.InstanceID && doc.AssetID == ref.AssetID && doc.VersionID == ref.VersionID && doc.ManifestDigest == j.InputDigest {
 		c.Verdict, c.Findings = "pass", []string{}
+	}
+	if j.Mode != "probe" && len(j.Config) > 0 {
+		var cfg config
+		_ = json.Unmarshal(j.Config, &cfg)
+		extra, _ := doc.Content.Metadata["extra"].(map[string]any)
+		if cfg.Mode == "business" && extra["synthetic_valid"] != true {
+			c.Verdict, c.Findings = "fail", []string{"synthetic_structure_invalid"}
+		}
 	}
 	return c
 }

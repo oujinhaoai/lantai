@@ -11,6 +11,12 @@ go test ./tests/integration -run '^TestCommitCrashMatrix$' -count=1 -v \
   -args -commit-crash-evidence=<本次新建的证据目录>
 ```
 
+Windows 上，父进程在原有 45 秒握手等待期限内重试 `ERROR_SHARING_VIOLATION` / `ERROR_LOCK_VIOLATION`，以处理原子握手文件的短暂占用；权限拒绝、其他 I/O 错误及无效 JSON 仍立即失败。原生占用反例持有无读取共享的文件句柄，核对占用时等待、释放后可读以及权限错误不被当作等待：
+
+```powershell
+go test ./tests/integration -run '^TestCommitCrashHandshakeWindowsOccupiedRead$' -count=1 -v
+```
+
 每个点启动一个独立测试子进程，完成合成身份/项目/上传，在真实提交路径上暂停并以原子文件通知父进程。父进程用 `Process.Kill` 强制终止（Unix 为 SIGKILL，Windows 为 TerminateProcess），不执行关闭或 defer；等待退出后重新持有数据根锁。离线组装的实例先在启动维护上下文读取原 operation、版本可见性与读取授权结果，然后分派恢复，再经正常应用启动和原请求重放两次核验。
 
 | 点 | 暂停位置 | 强杀后预期 |

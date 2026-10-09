@@ -128,11 +128,17 @@ func failure(code errcode.Code, reason string) error {
 	return errcode.New(code, "").WithDetails(errcode.Detail{Reason: reason})
 }
 func validate(contract string, v any) error {
-	r, e := schema.Default()
+	b, e := json.Marshal(v)
 	if e != nil {
 		return e
 	}
-	b, e := json.Marshal(v)
+	return validateJSON(contract, b)
+}
+
+// validateJSON checks the actual wire document before decoding can discard
+// unknown fields. validate is reserved for core-owned values being encoded.
+func validateJSON(contract string, b []byte) error {
+	r, e := schema.Default()
 	if e != nil {
 		return e
 	}
@@ -141,6 +147,11 @@ func validate(contract string, v any) error {
 	}
 	return nil
 }
+
+func validateProcessorResultJSON(b []byte) error {
+	return validateJSON("lantai.processor-result/v1", b)
+}
+
 func Parse(raw []byte) (Manifest, error) {
 	var m Manifest
 	if int64(len(raw)) > MaxPackageBytes {

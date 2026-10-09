@@ -97,6 +97,7 @@ type File struct {
 // Check is lantai.check-result/v1. A legal "fail" is business evidence; crash
 // or exit non-zero only for runtime faults, never to express a failing check.
 type Check struct {
+	CheckKey       string   `json:"check_key,omitempty"`
 	Contract       string   `json:"contract"`
 	Ref            Ref      `json:"ref"`
 	ManifestDigest string   `json:"manifest_digest"`

@@ -344,6 +344,8 @@ func (r *Registry) Producer(ctx context.Context, contribution string) (storage.P
 }
 
 type CheckResult struct {
+	// Empty is the legacy structural result; named business checks are additional.
+	CheckKey       string                 `json:"check_key,omitempty"`
 	Contract       string                 `json:"contract"`
 	Ref            ids.PermanentRef       `json:"ref"`
 	ManifestDigest digest.Digest          `json:"manifest_digest"`

@@ -80,12 +80,18 @@ func (m *Manager) saveActivation(ctx context.Context, a *Activation) error {
 		return err
 	}
 	defer h.Release()
-	_, err = m.d.Runtime.ExecContext(ctx, `INSERT INTO extensions_activations(enablement_id,generation,state,environment_digest,record) VALUES(?,?,?,?,?) ON CONFLICT(enablement_id,generation) DO UPDATE SET state=excluded.state,environment_digest=excluded.environment_digest,record=excluded.record`, a.EnablementID, a.Generation, a.State, a.EnvironmentDigest, encode(a))
+	return m.writeActivation(ctx, a)
+}
+
+// writeActivation requires the caller to hold this manager's write gate.
+func (m *Manager) writeActivation(ctx context.Context, a *Activation) error {
+	a.UpdatedAt = clock.Format(m.d.Clock.Now())
+	_, err := m.d.Runtime.ExecContext(ctx, `INSERT INTO extensions_activations(enablement_id,generation,state,environment_digest,record) VALUES(?,?,?,?,?) ON CONFLICT(enablement_id,generation) DO UPDATE SET state=excluded.state,environment_digest=excluded.environment_digest,record=excluded.record`, a.EnablementID, a.Generation, a.State, a.EnvironmentDigest, encode(a))
 	return err
 }
 
 func (e Enablement) snapshot() ae.ActivationSnapshot {
-	return ae.ActivationSnapshot{Contract: "lantai.activation-snapshot/v1", Activation: execution.Activation{ExtensionID: e.ExtensionID, ExtensionVersion: e.ExtensionVersion, PackageDigest: e.PackageDigest, Generation: e.Generation}, Entry: ae.PackageEntry{ExtensionID: e.ExtensionID, ExtensionVersion: e.ExtensionVersion, PackageDigest: e.PackageDigest, Target: e.Target, Entry: e.Entry, EntryDigest: e.EntryDigest}, EffectiveConfigRevision: e.ConfigRevision, EnablementPolicyRevision: e.PolicyRevision}
+	return ae.ActivationSnapshot{Contract: "lantai.activation-snapshot/v1", Activation: execution.Activation{ExtensionID: e.ExtensionID, ExtensionVersion: e.ExtensionVersion, PackageDigest: e.PackageDigest, Generation: e.Generation}, Entry: ae.PackageEntry{ExtensionID: e.ExtensionID, ExtensionVersion: e.ExtensionVersion, PackageDigest: e.PackageDigest, Target: e.Target, Entry: e.Entry, EntryDigest: e.EntryDigest}, EffectiveConfigRevision: e.ConfigRevision, EffectiveConfigDigest: e.ConfigDigest, EnablementPolicyRevision: e.PolicyRevision}
 }
 
 func (e Enablement) producer(contribution string) storage.Producer {
@@ -168,7 +174,25 @@ func (m *Manager) runProbe(ctx context.Context, e Enablement) (Activation, error
 	if err != nil {
 		return a, err
 	}
-	res, err := RunOneShot(ctx, RunSpec{Package: pkg, Files: fsys, Target: "server", Job: job, Deadline: deadline, BaseDir: m.d.BaseDir, MaxOutputFiles: 0})
+	// Register cancellation while admission still holds the security guard.
+	// A revoke cannot fall between admission and registration of the live host.
+	runCtx, cancel := context.WithCancel(ctx)
+	lockCtx, held, err := m.d.Gate.Acquire(ctx, commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		cancel()
+		return a, err
+	}
+	err = m.probeCurrent(lockCtx, e, epoch)
+	if err == nil {
+		m.track(e.ID, a.ProbeID, cancel)
+	}
+	held.Release()
+	if err != nil {
+		cancel()
+		return a, err
+	}
+	defer func() { cancel(); m.untrack(e.ID, a.ProbeID) }()
+	res, err := RunOneShot(runCtx, RunSpec{Package: pkg, Files: fsys, Target: "server", Job: job, Deadline: deadline, BaseDir: m.d.BaseDir, MaxOutputFiles: 0, ValidateResult: validateProcessorResultJSON})
 	obs := res.Observation
 	a.Observation = &obs
 	a.State, a.Failure = "probe_failed", res.Failure
@@ -181,19 +205,55 @@ func (m *Manager) runProbe(ctx context.Context, e Enablement) (Activation, error
 		}
 	default:
 		var out ProcessorResult
-		if json.Unmarshal(res.Result, &out) != nil || validate("lantai.processor-result/v1", out) != nil || out.OperationID != in.OperationID || out.Producer != in.Producer || len(out.Checks) != 0 || len(out.Files) != 0 {
+		if json.Unmarshal(res.Result, &out) != nil || out.OperationID != in.OperationID || out.Producer != in.Producer || out.Status != "completed" || len(out.Checks) != 0 || len(out.Files) != 0 || len(out.Records) != 0 {
 			a.Failure = "probe_result_invalid"
 		} else {
 			a.State, a.Failure = "ready", ""
 		}
 	}
-	if serr := m.saveActivation(context.WithoutCancel(ctx), &a); serr != nil {
+	// Runtime observations are historical. Only current main authority may
+	// accept a ready probe, serialized with revocation and review withdrawal.
+	finalCtx, held, err := m.d.Gate.Acquire(context.WithoutCancel(ctx), commands.Request{Security: commands.ModeShared})
+	if err != nil {
+		return a, err
+	}
+	defer held.Release()
+	if currentErr := m.probeCurrent(finalCtx, e, epoch); currentErr != nil {
+		a.State, a.Failure = "probe_failed", "activation_changed"
+	}
+	if serr := m.writeActivation(finalCtx, &a); serr != nil {
 		return a, serr
 	}
 	if a.State != "ready" {
 		return a, failure(errcode.ExtensionActivationStale, "probe_failed:"+a.Failure)
 	}
 	return a, nil
+}
+
+// probeCurrent never treats an old runtime observation as authority.
+func (m *Manager) probeCurrent(ctx context.Context, e Enablement, epoch int64) error {
+	current, err := m.enablement(ctx, m.d.Main, e.ID)
+	if err != nil {
+		return err
+	}
+	if current == nil || current.State != "enabled" || !current.ProbeAuthorized || current.Generation != e.Generation || current.snapshot() != e.snapshot() || m.environmentDigest(*current) != m.environmentDigest(e) {
+		return failure(errcode.ExtensionActivationStale, "activation_changed")
+	}
+	review, err := m.d.Packages.PackageReview(ctx, e.ReviewRef)
+	if err != nil {
+		return err
+	}
+	if !review.Approved || review.ReviewID != e.ReviewID {
+		return failure(errcode.ExtensionActivationStale, "package_review_revoked")
+	}
+	currentEpoch, err := m.d.Authority.RecoveryEpoch(ctx)
+	if err != nil {
+		return err
+	}
+	if currentEpoch != epoch {
+		return failure(errcode.ExtensionActivationStale, "recovery_epoch_changed")
+	}
+	return nil
 }
 
 // admission is every authoritative check before a dispatch or acceptance:
@@ -332,15 +392,18 @@ func (m *Manager) Run(ctx context.Context, project ids.ID, in ProcessorInput, ra
 		return out, err
 	}
 	a, deadline, err := m.admitRun(lockCtx, project, in, raw)
+	runCtx, cancel := context.WithCancel(ctx)
+	invocation := in.Fence.JobAttemptID
+	if err == nil {
+		m.track(a.enablement.ID, invocation, cancel)
+	}
 	h.Release()
 	if err != nil {
+		cancel()
 		return out, err
 	}
 	e := a.enablement
 	limits := a.record.Manifest.ResourceLimits
-	invocation := in.Fence.JobAttemptID
-	runCtx, cancel := context.WithCancel(ctx)
-	m.track(e.ID, invocation, cancel)
 	defer func() { cancel(); m.untrack(e.ID, invocation) }()
 	pkg, fsys, err := m.readPackage(ctx, a.record)
 	if err != nil {
@@ -351,7 +414,7 @@ func (m *Manager) Run(ctx context.Context, project ids.ID, in ProcessorInput, ra
 	if err != nil {
 		return out, errors.Join(err, m.settle(context.WithoutCancel(ctx), invocation, execution.InvocationNotDispatched))
 	}
-	res, err := RunOneShot(runCtx, RunSpec{Package: pkg, Files: fsys, Target: "server", Job: job, Inputs: []InputFile{{Name: "manifest.yaml", Data: raw}}, Deadline: deadline, BaseDir: m.d.BaseDir, MaxInputBytes: limits.MaxInputBytes, MaxOutputBytes: limits.MaxOutputBytes, MaxOutputFiles: 0})
+	res, err := RunOneShot(runCtx, RunSpec{Package: pkg, Files: fsys, Target: "server", Job: job, Inputs: []InputFile{{Name: "manifest.yaml", Data: raw}}, Deadline: deadline, BaseDir: m.d.BaseDir, MaxInputBytes: limits.MaxInputBytes, MaxOutputBytes: limits.MaxOutputBytes, MaxOutputFiles: 0, ValidateResult: validateProcessorResultJSON})
 	out.Observation = res.Observation
 	if err != nil {
 		return out, errors.Join(err, m.settle(context.WithoutCancel(ctx), invocation, execution.InvocationNotDispatched))
@@ -359,7 +422,7 @@ func (m *Manager) Run(ctx context.Context, project ids.ID, in ProcessorInput, ra
 	if out.Observation.ResultValid {
 		out.Observation.ResultValid = false
 		var r ProcessorResult
-		if json.Unmarshal(res.Result, &r) == nil && validate("lantai.processor-result/v1", r) == nil && r.OperationID == in.OperationID && r.Producer == in.Producer && len(r.Files) == 0 && len(r.Records) == 0 && validChecks(r, in) {
+		if json.Unmarshal(res.Result, &r) == nil && r.OperationID == in.OperationID && r.Producer == in.Producer && len(r.Files) == 0 && len(r.Records) == 0 && validChecks(r, in) {
 			out.Observation.ResultValid = true
 			out.Result = &r
 		}
@@ -400,7 +463,7 @@ func validChecks(r ProcessorResult, in ProcessorInput) bool {
 		return false
 	}
 	c := r.Checks[0]
-	return c.Ref == in.InputRefs[0] && c.ManifestDigest == in.InputDigest && c.Producer == in.Producer
+	return !slices.Contains([]string{"integrity", "license_evidence", "purpose", "identity", "current_use", "authorization", "target"}, c.CheckKey) && c.Ref == in.InputRefs[0] && c.ManifestDigest == in.InputDigest && c.Producer == in.Producer
 }
 
 func (m *Manager) track(enablement, invocation ids.ID, cancel context.CancelFunc) {
@@ -432,6 +495,17 @@ func (m *Manager) cancelRunning(enablement ids.ID) {
 // deadline has not passed; revocation, review withdrawal or allowlist removal
 // always reject, regardless of runtime observation lag.
 func (m *Manager) CheckSnapshot(ctx context.Context, project ids.ID, s ae.ActivationSnapshot, invocation ids.ID, epoch int64) error {
+	return m.checkSnapshot(ctx, project, s, invocation, epoch, true)
+}
+
+// CheckCurrentSnapshot is the gate for completed evidence consumed by a new
+// review or publication. Draining grants only an admitted invocation permission
+// to finish; it never makes a retired generation current for a new decision.
+func (m *Manager) CheckCurrentSnapshot(ctx context.Context, project ids.ID, s ae.ActivationSnapshot, invocation ids.ID, epoch int64) error {
+	return m.checkSnapshot(ctx, project, s, invocation, epoch, false)
+}
+
+func (m *Manager) checkSnapshot(ctx context.Context, project ids.ID, s ae.ActivationSnapshot, invocation ids.ID, epoch int64, allowDrain bool) error {
 	if isBuiltin(s.Activation.ExtensionID) {
 		return m.d.Registry.CheckBuiltinSnapshot(ctx, s, epoch)
 	}
@@ -457,6 +531,9 @@ func (m *Manager) CheckSnapshot(ctx context.Context, project ids.ID, s ae.Activa
 		return failure(errcode.ExtensionActivationStale, "enablement_missing")
 	}
 	if current.State != "enabled" || current.Generation != inv.Generation {
+		if !allowDrain {
+			return failure(errcode.ExtensionActivationStale, "activation_retired")
+		}
 		now := m.d.Clock.Now()
 		if retired == nil || retired.Mode != "drain" {
 			return failure(errcode.ExtensionActivationStale, "activation_revoked")
@@ -464,6 +541,14 @@ func (m *Manager) CheckSnapshot(ctx context.Context, project ids.ID, s ae.Activa
 		at, err := clock.Parse(retired.At)
 		if err != nil || clock.FromMillis(inv.AdmittedAt).After(at) || now.After(clock.FromMillis(inv.Deadline)) {
 			return failure(errcode.ExtensionActivationStale, "drain_expired")
+		}
+	}
+	if !allowDrain {
+		if current.snapshot() != s {
+			return failure(errcode.ExtensionActivationStale, "snapshot_mismatch")
+		}
+		if err = m.ready(ctx, *current); err != nil {
+			return err
 		}
 	}
 	if _, err = m.check(ctx, project, defined, inv.Contribution); err != nil {

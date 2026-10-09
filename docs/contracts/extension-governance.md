@@ -46,9 +46,9 @@
 
 ## 受限探测
 
-server 启用提交后，在所有锁之外用同一授权运行一次合成调用：`job.json` 为 `lantai.processor-input/v1`、`mode: probe`、无业务输入，携带冻结配置；期限取 `timeout_seconds` 与 60 秒的较小者。结果必须协议合法（operation、producer 匹配，无文件、无检查）才记为 `ready`，否则 `probe_failed`，该代不可派发。探测不启用、不恢复已停用或撤权的包，也不授予新权限。
+server 启用提交后，在所有锁之外用同一授权运行一次合成调用：`job.json` 为 `lantai.processor-input/v1`、`mode: probe`、无业务输入，携带冻结配置；期限取 `timeout_seconds` 与 60 秒的较小者。结果必须协议合法（operation、producer 匹配，`status: completed`，无文件、无检查、无业务记录）才记为 `ready`，否则 `probe_failed`，该代不可派发。探测派发与进程取消登记共享 security 守卫，最终记录 ready 前复验当前启用代次、包审定及恢复代次；撤权期间的迟到完成只保留失败观察。探测不启用、不恢复已停用或撤权的包，也不授予新权限。
 
-探测证据绑定环境摘要：平台、宿主能力、当前核心发布摘要、包摘要、入口摘要与配置摘要。任一变化即 `probe_stale`；管理员可 `POST /api/v1/extensions/enablements/{id}/probe`（CLI `lantai plugin probe --id`）在原启用授权允许探测时重跑。`GET /api/v1/extensions/enablements` 给出启用、审定、探测、熔断与宿主能力，并列出 `disabled`、`package_review_revoked`、`probe_required`、`probe_failed`、`probe_stale`、`isolation_changed`、`breaker_open` 等原因。
+probe 和业务结果先校验原始 `lantai.processor-result/v1`，禁止字段不会因结构体解码而被忽略。受限 probe 还要求 completed、空 files/checks/records；探测证据绑定环境摘要：平台、宿主能力、当前核心发布摘要、包摘要、入口摘要与配置摘要。任一变化即 `probe_stale`；管理员可 `POST /api/v1/extensions/enablements/{id}/probe`（CLI `lantai plugin probe --id`）在原启用授权允许探测时重跑。`GET /api/v1/extensions/enablements` 给出启用、审定、探测、熔断与宿主能力，并列出 `disabled`、`package_review_revoked`、`probe_required`、`probe_failed`、`probe_stale`、`isolation_changed`、`breaker_open` 等原因。
 
 ## 派发与最终接受
 
@@ -107,9 +107,9 @@ lantai ext run org.example.tools inspect --registry ~/.config/lantai/extensions.
 
 ```sh
 go test ./internal/extensions/... ./sdk/go/... -count=1
-go test ./tests/integration -run 'TestM2Extension|TestRemoteExtension' -count=1
+go test ./tests/integration -run 'TestM2Extension|TestRemoteExtension|TestM2Business|TestM2Governance' -count=1
 ```
 
 单元测试覆盖文件协议与各故障类、超时/取消的进程树回收、入口替换、环境白名单、导入不可变与拒绝项、启用门禁（审定、信任、探测、配置、白名单、授权换用）、探测失败与环境变化、排空/撤权/审定撤回、以及 §11.2 熔断的窗口、去重、冷却、单一半开、取消/未知、epoch 与重启。集成测试用真实实例、身份 TOTP、台账审定流程和一次性进程贯通：插件资产经真实检查/质检/人审批准 → 静态导入 → HumanGrant 启用与探测 → 项目白名单 → 外部检查器驱动第二条流程至发布 → 撤权后解析与最终接受拒绝；以及 CLI 安装/运行、MCP 工具、PATH 同名程序不执行、入口替换与撤权。
 
-未验证：Linux/Windows 实机的隔离与回收行为只由 CI 托管 runner 的单元测试覆盖；内存/CPU/网络/文件系统强制约束不具备；常驻实例控制、跨插件依赖、节点侧宿主与第三方网页仍未启用。
+各平台的实测执行、源码适用性与独立评审另见维护者测试档案，单元/集成测试存在不代表目标环境已验收；内存/CPU/网络/文件系统强制约束不具备；常驻实例控制、跨插件依赖、节点侧宿主与第三方网页仍未启用。

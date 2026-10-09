@@ -22,6 +22,7 @@ type PackageEntry struct {
 
 // ActivationSnapshot 由 extensions 提供，只引用、不创建激活代次；不是 tasks 的租约。
 type ActivationSnapshot struct {
+	EffectiveConfigDigest    digest.Digest        `json:"effective_config_digest,omitempty"`
 	Contract                 string               `json:"contract"`
 	Activation               execution.Activation `json:"activation"`
 	Entry                    PackageEntry         `json:"entry"`

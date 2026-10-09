@@ -294,3 +294,10 @@ func (w *Service) List(ctx context.Context, who authz.Context, project, after id
 	}
 	return out, rows.Err()
 }
+
+func (x *ReviewExecution) CheckApplicable(ctx context.Context, who authz.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, evidenceID ids.ID) error {
+	if x.w.d.Checks == nil {
+		return errcode.New(errcode.UnsupportedCapability, "check execution authority not configured")
+	}
+	return x.w.d.Checks.CheckApplicable(ctx, who, v, actor, in, evidenceID)
+}

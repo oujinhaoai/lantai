@@ -27,9 +27,9 @@ Flow 定义明确请求 `org.lantai.corecheck.manifest` 或已启用包的 `asse
 
 先 `POST /nodes/observe` 报告当前会话的 capability、slots、busy 和 memory_bytes，再 `POST /jobs/run` 显式派发。观测五分钟过期，能力为 1–16 个贡献 ID 且不授予权限；检查器全局并发为一，未决运行占用槽位。每次分配独立 job_fence、30 秒接受租约、固定包/入口摘要、配置和恢复代次。不会发出 Task fence。
 
-官方宿主只运行当前已登记核心二进制的私有 `_processor-check` 入口。它将固定 `job.json`、manifest 写入私有临时目录，清空环境变量，不传会话、数据库句柄或数据根；10 秒期限控制实际进程，Wait 返回后才确认停止，输出限制 1 MiB。结果须匹配 operation、输入摘要、永久引用、producer 和协议。该路径属于 `builtin_release`，不是通用安全沙箱。外部包由同一一次性宿主运行，准入、探测、熔断、排空/撤权与最终接受见[扩展包治理](extension-governance.md)。
+官方宿主只运行当前已登记核心二进制的私有 `_processor-check` 入口。它将固定 `job.json`、manifest 写入私有临时目录，清空环境变量，不传会话、数据库句柄或数据根；10 秒期限控制实际进程，Wait 返回后才确认停止，输出限制 1 MiB。结果在反序列化前按原始完整协议验证，拒绝禁止字段，再匹配 operation、输入摘要、永久引用和 producer。该路径属于 `builtin_release`，不是通用安全沙箱。外部包由同一一次性宿主运行，准入、探测、熔断、排空/撤权与最终接受见[扩展包治理](extension-governance.md)。
 
-核心额外复验实际文件字节与当前权利，产生 integrity、schema、license_evidence、purpose 四项证据。证据通过台账所有者幂等追加；runtime 先保存 accepting 意图，响应丢失可以用原 key 继续接受。合法 fail 是已完成检查的失败证据，不能当宿主故障重试，也不能批准资源。只有确认停止的 runtime_fault/host_start_failed，或未派发的准入拒绝（breaker_open、activation_stale、processor_not_allowed、processor_not_enabled）可显式重试，总计最多三次；外部包合法返回的 `unsupported` 记为 `unsupported_input`，不计宿主故障；没有自动重试调度。unknown 必须先 `/jobs/reconcile` 提供已提交的停止证据，仍有本机宿主时拒绝人工覆盖。取消先请求宿主停止，停止未知不冒充 cancelled。
+核心额外复验实际文件字节与当前权利，产生 integrity、schema、license_evidence、purpose 四项证据。外部校验器可通过 `check_key` 返回一项命名业务检查；Job 将其绑定到 activation 的 `effective_config_digest`，并独立核验 manifest 结构，追加第五项业务证据。未命名结果保持原四项路径；核心检查使用核心配置摘要，Profile 的业务要求使用实际冻结配置摘要。每项新检查包装携带核心签发的 `check_run_id`（精确 JobAttempt ID）；最终人审还核对 Job 中实际接受的 evidence ID，结果内容相同也不能借用另一执行的授权。旧不可变记录不回填字段；公开 OpenAPI 的输入、已接受证据及内嵌 ReviewTarget 使用同一共享 `check_run_id` 定义，Go/Python 契约随工程生成。证据通过台账所有者幂等追加；runtime 先保存 accepting 意图，响应丢失可以用原 key 继续接受。合法 fail 是已完成检查的失败证据，不能当宿主故障重试，也不能批准资源。只有确认停止的 runtime_fault/host_start_failed，或未派发的准入拒绝（breaker_open、activation_stale、processor_not_allowed、processor_not_enabled）可显式重试，总计最多三次；外部包合法返回的 `unsupported` 记为 `unsupported_input`，不计宿主故障；没有自动重试调度。unknown 必须先 `/jobs/reconcile` 提供已提交的停止证据，仍有本机宿主时拒绝人工覆盖。取消先请求宿主停止，停止未知不冒充 cancelled。
 
 恢复后旧恢复代次、Worker 会话、activation 和任务轮次在接受点失效。重启不会自动重派 running/accepting/needs_reconciliation；原 worker 会话仍有效时可重放 accepting，其他未决情况需要有权人员对账。Job 成功只交回证据，固定 Flow 再经独立质检、人审和发布。
 
