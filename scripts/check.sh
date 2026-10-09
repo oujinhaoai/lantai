@@ -45,11 +45,15 @@ PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v
 
 # 本脚本普通测试保持 20 分钟单包累计上限；race 的额外开销需要 30 分钟。
 # Windows CI 普通测试另设 30 分钟。只约束防挂死，不改变用例断言或性能阈值。
-step "go test"
+# 慢速目标机可显式设置 LANTAI_TEST_TIMEOUT（Go duration），默认预算保持不变。
 if [ "${LANTAI_RACE:-1}" = "1" ]; then
-  go test -timeout=30m -race -count=1 ./...
+  test_timeout=${LANTAI_TEST_TIMEOUT:-30m}
+  step "go test -race (timeout=$test_timeout)"
+  go test -timeout="$test_timeout" -race -count=1 ./...
 else
-  go test -timeout=20m -count=1 ./...
+  test_timeout=${LANTAI_TEST_TIMEOUT:-20m}
+  step "go test (timeout=$test_timeout)"
+  go test -timeout="$test_timeout" -count=1 ./...
 fi
 
 step "构建 lantai"
