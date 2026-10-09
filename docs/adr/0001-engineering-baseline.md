@@ -2,13 +2,15 @@
 
 状态：已采纳（2026-09-27）。相关：[开发与验证](../development.md)、[依赖与许可证](../dependencies.md)。
 
+2026-10-09 安全补丁更新：工具链与容器构建统一由初始 Go 1.26.8 升至 1.26.9，采用[官方补丁](https://go.dev/doc/devel/release#go1.26.9)修复标准库漏洞；`go 1.26.0` 的语言基线与第三方模块版本不变。
+
 ## 背景
 
 核心采用 Go 模块化单体、五个 SQLite 库与独立网页。开工前需要一个可重复构建、可重复生成、有静态检查与跨平台构建的工程，并锁定 HTTP/OpenAPI、SQLite、查询与 schema 校验的依赖。
 
 ## 决定
 
-1. 单一 Go 模块 `github.com/oujinhaoai/lantai`，`go 1.26.0` 并以 `toolchain go1.26.8` 固定工具链；入口统一为 `cmd/lantai`，只做参数、组装与退出码，当前只提供已实现的 `version`、`schema` 子命令，不预留空命令。
+1. 单一 Go 模块 `github.com/oujinhaoai/lantai`，`go 1.26.0` 并以 `toolchain go1.26.9` 固定工具链；入口统一为 `cmd/lantai`，只做参数、组装与退出码，当前只提供已实现的 `version`、`schema` 子命令，不预留空命令。
 2. 开发工具（oapi-codegen、staticcheck、govulncheck）放在独立的 `scripts/tools/go.mod`，用 `go tool -modfile=...` 运行，避免工具依赖经最小版本选择抬高运行时依赖。
 3. HTTP 使用标准库；SQLite 使用纯 Go 的 modernc.org/sqlite，连接固定 WAL、synchronous=FULL、busy_timeout、外键、defensive、写事务 `BEGIN IMMEDIATE`，macOS 另开 fullfsync；SQL 采用 `database/sql` 显式语句，暂不引入 sqlc。
 4. schema 校验用 santhosh-tekuri/jsonschema v6，YAML 用 go.yaml.in/yaml/v3 并按 JSON 数据模型转换。

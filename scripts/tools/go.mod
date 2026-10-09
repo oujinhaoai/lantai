@@ -2,7 +2,7 @@ module github.com/oujinhaoai/lantai/scripts/tools
 
 go 1.26.0
 
-toolchain go1.26.8
+toolchain go1.26.9
 
 tool (
 	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
