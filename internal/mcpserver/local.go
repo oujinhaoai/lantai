@@ -67,7 +67,11 @@ func (a *adapter) localTools() error {
 		return errors.New("mcp: existing workspace directory required")
 	}
 	a.workspace = root
-	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_push", Description: "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. Does not approve or publish."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PushArgs) (*mcp.CallToolResult, any, error) {
+	inputSchema, e := a.pushInputSchema()
+	if e != nil {
+		return e
+	}
+	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_push", InputSchema: inputSchema, Description: "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. Does not approve or publish."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PushArgs) (*mcp.CallToolResult, any, error) {
 		directory, e := a.localPath(in.Directory, false)
 		if e != nil {
 			r, e := toolResult(client.Response{}, e)

@@ -50,6 +50,8 @@
 | 台账/事件/查询单元与故障验证 | `go test ./internal/ledger ./internal/provenance ./internal/events ./internal/query` |
 | T03/T04 真模块集成 | `go test -run 'TestLedgerEvents\|TestPersonalRead' ./tests/integration/` |
 | M2 T01/T02 领域适配与失败场景 | `go test ./internal/identity ./internal/storage ./internal/catalog ./internal/contract/schema -run 'TestHuman\|TestMilestone\|TestLifecycle\|TestGC\|TestContext\|TestExamples'` |
+| MCP 对象输入边界与四客户端上传/备份/恢复（合成隔离实例） | `go test -race -count=1 -run '^TestMCPPush(InputContract\|FourClientRestore)$' ./tests/integration` |
+| 人审目标冻结、返工与批次 REST/CLI | `go test -race ./tests/integration -run '^TestRemoteReview' -count=1 -v`；[验证边界与证据](testing/review-acceptance.md) |
 | T06/T07 真实模块联调 | `go test ./tests/integration -run 'Test(M2Manual\|M2Job\|M2Real\|RemoteM2)' -count=1` |
 | T09 一次性宿主、包治理、熔断与插件 SDK（构建合成 fixture 并真实起进程） | `go test ./internal/extensions/... ./sdk/go/... -count=1` |
 | T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension\|TestM2Business\|TestM2Governance' -count=1` |
@@ -63,7 +65,7 @@
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
 
-`scripts/check.sh` 默认 race 测试的单包累计上限为 30 分钟；本脚本 `LANTAI_RACE=0` 及 Linux/macOS 普通 CI 测试保持 20 分钟，Windows 普通 CI 为 30 分钟。较慢 runner 上的真实实例与进程强杀矩阵需要容纳执行开销；单个用例断言和性能验收阈值不变。Windows 手动全包验证可用 `go test -timeout=30m -count=1 ./...`。
+`scripts/check.sh` 默认 race 测试的单包累计上限为 30 分钟；本脚本 `LANTAI_RACE=0` 及 Linux/macOS 普通 CI 测试保持 20 分钟，Windows 普通 CI 为 30 分钟。慢速目标机可显式设置 `LANTAI_TEST_TIMEOUT=60m scripts/check.sh`，完整执行相同检查与全部用例；报告必须注明覆盖预算，不得将它写成默认 30 分钟检查通过。较慢 runner 上的真实实例与进程强杀矩阵需要容纳执行开销；单个用例断言和性能验收阈值不变。Windows 手动全包验证可用 `go test -timeout=30m -count=1 ./...`。
 
 本机实例/schema 命令退出码：0 成功；1 校验或实例状态拒绝；2 用法错误；3 读写或内部错误。远程 CLI 以 JSON 输出，0 成功，1 领域拒绝，2 输入错误，3 读写/协议错误，4 冲突或旧 ETag，5 认证失败，6 可重试/限流，130 取消。详见[薄 CLI](contracts/client.md)。
 

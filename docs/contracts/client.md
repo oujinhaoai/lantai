@@ -72,10 +72,10 @@ lantai session end --server https://gateway.example --session-file session.json
 project_id: PROJECT_ID
 slug: sample
 content:
-  asset_type: document
+  asset_type: doc
   files:
     - path: sample.txt
-      role: original
+      role: source
   rights:
     usage: production
     license: CC0-1.0
@@ -92,6 +92,8 @@ lantai push --server https://gateway.example --session-file session.json --input
 lantai operation --server https://gateway.example --session-file session.json --id OPERATION_ID
 lantai pull --server https://gateway.example --session-file session.json --asset ASSET_ID --version VERSION_ID --directory working-copy
 ```
+
+`resource_push` 使用同一 `PushInput`：`input.content.rights`、`metadata`、`producer`、`describe` 和 `task` 是 JSON 对象，`uses` 是数组，不能把原始 JSON 转成字节数组。工具 schema 从嵌入的公共提交契约投影，保留字段、枚举和未知字段校验；只有本机计算的文件摘要/大小及服务端既定的可选字段作输入适配。`rights.noai` 与 `redistribute_raw` 省略时为 false；整个 `rights` 省略或为 null 时，新资产由领域拒绝，已有资产按当前规则继承。输入结构校验发生在创建本机恢复状态和远程上传之前；授权、依赖、生产者身份、提交和继承规则仍由服务端复验。
 
 状态文件在首次网络写入前持久化两个独立的 create/commit 幂等键，绑定 origin、完整输入及文件摘要；服务端返回后保存 upload/operation ID。每次恢复重新核对本机文件与请求绑定，GET 上传状态并仅补缺少的分片。每个分片先按服务端大小流式散列，再以 `Lantai-Part-Sha256` 发送；complete 由服务端核对整个文件。不同输入不能悄悄复用原状态。状态旁的 `.lock` 用操作系统文件锁防止同一恢复文件的并发写入；崩溃自动释放锁，保留 lock 文件是正常行为。
 
