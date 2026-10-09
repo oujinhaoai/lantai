@@ -1,0 +1,128 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/meta",
+    "response_bytes": 729,
+    "seq": 1,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/meta",
+    "response_bytes": 729,
+    "seq": 2,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads",
+    "response_bytes": 1359,
+    "seq": 3,
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441/parts/1",
+    "response_bytes": 70,
+    "seq": 4,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441/parts/2",
+    "response_bytes": 70,
+    "seq": 5,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441/complete",
+    "response_bytes": 334,
+    "seq": 6,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/parts/1",
+    "response_bytes": 70,
+    "seq": 7,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855/complete",
+    "response_bytes": 330,
+    "seq": 8,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5/parts/1",
+    "response_bytes": 70,
+    "seq": 9,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5/parts/2",
+    "response_bytes": 70,
+    "seq": 10,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5/parts/3",
+    "response_bytes": 70,
+    "seq": 11,
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/xfer/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5/parts/4",
+    "response_bytes": 70,
+    "seq": 12,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/files/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5/complete",
+    "response_bytes": 335,
+    "seq": 13,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/commit",
+    "response_bytes": 0,
+    "seq": 14,
+    "status": 502
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/operations/01M3H51VQGTF7HFCHHY4FGE14A",
+    "response_bytes": 356,
+    "seq": 15,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/commit",
+    "response_bytes": 964,
+    "seq": 16,
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads",
+    "response_bytes": 1405,
+    "seq": 17,
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/01M3H51VQGCAWAP933WBW3M8DM/commit",
+    "response_bytes": 964,
+    "seq": 18,
+    "status": 201
+  }
+]

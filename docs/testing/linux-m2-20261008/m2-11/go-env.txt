@@ -1,0 +1,4 @@
+linux
+amd64
+1
+auto

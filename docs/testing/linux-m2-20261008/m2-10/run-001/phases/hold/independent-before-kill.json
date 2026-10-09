@@ -1,0 +1,200 @@
+{
+  "wall_utc": "2026-10-08T14:36:36.524498+00:00",
+  "reader_pid": 1028,
+  "reader_sqlite_version": "3.53.1",
+  "read_only": true,
+  "integrity_check": [
+    "ok"
+  ],
+  "persisted": {
+    "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+    "state": "open",
+    "epoch": 2,
+    "opened_at": 1791417600000,
+    "probes": [
+      "01M4DZ3NRVQ8XH5Q7X9ZR8EPVJ"
+    ]
+  },
+  "invocations": [
+    {
+      "invocation_id": "01K00000000000000000000010",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "completed",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "completed",
+      "stale_epoch": true,
+      "settled_at": 1791418499000
+    },
+    {
+      "invocation_id": "01K00000000000000000000011",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "stale_epoch": true,
+      "settled_at": 1791418499000
+    },
+    {
+      "invocation_id": "01K00000000000000000000012",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "dispatched",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10"
+    },
+    {
+      "invocation_id": "01K00000000000000000000013",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "dispatched",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10"
+    },
+    {
+      "invocation_id": "01M4DZ3NQ5NRRQ3MG6AB1F3CPQ",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "settled_at": 1791417600000
+    },
+    {
+      "invocation_id": "01M4DZ3NQ6SGSZFDY6CXW105VW",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "settled_at": 1791417600000
+    },
+    {
+      "invocation_id": "01M4DZ3NQ7AJ6SMWD9M3X0ME6X",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "settled_at": 1791417600000
+    },
+    {
+      "invocation_id": "01M4DZ3NQ9VY259HXAJVS2GT2R",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "settled_at": 1791417600000
+    },
+    {
+      "invocation_id": "01M4DZ3NQBP19CETW8WZYP5PR2",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 1,
+      "half_open": false,
+      "state": "fault",
+      "admitted_at": 1791417600000,
+      "deadline": 1791417660000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "runtime_fault",
+      "settled_at": 1791417600000
+    },
+    {
+      "invocation_id": "01M4DZ3NRVQ8XH5Q7X9ZR8EPVJ",
+      "enablement_id": "01K00000000000000000000001",
+      "generation": 1,
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "breaker_epoch": 2,
+      "half_open": true,
+      "state": "unresolved",
+      "admitted_at": 1791418500000,
+      "deadline": 1791418560000,
+      "project_id": "01K00000000000000000000002",
+      "contribution_id": "org.synthetic.m2_10",
+      "outcome": "unresolved",
+      "settled_at": 1791418500000
+    }
+  ],
+  "faults": [
+    {
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "invocation_id": "01M4DZ3NQ5NRRQ3MG6AB1F3CPQ",
+      "epoch": 1,
+      "at": 1791417600000
+    },
+    {
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "invocation_id": "01M4DZ3NQ6SGSZFDY6CXW105VW",
+      "epoch": 1,
+      "at": 1791417600000
+    },
+    {
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "invocation_id": "01M4DZ3NQ7AJ6SMWD9M3X0ME6X",
+      "epoch": 1,
+      "at": 1791417600000
+    },
+    {
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "invocation_id": "01M4DZ3NQ9VY259HXAJVS2GT2R",
+      "epoch": 1,
+      "at": 1791417600000
+    },
+    {
+      "breaker_key": "sha256:31c2a93c1ed1c32b8af53aece0d019717902483a4ee8f48d1ef1ea8145e79364",
+      "invocation_id": "01M4DZ3NQBP19CETW8WZYP5PR2",
+      "epoch": 1,
+      "at": 1791417600000
+    }
+  ]
+}

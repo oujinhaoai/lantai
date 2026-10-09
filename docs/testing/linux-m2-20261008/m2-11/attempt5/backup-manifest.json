@@ -1,0 +1,250 @@
+{
+  "backup_id": "01M3H51VQGJSA63XSVPN4SN4FK",
+  "blobs": [
+    {
+      "path": "blobs/sha256/63/f5/63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "size": 77000,
+      "stored": "blobs/sha256/63/f5/63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441"
+    },
+    {
+      "path": "blobs/sha256/e3/b0/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "stored": "blobs/sha256/e3/b0/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "blobs/sha256/e8/0a/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "size": 262144,
+      "stored": "blobs/sha256/e8/0a/e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5"
+    }
+  ],
+  "completed_at": "2026-09-27T10:02:30.000Z",
+  "contract": "lantai.backup/v1",
+  "created_at": "2026-09-27T10:02:30.000Z",
+  "files": [
+    {
+      "path": "audit/events.jsonl",
+      "sha256": "e8a667a4713f6256c1b7e76fde93d77cfa374db8c9c13f2e4720c39c363c50d9",
+      "size": 20636,
+      "stored": "audit/events.jsonl"
+    },
+    {
+      "path": "audit/manifest.json",
+      "sha256": "1cdd9d4ba146f72ece0b552ce9e98599313337693c5aae5e9f8757d64728901c",
+      "size": 180,
+      "stored": "audit/manifest.json"
+    },
+    {
+      "path": "config.yaml",
+      "sha256": "99f50439d988e45f4bf8b8d64de7425b2ee9694283d61418069a2bfb06f44cf3",
+      "size": 62,
+      "stored": "config.yaml"
+    },
+    {
+      "path": "db/events.db",
+      "sha256": "d502e0e4edfbeae2b62066b8b9dfa20c8656ba84de933b2fd26297571a1a2411",
+      "size": 90112,
+      "stored": "db/events.db"
+    },
+    {
+      "path": "db/ledger.db",
+      "sha256": "2531fa1f36cec4fd399066731a626bcffd29cffddab53561410a4abd8f4397af",
+      "size": 491520,
+      "stored": "db/ledger.db"
+    },
+    {
+      "path": "db/main.db",
+      "sha256": "36d088d03cb229cf6a3730f01f2b57a64185d39f1e9c707115cc0644d8db7021",
+      "size": 393216,
+      "stored": "db/main.db"
+    },
+    {
+      "path": "db/runtime.db",
+      "sha256": "8d9135df16380c36c1da1b9959ad7ae77f58e28fae6f5b9ce1885d6617c0704d",
+      "size": 630784,
+      "stored": "db/runtime.db"
+    },
+    {
+      "path": "instance.json",
+      "sha256": "59fe24658f416f57c477e3e334b4eea69fb26fe7d56678074e65205b8c4bc4eb",
+      "size": 231,
+      "stored": "instance.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/.history/project.r000001.01M3H4Y6HGSRZRYYBWQH270X65.yaml",
+      "sha256": "0337147cf7e30a3be2f4c905e621dfc221bf35ed62156acf6844d343a58e11a1",
+      "size": 170,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/.history/project.r000001.01M3H4Y6HGSRZRYYBWQH270X65.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/.history/asset.r000001.01M3H51VQGPK7DFBMSWD9PGKB3.yaml",
+      "sha256": "9d0f4e212fe00f1eadf0936be97eebd6308d7fc00f2bc531a1e826dcb5c5e0ea",
+      "size": 333,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/.history/asset.r000001.01M3H51VQGPK7DFBMSWD9PGKB3.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/asset.yaml",
+      "sha256": "9d0f4e212fe00f1eadf0936be97eebd6308d7fc00f2bc531a1e826dcb5c5e0ea",
+      "size": 333,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/asset.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/.install.json",
+      "sha256": "e6b693b9eb478ac4c0cc19b4587118052e23c78b3ac08aea079c0bd7d725493d",
+      "size": 216,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/.install.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/二进制/合成.bin",
+      "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "size": 77000,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/二进制/合成.bin"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/空白/空.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/空白/空.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/资料/样本-é.txt",
+      "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "size": 262144,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/files/资料/样本-é.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/manifest.yaml",
+      "sha256": "9707bd3294553e7361a271ffb9685ddf32d67a2d42c852e262c97c5d7af9c5ab",
+      "size": 1077,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQG4S6GSBJJH68FZP6E/versions/v001/manifest.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/.history/asset.r000001.01M3H51VQGFC65755540858NXW.yaml",
+      "sha256": "95d4bc798f39dc5403785e7fed0cd769683c721d4f6fb0b5a7bdde1fbe3b69eb",
+      "size": 331,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/.history/asset.r000001.01M3H51VQGFC65755540858NXW.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/asset.yaml",
+      "sha256": "95d4bc798f39dc5403785e7fed0cd769683c721d4f6fb0b5a7bdde1fbe3b69eb",
+      "size": 331,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/asset.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/.install.json",
+      "sha256": "39c156b550d4e94f84248f6680174e8148f32eb5daf5e45fe3ba6e6a41d88a7d",
+      "size": 216,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/.install.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/二进制/合成.bin",
+      "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "size": 77000,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/二进制/合成.bin"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/空白/空.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/空白/空.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/资料/样本-é.txt",
+      "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "size": 262144,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/files/资料/样本-é.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/manifest.yaml",
+      "sha256": "07f453bed072508ac6ff9281255ee6e45362ddb776a0f0efa957a3eea1cf43d4",
+      "size": 1077,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGEEE019MRN6AA10DX/versions/v001/manifest.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/.history/asset.r000001.01M3H51VQGBJENKA2XNFM5A129.yaml",
+      "sha256": "d30a2e9911e623b127a4049fc0297717a7fa160c7157d674f851be19d89d7fa1",
+      "size": 330,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/.history/asset.r000001.01M3H51VQGBJENKA2XNFM5A129.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/asset.yaml",
+      "sha256": "d30a2e9911e623b127a4049fc0297717a7fa160c7157d674f851be19d89d7fa1",
+      "size": 330,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/asset.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/.install.json",
+      "sha256": "360558fd93532fd979216e29f08eb9c2afda4ac580d7c3db6f1da1965680b4f3",
+      "size": 216,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/.install.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/二进制/合成.bin",
+      "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "size": 77000,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/二进制/合成.bin"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/空白/空.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/空白/空.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/资料/样本-é.txt",
+      "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "size": 262144,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/files/资料/样本-é.txt"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/manifest.yaml",
+      "sha256": "eed2053c83605f7aaafdf38f2e884c9903e1b93428cba7574103226b6063af2d",
+      "size": 1077,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/assets/01M3H51VQGRF91AHSV1W7ZNEKM/versions/v001/manifest.yaml"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/4a4ea3879787c96c8e86f2a03c1ea810/g000001.json",
+      "sha256": "67dff52eca2a764e6c99ec10cda81f24ddbbcc9b135f81d0ddb083cfb9a52ef2",
+      "size": 239,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/4a4ea3879787c96c8e86f2a03c1ea810/g000001.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/7dbc2315e149a51c09f252398cb14f7a/g000001.json",
+      "sha256": "787ba280ac97dc1820123412e0fffa2d28073c8d61b850a3788b67695cdd5ae2",
+      "size": 236,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/7dbc2315e149a51c09f252398cb14f7a/g000001.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/d9c4e813b8e80044544a9020db526bfa/g000001.json",
+      "sha256": "642d0f17d86f8dd11a16b8d90f35a54baa2e96527efb7406e4e7c81ae87faf2a",
+      "size": 237,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/namespace/d9c4e813b8e80044544a9020db526bfa/g000001.json"
+    },
+    {
+      "path": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/project.yaml",
+      "sha256": "0337147cf7e30a3be2f4c905e621dfc221bf35ed62156acf6844d343a58e11a1",
+      "size": 170,
+      "stored": "projects/01M3H4Y6HGM2HVN32BD1V8XT25/project.yaml"
+    }
+  ],
+  "instance_id": "01M3H4X980SG6946CFTC9GB0ER",
+  "key_id": "01M3H4X980SRS88VCRFRK5P0ZW",
+  "matrix": {
+    "data_format_version": 1,
+    "databases": {
+      "events": 1,
+      "ledger": 13,
+      "main": 8,
+      "runtime": 14
+    }
+  },
+  "recovery_epoch": 1,
+  "state": "complete",
+  "watermarks": {
+    "audit": 30,
+    "events": 30,
+    "pruned": 0
+  }
+}

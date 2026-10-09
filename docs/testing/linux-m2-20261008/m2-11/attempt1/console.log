@@ -1,0 +1,7 @@
+=== RUN   TestCloudM211LinuxPushRestore
+    cloud_m211_linux_test.go:332: build client executable: exit status 1
+        error obtaining VCS status: exit status 128
+        	Use -buildvcs=false to disable VCS stamping.
+--- FAIL: TestCloudM211LinuxPushRestore (0.04s)
+FAIL
+FAIL	github.com/oujinhaoai/lantai/tests/integration	0.103s

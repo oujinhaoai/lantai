@@ -1,0 +1,3874 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "lantai",
+      "version": "0.2.0"
+    }
+  },
+  "cacheScope": "public",
+  "resultType": "complete",
+  "tools": [
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized context through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "context_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized events through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "events_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized flows through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "flow_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized inbox through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "inbox_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized jobs through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "job_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Append a discussion message or proposal with bounded anchors and mentions.",
+      "inputSchema": {
+        "$defs": {
+          "M2LedgerAnchor": {
+            "additionalProperties": false,
+            "properties": {
+              "file_path": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "ref": {
+                "$ref": "#/$defs/PermanentRef"
+              },
+              "values": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "file_path",
+              "kind",
+              "ref",
+              "values"
+            ],
+            "type": "object"
+          },
+          "M2LedgerDiscussionTarget": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "project_id"
+            ],
+            "type": "object"
+          },
+          "M2LedgerMention": {
+            "additionalProperties": false,
+            "properties": {
+              "principal_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "required": [],
+            "type": "object"
+          },
+          "M2LedgerMessageInput": {
+            "additionalProperties": false,
+            "properties": {
+              "anchors": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/M2LedgerAnchor"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "mentions": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/M2LedgerMention"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reply_to": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "supersedes": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "target": {
+                "$ref": "#/$defs/M2LedgerDiscussionTarget"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "anchors",
+              "kind",
+              "mentions",
+              "target",
+              "text"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2LedgerMessageInput"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "message_post"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized messages through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "message_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized operations through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "operation_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Append a QA report through the ledger. Current task identity, subject and independent checker role are verified by the server; this cannot approve assets.",
+      "inputSchema": {
+        "$defs": {
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "M2ExtensionsCheckResult": {
+            "additionalProperties": false,
+            "properties": {
+              "contract": {
+                "type": "string"
+              },
+              "findings": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "manifest_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "producer": {
+                "$ref": "#/$defs/M2StorageProducer"
+              },
+              "ref": {
+                "$ref": "#/$defs/PermanentRef"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "contract",
+              "findings",
+              "manifest_digest",
+              "producer",
+              "ref",
+              "verdict"
+            ],
+            "type": "object"
+          },
+          "M2LedgerQAReport": {
+            "additionalProperties": false,
+            "properties": {
+              "observations": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "observations",
+              "tool",
+              "tool_version",
+              "verdict"
+            ],
+            "type": "object"
+          },
+          "M2LedgerReviewEvidenceInput": {
+            "additionalProperties": false,
+            "properties": {
+              "check": {
+                "$ref": "#/$defs/M2ExtensionsCheckResult"
+              },
+              "check_key": {
+                "type": "string"
+              },
+              "config_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "flow": {
+                "$ref": "#/$defs/M2LedgerReviewFlow"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "manifest_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "qa": {
+                "$ref": "#/$defs/M2LedgerQAReport"
+              },
+              "ref": {
+                "$ref": "#/$defs/PermanentRef"
+              },
+              "schema_version": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "flow",
+              "kind",
+              "manifest_digest",
+              "project_id",
+              "ref"
+            ],
+            "type": "object"
+          },
+          "M2LedgerReviewFlow": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "candidate_group": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "fence": {
+                "type": "integer"
+              },
+              "round": {
+                "type": "integer"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "fence",
+              "round",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "M2StorageProducer": {
+            "additionalProperties": false,
+            "properties": {
+              "contribution_id": {
+                "type": "string"
+              },
+              "core_release_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "extension_id": {
+                "type": "string"
+              },
+              "extension_version": {
+                "type": "string"
+              },
+              "package_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "extension_id",
+              "extension_version",
+              "package_digest",
+              "source"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2LedgerReviewEvidenceInput"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "qa_append"
+    },
+    {
+      "description": "Stream an exact version into an existing relative workspace directory. Grants, paths, size and hashes are verified; signed transfer URLs and file bytes stay out of tool output.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "directory": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory",
+          "asset_id",
+          "version_id",
+          "purpose"
+        ],
+        "type": "object"
+      },
+      "name": "resource_pull"
+    },
+    {
+      "description": "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. Does not approve or publish.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "directory": {
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": false,
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "base_version_id": {
+                "type": "string"
+              },
+              "content": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset_type": {
+                    "type": "string"
+                  },
+                  "files": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "path",
+                        "role",
+                        "sha256",
+                        "size"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "metadata": {
+                    "items": {
+                      "maximum": 255,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "producer": {
+                    "items": {
+                      "maximum": 255,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "rights": {
+                    "items": {
+                      "maximum": 255,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "uses": {
+                    "items": {
+                      "maximum": 255,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "version_note": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "asset_type",
+                  "files"
+                ],
+                "type": "object"
+              },
+              "describe": {
+                "items": {
+                  "maximum": 255,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "task": {
+                "items": {
+                  "maximum": 255,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              }
+            },
+            "required": [
+              "project_id",
+              "content"
+            ],
+            "type": "object"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory",
+          "state",
+          "input"
+        ],
+        "type": "object"
+      },
+      "name": "resource_push"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized assets through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "resource_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized assets through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "resource_search"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Pause and request human clarification. Answers cannot raise budgets or approve assets.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionResumeClass": {
+            "enum": [
+              "portable_artifacts",
+              "backend_checkpoint",
+              "restart_safe",
+              "manual_only"
+            ],
+            "type": "string"
+          },
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ExpectedRevision": {
+            "description": "条件写入的预期修订；0 表示对象必须尚不存在。",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ExtensionVersion": {
+            "description": "扩展包语义化版本。",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "LantaiCheckpointV1": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "resume_class": {
+                      "enum": [
+                        "backend_checkpoint"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "resume_class"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "backend_checkpoint_ref"
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "artifact_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "backend_checkpoint_ref": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "backend_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "completed_step_ids": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "contract": {
+                "const": "lantai.checkpoint/v1"
+              },
+              "created_at": {
+                "$ref": "#/$defs/Timestamp"
+              },
+              "format_version": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "input_snapshot_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "profile_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "resume_class": {
+                "$ref": "#/$defs/CommonV1ExecutionResumeClass"
+              },
+              "sequence": {
+                "$ref": "#/$defs/Revision"
+              },
+              "side_effect_watermark": {
+                "$ref": "#/$defs/ExpectedRevision"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "attempt_id",
+              "sequence",
+              "input_snapshot_digest",
+              "profile_digest",
+              "backend_version",
+              "format_version",
+              "resume_class",
+              "artifact_refs",
+              "completed_step_ids",
+              "side_effect_watermark",
+              "created_at"
+            ],
+            "title": "lantai.checkpoint/v1",
+            "type": "object"
+          },
+          "M2AgentexecutionHumanInput": {
+            "additionalProperties": false,
+            "properties": {
+              "answer": {
+                "type": "string"
+              },
+              "answered_by": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "target_digest": {
+                "$ref": "#/$defs/Digest"
+              }
+            },
+            "required": [
+              "expires_at",
+              "id",
+              "kind",
+              "question"
+            ],
+            "type": "object"
+          },
+          "M2AgentexecutionInputRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "checkpoint": {
+                "$ref": "#/$defs/LantaiCheckpointV1"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "input": {
+                "$ref": "#/$defs/M2AgentexecutionHumanInput"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "stopped": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "checkpoint",
+              "expected_revision",
+              "fence",
+              "input",
+              "run_id",
+              "stopped"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Revision": {
+            "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "Timestamp": {
+            "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+            "type": "string"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionInputRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_ask"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Register an already committed candidate. Does not assign a passing check or approval.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ExtensionId": {
+            "description": "扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。",
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+            "type": "string"
+          },
+          "ExtensionVersion": {
+            "description": "扩展包语义化版本。",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "LantaiAgentExecutionDefsV1ArtifactFile": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/RelativePath"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256Hex"
+              },
+              "size": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path",
+              "sha256",
+              "size"
+            ],
+            "type": "object"
+          },
+          "LantaiArtifactCandidateV1": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "contract": {
+                "const": "lantai.artifact-candidate/v1"
+              },
+              "files": {
+                "items": {
+                  "$ref": "#/$defs/LantaiAgentExecutionDefsV1ArtifactFile"
+                },
+                "maxItems": 10000,
+                "minItems": 1,
+                "type": "array"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "license_evidence_refs": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "manifest_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "producer": {
+                "$ref": "#/$defs/ProducerRef"
+              },
+              "provenance_refs": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "purpose": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "validation_state": {
+                "enum": [
+                  "pending",
+                  "valid",
+                  "invalid"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "attempt_id",
+              "manifest_digest",
+              "files",
+              "purpose",
+              "provenance_refs",
+              "license_evidence_refs",
+              "validation_state"
+            ],
+            "title": "lantai.artifact-candidate/v1",
+            "type": "object"
+          },
+          "M2AgentexecutionCandidateRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "candidate": {
+                "$ref": "#/$defs/LantaiArtifactCandidateV1"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "ref": {
+                "$ref": "#/$defs/PermanentRef"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "candidate",
+              "expected_revision",
+              "fence",
+              "ref",
+              "run_id"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "ProducerRef": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "source": {
+                      "const": "package"
+                    }
+                  },
+                  "required": [
+                    "source"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "core_release_digest"
+                    ]
+                  }
+                }
+              }
+            ],
+            "description": "产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。",
+            "properties": {
+              "contribution_id": {
+                "description": "包内贡献 ID，例如 org.example.asset-tools.check。",
+                "maxLength": 160,
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+                "type": "string"
+              },
+              "core_release_digest": {
+                "$ref": "#/$defs/Digest",
+                "description": "内置组件的核心发布制品摘要；v1旧记录允许缺省以保持历史字节不变，新结果接受必须由登记器核验此绑定。"
+              },
+              "extension_id": {
+                "$ref": "#/$defs/ExtensionId"
+              },
+              "extension_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "package_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "source": {
+                "enum": [
+                  "builtin_release",
+                  "package"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "extension_id",
+              "extension_version",
+              "package_digest",
+              "source"
+            ],
+            "type": "object"
+          },
+          "RelativePath": {
+            "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+)(/([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+))*$",
+            "type": "string"
+          },
+          "Sha256Hex": {
+            "description": "64 位小写十六进制 SHA-256，用于名为 sha256 的字段。",
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionCandidateRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_candidate"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Save a stopped manual session checkpoint with fixed input and profile.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionResumeClass": {
+            "enum": [
+              "portable_artifacts",
+              "backend_checkpoint",
+              "restart_safe",
+              "manual_only"
+            ],
+            "type": "string"
+          },
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ExpectedRevision": {
+            "description": "条件写入的预期修订；0 表示对象必须尚不存在。",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ExtensionVersion": {
+            "description": "扩展包语义化版本。",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "LantaiCheckpointV1": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "resume_class": {
+                      "enum": [
+                        "backend_checkpoint"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "resume_class"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "backend_checkpoint_ref"
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "artifact_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "backend_checkpoint_ref": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "backend_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "completed_step_ids": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "contract": {
+                "const": "lantai.checkpoint/v1"
+              },
+              "created_at": {
+                "$ref": "#/$defs/Timestamp"
+              },
+              "format_version": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "input_snapshot_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "profile_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "resume_class": {
+                "$ref": "#/$defs/CommonV1ExecutionResumeClass"
+              },
+              "sequence": {
+                "$ref": "#/$defs/Revision"
+              },
+              "side_effect_watermark": {
+                "$ref": "#/$defs/ExpectedRevision"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "attempt_id",
+              "sequence",
+              "input_snapshot_digest",
+              "profile_digest",
+              "backend_version",
+              "format_version",
+              "resume_class",
+              "artifact_refs",
+              "completed_step_ids",
+              "side_effect_watermark",
+              "created_at"
+            ],
+            "title": "lantai.checkpoint/v1",
+            "type": "object"
+          },
+          "M2AgentexecutionCheckpointRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "checkpoint": {
+                "$ref": "#/$defs/LantaiCheckpointV1"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "stopped": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "checkpoint",
+              "expected_revision",
+              "fence",
+              "run_id",
+              "stopped"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Revision": {
+            "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "Timestamp": {
+            "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+            "type": "string"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionCheckpointRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_checkpoint"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized task-runs through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "run_list"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Record cumulative observable usage and step progress; budgets cannot be reset.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "LantaiAgentExecutionDefsV1BudgetUsage": {
+            "additionalProperties": false,
+            "properties": {
+              "artifact_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "model_calls": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tool_calls": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "wall_time_ms": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "wall_time_ms",
+              "model_calls",
+              "tool_calls",
+              "artifact_bytes"
+            ],
+            "type": "object"
+          },
+          "LantaiAgentStepRunV1": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "contract": {
+                "const": "lantai.agent-step-run/v1"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "input_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "kind": {
+                "enum": [
+                  "plan",
+                  "tool",
+                  "delegate",
+                  "validate",
+                  "deliver"
+                ],
+                "type": "string"
+              },
+              "output_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "parent_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "plan_revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "state": {
+                "enum": [
+                  "pending",
+                  "running",
+                  "completed",
+                  "failed",
+                  "cancelled",
+                  "needs_reconciliation"
+                ],
+                "type": "string"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "tool_operation_ids": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "attempt_id",
+              "revision",
+              "plan_revision",
+              "kind",
+              "state",
+              "input_refs",
+              "tool_operation_ids",
+              "output_refs"
+            ],
+            "title": "lantai.agent-step-run/v1",
+            "type": "object"
+          },
+          "M2AgentexecutionProgressRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "step": {
+                "$ref": "#/$defs/LantaiAgentStepRunV1"
+              },
+              "usage": {
+                "$ref": "#/$defs/LantaiAgentExecutionDefsV1BudgetUsage"
+              }
+            },
+            "required": [
+              "expected_revision",
+              "fence",
+              "run_id",
+              "usage"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Revision": {
+            "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionProgressRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_progress"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized task-runs through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "run_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Seal an execution result. Execution success is not task completion or human acceptance.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2AgentexecutionSealRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "candidate_ids": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/Ulid"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "limitations": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "stopped": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "candidate_ids",
+              "expected_revision",
+              "fence",
+              "limitations",
+              "outcome",
+              "run_id",
+              "stopped"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionSealRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_seal"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Register a manual session or resume a persisted checkpoint. Never launches a model.",
+      "inputSchema": {
+        "$defs": {
+          "CommandType": {
+            "description": "命令类型，\u003cmodule\u003e.\u003ccommand\u003e，例如 ledger.commit_version。",
+            "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "CommonV1ExecutionActivationRef": {
+            "additionalProperties": false,
+            "description": "扩展调用绑定的激活快照身份。extensions 模块签发；包摘要或代次变化后旧结果不被接受。",
+            "properties": {
+              "activation_generation": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "extension_id": {
+                "$ref": "#/$defs/ExtensionId"
+              },
+              "extension_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "package_digest": {
+                "$ref": "#/$defs/Digest"
+              }
+            },
+            "required": [
+              "extension_id",
+              "extension_version",
+              "package_digest",
+              "activation_generation"
+            ],
+            "type": "object"
+          },
+          "CommonV1ExecutionResumeClass": {
+            "enum": [
+              "portable_artifacts",
+              "backend_checkpoint",
+              "restart_safe",
+              "manual_only"
+            ],
+            "type": "string"
+          },
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ExpectedRevision": {
+            "description": "条件写入的预期修订；0 表示对象必须尚不存在。",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ExtensionId": {
+            "description": "扩展包 ID，反向域名风格；与 T09 的 lantai.extension/v1 清单一致。",
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+            "type": "string"
+          },
+          "ExtensionVersion": {
+            "description": "扩展包语义化版本。",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "LantaiActivationSnapshotV1": {
+            "additionalProperties": false,
+            "properties": {
+              "activation": {
+                "$ref": "#/$defs/CommonV1ExecutionActivationRef"
+              },
+              "contract": {
+                "const": "lantai.activation-snapshot/v1"
+              },
+              "effective_config_revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "enablement_policy_revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "entry": {
+                "$ref": "#/$defs/LantaiAgentExecutionDefsV1PackageEntry"
+              }
+            },
+            "required": [
+              "contract",
+              "activation",
+              "entry",
+              "effective_config_revision",
+              "enablement_policy_revision"
+            ],
+            "title": "lantai.activation-snapshot/v1",
+            "type": "object"
+          },
+          "LantaiAgentExecutionDefsV1BudgetLimits": {
+            "additionalProperties": false,
+            "properties": {
+              "artifact_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "concurrency": {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "model_calls": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "subagent_count": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "subagent_depth": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tool_calls": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "wall_time_ms": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "wall_time_ms",
+              "model_calls",
+              "tool_calls",
+              "subagent_depth",
+              "subagent_count",
+              "concurrency",
+              "artifact_bytes"
+            ],
+            "type": "object"
+          },
+          "LantaiAgentExecutionDefsV1PackageEntry": {
+            "additionalProperties": false,
+            "properties": {
+              "entry": {
+                "$ref": "#/$defs/RelativePath"
+              },
+              "entry_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "extension_id": {
+                "$ref": "#/$defs/ExtensionId"
+              },
+              "extension_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "package_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "target": {
+                "enum": [
+                  "server",
+                  "node"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "extension_id",
+              "extension_version",
+              "package_digest",
+              "target",
+              "entry",
+              "entry_digest"
+            ],
+            "type": "object"
+          },
+          "LantaiCheckpointV1": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "resume_class": {
+                      "enum": [
+                        "backend_checkpoint"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "resume_class"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "backend_checkpoint_ref"
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "artifact_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "backend_checkpoint_ref": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "backend_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "completed_step_ids": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "contract": {
+                "const": "lantai.checkpoint/v1"
+              },
+              "created_at": {
+                "$ref": "#/$defs/Timestamp"
+              },
+              "format_version": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "input_snapshot_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "profile_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "resume_class": {
+                "$ref": "#/$defs/CommonV1ExecutionResumeClass"
+              },
+              "sequence": {
+                "$ref": "#/$defs/Revision"
+              },
+              "side_effect_watermark": {
+                "$ref": "#/$defs/ExpectedRevision"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "attempt_id",
+              "sequence",
+              "input_snapshot_digest",
+              "profile_digest",
+              "backend_version",
+              "format_version",
+              "resume_class",
+              "artifact_refs",
+              "completed_step_ids",
+              "side_effect_watermark",
+              "created_at"
+            ],
+            "title": "lantai.checkpoint/v1",
+            "type": "object"
+          },
+          "LantaiExecutionProfileV1": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "network_policy": {
+                      "enum": [
+                        "none"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "network_policy"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "network_allowlist": {
+                      "maxItems": 0
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "adapter_kind": {
+                      "const": "managed_runner"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "activation_snapshot"
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "activation_snapshot": {
+                "$ref": "#/$defs/LantaiActivationSnapshotV1"
+              },
+              "adapter_kind": {
+                "enum": [
+                  "manual_cli",
+                  "managed_runner"
+                ],
+                "type": "string"
+              },
+              "adapter_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              },
+              "allowed_tools": {
+                "items": {
+                  "$ref": "#/$defs/CommandType"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "budget_limits": {
+                "$ref": "#/$defs/LantaiAgentExecutionDefsV1BudgetLimits"
+              },
+              "contract": {
+                "const": "lantai.execution-profile/v1"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "network_allowlist": {
+                "items": {
+                  "maxLength": 253,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "network_policy": {
+                "enum": [
+                  "none",
+                  "allowlist"
+                ],
+                "type": "string"
+              },
+              "playbook_refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 100,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "required_capabilities": {
+                "items": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "result_schema": {
+                "const": "lantai.agent-result/v1"
+              },
+              "revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "skill_digests": {
+                "items": {
+                  "$ref": "#/$defs/Digest"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "revision",
+              "adapter_kind",
+              "adapter_version",
+              "playbook_refs",
+              "skill_digests",
+              "required_capabilities",
+              "allowed_tools",
+              "network_policy",
+              "network_allowlist",
+              "budget_limits",
+              "result_schema"
+            ],
+            "title": "lantai.execution-profile/v1",
+            "type": "object"
+          },
+          "LantaiTasksDefsV1InputSnapshot": {
+            "additionalProperties": false,
+            "properties": {
+              "digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "refs": {
+                "items": {
+                  "$ref": "#/$defs/PermanentRef"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "refs",
+              "digest"
+            ],
+            "type": "object"
+          },
+          "M2AgentexecStartRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "activation": {
+                "$ref": "#/$defs/CommonV1ExecutionActivationRef"
+              },
+              "budget_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "execution_key": {
+                "type": "string"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "input_snapshot": {
+                "$ref": "#/$defs/LantaiTasksDefsV1InputSnapshot"
+              },
+              "operation_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "profile": {
+                "$ref": "#/$defs/LantaiExecutionProfileV1"
+              },
+              "protocol": {
+                "type": "string"
+              },
+              "request_hash": {
+                "$ref": "#/$defs/Digest"
+              },
+              "resume_from": {
+                "$ref": "#/$defs/LantaiCheckpointV1"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "action",
+              "budget_id",
+              "execution_key",
+              "fence",
+              "input_snapshot",
+              "operation_id",
+              "profile",
+              "protocol",
+              "request_hash",
+              "task_run_id"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "RelativePath": {
+            "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+)(/([^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.[^./\\\\\\x00-\\x1f][^/\\\\\\x00-\\x1f]*|\\.\\.[^/\\\\\\x00-\\x1f]+))*$",
+            "type": "string"
+          },
+          "Revision": {
+            "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "Timestamp": {
+            "description": "UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。",
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+            "type": "string"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecStartRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_start"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Persist a tool intent or its observed result. Does not execute the tool.",
+      "inputSchema": {
+        "$defs": {
+          "CommandType": {
+            "description": "命令类型，\u003cmodule\u003e.\u003ccommand\u003e，例如 ledger.commit_version。",
+            "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+            "type": "string"
+          },
+          "CommonV1ExecutionEffectClass": {
+            "description": "工具或外部动作的副作用类别，决定恢复时能否重试。",
+            "enum": [
+              "pure_read",
+              "local_replaceable",
+              "lantai_command",
+              "external_idempotent",
+              "external_queryable",
+              "external_non_idempotent"
+            ],
+            "type": "string"
+          },
+          "CommonV1ExecutionEffectState": {
+            "description": "ToolOperation 的副作用进度：先持久化 intended 再发送；结果不明为 effect_unknown，需对账后才能转为 completed 或 not_executed。",
+            "enum": [
+              "intended",
+              "dispatched",
+              "completed",
+              "failed",
+              "not_executed",
+              "effect_unknown"
+            ],
+            "type": "string"
+          },
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Digest": {
+            "description": "带算法前缀的摘要，用于 *_digest 与 request_hash 字段。",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ExtensionVersion": {
+            "description": "扩展包语义化版本。",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+            "type": "string"
+          },
+          "IdempotencyKey": {
+            "description": "客户端提供的幂等键；作用域为 (actor, project, command_type)。",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "LantaiToolOperationV1": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "effect_class": {
+                      "enum": [
+                        "lantai_command",
+                        "external_idempotent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "effect_class"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "idempotency_key"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "effect_class": {
+                      "enum": [
+                        "external_queryable"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "effect_class"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "external_request_ref"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "completed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "receipt_digest"
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "agent_step_run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "contract": {
+                "const": "lantai.tool-operation/v1"
+              },
+              "effect_class": {
+                "$ref": "#/$defs/CommonV1ExecutionEffectClass"
+              },
+              "external_request_ref": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "idempotency_key": {
+                "$ref": "#/$defs/IdempotencyKey"
+              },
+              "receipt_digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "reconciliation_evidence_refs": {
+                "items": {
+                  "$ref": "#/$defs/Ulid"
+                },
+                "maxItems": 1000,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "request_hash": {
+                "$ref": "#/$defs/Digest"
+              },
+              "sequence": {
+                "$ref": "#/$defs/Revision"
+              },
+              "state": {
+                "$ref": "#/$defs/CommonV1ExecutionEffectState"
+              },
+              "task_run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "tool": {
+                "$ref": "#/$defs/CommandType"
+              },
+              "tool_version": {
+                "$ref": "#/$defs/ExtensionVersion"
+              }
+            },
+            "required": [
+              "contract",
+              "id",
+              "task_run_id",
+              "agent_step_run_id",
+              "attempt_id",
+              "sequence",
+              "tool",
+              "tool_version",
+              "request_hash",
+              "effect_class",
+              "state",
+              "reconciliation_evidence_refs"
+            ],
+            "title": "lantai.tool-operation/v1",
+            "type": "object"
+          },
+          "M2AgentexecutionToolRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "run_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "tool": {
+                "$ref": "#/$defs/LantaiToolOperationV1"
+              }
+            },
+            "required": [
+              "expected_revision",
+              "fence",
+              "run_id",
+              "tool"
+            ],
+            "type": "object"
+          },
+          "Revision": {
+            "description": "服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2AgentexecutionToolRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "run_tool"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Record a task blocker without changing human approval.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2TasksBlockRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "question_message_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "stopped": {
+                "type": "boolean"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "expected_revision",
+              "fence",
+              "project_id",
+              "question_message_id",
+              "stopped",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksBlockRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_block"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Claim an existing authorized task seat; returns the server lease and fence.",
+      "inputSchema": {
+        "$defs": {
+          "M2TasksClaimRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "seat_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "expected_revision",
+              "project_id",
+              "seat_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksClaimRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_claim"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Record an explicit task handoff from the current attempt.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2TasksHandoffRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "draft_refs": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/PermanentRef"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "message_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "draft_refs",
+              "expected_revision",
+              "fence",
+              "message_id",
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksHandoffRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_handoff"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized tasks through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "task_list"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized tasks through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "task_read"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Release an existing task attempt with an explicit stop observation.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2TasksReleaseRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "stopped": {
+                "type": "boolean"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "unresolved_effects": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "expected_revision",
+              "fence",
+              "project_id",
+              "reason",
+              "stopped",
+              "task_id",
+              "unresolved_effects"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksReleaseRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_release"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Renew the same current task attempt with its expected revision and fence.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2TasksAttemptRef": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "expected_revision",
+              "fence",
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksAttemptRef"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_renew"
+    },
+    {
+      "annotations": {
+        "idempotentHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Submit committed output references from the current task attempt. This does not approve or publish them.",
+      "inputSchema": {
+        "$defs": {
+          "CommonV1ExecutionTaskFence": {
+            "additionalProperties": false,
+            "description": "任务执行权凭据。只有 tasks 模块签发与失效；比较时必须同时核对 recovery_epoch，不能只比较恢复后可能重复的 lease_fence 数值。",
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "lease_fence": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "recovery_epoch": {
+                "$ref": "#/$defs/Epoch"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "lease_fence",
+              "recovery_epoch"
+            ],
+            "type": "object"
+          },
+          "Epoch": {
+            "description": "单调递增的代次或 fence 值（auth_epoch、recovery_epoch、rights_epoch、lease_fence、activation_generation），从 1 开始。",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "M2TasksSubmitRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "expected_revision": {
+                "type": "integer"
+              },
+              "fence": {
+                "$ref": "#/$defs/CommonV1ExecutionTaskFence"
+              },
+              "output_refs": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/PermanentRef"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "project_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "task_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "expected_revision",
+              "fence",
+              "output_refs",
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "PermanentRef": {
+            "additionalProperties": false,
+            "description": "指向具体版本的永久引用；持久保存时 instance_id 必填。",
+            "properties": {
+              "asset_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "instance_id": {
+                "$ref": "#/$defs/Ulid"
+              },
+              "version_id": {
+                "$ref": "#/$defs/Ulid"
+              }
+            },
+            "required": [
+              "instance_id",
+              "asset_id",
+              "version_id"
+            ],
+            "type": "object"
+          },
+          "Ulid": {
+            "description": "服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/$defs/M2TasksSubmitRequest"
+          }
+        },
+        "required": [
+          "request",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "name": "task_submit"
+    },
+    {
+      "annotations": {
+        "idempotentHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read authorized whoami through REST. Results are bounded; use page cursors when listing.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "version_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "whoami"
+    }
+  ],
+  "ttlMs": 0
+}

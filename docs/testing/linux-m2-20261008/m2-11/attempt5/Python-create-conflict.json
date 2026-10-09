@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "hint": "use a new Idempotency-Key for a new intent",
+    "message": "idempotency key was already used for a different request",
+    "operation_id": "01M3H51VQGMCH2PW1PW94AYC6C",
+    "recovery_action": "fix_request",
+    "request_id": "dcedceea5645cc571cc3cd3643b7c7e4",
+    "retryable": false
+  }
+}

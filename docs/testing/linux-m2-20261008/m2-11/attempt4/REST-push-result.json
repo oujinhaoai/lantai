@@ -1,0 +1,33 @@
+{
+  "alias_generation": 1,
+  "asset_id": "01M3H51VQGHYBTTT3EJR3SV4BR",
+  "committed_at": "2026-09-27T10:02:30.000Z",
+  "description": {
+    "asset_id": "01M3H51VQGHYBTTT3EJR3SV4BR",
+    "asset_type": "doc",
+    "defaults": {
+      "license": "LicenseRef-Owned",
+      "usage": "production"
+    },
+    "project_id": "01M3H4Y6HG5BHQETC5B58PV6SQ",
+    "revision": 1,
+    "sensitivity": "normal",
+    "slug": "linux-m211/rest",
+    "subjects": [],
+    "tags": [],
+    "title": "Linux 四客户端合成 Unicode",
+    "updated_by": "01M3H4X980JWJW2M9WYH43C0QN"
+  },
+  "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+  "operation_id": "01M3H51VQGCNZ0NP3YCJY0G3DP",
+  "project_id": "01M3H4Y6HG5BHQETC5B58PV6SQ",
+  "ref": {
+    "asset_id": "01M3H51VQGHYBTTT3EJR3SV4BR",
+    "instance_id": "01M3H4X980VQG03YXHCAXVCG5M",
+    "version_id": "01M3H51VQGHJTC74DPE6W3A5CZ"
+  },
+  "slug": "linux-m211/rest",
+  "uri": "lantai://01M3H4X980VQG03YXHCAXVCG5M/assets/01M3H51VQGHYBTTT3EJR3SV4BR/versions/01M3H51VQGHJTC74DPE6W3A5CZ",
+  "version_id": "01M3H51VQGHJTC74DPE6W3A5CZ",
+  "version_number": 1
+}

@@ -1,0 +1,182 @@
+{
+  "result": "pass",
+  "started_utc": "2026-10-08T14:36:32.761901+00:00",
+  "finished_utc": "2026-10-08T14:36:36.804995+00:00",
+  "baseline": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7",
+  "test_binary_sha256": "c0c4ee7ff969538c7ed488dd36329f90b6adf00baf1818cd70068beefb360aa1",
+  "processes": [
+    {
+      "phase": "seed",
+      "branch": "primary",
+      "pid": 1493,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.432663+00:00",
+      "intentional_sigkill": true,
+      "marker_observed_utc": "2026-10-08T14:36:36.473338+00:00",
+      "kill_requested_utc": "2026-10-08T14:36:36.477774+00:00",
+      "returncode": -9,
+      "finished_utc": "2026-10-08T14:36:36.479360+00:00",
+      "elapsed_seconds": 0.04793936399994436,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "hold",
+      "branch": "primary",
+      "pid": 1500,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.482801+00:00",
+      "intentional_sigkill": true,
+      "marker_observed_utc": "2026-10-08T14:36:36.523465+00:00",
+      "kill_requested_utc": "2026-10-08T14:36:36.525718+00:00",
+      "returncode": -9,
+      "finished_utc": "2026-10-08T14:36:36.527201+00:00",
+      "elapsed_seconds": 0.044746364000047834,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "reconcile",
+      "branch": "primary",
+      "pid": 1507,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.530387+00:00",
+      "intentional_sigkill": true,
+      "marker_observed_utc": "2026-10-08T14:36:36.571050+00:00",
+      "kill_requested_utc": "2026-10-08T14:36:36.573315+00:00",
+      "returncode": -9,
+      "finished_utc": "2026-10-08T14:36:36.574822+00:00",
+      "elapsed_seconds": 0.04476556300005541,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "recover",
+      "branch": "primary",
+      "pid": 1515,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.578905+00:00",
+      "intentional_sigkill": false,
+      "marker_observed_utc": "2026-10-08T14:36:36.609576+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-08T14:36:36.610212+00:00",
+      "elapsed_seconds": 0.031692302000010386,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "closed",
+      "branch": "primary",
+      "pid": 1522,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.613375+00:00",
+      "intentional_sigkill": false,
+      "marker_observed_utc": "2026-10-08T14:36:36.654115+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-08T14:36:36.654717+00:00",
+      "elapsed_seconds": 0.041748460999997405,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "window_cold",
+      "branch": "primary",
+      "pid": 1529,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.658033+00:00",
+      "intentional_sigkill": false,
+      "marker_observed_utc": "2026-10-08T14:36:36.678506+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-08T14:36:36.679101+00:00",
+      "elapsed_seconds": 0.021512090999976863,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "fault_seed",
+      "branch": "fault",
+      "pid": 1536,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.682264+00:00",
+      "intentional_sigkill": true,
+      "marker_observed_utc": "2026-10-08T14:36:36.722945+00:00",
+      "kill_requested_utc": "2026-10-08T14:36:36.725259+00:00",
+      "returncode": -9,
+      "finished_utc": "2026-10-08T14:36:36.726646+00:00",
+      "elapsed_seconds": 0.0447127489999275,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "fault_recover",
+      "branch": "fault",
+      "pid": 1543,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.730260+00:00",
+      "intentional_sigkill": false,
+      "marker_observed_utc": "2026-10-08T14:36:36.760919+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-08T14:36:36.761506+00:00",
+      "elapsed_seconds": 0.03171340599999439,
+      "proc_pid_absent_after_reap": true
+    },
+    {
+      "phase": "fault_closed",
+      "branch": "fault",
+      "pid": 1551,
+      "argv": [
+        "<M210_EVIDENCE_ROOT>/run-001/extensions-owner.test",
+        "-test.run=^TestLinuxM210OwnerChild$",
+        "-test.v",
+        "-test.timeout=45s"
+      ],
+      "started_utc": "2026-10-08T14:36:36.765137+00:00",
+      "intentional_sigkill": false,
+      "marker_observed_utc": "2026-10-08T14:36:36.785570+00:00",
+      "returncode": 0,
+      "finished_utc": "2026-10-08T14:36:36.786192+00:00",
+      "elapsed_seconds": 0.0215494620000527,
+      "proc_pid_absent_after_reap": true
+    }
+  ],
+  "distinct_owner_pids": 9,
+  "intentional_sigkills": 4,
+  "child_integrity_checks": 67,
+  "parent_read_only_integrity_checks": 13,
+  "all_integrity_checks_ok": true,
+  "git_status_after": "?? internal/extensions/linux_m2_10_owner_test.go",
+  "scope": "Linux breaker owner only; logical clock and synthetic host observations; not TEST-M2-10/GATE acceptance"
+}

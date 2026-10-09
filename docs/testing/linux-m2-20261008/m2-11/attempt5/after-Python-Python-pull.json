@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "资料/样本-é.txt",
+      "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+      "size": 262144
+    },
+    {
+      "path": "二进制/合成.bin",
+      "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+      "size": 77000
+    },
+    {
+      "path": "空白/空.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    }
+  ]
+}

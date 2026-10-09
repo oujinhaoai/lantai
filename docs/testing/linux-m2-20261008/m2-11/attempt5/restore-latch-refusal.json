@@ -1,0 +1,3 @@
+{
+  "error": "operations: restore_incomplete: backup restoration requires offline credential rotation and reconciliation before service can start"
+}

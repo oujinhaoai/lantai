@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "TOKEN_REVOKED",
+    "message": "the session is no longer valid; authenticate again",
+    "recovery_action": "reauthenticate",
+    "request_id": "0a365a5c49cc1676bcbb970172a151d2",
+    "retryable": false
+  },
+  "http_status": 401
+}

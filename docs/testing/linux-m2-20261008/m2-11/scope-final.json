@@ -1,0 +1,10 @@
+{
+  "utc_finished": "2026-10-08T14:50:49.869563+00:00",
+  "original_checkout_status": "",
+  "isolated_checkout_status": "?? tests/integration/cloud_m211_linux_test.go\n?? tests/integration/cloud_m211_mcp_schema_repro_test.go\n",
+  "tracked_diff": "",
+  "head": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7",
+  "remote_main": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7\trefs/heads/main",
+  "testing_stopped": true,
+  "result": "partial"
+}

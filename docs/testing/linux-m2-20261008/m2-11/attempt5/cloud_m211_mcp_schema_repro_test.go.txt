@@ -1,0 +1,64 @@
+package integration
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/oujinhaoai/lantai/internal/client"
+	"github.com/oujinhaoai/lantai/internal/contract/ownership"
+	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/storage"
+	"github.com/oujinhaoai/lantai/internal/storage/transfer"
+)
+
+// Retains the original baseline failure as a small actual protocol call, rather
+// than changing the product's generated tool schema or accepting malformed input.
+// Passing this test requires normal PushInput JSON objects to reach resource_push.
+func TestCloudM211MCPPushSchemaRepro(t *testing.T) {
+	bin := buildConsistencyCLI(t)
+	e := newEnv(t, storage.Config{}, transfer.Limits{})
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
+	session := e.login()
+	app := reopenApplication(t, e)
+	servers := remoteServers(t, app, true)
+	work := t.TempDir()
+	if err := os.Mkdir(filepath.Join(work, "Unicode-é"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(work, "Unicode-é", "样本.txt"), []byte("synthetic minimal MCP push\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	h := newConsistencyClient(t, bin, "http://"+servers.Addresses.API, session.Token)
+	h.mcp = h.connectMCP(t, "--workspace", work)
+	ev := &m211Evidence{t: t, dir: os.Getenv("LANTAI_M211_EVIDENCE")}
+	if ev.dir != "" {
+		if err := os.MkdirAll(ev.dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tools, err := h.mcp.ListTools(t.Context(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev.save("MCP-tool-list", tools)
+	input := client.PushInput{ProjectID: string(e.project.ProjectID), Slug: "m211/minimal-schema", Content: client.ContentInput{AssetType: "doc", Files: []client.InputFile{{Path: "样本.txt", Role: "source"}}, Rights: json.RawMessage(`{"usage":"production","license":"LicenseRef-Owned","sensitivity":"normal"}`)}}
+	var countBefore, countAfter int
+	if err = app.Instance.DB(ownership.Runtime).QueryRowContext(t.Context(), "SELECT COUNT(*) FROM storage_uploads").Scan(&countBefore); err != nil {
+		t.Fatal(err)
+	}
+	args := map[string]any{"input": input, "directory": "Unicode-é", "state": "state.json"}
+	out, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: "resource_push", Arguments: args})
+	if err != nil {
+		t.Fatal("MCP protocol failure", err)
+	}
+	if err = app.Instance.DB(ownership.Runtime).QueryRowContext(t.Context(), "SELECT COUNT(*) FROM storage_uploads").Scan(&countAfter); err != nil {
+		t.Fatal(err)
+	}
+	ev.save("minimal-repro", map[string]any{"request": args, "response": out, "upload_count_before": countBefore, "upload_count_after": countAfter})
+	if out.IsError {
+		t.Fatalf("normal PushInput rights object rejected before upload (%d -> %d); original MCP response=%s", countBefore, countAfter, mustJSON(out))
+	}
+}

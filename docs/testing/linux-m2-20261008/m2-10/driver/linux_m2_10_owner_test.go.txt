@@ -1,0 +1,423 @@
+//go:build linux
+
+package extensions
+
+// This private test driver exercises only breaker ownership and the runtime
+// extension tables. Admission assumes caller authorization has already passed.
+// Host observations are synthetic; only owner process termination is real.
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/oujinhaoai/lantai/internal/contract/clock"
+	"github.com/oujinhaoai/lantai/internal/contract/digest"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
+	"github.com/oujinhaoai/lantai/internal/contract/execution"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/ownership"
+	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite/migrations"
+)
+
+type lt10Policies struct{}
+
+func (lt10Policies) ResolvePolicies(context.Context, ids.ID) (map[string]identity.PolicyValue, error) {
+	return map[string]identity.PolicyValue{}, nil // product defaults, not test overrides
+}
+
+type lt10Fault struct {
+	Key   string `json:"breaker_key"`
+	ID    ids.ID `json:"invocation_id"`
+	Epoch int64  `json:"epoch"`
+	At    int64  `json:"at"`
+}
+
+type lt10Snapshot struct {
+	Phase       string         `json:"phase"`
+	Stage       string         `json:"stage"`
+	PID         int            `json:"pid"`
+	WallUTC     string         `json:"wall_utc"`
+	LogicalMS   int64          `json:"logical_ms"`
+	Expected    map[string]any `json:"expected,omitempty"`
+	View        *BreakerView   `json:"view"`
+	Persisted   *breakerRow    `json:"persisted"`
+	Invocations []Invocation   `json:"invocations"`
+	Faults      []lt10Fault    `json:"faults"`
+	Integrity   string         `json:"integrity_check"`
+	SQLite      string         `json:"sqlite_version"`
+	Journal     string         `json:"journal_mode"`
+	Synchronous int            `json:"synchronous"`
+}
+
+type lt10Case struct {
+	t          *testing.T
+	m          *Manager
+	clk        *clock.Fake
+	e          Enablement
+	phase, dir string
+	last       lt10Snapshot
+}
+
+func lt10Fixed(n int) ids.ID {
+	const base = "01K00000000000000000000000"
+	return ids.MustParse(base[:24] + fmt.Sprintf("%02d", n))
+}
+
+func lt10Atomic(t *testing.T, path string, value any) {
+	t.Helper()
+	b, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.OpenFile(path+".tmp", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.Write(append(b, '\n')); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Rename(path+".tmp", path); err != nil {
+		t.Fatal(err)
+	}
+	d, err := os.Open(filepath.Dir(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	if err = d.Sync(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (c *lt10Case) event(value any) {
+	c.t.Helper()
+	b, err := json.Marshal(value)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	f, err := os.OpenFile(filepath.Join(c.dir, "events.jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err = f.Write(append(b, '\n')); err != nil {
+		c.t.Fatal(err)
+	}
+	if err = f.Sync(); err != nil {
+		c.t.Fatal(err)
+	}
+}
+
+func (c *lt10Case) capture(stage string, expected map[string]any) lt10Snapshot {
+	c.t.Helper()
+	s := lt10Snapshot{Phase: c.phase, Stage: stage, PID: os.Getpid(), WallUTC: time.Now().UTC().Format(time.RFC3339Nano), LogicalMS: clock.Millis(c.clk.Now()), Expected: expected, Invocations: []Invocation{}, Faults: []lt10Fault{}}
+	ctx := c.t.Context()
+	var err error
+	s.View, err = c.m.breakerView(ctx, c.m.breakerKey(c.e))
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	var raw string
+	err = c.m.d.Runtime.QueryRowContext(ctx, "SELECT record FROM extensions_breakers WHERE breaker_key=?", s.View.Key).Scan(&raw)
+	if err == nil {
+		s.Persisted = &breakerRow{}
+		if err = json.Unmarshal([]byte(raw), s.Persisted); err != nil {
+			c.t.Fatal(err)
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		c.t.Fatal(err)
+	}
+	rows, err := c.m.d.Runtime.QueryContext(ctx, "SELECT record FROM extensions_invocations ORDER BY invocation_id")
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	for rows.Next() {
+		var inv Invocation
+		if err = rows.Scan(&raw); err != nil {
+			c.t.Fatal(err)
+		}
+		if err = json.Unmarshal([]byte(raw), &inv); err != nil {
+			c.t.Fatal(err)
+		}
+		s.Invocations = append(s.Invocations, inv)
+	}
+	if err = rows.Err(); err != nil {
+		c.t.Fatal(err)
+	}
+	rows.Close()
+	rows, err = c.m.d.Runtime.QueryContext(ctx, "SELECT breaker_key,invocation_id,epoch,at FROM extensions_breaker_faults ORDER BY invocation_id")
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	for rows.Next() {
+		var f lt10Fault
+		if err = rows.Scan(&f.Key, &f.ID, &f.Epoch, &f.At); err != nil {
+			c.t.Fatal(err)
+		}
+		s.Faults = append(s.Faults, f)
+	}
+	if err = rows.Err(); err != nil {
+		c.t.Fatal(err)
+	}
+	rows.Close()
+	for _, q := range []struct {
+		sql string
+		dst any
+	}{
+		{"PRAGMA integrity_check", &s.Integrity}, {"SELECT sqlite_version()", &s.SQLite},
+		{"PRAGMA journal_mode", &s.Journal}, {"PRAGMA synchronous", &s.Synchronous},
+	} {
+		if err = c.m.d.Runtime.QueryRowContext(ctx, q.sql).Scan(q.dst); err != nil {
+			c.t.Fatal(err)
+		}
+	}
+	c.event(s) // preserve actual result before assertions
+	if s.Integrity != "ok" || s.Journal != "wal" || s.Synchronous != 2 {
+		c.t.Fatalf("SQLite baseline: %+v", s)
+	}
+	c.last = s
+	return s
+}
+
+func (c *lt10Case) state(stage, view, persisted string, epoch int64, slots int, faults int64) lt10Snapshot {
+	c.t.Helper()
+	s := c.capture(stage, map[string]any{"view": view, "persisted": persisted, "epoch": epoch, "slots": slots, "window_faults": faults})
+	if s.View.State != view || s.View.Epoch != epoch || len(s.View.Probes) != slots || s.View.WindowFaults != faults || s.Persisted == nil || s.Persisted.State != persisted || s.Persisted.Epoch != epoch {
+		c.t.Fatalf("state mismatch at %s: %+v", stage, s)
+	}
+	return s
+}
+
+func (c *lt10Case) admit(id ids.ID) {
+	c.t.Helper()
+	if err := c.m.admit(c.t.Context(), c.e, id, lt10Fixed(2), "org.synthetic.m2_10", c.clk.Now().Add(time.Minute)); err != nil {
+		c.t.Fatal(err)
+	}
+}
+
+func (c *lt10Case) settle(id ids.ID, outcome execution.InvocationOutcome) {
+	c.t.Helper()
+	if err := c.m.Settle(c.t.Context(), id, outcome); err != nil {
+		c.t.Fatal(err)
+	}
+}
+
+func (c *lt10Case) fault() ids.ID {
+	c.t.Helper()
+	id := ids.New()
+	c.admit(id)
+	c.settle(id, execution.InvocationRuntimeFault)
+	return id
+}
+
+func (c *lt10Case) reject(stage string) {
+	c.t.Helper()
+	before := c.capture(stage+"_before", nil)
+	err := c.m.admit(c.t.Context(), c.e, ids.New(), lt10Fixed(2), "org.synthetic.m2_10", c.clk.Now().Add(time.Minute))
+	c.event(map[string]any{"phase": c.phase, "stage": stage, "pid": os.Getpid(), "wall_utc": time.Now().UTC().Format(time.RFC3339Nano), "logical_ms": clock.Millis(c.clk.Now()), "admission_error": fmt.Sprint(err), "error_code": errcode.CodeOf(err), "expected_error_code": errcode.ExtensionBreakerOpen})
+	if errcode.CodeOf(err) != errcode.ExtensionBreakerOpen {
+		c.t.Fatalf("expected rejection at %s: %v", stage, err)
+	}
+	after := c.capture(stage+"_after", nil)
+	a, _ := json.Marshal(before.Persisted)
+	b, _ := json.Marshal(after.Persisted)
+	if string(a) != string(b) || len(before.Invocations) != len(after.Invocations) || len(before.Faults) != len(after.Faults) {
+		c.t.Fatal("rejected admission changed durable state")
+	}
+}
+
+func (c *lt10Case) stale(stage string, id ids.ID, outcome execution.InvocationOutcome) {
+	c.t.Helper()
+	before := c.capture(stage+"_before", nil)
+	c.settle(id, outcome)
+	inv, err := c.m.invocation(c.t.Context(), id)
+	if err != nil || !inv.StaleEpoch || inv.Outcome != string(outcome) {
+		c.t.Fatal("missing stale epoch audit", inv, err)
+	}
+	after := c.capture(stage+"_after", nil)
+	a, _ := json.Marshal(before.Persisted)
+	b, _ := json.Marshal(after.Persisted)
+	fa, _ := json.Marshal(before.Faults)
+	fb, _ := json.Marshal(after.Faults)
+	if string(a) != string(b) || string(fa) != string(fb) || before.View.WindowFaults != after.View.WindowFaults {
+		c.t.Fatal("old epoch polluted current breaker")
+	}
+}
+
+func (c *lt10Case) duplicate(stage string, id ids.ID, outcome execution.InvocationOutcome) {
+	c.t.Helper()
+	before := c.capture(stage+"_before", nil)
+	c.settle(id, outcome)
+	after := c.capture(stage+"_after", nil)
+	a, _ := json.Marshal([]any{before.Persisted, before.Invocations, before.Faults})
+	b, _ := json.Marshal([]any{after.Persisted, after.Invocations, after.Faults})
+	if string(a) != string(b) {
+		c.t.Fatal("duplicate settled callback changed state or audit")
+	}
+}
+
+func TestLinuxM210OwnerChild(t *testing.T) {
+	phase := os.Getenv("LANTAI_M2_10_PHASE")
+	if phase == "" {
+		t.Skip("private child entrance only")
+	}
+	dir := os.Getenv("LANTAI_M2_10_PHASE_DIR")
+	db, err := sqlite.Open(t.Context(), os.Getenv("LANTAI_M2_10_DB"), sqlite.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	defer db.Close() // SIGKILL phases never execute this defer
+	if phase == "seed" || phase == "fault_seed" {
+		found := false
+		for _, mig := range migrations.For(ownership.Runtime) {
+			if mig.Version == 13 && mig.Owner == "extensions" {
+				if _, err = db.ExecContext(t.Context(), mig.SQL); err != nil {
+					t.Fatal(err)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("missing published runtime extension schema")
+		}
+	}
+	clk := clock.NewFake(time.Date(2026, 10, 8, 0, 0, 0, 0, time.UTC))
+	m := &Manager{d: ManagerDeps{Runtime: db, Policies: lt10Policies{}, Clock: clk, InstanceID: lt10Fixed(0)}}
+	c := &lt10Case{t: t, m: m, clk: clk, phase: phase, dir: dir, e: Enablement{ID: lt10Fixed(1), Generation: 1, PackageDigest: digest.Of([]byte("lantai-m2-10-linux-synthetic-owner")), Entry: "bin/synthetic-checker", Target: "server", ScopeKind: "instance"}}
+	c.capture("cold_start", nil)
+	switch phase {
+	case "seed":
+		for _, n := range []int{10, 11, 12, 13} {
+			c.admit(lt10Fixed(n))
+		}
+		for range 4 {
+			c.fault()
+		}
+		c.state("four_faults_closed", "closed", "closed", 1, 0, 4)
+		fifth := c.fault()
+		c.state("five_faults_committed_open", "open", "open", 2, 0, 0)
+		c.duplicate("same_fault_dedup", fifth, execution.InvocationRuntimeFault)
+		c.state("seed_final", "open", "open", 2, 0, 0)
+	case "hold":
+		clk.Advance(899 * time.Second)
+		c.state("cold_899", "open", "open", 2, 0, 0)
+		c.reject("cooldown_899_rejected")
+		c.stale("epoch1_success_after_open", lt10Fixed(10), execution.InvocationCompleted)
+		c.stale("epoch1_fault_after_open", lt10Fixed(11), execution.InvocationRuntimeFault)
+		clk.Advance(time.Second)
+		c.state("at_900_no_auto_dispatch", "half_open", "open", 2, 0, 0)
+		probe := ids.New()
+		c.admit(probe)
+		c.state("single_half_open_admitted", "half_open", "open", 2, 1, 0)
+		unknown := execution.ClassifyInvocation(execution.Invocation{Dispatched: true, Cancelled: true, StopConfirmed: false})
+		if unknown != execution.InvocationUnresolved {
+			t.Fatal(unknown)
+		}
+		c.settle(probe, unknown)
+		c.reject("held_slot_rejected")
+		c.state("unresolved_committed", "half_open", "open", 2, 1, 0)
+	case "reconcile":
+		clk.Advance(1200 * time.Second)
+		s := c.state("cold_after_probe_deadline", "half_open", "open", 2, 1, 0)
+		probe := s.View.Probes[0]
+		inv, err := m.invocation(t.Context(), probe)
+		if err != nil || inv.State != "unresolved" || inv.Outcome != "unresolved" || inv.Epoch != 2 || !inv.HalfOpen || inv.Deadline >= clock.Millis(clk.Now()) {
+			t.Fatal("unknown occupancy lost", inv, err)
+		}
+		for range 3 {
+			c.reject("past_deadline_rejected")
+		}
+		confirmed := execution.ClassifyInvocation(execution.Invocation{Dispatched: true, Cancelled: true, StopConfirmed: true})
+		if confirmed != execution.InvocationCancelled {
+			t.Fatal(confirmed)
+		}
+		c.settle(probe, confirmed)
+		c.state("confirmed_stop_releases_does_not_close", "half_open", "open", 2, 0, 0)
+		c.duplicate("late_success_of_cancelled_probe", probe, execution.InvocationCompleted)
+		c.duplicate("late_fault_of_cancelled_probe", probe, execution.InvocationRuntimeFault)
+		c.state("released_committed", "half_open", "open", 2, 0, 0)
+	case "recover":
+		clk.Advance(1201 * time.Second)
+		c.state("cold_released_still_open", "half_open", "open", 2, 0, 0)
+		probe := ids.New()
+		c.admit(probe)
+		c.state("next_call_has_slot", "half_open", "open", 2, 1, 0)
+		completed := execution.ClassifyInvocation(execution.Invocation{Dispatched: true, StopConfirmed: true, Exited: true, ExitCode: 0, ResultValid: true})
+		if completed != execution.InvocationCompleted || execution.Verdict(completed, execution.VerdictFail) != execution.VerdictFail {
+			t.Fatal("valid fail is not runtime completion")
+		}
+		c.settle(probe, completed)
+		c.state("next_valid_completion_closed", "closed", "closed", 3, 0, 0)
+	case "closed":
+		clk.Advance(1202 * time.Second)
+		c.state("cold_closed_survives", "closed", "closed", 3, 0, 0)
+		c.stale("epoch1_success_after_close", lt10Fixed(12), execution.InvocationCompleted)
+		c.stale("epoch1_fault_after_close", lt10Fixed(13), execution.InvocationRuntimeFault)
+		for range 4 {
+			c.fault()
+		}
+		c.state("four_new_faults_old_window_absent", "closed", "closed", 3, 0, 4)
+		id := ids.New()
+		c.admit(id)
+		c.settle(id, execution.InvocationCompleted)
+		c.state("closed_success_does_not_clear_new_window", "closed", "closed", 3, 0, 4)
+	case "window_cold":
+		clk.Advance(1203 * time.Second)
+		c.state("cold_new_window_keeps_four", "closed", "closed", 3, 0, 4)
+	case "fault_seed":
+		for range 5 {
+			c.fault()
+		}
+		clk.Advance(900 * time.Second)
+		id := lt10Fixed(20)
+		c.admit(id)
+		c.settle(id, execution.InvocationUnresolved)
+		c.state("fault_branch_unresolved", "half_open", "open", 2, 1, 0)
+		clk.Advance(300 * time.Second)
+		c.settle(id, execution.InvocationRuntimeFault)
+		c.state("half_open_fault_new_cooldown", "open", "open", 3, 0, 0)
+	case "fault_recover":
+		clk.Advance((1200 + 899) * time.Second)
+		c.state("reopened_cold_899", "open", "open", 3, 0, 0)
+		c.reject("new_cooldown_899_rejected")
+		c.duplicate("old_half_open_success_after_reopen", lt10Fixed(20), execution.InvocationCompleted)
+		c.duplicate("old_half_open_fault_after_reopen", lt10Fixed(20), execution.InvocationRuntimeFault)
+		clk.Advance(time.Second)
+		c.state("reopened_900_no_auto_dispatch", "half_open", "open", 3, 0, 0)
+		probe := ids.New()
+		c.admit(probe)
+		c.settle(probe, execution.InvocationCompleted)
+		c.state("fault_branch_recovered", "closed", "closed", 4, 0, 0)
+	case "fault_closed":
+		clk.Advance(2101 * time.Second)
+		c.state("fault_branch_cold_closed", "closed", "closed", 4, 0, 0)
+		c.duplicate("old_half_open_fault_after_close", lt10Fixed(20), execution.InvocationRuntimeFault)
+		c.duplicate("old_half_open_success_after_close", lt10Fixed(20), execution.InvocationCompleted)
+		c.state("fault_branch_final", "closed", "closed", 4, 0, 0)
+	default:
+		t.Fatal("unrecognized phase", phase)
+	}
+	lt10Atomic(t, filepath.Join(dir, "marker.json"), c.last)
+	// Marker and directory are fsynced before the parent can see this sentinel.
+	fmt.Printf("LT10_READY %s %d\n", phase, os.Getpid())
+	if phase == "seed" || phase == "hold" || phase == "reconcile" || phase == "fault_seed" {
+		for {
+			time.Sleep(100 * time.Millisecond)
+		} // parent sends actual SIGKILL
+	}
+}

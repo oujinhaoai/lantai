@@ -1,0 +1,245 @@
+{
+  "CLI-ledger": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "ledger.commit_version",
+      "IdempotencyKey": "01M4DZHW0M12W7Y7N74NW9DVHT",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQGPXW4Z293FK6TFEF4",
+    "OwnerModule": "ledger",
+    "RequestHash": "sha256:563e3856a6444107077ca2d20df7742d4608a35053f92ca671f4f807a2b8a957",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "AliasGeneration": 1,
+      "AssetID": "01M3H51VQGRF91AHSV1W7ZNEKM",
+      "CommittedAt": "2026-09-27T10:02:30Z",
+      "CommittedBy": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "ManifestDigest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+      "OperationID": "01M3H51VQGPXW4Z293FK6TFEF4",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25",
+      "ProofDigest": "sha256:b3895213135eec26a169c9bbf0dbcb20555f00397b96a760d4232daa5f9a26de",
+      "VersionID": "01M3H51VQG39XKYJNTZHDV4Q32",
+      "VersionNumber": 1
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQG39XKYJNTZHDV4Q32",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "Status": "succeeded"
+  },
+  "CLI-operation": {
+    "command_type": "ledger.commit_version",
+    "created_at": "2026-09-27T10:02:30.000Z",
+    "next_action": "none",
+    "operation_id": "01M3H51VQGPXW4Z293FK6TFEF4",
+    "owner_module": "ledger",
+    "projection_pending": false,
+    "result_refs": [
+      {
+        "id": "01M3H51VQG39XKYJNTZHDV4Q32",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "retryable": false,
+    "stage": "projected",
+    "updated_at": "2026-09-27T10:02:30.000Z"
+  },
+  "CLI-runtime": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "storage.create_upload",
+      "IdempotencyKey": "01M4DZHW0MWMD4CFES0212CHNT",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQGABGHHFXDNNWDSGTX",
+    "OwnerModule": "storage",
+    "RequestHash": "sha256:628c89a21ea727c1724d2da38b2abf2a21a8f75d58bddf15be78347bb0f2afc4",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "operation_id": "01M3H51VQGPXW4Z293FK6TFEF4",
+      "upload_id": "01M3H51VQGMYNYFKFMJ3A6C0QD"
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQGMYNYFKFMJ3A6C0QD",
+        "kind": "upload"
+      }
+    ],
+    "Status": "succeeded"
+  },
+  "Python-ledger": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "ledger.commit_version",
+      "IdempotencyKey": "01M4DZHX6ZP7P9NW0QP39N324F",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQGVMS3BFC18RDRCXPC",
+    "OwnerModule": "ledger",
+    "RequestHash": "sha256:d164f2dc08527b6cdc26bda112066b4fa4c1d54590a165d90faf017e0b2214d4",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "AliasGeneration": 1,
+      "AssetID": "01M3H51VQG4S6GSBJJH68FZP6E",
+      "CommittedAt": "2026-09-27T10:02:30Z",
+      "CommittedBy": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "ManifestDigest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+      "OperationID": "01M3H51VQGVMS3BFC18RDRCXPC",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25",
+      "ProofDigest": "sha256:a4eaf2c5bb4c74bbb88d8985ff1f6b6654ade269af847a38d6e282eec4dc6b25",
+      "VersionID": "01M3H51VQGE62Y613WNH9BKEDG",
+      "VersionNumber": 1
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQGE62Y613WNH9BKEDG",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "Status": "succeeded"
+  },
+  "Python-operation": {
+    "command_type": "ledger.commit_version",
+    "created_at": "2026-09-27T10:02:30.000Z",
+    "next_action": "none",
+    "operation_id": "01M3H51VQGVMS3BFC18RDRCXPC",
+    "owner_module": "ledger",
+    "projection_pending": false,
+    "result_refs": [
+      {
+        "id": "01M3H51VQGE62Y613WNH9BKEDG",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "retryable": false,
+    "stage": "projected",
+    "updated_at": "2026-09-27T10:02:30.000Z"
+  },
+  "Python-runtime": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "storage.create_upload",
+      "IdempotencyKey": "01M4DZHX6ZMJ86WANWNGGSY8FY",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQGMCH2PW1PW94AYC6C",
+    "OwnerModule": "storage",
+    "RequestHash": "sha256:628c89a21ea727c1724d2da38b2abf2a21a8f75d58bddf15be78347bb0f2afc4",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "operation_id": "01M3H51VQGVMS3BFC18RDRCXPC",
+      "upload_id": "01M3H51VQGP2CNQJT5F06ZZQG1"
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQGP2CNQJT5F06ZZQG1",
+        "kind": "upload"
+      }
+    ],
+    "Status": "succeeded"
+  },
+  "REST-ledger": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "ledger.commit_version",
+      "IdempotencyKey": "01M4DZHWMQT02WGJ9J41B5WDXH",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQG6183PQ7C4JWB7J17",
+    "OwnerModule": "ledger",
+    "RequestHash": "sha256:c4b46569f4519e4694af9e7cb65fdabd4e1fea6d1a76013e65ae660779969c64",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "AliasGeneration": 1,
+      "AssetID": "01M3H51VQGEEE019MRN6AA10DX",
+      "CommittedAt": "2026-09-27T10:02:30Z",
+      "CommittedBy": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "ManifestDigest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+      "OperationID": "01M3H51VQG6183PQ7C4JWB7J17",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25",
+      "ProofDigest": "sha256:2a3538d8f2ec5d6467ecd75ad5fcb48573f91631ecabe3f1816e4fe6632f0926",
+      "VersionID": "01M3H51VQGEXX0QRMYCDPXGQ70",
+      "VersionNumber": 1
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "Status": "succeeded"
+  },
+  "REST-operation": {
+    "command_type": "ledger.commit_version",
+    "created_at": "2026-09-27T10:02:30.000Z",
+    "next_action": "none",
+    "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+    "owner_module": "ledger",
+    "projection_pending": false,
+    "result_refs": [
+      {
+        "id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+        "kind": "version",
+        "revision": 1
+      }
+    ],
+    "retryable": false,
+    "stage": "projected",
+    "updated_at": "2026-09-27T10:02:30.000Z"
+  },
+  "REST-runtime": {
+    "CompletedAt": "2026-09-27T10:02:30Z",
+    "CreatedAt": "2026-09-27T10:02:30Z",
+    "FailureCode": "",
+    "Key": {
+      "ActorID": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "CommandType": "storage.create_upload",
+      "IdempotencyKey": "01M4DZHWMQQTZ51T02V8WDX2TN",
+      "ProjectID": "01M3H4Y6HGM2HVN32BD1V8XT25"
+    },
+    "OperationID": "01M3H51VQGSKDAHSJ9RJCE8MWT",
+    "OwnerModule": "storage",
+    "RequestHash": "sha256:628c89a21ea727c1724d2da38b2abf2a21a8f75d58bddf15be78347bb0f2afc4",
+    "ResponseCode": 201,
+    "ResponseExpiresAt": "2026-09-28T10:02:30Z",
+    "ResponseSummary": {
+      "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+      "upload_id": "01M3H51VQGH3KYYDNGD5GQ1B9V"
+    },
+    "ResultRefs": [
+      {
+        "id": "01M3H51VQGH3KYYDNGD5GQ1B9V",
+        "kind": "upload"
+      }
+    ],
+    "Status": "succeeded"
+  }
+}

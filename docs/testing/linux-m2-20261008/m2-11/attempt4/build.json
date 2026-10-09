@@ -1,0 +1,6 @@
+{
+  "arch": "amd64",
+  "cli_sha256": "41d534e5d03ffb446835e6b2eee2a6adf1dcc105573c074580c93021e5070451",
+  "go": "go1.26.8",
+  "os": "linux"
+}

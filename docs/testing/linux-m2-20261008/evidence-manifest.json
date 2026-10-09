@@ -1,0 +1,27 @@
+{
+  "baseline": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7",
+  "evidence_date": "2026-10-08",
+  "original_bytes_available": true,
+  "original_zip_sha256_verified": true,
+  "package_member_hashes_verified": {
+    "m2-10": 127,
+    "m2-11": 204
+  },
+  "original_reports_reviewed": true,
+  "all_failed_attempts_preserved": true,
+  "consumer_product_tests_run": false,
+  "archive_complete_for_supplied_packages": true,
+  "package_results": {
+    "m2-10": "pass, breaker owner software scope only",
+    "m2-11": "partial, MCP upload schema repro fail"
+  },
+  "initial_transfer_failures": "two HTTP 403 on supplied signed transfer after successful preparation; history preserved privately; resolved by existing exact-name local authorized downloads",
+  "source_tar_runtime_databases_binaries": "retained in external originals; intentionally excluded from versionable copies",
+  "copied_files": {
+    "m2_10": 66,
+    "m2_11": 204
+  },
+  "redaction": "private historical knowledge links, host paths and synthetic origin ports mapped to placeholders; no test assertions modified",
+  "go_driver_packaging": "*.go.txt; M210 replay.py adjacent-file suffix adapted only; no auto test discovery",
+  "acceptance": "TEST/GATE and new candidate applicability not signed"
+}

@@ -1,0 +1,12 @@
+{
+  "response": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "对象不存在或调用者无权知道其存在",
+      "recovery_action": "none",
+      "request_id": "20d4dd240b2fe34d568510c6e7a450cd",
+      "retryable": false
+    }
+  },
+  "status": 404
+}

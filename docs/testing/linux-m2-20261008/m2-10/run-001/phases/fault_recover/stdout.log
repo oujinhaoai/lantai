@@ -1,0 +1,4 @@
+=== RUN   TestLinuxM210OwnerChild
+LT10_READY fault_recover 1543
+--- PASS: TestLinuxM210OwnerChild (0.01s)
+PASS

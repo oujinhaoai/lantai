@@ -1,0 +1,44 @@
+{
+  "request": {
+    "directory": "Unicode-é",
+    "input": {
+      "content": {
+        "asset_type": "doc",
+        "files": [
+          {
+            "path": "样本.txt",
+            "role": "source",
+            "sha256": "",
+            "size": 0
+          }
+        ],
+        "rights": {
+          "license": "LicenseRef-Owned",
+          "sensitivity": "normal",
+          "usage": "production"
+        }
+      },
+      "project_id": "01M3H4Y6HGGD9RQN4KFCVJH2SA",
+      "slug": "m211/minimal-schema"
+    },
+    "state": "state.json"
+  },
+  "response": {
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "lantai",
+        "version": "0.2.0"
+      }
+    },
+    "content": [
+      {
+        "text": "validating \"arguments\": validating root: validating /properties/input: validating /properties/input/properties/content: validating /properties/input/properties/content/properties/rights: type: map[license:LicenseRef-Owned sensitivity:normal usage:production] has type \"object\", want one of \"null, array\"",
+        "type": "text"
+      }
+    ],
+    "isError": true,
+    "resultType": "complete"
+  },
+  "upload_count_after": 0,
+  "upload_count_before": 0
+}

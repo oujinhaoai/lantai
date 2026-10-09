@@ -1,0 +1,12 @@
+{
+  "exit": 3,
+  "injected": true,
+  "response": {
+    "error": {
+      "code": "INTERNAL",
+      "message": "server returned an invalid error response",
+      "recovery_action": "poll_operation",
+      "retryable": false
+    }
+  }
+}

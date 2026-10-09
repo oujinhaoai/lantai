@@ -1,0 +1,52 @@
+{
+  "result": "partial",
+  "chain": "pass",
+  "mcp_push_repro": "fail",
+  "leaf_results": [
+    {
+      "Time": "2026-10-08T14:44:23.497450082Z",
+      "Action": "pass",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211LinuxPushRestore/four_native_uploads_and_idempotency",
+      "Elapsed": 1.87
+    },
+    {
+      "Time": "2026-10-08T14:44:27.905137499Z",
+      "Action": "pass",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211LinuxPushRestore/four_clients_before_backup",
+      "Elapsed": 4.26
+    },
+    {
+      "Time": "2026-10-08T14:44:30.218768177Z",
+      "Action": "pass",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211LinuxPushRestore/common_backup_empty_restore_and_fresh_login",
+      "Elapsed": 2.29
+    },
+    {
+      "Time": "2026-10-08T14:44:30.762482907Z",
+      "Action": "pass",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211LinuxPushRestore/old_authority_refused_at_same_gateway_origin",
+      "Elapsed": 0.54
+    },
+    {
+      "Time": "2026-10-08T14:44:35.244771538Z",
+      "Action": "pass",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+      "Elapsed": 4.48
+    },
+    {
+      "Time": "2026-10-08T14:44:37.487850609Z",
+      "Action": "fail",
+      "Package": "github.com/oujinhaoai/lantai/tests/integration",
+      "Test": "TestCloudM211MCPPushSchemaRepro",
+      "Elapsed": 2.19
+    }
+  ],
+  "hash_rows": 72,
+  "race_enabled": true,
+  "package_exit_code": 1
+}

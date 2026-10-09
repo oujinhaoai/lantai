@@ -1,0 +1,17 @@
+{
+  "version": {
+    "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+    "committed_at": "2026-09-27T10:02:30.000Z",
+    "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+    "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+    "project_id": "01M3H4Y6HGM2HVN32BD1V8XT25",
+    "ref": {
+      "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+      "instance_id": "01M3H4X980SG6946CFTC9GB0ER",
+      "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70"
+    },
+    "uri": "lantai://01M3H4X980SG6946CFTC9GB0ER/assets/01M3H51VQGEEE019MRN6AA10DX/versions/01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_number": 1
+  }
+}

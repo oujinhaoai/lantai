@@ -1,0 +1,921 @@
+package integration
+
+// Independent, synthetic TEST-M2-11 Linux supplement. Product code and shared
+// fixtures are unchanged. Run from the standard Go package working directory.
+
+import (
+	"bytes"
+	"context"
+	"encoding/base32"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/oujinhaoai/lantai/internal/application"
+	"github.com/oujinhaoai/lantai/internal/client"
+	"github.com/oujinhaoai/lantai/internal/commands"
+	"github.com/oujinhaoai/lantai/internal/contract/digest"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/ownership"
+	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
+	"github.com/oujinhaoai/lantai/internal/identity/totp"
+	"github.com/oujinhaoai/lantai/internal/operations"
+	"github.com/oujinhaoai/lantai/internal/storage"
+	"github.com/oujinhaoai/lantai/internal/storage/transfer"
+)
+
+type m211Evidence struct {
+	t   *testing.T
+	dir string
+	mu  sync.Mutex
+}
+
+func (ev *m211Evidence) save(name string, value any) {
+	ev.t.Helper()
+	if ev.dir == "" {
+		return
+	}
+	raw, err := json.MarshalIndent(m211Redact(value), "", "  ")
+	if err != nil {
+		ev.t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(ev.dir, name+".json"), append(raw, '\n'), 0600); err != nil {
+		ev.t.Fatal(err)
+	}
+}
+
+// Raw machine fields are retained; transient capability URLs and credentials
+// are omitted even though every account and byte in this run is synthetic.
+func m211Redact(value any) any {
+	raw, _ := json.Marshal(value)
+	var out any
+	_ = json.Unmarshal(raw, &out)
+	var clean func(any)
+	clean = func(v any) {
+		switch v := v.(type) {
+		case map[string]any:
+			for k, x := range v {
+				switch k {
+				case "token", "csrf_token", "password", "secret", "code", "url", "part_url_template", "parts_url":
+					if k == "code" {
+						clean(x)
+					} else {
+						v[k] = "[redacted]"
+					}
+				default:
+					clean(x)
+				}
+			}
+		case []any:
+			for _, x := range v {
+				clean(x)
+			}
+		}
+	}
+	clean(out)
+	return out
+}
+
+type m211StatusWriter struct {
+	http.ResponseWriter
+	status int
+	count  int
+}
+
+func (w *m211StatusWriter) WriteHeader(code int) { w.status = code; w.ResponseWriter.WriteHeader(code) }
+func (w *m211StatusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.WriteHeader(200)
+	}
+	n, err := w.ResponseWriter.Write(b)
+	w.count += n
+	return n, err
+}
+
+func m211HTTP(t *testing.T, h *consistencyClient, method, path, key string, body any, data []byte) ([]byte, int) {
+	t.Helper()
+	u, err := url.Parse(path)
+	if err != nil {
+		t.Fatal("invalid protocol path")
+	}
+	base, _ := url.Parse(h.origin)
+	u = base.ResolveReference(u)
+	if u.Host != base.Host || u.Scheme != base.Scheme {
+		t.Fatal("cross-origin protocol URL")
+	}
+	var input io.Reader
+	if data != nil {
+		input = bytes.NewReader(data)
+	} else if body != nil {
+		input = bytes.NewReader(mustJSON(body))
+	}
+	req, err := http.NewRequestWithContext(t.Context(), method, u.String(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+h.token)
+	if key != "" {
+		req.Header.Set("Idempotency-Key", key)
+	}
+	if data != nil {
+		req.Header.Set("Lantai-Part-Sha256", shaOf(data))
+	} else if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	tr := &http.Transport{}
+	defer tr.CloseIdleConnections()
+	r, err := (&http.Client{Transport: tr, Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
+	if err != nil {
+		t.Fatal("loopback HTTP failed")
+	}
+	defer r.Body.Close()
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw, r.StatusCode
+}
+
+func m211Python(t *testing.T, h *consistencyClient, spec map[string]any) map[string]any {
+	t.Helper()
+	const script = `import hashlib, http.client, json, pathlib, sys
+from urllib.parse import urlsplit
+from lantai import Client, APIError
+s=json.load(sys.stdin)
+with open(s['session'], encoding='utf-8') as f: saved=json.load(f)
+c=Client(saved['origin'], saved['token'], allow_http=True)
+try:
+    if s['mode']=='upload':
+        u=c.create_upload(s['project'], s['files'], key=s['create_key'])
+        for f in u['files']:
+            source=next(x for x in s['input']['content']['files'] if x['sha256']==f['sha256'])
+            data=(pathlib.Path(s['directory'])/source['path']).read_bytes()
+            for p in range(1, f['part_count']+1):
+                chunk=data[(p-1)*f['part_size']:p*f['part_size']]
+                target=urlsplit(f['part_url_template'].replace('{part_number}', str(p)))
+                origin=urlsplit(saved['origin'])
+                if target.netloc and (target.scheme, target.netloc)!=(origin.scheme, origin.netloc): raise ValueError('cross-origin')
+                conn=http.client.HTTPConnection(origin.hostname, origin.port, timeout=30)
+                try:
+                    conn.request('PUT', target.path+('?' + target.query if target.query else ''), chunk,
+                        {'Authorization':'Bearer '+saved['token'], 'Lantai-Part-Sha256':hashlib.sha256(chunk).hexdigest()})
+                    r=conn.getresponse(); raw=r.read()
+                    if not 200<=r.status<300: raise APIError(r.status, json.loads(raw)['error'])
+                finally: conn.close()
+            c.request('POST', '/api/v1/uploads/'+u['upload_id']+'/files/'+f['sha256']+'/complete', {})
+        body=dict(s['input']); body.pop('project_id')
+        result=c.commit(u['upload_id'], body, key=s['commit_key'])
+        print(json.dumps({'result':result, 'upload_id':u['upload_id'], 'operation_id':u['operation_id']}))
+    elif s['mode']=='download':
+        results=[]
+        for f in s['files']:
+            p=c.download_file(s['asset'], s['version'], f['path'], s['directory'])
+            results.append({'path':f['path'], 'size':p.stat().st_size, 'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
+        print(json.dumps({'files':results}))
+    else:
+        value=getattr(c, s['method'])(*(s.get('args') or []), **(s.get('kwargs') or {}))
+        print(json.dumps(value, ensure_ascii=False))
+except APIError as e:
+    print(json.dumps({'error':e.body, 'http_status':e.status}, ensure_ascii=False))
+`
+	spec["session"] = h.session
+	sdk, err := filepath.Abs("../../sdk/python")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.CommandContext(t.Context(), "python3", "-c", script)
+	cmd.Env = append(consistencyEnv(), "PYTHONPATH="+sdk)
+	cmd.Stdin = bytes.NewReader(mustJSON(spec))
+	raw, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Python test driver failed: %v\n%s", err, raw)
+	}
+	if bytes.Contains(raw, []byte(h.token)) {
+		t.Fatal("Python leaked credential")
+	}
+	return consistencyJSON(t, raw)
+}
+
+func m211Call(t *testing.T, h *consistencyClient, tool string, args map[string]any) (map[string]any, bool) {
+	t.Helper()
+	out, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: tool, Arguments: args})
+	if err != nil {
+		t.Fatal("MCP protocol failure", err)
+	}
+	raw := mustJSON(out)
+	if bytes.Contains(raw, []byte(h.token)) || bytes.Contains(raw, []byte("/xfer/")) || bytes.Contains(raw, []byte("sig=")) {
+		t.Fatal("MCP leaked credential or capability")
+	}
+	return consistencyJSON(t, mustJSON(out.StructuredContent)), out.IsError
+}
+
+func m211AssertError(t *testing.T, value map[string]any, code errcode.Code) {
+	t.Helper()
+	body, ok := value["error"].(map[string]any)
+	if !ok || body["code"] != string(code) || body["request_id"] == "" {
+		t.Fatalf("unexpected machine error: %s; want %s", mustJSON(value), code)
+	}
+}
+
+type m211Push struct {
+	Adapter   string
+	Input     client.PushInput
+	State     client.PushState
+	Result    map[string]any
+	StatePath string
+}
+
+func m211CommitBody(in client.PushInput) map[string]any {
+	var body map[string]any
+	_ = json.Unmarshal(mustJSON(in), &body)
+	delete(body, "project_id")
+	return body
+}
+
+func m211Specs(in client.PushInput) []storage.FileSpec {
+	var out []storage.FileSpec
+	for _, f := range in.Content.Files {
+		out = append(out, storage.FileSpec{SHA256: f.SHA256, Size: f.Size})
+	}
+	return out
+}
+
+func m211ReceiptSnapshot(t *testing.T, a *application.App, pushes []m211Push) map[string]any {
+	t.Helper()
+	out := map[string]any{}
+	for _, p := range pushes {
+		for _, item := range []struct {
+			db  ownership.Database
+			key string
+		}{{ownership.Runtime, p.State.CreateKey}, {ownership.Ledger, p.State.CommitKey}} {
+			store, err := commands.NewStore(map[ownership.Database]string{ownership.Runtime: "storage", ownership.Ledger: "ledger"}[item.db], nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var op string
+			if err = a.Instance.DB(item.db).QueryRowContext(t.Context(), "SELECT operation_id FROM command_receipts WHERE idempotency_key = ?", item.key).Scan(&op); err != nil {
+				t.Fatal(err)
+			}
+			r, err := store.ReceiptByOperation(t.Context(), a.Instance.DB(item.db), ids.ID(op))
+			if err != nil || r == nil {
+				t.Fatal("missing persisted receipt", err)
+			}
+			out[p.Adapter+"-"+string(item.db)] = r
+		}
+		v, err := a.Ledger.Operation(t.Context(), ids.ID(p.State.OperationID))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[p.Adapter+"-operation"] = v
+		versions, err := a.Ledger.AssetVersions(t.Context(), ids.ID(p.Result["asset_id"].(string)), 0, 100)
+		if err != nil || len(versions) != 1 || versions[0].VersionNumber != 1 {
+			t.Fatal("replay created a second version", err, len(versions))
+		}
+	}
+	return out
+}
+
+func m211Tree(t *testing.T, root string) map[string]any {
+	t.Helper()
+	out := map[string]any{}
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return fmt.Errorf("nonregular archive member")
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(root, path)
+		out[filepath.ToSlash(rel)] = map[string]any{"size": len(b), "sha256": shaOf(b)}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func TestCloudM211LinuxPushRestore(t *testing.T) {
+	rootT := t
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux-native supplement")
+	}
+	ev := &m211Evidence{t: t, dir: os.Getenv("LANTAI_M211_EVIDENCE")}
+	if ev.dir != "" {
+		if err := os.MkdirAll(ev.dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bin := buildConsistencyCLI(t)
+	if ev.dir != "" {
+		b, err := os.ReadFile(bin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ev.save("build", map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "cli_sha256": shaOf(b)})
+		if err = os.WriteFile(filepath.Join(ev.dir, "lantai"), b, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e := newEnv(t, storage.Config{}, transfer.Limits{})
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
+	session := e.login()
+	app := reopenApplication(t, e, storage.Config{PartSize: 64 << 10, SinglePartMax: 64 << 10, MinFreeBytes: 1 << 20})
+	servers := remoteServers(t, app, false)
+	var api, xfer atomic.Pointer[httputil.ReverseProxy]
+	var drop atomic.Bool
+	var dropped atomic.Bool
+	bind := func(s *application.HTTPServers) {
+		a, _ := url.Parse("http://" + s.Addresses.API)
+		x, _ := url.Parse("http://" + s.Addresses.Transfer)
+		ap := httputil.NewSingleHostReverseProxy(a)
+		ap.ModifyResponse = func(r *http.Response) error {
+			if strings.HasSuffix(r.Request.URL.Path, "/commit") && r.StatusCode == 201 && drop.CompareAndSwap(true, false) {
+				dropped.Store(true)
+				_ = r.Body.Close()
+				return fmt.Errorf("synthetic lost committed response")
+			}
+			return nil
+		}
+		ap.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) { w.WriteHeader(502) }
+		api.Store(ap)
+		xfer.Store(httputil.NewSingleHostReverseProxy(x))
+	}
+	bind(servers)
+	var gatewayLog []map[string]any
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sw := &m211StatusWriter{ResponseWriter: w}
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/api/"):
+			api.Load().ServeHTTP(sw, r)
+		case strings.HasPrefix(r.URL.Path, "/xfer/"):
+			xfer.Load().ServeHTTP(sw, r)
+		default:
+			http.NotFound(sw, r)
+		}
+		ev.mu.Lock()
+		defer ev.mu.Unlock()
+		gatewayLog = append(gatewayLog, map[string]any{"seq": len(gatewayLog) + 1, "method": r.Method, "path": r.URL.Path, "status": sw.status, "response_bytes": sw.count})
+	}))
+	t.Cleanup(gateway.Close)
+	t.Cleanup(func() { ev.mu.Lock(); defer ev.mu.Unlock(); ev.save("gateway-requests", gatewayLog) })
+	work := t.TempDir()
+	source := filepath.Join(work, "Unicode 工作副本-é")
+	files := map[string][]byte{
+		"资料/样本-é.txt": bytes.Repeat([]byte("synthetic Linux Unicode content\n"), 8192),
+		"二进制/合成.bin":  bytes.Repeat([]byte{0, 1, 127, 128, 255, 10, 13}, 11000),
+		"空白/空.txt":    {},
+	}
+	for path, body := range files {
+		dest := filepath.Join(source, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(dest), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dest, body, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h := newConsistencyClient(t, bin, gateway.URL, session.Token)
+	h.mcp = h.connectMCP(t, "--workspace", work)
+	ev.save("protocol", h.mcp.InitializeResult())
+	var pushes []m211Push
+	var hashRows []map[string]any
+	var oldGrant client.DownloadGrant
+	makeInput := func(adapter string) client.PushInput {
+		return client.PushInput{ProjectID: string(e.project.ProjectID), Slug: "linux-m211/" + strings.ToLower(adapter), Content: client.ContentInput{AssetType: "doc", Files: []client.InputFile{{Path: "资料/样本-é.txt", Role: "source"}, {Path: "二进制/合成.bin", Role: "source"}, {Path: "空白/空.txt", Role: "source"}}, Rights: json.RawMessage(`{"usage":"production","license":"LicenseRef-Owned","sensitivity":"normal"}`)}, Describe: json.RawMessage(`{"title":"Linux 四客户端合成 Unicode"}`)}
+	}
+	if !t.Run("four_native_uploads_and_idempotency", func(t *testing.T) {
+		for _, adapter := range []string{"CLI", "MCP", "REST", "Python"} {
+			in := makeInput(adapter)
+			prepared, err := client.PreparePush(t.Context(), in, source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			statePath := filepath.Join(work, adapter+"-push-state.json")
+			state := client.PushState{Schema: "lantai.client-push/v1", Origin: gateway.URL, RequestHash: shaOf(mustJSON(prepared)), CreateKey: string(ids.New()), CommitKey: string(ids.New())}
+			var result map[string]any
+			switch adapter {
+			case "CLI":
+				inputPath := filepath.Join(work, "push-CLI.json")
+				writeJSON(t, inputPath, in)
+				drop.Store(true)
+				out, code := h.cli(t, "push", "--input", inputPath, "--directory", source, "--state", statePath)
+				ev.save("CLI-lost-commit-response", map[string]any{"exit": code, "response": out, "injected": dropped.Load()})
+				if code != 3 || !dropped.Load() {
+					t.Fatal("lost response was not exercised", code)
+				}
+				if err = client.LoadState(statePath, &state); err != nil || !state.Committing || state.OperationID == "" || len(state.Result) != 0 {
+					t.Fatal("missing durable pre-response state", err)
+				}
+				ev.save("CLI-state-after-loss", state)
+				result, code = h.cli(t, "push", "--input", inputPath, "--directory", source, "--state", statePath)
+				if code != 0 {
+					t.Fatal("CLI same-state retry failed", code, result)
+				}
+				if err = client.LoadState(statePath, &state); err != nil {
+					t.Fatal(err)
+				}
+			case "MCP":
+				var failed bool
+				result, failed = m211Call(t, h, "resource_push", map[string]any{"directory": filepath.Base(source), "state": filepath.Base(statePath), "input": in})
+				if failed {
+					t.Fatal("MCP upload failed", result)
+				}
+				if err = client.LoadState(statePath, &state); err != nil {
+					t.Fatal(err)
+				}
+			case "REST":
+				raw, status := m211HTTP(t, h, "POST", "/api/v1/uploads", state.CreateKey, map[string]any{"project_id": in.ProjectID, "files": m211Specs(prepared)}, nil)
+				if status != 201 {
+					t.Fatal("REST create upload", status, string(raw))
+				}
+				var upload client.Upload
+				if err = json.Unmarshal(raw, &upload); err != nil {
+					t.Fatal(err)
+				}
+				state.UploadID, state.OperationID = upload.UploadID, upload.OperationID
+				for _, f := range upload.Files {
+					var data []byte
+					for _, lf := range prepared.Content.Files {
+						if lf.SHA256 == f.SHA256 {
+							data = files[lf.Path]
+						}
+					}
+					for p := 1; p <= f.PartCount; p++ {
+						start := int64(p-1) * f.PartSize
+						end := min(int64(len(data)), start+f.PartSize)
+						part := data[start:end]
+						if part == nil {
+							part = []byte{}
+						}
+						_, status = m211HTTP(t, h, "PUT", strings.ReplaceAll(f.PartURLTemplate, "{part_number}", fmt.Sprint(p)), "", nil, part)
+						if status < 200 || status >= 300 {
+							t.Fatal("REST part failed", status)
+						}
+					}
+					_, status = m211HTTP(t, h, "POST", "/api/v1/uploads/"+upload.UploadID+"/files/"+f.SHA256+"/complete", "", map[string]any{}, nil)
+					if status < 200 || status >= 300 {
+						t.Fatal("REST complete failed", status)
+					}
+				}
+				raw, status = m211HTTP(t, h, "POST", "/api/v1/uploads/"+upload.UploadID+"/commit", state.CommitKey, m211CommitBody(prepared), nil)
+				if status != 201 {
+					t.Fatal("REST commit failed", status, string(raw))
+				}
+				result = consistencyJSON(t, raw)
+				state.Committing = true
+				state.Result = raw
+				if err = client.SaveState(statePath, state); err != nil {
+					t.Fatal(err)
+				}
+			case "Python":
+				out := m211Python(t, h, map[string]any{"mode": "upload", "project": prepared.ProjectID, "files": m211Specs(prepared), "input": prepared, "create_key": state.CreateKey, "commit_key": state.CommitKey, "directory": source})
+				if out["error"] != nil {
+					t.Fatal("Python upload failed", out)
+				}
+				result = out["result"].(map[string]any)
+				state.UploadID = out["upload_id"].(string)
+				state.OperationID = out["operation_id"].(string)
+				state.Committing = true
+				state.Result = mustJSON(result)
+				if err = client.SaveState(statePath, state); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if state.CreateKey == "" || state.CommitKey == "" || state.CreateKey == state.CommitKey || result["version_number"] != float64(1) || result["operation_id"] != state.OperationID {
+				t.Fatal("keys or stable operation invalid")
+			}
+			p := m211Push{Adapter: adapter, Input: prepared, State: state, Result: result, StatePath: statePath}
+			pushes = append(pushes, p)
+			ev.save(adapter+"-push-result", result)
+			ev.save(adapter+"-push-state", state)
+			createBody := map[string]any{"project_id": prepared.ProjectID, "files": m211Specs(prepared)}
+			raw, status := m211HTTP(t, h, "POST", "/api/v1/uploads", state.CreateKey, createBody, nil)
+			if status != 201 {
+				t.Fatal("CreateKey replay", status, string(raw))
+			}
+			u := consistencyJSON(t, raw)
+			if u["upload_id"] != state.UploadID || u["operation_id"] != state.OperationID {
+				t.Fatal("CreateKey allocated new identity")
+			}
+			ev.save(adapter+"-create-replay", u)
+			replay := m211Python(t, h, map[string]any{"mode": "request", "method": "commit", "args": []any{state.UploadID, m211CommitBody(prepared)}, "kwargs": map[string]any{"key": state.CommitKey}})
+			if !bytes.Equal(mustJSON(result), mustJSON(replay)) {
+				t.Fatal("Python CommitKey replay changed receipt")
+			}
+			ev.save(adapter+"-python-commit-replay", replay)
+			m, failed := m211Call(t, h, "resource_push", map[string]any{"directory": filepath.Base(source), "state": filepath.Base(statePath), "input": prepared})
+			if failed || !bytes.Equal(mustJSON(result), mustJSON(m)) {
+				t.Fatal("cross-client MCP state replay differs", m)
+			}
+			ev.save(adapter+"-MCP-state-replay", m)
+			changed := m211Specs(prepared)
+			changed[0].Size++
+			raw, status = m211HTTP(t, h, "POST", "/api/v1/uploads", state.CreateKey, map[string]any{"project_id": prepared.ProjectID, "files": changed}, nil)
+			if status != 409 {
+				t.Fatal("changed create request status", status)
+			}
+			v := consistencyJSON(t, raw)
+			ev.save(adapter+"-create-conflict", v)
+			m211AssertError(t, v, errcode.IdempotencyConflict)
+			body := m211CommitBody(prepared)
+			body["slug"] = prepared.Slug + "-changed"
+			raw, status = m211HTTP(t, h, "POST", "/api/v1/uploads/"+state.UploadID+"/commit", state.CommitKey, body, nil)
+			if status != 409 {
+				t.Fatal("changed commit request status", status, string(raw))
+			}
+			v = consistencyJSON(t, raw)
+			ev.save(adapter+"-commit-conflict", v)
+			m211AssertError(t, v, errcode.IdempotencyConflict)
+			t.Logf("%s native upload, CreateKey/CommitKey replay + conflict, stable operation=%s", adapter, state.OperationID)
+		}
+	}) {
+		return
+	}
+	if err := app.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	var beforeMetadata = map[string]any{}
+	matrix := func(t *testing.T, phase string, h *consistencyClient) {
+		t.Helper()
+		for _, p := range pushes {
+			asset, version := p.Result["asset_id"].(string), p.Result["version_id"].(string)
+			path := "/api/v1/assets/" + asset + "/versions/" + version
+			raw, status := m211HTTP(t, h, "GET", path+"?view=brief", "", nil, nil)
+			if status != 200 {
+				t.Fatal("REST metadata", status)
+			}
+			want := consistencyJSON(t, raw)
+			cli, exit := h.cli(t, "show", "--asset", asset, "--version", version)
+			if exit != 0 {
+				t.Fatal("CLI metadata", exit)
+			}
+			mv, failed := m211Call(t, h, "resource_read", map[string]any{"asset_id": asset, "version_id": version})
+			if failed {
+				t.Fatal("MCP metadata")
+			}
+			py := m211Python(t, h, map[string]any{"mode": "request", "method": "version", "args": []any{asset, version}})
+			for adapter, v := range map[string]any{"REST": want, "CLI": cli, "MCP": mv, "Python": py} {
+				if !bytes.Equal(mustJSON(want), mustJSON(v)) {
+					t.Fatal("brief metadata mismatch", adapter)
+				}
+				ev.save(phase+"-"+p.Adapter+"-"+adapter+"-metadata", v)
+			}
+			if phase == "before" {
+				beforeMetadata[p.Adapter] = want
+			} else if !bytes.Equal(mustJSON(beforeMetadata[p.Adapter]), mustJSON(want)) {
+				t.Fatal("restore changed exact version metadata")
+			}
+			raw, status = m211HTTP(t, h, "GET", path+"?view=full", "", nil, nil)
+			if status != 200 {
+				t.Fatal("REST full metadata", status)
+			}
+			full := consistencyJSON(t, raw)
+			ev.save(phase+"-"+p.Adapter+"-REST-full", full)
+			py = m211Python(t, h, map[string]any{"mode": "request", "method": "version", "args": []any{asset, version}, "kwargs": map[string]any{"full": true}})
+			if !bytes.Equal(mustJSON(full), mustJSON(py)) {
+				t.Fatal("Python full metadata differs")
+			}
+			ev.save(phase+"-"+p.Adapter+"-Python-full", py)
+			for _, adapter := range []string{"REST", "CLI", "MCP", "Python"} {
+				dir := filepath.Join(work, phase+"-"+p.Adapter+"-"+adapter)
+				if err := os.Mkdir(dir, 0700); err != nil {
+					t.Fatal(err)
+				}
+				switch adapter {
+				case "REST":
+					for _, f := range p.Input.Content.Files {
+						raw, status = m211HTTP(t, h, "POST", path+"/read-grants", "", map[string]string{"path": f.Path, "purpose": "archive_review"}, nil)
+						if status != 201 {
+							t.Fatal("read grant", status)
+						}
+						var g client.DownloadGrant
+						if err := json.Unmarshal(raw, &g); err != nil {
+							t.Fatal(err)
+						}
+						if g.Path != f.Path || g.Size != f.Size || g.SHA256 != f.SHA256 {
+							t.Fatal("read grant disagrees with file")
+						}
+						if oldGrant.URL == "" {
+							oldGrant = g
+						}
+						raw, status = m211HTTP(t, h, "GET", g.URL, "", nil, nil)
+						if status != 200 {
+							t.Fatal("REST file transfer", status)
+						}
+						dest := filepath.Join(dir, filepath.FromSlash(f.Path))
+						if err := os.MkdirAll(filepath.Dir(dest), 0700); err != nil {
+							t.Fatal(err)
+						}
+						if err := os.WriteFile(dest, raw, 0600); err != nil {
+							t.Fatal(err)
+						}
+					}
+				case "CLI":
+					out, exit := h.cli(t, "pull", "--asset", asset, "--version", version, "--directory", dir)
+					ev.save(phase+"-"+p.Adapter+"-CLI-pull", out)
+					if exit != 0 || !bytes.Equal(mustJSON(full), mustJSON(out)) {
+						t.Fatal("CLI pull or full manifest differs", exit)
+					}
+				case "MCP":
+					out, failed := m211Call(t, h, "resource_pull", map[string]any{"asset_id": asset, "version_id": version, "purpose": "archive_review", "directory": filepath.Base(dir)})
+					ev.save(phase+"-"+p.Adapter+"-MCP-pull", out)
+					if failed || out["asset_id"] != asset || out["version_id"] != version || out["directory"] != filepath.Base(dir) {
+						t.Fatal("MCP exact pull differs")
+					}
+				case "Python":
+					out := m211Python(t, h, map[string]any{"mode": "download", "asset": asset, "version": version, "files": p.Input.Content.Files, "directory": dir})
+					ev.save(phase+"-"+p.Adapter+"-Python-pull", out)
+					if out["error"] != nil {
+						t.Fatal("Python pull", out)
+					}
+				}
+				for _, f := range p.Input.Content.Files {
+					b, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(f.Path)))
+					if err != nil || !bytes.Equal(b, files[f.Path]) || shaOf(b) != f.SHA256 || int64(len(b)) != f.Size {
+						t.Fatal("installed file mismatch", phase, p.Adapter, adapter, f.Path, err)
+					}
+					hashRows = append(hashRows, map[string]any{"phase": phase, "upload_client": p.Adapter, "read_client": adapter, "asset_id": asset, "version_id": version, "path": f.Path, "size": len(b), "sha256": shaOf(b), "bytes_equal": true})
+				}
+			}
+			h.compare(t, consistencyRequest{path: "/api/v1/operations/" + p.State.OperationID, cli: []string{"operation", "--id", p.State.OperationID}, tool: "operation_read", args: map[string]any{"id": p.State.OperationID}, python: "operation", pythonArgs: []any{p.State.OperationID}}, "")
+		}
+		ev.save("hash-matrix", hashRows)
+		t.Logf("%s: four upload clients x four read clients x three Unicode/binary/empty files; exact metadata and bytes identical", phase)
+	}
+	if !t.Run("four_clients_before_backup", func(t *testing.T) { matrix(t, "before", h) }) {
+		return
+	}
+	beforeReceipts := m211ReceiptSnapshot(t, app, pushes)
+	ev.save("receipts-before", beforeReceipts)
+	key, err := masterkey.Load(app.Instance.Config().SecretsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(t.TempDir(), "backup")
+	var backup operations.BackupManifest
+	var archiveBefore map[string]any
+	var restored *application.App
+	var fresh *consistencyClient
+	target := filepath.Join(t.TempDir(), "empty-restored")
+	if !t.Run("common_backup_empty_restore_and_fresh_login", func(t *testing.T) {
+		var err error
+		backup, err = app.Backup(t.Context(), operations.BackupOptions{Destination: archive})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if backup.State != "complete" {
+			t.Fatal("backup incomplete")
+		}
+		ev.save("backup-manifest", backup)
+		archiveBefore = m211Tree(t, archive)
+		ev.save("backup-bytes-before", archiveBefore)
+		for _, p := range []string{"db/index.db", "secrets/master.key"} {
+			if _, err = os.Stat(filepath.Join(archive, p)); !os.IsNotExist(err) {
+				t.Fatal("forbidden backup member", p)
+			}
+		}
+		if _, err = operations.VerifyBackup(t.Context(), archive); err != nil {
+			t.Fatal(err)
+		}
+		if err = servers.Shutdown(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		if err = app.Close(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = os.Stat(target); !os.IsNotExist(err) {
+			t.Fatal("restore destination was not empty")
+		}
+		marker, err := application.Restore(t.Context(), operations.RestoreOptions{Home: target, BackupDir: archive, MinimumEpoch: backup.RecoveryEpoch}, key, identity.Config{Password: fastPassword})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if marker.Restore == nil || marker.Restore.Stage != "reconciliation_required" || marker.RecoveryEpoch != backup.RecoveryEpoch+1 {
+			t.Fatal("restore latch or epoch wrong")
+		}
+		ev.save("restore-marker", marker)
+		opts := application.Options{Instance: operations.Options{Home: target, Clock: e.clk}, Identity: identity.Config{Password: fastPassword}, Storage: storage.Config{PartSize: 64 << 10, SinglePartMax: 64 << 10, MinFreeBytes: 1 << 20}}
+		if opened, err := application.Open(t.Context(), opts); err == nil {
+			_ = opened.Close(context.Background())
+			t.Fatal("restored instance opened before reconciliation")
+		} else {
+			ev.save("restore-latch-refusal", map[string]any{"error": err.Error()})
+		}
+		offline, err := application.OpenOffline(t.Context(), opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = offline.Close(context.Background()) })
+		newKey, err := masterkey.Load(offline.Instance.Config().SecretsDir)
+		if err != nil || newKey.ID() == key.ID() {
+			t.Fatal("key was not rotated", err)
+		}
+		ev.save("epoch-key-rotation", map[string]any{"before_epoch": backup.RecoveryEpoch, "after_epoch": marker.RecoveryEpoch, "before_key_id": key.ID(), "after_key_id": newKey.ID(), "same_instance": marker.InstanceID == app.Instance.InstanceID()})
+		const password = "synthetic Linux restored password"
+		var secret []byte
+		err = offline.Maintenance(t.Context(), func(ctx context.Context) error {
+			reset, err := offline.Identity.BeginOfflineReset(ctx, "ada", password)
+			if err != nil {
+				return err
+			}
+			secret, err = base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(reset.Enrollment.Secret)
+			if err != nil {
+				return err
+			}
+			_, err = reset.Confirm(ctx, totp.Code(secret, totp.Counter(e.clk.Now())), "isolated synthetic Linux administrator reset")
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		evidence := []byte("Synthetic isolated Linux restore: all four uploads committed; no later deletions, revocations or external effects; archived credentials revoked by restore; stable operations inspected.")
+		run := marker.Restore
+		review := operations.RecoveryReview{Contract: "lantai.recovery-review/v1", RunID: run.RunID, BackupID: backup.BackupID, ManifestDigest: run.ManifestDigest, RecoveryEpoch: marker.RecoveryEpoch, Administrator: string(session.Context.PrincipalID), RevocationsReconciled: true, DeletionsReconciled: true, OpenOperationsReconciled: true, EvidenceDigest: digest.Of(evidence), Note: "synthetic isolated Linux M2-11 rehearsal"}
+		if err = offline.CompleteRestore(t.Context(), review, evidence); err != nil {
+			t.Fatal(err)
+		}
+		ev.save("recovery-review", review)
+		if offline.Instance.Readiness().Ready {
+			t.Fatal("completion opened service")
+		}
+		if err = offline.Close(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		restored, err = application.Open(t.Context(), opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rootT.Cleanup(func() { _ = restored.Close(context.Background()) })
+		servers = remoteServers(rootT, restored, false)
+		bind(servers)
+		e.clk.Advance(totp.Period * time.Second)
+		loginFile := filepath.Join(work, "restored-login.json")
+		writeJSON(t, loginFile, map[string]string{"name": "ada", "password": password, "code": totp.Code(secret, totp.Counter(e.clk.Now()))})
+		freshSession := filepath.Join(work, "fresh-session.json")
+		loginClient := &consistencyClient{bin: bin, origin: gateway.URL, session: freshSession, token: "[no-session-before-login]"}
+		out, exit := loginClient.cli(t, "login", "--credentials-file", loginFile)
+		ev.save("fresh-login", map[string]any{"exit": exit, "response": out})
+		if exit != 0 {
+			t.Fatal("fresh login failed", exit)
+		}
+		var saved struct {
+			Token string `json:"token"`
+		}
+		b, err := os.ReadFile(freshSession)
+		if err != nil || json.Unmarshal(b, &saved) != nil || saved.Token == "" {
+			t.Fatal("fresh session not persisted")
+		}
+		fresh = newConsistencyClient(rootT, bin, gateway.URL, saved.Token)
+		fresh.mcp = fresh.connectMCP(rootT, "--workspace", work)
+		fresh.compare(t, consistencyRequest{path: "/api/v1/whoami", cli: []string{"whoami"}, tool: "whoami", python: "whoami"}, "")
+		if _, err = restored.Identity.VerifySession(t.Context(), session.Context.SessionID); err == nil {
+			t.Fatal("old session survived restore")
+		}
+		t.Logf("same gateway origin, epoch %d -> %d, empty restore complete, fresh CLI login and four-client whoami accepted", backup.RecoveryEpoch, marker.RecoveryEpoch)
+	}) {
+		return
+	}
+	if !t.Run("old_authority_refused_at_same_gateway_origin", func(t *testing.T) {
+		for _, p := range pushes {
+			asset, version := p.Result["asset_id"].(string), p.Result["version_id"].(string)
+			path := "/api/v1/assets/" + asset + "/versions/" + version + "?view=brief"
+			raw, status := m211HTTP(t, h, "GET", path, "", nil, nil)
+			if status != 401 {
+				t.Fatal("old REST session still accepted", status)
+			}
+			v := consistencyJSON(t, raw)
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-REST-read", map[string]any{"status": status, "response": v})
+			v, exit := h.cli(t, "show", "--asset", asset, "--version", version)
+			if exit != 5 {
+				t.Fatal("old CLI session exit", exit)
+			}
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-CLI-read", map[string]any{"exit": exit, "response": v})
+			v, failed := m211Call(t, h, "resource_read", map[string]any{"asset_id": asset, "version_id": version})
+			if !failed {
+				t.Fatal("old MCP session accepted")
+			}
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-MCP-read", v)
+			v = m211Python(t, h, map[string]any{"mode": "request", "method": "version", "args": []any{asset, version}})
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-Python-read", v)
+			h.compare(t, consistencyRequest{path: path, cli: []string{"show", "--asset", asset, "--version", version}, tool: "resource_read", args: map[string]any{"asset_id": asset, "version_id": version}, python: "version", pythonArgs: []any{asset, version}}, errcode.TokenRevoked)
+			raw, status = m211HTTP(t, h, "GET", "/api/v1/operations/"+p.State.OperationID, "", nil, nil)
+			if status != 401 {
+				t.Fatal("old operation auth accepted", status)
+			}
+			ev.save(p.Adapter+"-old-operation", consistencyJSON(t, raw))
+			inputPath := filepath.Join(work, "replay-"+p.Adapter+".json")
+			writeJSON(t, inputPath, p.Input)
+			v, exit = h.cli(t, "push", "--input", inputPath, "--directory", source, "--state", p.StatePath)
+			if exit != 5 {
+				t.Fatal("old committed state revived authorization", exit)
+			}
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-CLI-push", map[string]any{"exit": exit, "response": v})
+			v, failed = m211Call(t, h, "resource_push", map[string]any{"input": p.Input, "directory": filepath.Base(source), "state": filepath.Base(p.StatePath)})
+			if !failed {
+				t.Fatal("old MCP state revived authorization")
+			}
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-MCP-push", v)
+			raw, status = m211HTTP(t, h, "POST", "/api/v1/uploads", p.State.CreateKey, map[string]any{"project_id": p.Input.ProjectID, "files": m211Specs(p.Input)}, nil)
+			if status != 401 {
+				t.Fatal("old create replay accepted", status)
+			}
+			v = consistencyJSON(t, raw)
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-create-replay", v)
+			raw, status = m211HTTP(t, h, "POST", "/api/v1/uploads/"+p.State.UploadID+"/commit", p.State.CommitKey, m211CommitBody(p.Input), nil)
+			if status != 401 {
+				t.Fatal("old commit replay accepted", status)
+			}
+			v = consistencyJSON(t, raw)
+			m211AssertError(t, v, errcode.TokenRevoked)
+			ev.save(p.Adapter+"-old-commit-replay", v)
+			var after client.PushState
+			if err := client.LoadState(p.StatePath, &after); err != nil || !bytes.Equal(mustJSON(after), mustJSON(p.State)) {
+				t.Fatal("refused old push changed saved keys or operation", err)
+			}
+		}
+		for _, identity := range []struct {
+			name string
+			h    *consistencyClient
+		}{{"old-session", h}, {"fresh-session", fresh}} {
+			raw, status := m211HTTP(t, identity.h, "GET", oldGrant.URL, "", nil, nil)
+			if identity.name == "old-session" {
+				if status != 401 {
+					t.Fatal("old transfer session auth", status)
+				}
+				m211AssertError(t, consistencyJSON(t, raw), errcode.TokenRevoked)
+			} else {
+				if status != 404 {
+					t.Fatal("old signed capability revived with current session", status, string(raw))
+				}
+				m211AssertError(t, consistencyJSON(t, raw), errcode.NotFound)
+			}
+			ev.save("old-capability-"+identity.name, map[string]any{"status": status, "response": consistencyJSON(t, raw)})
+		}
+		t.Log("old REST/CLI/MCP/Python sessions TOKEN_REVOKED; old push states and both key replays rejected; old signed capability with fresh session NOT_FOUND")
+	}) {
+		return
+	}
+	if !t.Run("four_clients_after_restore_and_history_immutable", func(t *testing.T) {
+		matrix(t, "after", fresh)
+		// A new current session of the same actor may read/replay the historical
+		// committed receipt. That does not restore an old accepting context.
+		for _, p := range pushes {
+			raw, status := m211HTTP(t, fresh, "POST", "/api/v1/uploads/"+p.State.UploadID+"/commit", p.State.CommitKey, m211CommitBody(p.Input), nil)
+			if status != 201 || !bytes.Equal(mustJSON(consistencyJSON(t, raw)), mustJSON(p.Result)) {
+				t.Fatal("current authorized committed receipt replay differs", status, string(raw))
+			}
+			ev.save(p.Adapter+"-fresh-commit-replay", consistencyJSON(t, raw))
+		}
+		if err := restored.Sync(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		after := m211ReceiptSnapshot(t, restored, pushes)
+		ev.save("receipts-after", after)
+		if !bytes.Equal(mustJSON(beforeReceipts), mustJSON(after)) {
+			t.Fatal("restore or refused retries changed historical receipts or operation")
+		}
+		archiveAfter := m211Tree(t, archive)
+		ev.save("backup-bytes-after", archiveAfter)
+		if !bytes.Equal(mustJSON(archiveBefore), mustJSON(archiveAfter)) {
+			t.Fatal("source archive history bytes changed")
+		}
+		if _, err := operations.VerifyBackup(t.Context(), archive); err != nil {
+			t.Fatal("source backup verification failed", err)
+		}
+		ev.save("summary", map[string]any{"result": "pass", "hash_rows": len(hashRows), "four_upload_clients": 4, "four_read_clients": 4, "files_each": 3, "backup_files": len(archiveAfter), "archive_bytes_unchanged": true, "receipts_operations_unchanged": true, "gateway_origin_unchanged": true, "product_mcp_clients_tested": false})
+		t.Logf("%d hash rows passed; all eight CreateKey/CommitKey receipts and four operations unchanged; %d source archive files unchanged and VerifyBackup passed", len(hashRows), len(archiveAfter))
+	}) {
+		return
+	}
+}

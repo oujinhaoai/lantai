@@ -1,0 +1,4 @@
+=== RUN   TestLinuxM210OwnerChild
+LT10_READY closed 1522
+--- PASS: TestLinuxM210OwnerChild (0.02s)
+PASS

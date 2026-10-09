@@ -1,0 +1,135 @@
+[
+  {
+    "Time": "2026-10-08T14:44:22.294408518Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_native_uploads_and_idempotency",
+    "Output": "    cloud_m211_linux_test.go:585: CLI native upload, CreateKey/CommitKey replay + conflict, stable operation=01M3H51VQGPXW4Z293FK6TFEF4\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:22.879959671Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_native_uploads_and_idempotency",
+    "Output": "    cloud_m211_linux_test.go:585: REST native upload, CreateKey/CommitKey replay + conflict, stable operation=01M3H51VQG6183PQ7C4JWB7J17\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:23.497417874Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_native_uploads_and_idempotency",
+    "Output": "    cloud_m211_linux_test.go:585: Python native upload, CreateKey/CommitKey replay + conflict, stable operation=01M3H51VQGVMS3BFC18RDRCXPC\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:25.161286246Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_before_backup",
+    "Output": "    cloud_m211_linux_test.go:701: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:26.560196646Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_before_backup",
+    "Output": "    cloud_m211_linux_test.go:701: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:27.901534997Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_before_backup",
+    "Output": "    cloud_m211_linux_test.go:701: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:27.905107064Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_before_backup",
+    "Output": "    cloud_m211_linux_test.go:701: before: three upload clients x four read clients x three Unicode/binary/empty files; exact metadata and bytes identical\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.21753247Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/common_backup_empty_restore_and_fresh_login",
+    "Output": "    cloud_m211_linux_test.go:826: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.218738303Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/common_backup_empty_restore_and_fresh_login",
+    "Output": "    cloud_m211_linux_test.go:830: same gateway origin, epoch 1 -> 2, empty restore complete, fresh CLI login and four-client whoami accepted\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.366685163Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/old_authority_refused_at_same_gateway_origin",
+    "Output": "    cloud_m211_linux_test.go:860: REST/CLI/MCP/Python identical; error=TOKEN_REVOKED CLI_exit=5\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.553982974Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/old_authority_refused_at_same_gateway_origin",
+    "Output": "    cloud_m211_linux_test.go:860: REST/CLI/MCP/Python identical; error=TOKEN_REVOKED CLI_exit=5\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.723243692Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/old_authority_refused_at_same_gateway_origin",
+    "Output": "    cloud_m211_linux_test.go:860: REST/CLI/MCP/Python identical; error=TOKEN_REVOKED CLI_exit=5\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:30.762453023Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/old_authority_refused_at_same_gateway_origin",
+    "Output": "    cloud_m211_linux_test.go:911: old REST/CLI/MCP/Python sessions TOKEN_REVOKED; old push states and both key replays rejected; old signed capability with fresh session NOT_FOUND\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:32.132880799Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+    "Output": "    cloud_m211_linux_test.go:916: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:33.535343006Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+    "Output": "    cloud_m211_linux_test.go:916: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:34.892177601Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+    "Output": "    cloud_m211_linux_test.go:916: REST/CLI/MCP/Python identical; error= CLI_exit=0\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:34.899980403Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+    "Output": "    cloud_m211_linux_test.go:916: after: three upload clients x four read clients x three Unicode/binary/empty files; exact metadata and bytes identical\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:35.244496753Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211LinuxPushRestore/four_clients_after_restore_and_history_immutable",
+    "Output": "    cloud_m211_linux_test.go:943: 72 hash rows passed; all six CreateKey/CommitKey receipts and three operations unchanged; 39 source archive files unchanged and VerifyBackup passed\n"
+  },
+  {
+    "Time": "2026-10-08T14:44:37.476300666Z",
+    "Action": "output",
+    "Package": "github.com/oujinhaoai/lantai/tests/integration",
+    "Test": "TestCloudM211MCPPushSchemaRepro",
+    "Output": "    cloud_m211_mcp_schema_repro_test.go:62: normal PushInput rights object rejected before upload (0 -> 0); original MCP response={\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"lantai\",\"version\":\"0.2.0\"}},\"content\":[{\"type\":\"text\",\"text\":\"validating \\\"arguments\\\": validating root: validating /properties/input: validating /properties/input/properties/content: validating /properties/input/properties/content/properties/rights: type: map[license:LicenseRef-Owned sensitivity:normal usage:production] has type \\\"object\\\", want one of \\\"null, array\\\"\"}],\"isError\":true,\"resultType\":\"complete\"}\n"
+  }
+]

@@ -1,0 +1,11 @@
+{"Time":"2026-10-08T14:37:50.697989853Z","Action":"start","Package":"github.com/oujinhaoai/lantai/tests/integration"}
+{"Time":"2026-10-08T14:37:50.759510331Z","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore"}
+{"Time":"2026-10-08T14:37:50.759545863Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Output":"=== RUN   TestCloudM211LinuxPushRestore\n"}
+{"Time":"2026-10-08T14:37:50.797252296Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Output":"    cloud_m211_linux_test.go:332: build client executable: exit status 1\n"}
+{"Time":"2026-10-08T14:37:50.797283261Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Output":"        error obtaining VCS status: exit status 128\n"}
+{"Time":"2026-10-08T14:37:50.797301649Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Output":"        \tUse -buildvcs=false to disable VCS stamping.\n"}
+{"Time":"2026-10-08T14:37:50.797444429Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Output":"--- FAIL: TestCloudM211LinuxPushRestore (0.04s)\n"}
+{"Time":"2026-10-08T14:37:50.7974719Z","Action":"fail","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestCloudM211LinuxPushRestore","Elapsed":0.04}
+{"Time":"2026-10-08T14:37:50.797696831Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Output":"FAIL\n"}
+{"Time":"2026-10-08T14:37:50.801719614Z","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Output":"FAIL\tgithub.com/oujinhaoai/lantai/tests/integration\t0.103s\n"}
+{"Time":"2026-10-08T14:37:50.801745232Z","Action":"fail","Package":"github.com/oujinhaoai/lantai/tests/integration","Elapsed":0.104}

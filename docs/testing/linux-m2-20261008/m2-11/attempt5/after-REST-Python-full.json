@@ -1,0 +1,62 @@
+{
+  "manifest": {
+    "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+    "content": {
+      "asset_type": "doc",
+      "files": [
+        {
+          "path": "二进制/合成.bin",
+          "role": "source",
+          "sha256": "63f5930301e81b70004e691e1d5cbd1302b097baa98e03fdb0cb230b87b7b441",
+          "size": 77000
+        },
+        {
+          "path": "空白/空.txt",
+          "role": "source",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "path": "资料/样本-é.txt",
+          "role": "source",
+          "sha256": "e80acc9ce0cfc518d649e6822bcdcff8deeb269f2c0ba66e512f10813c3246d5",
+          "size": 262144
+        }
+      ],
+      "metadata": {},
+      "rights": {
+        "license": "LicenseRef-Owned",
+        "noai": false,
+        "redistribute_raw": false,
+        "sensitivity": "normal",
+        "usage": "production"
+      },
+      "type_schema": "lantai.asset-types/v1",
+      "uses": []
+    },
+    "contract": "lantai.manifest/v1",
+    "created_by": "01M3H4X980S7VTTM8SCE1ZYEMY",
+    "instance_id": "01M3H4X980SG6946CFTC9GB0ER",
+    "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+    "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+    "project_id": "01M3H4Y6HGM2HVN32BD1V8XT25",
+    "session_id": "01M3H51VQGR99791JBQ06T9YTK",
+    "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_number": 1
+  },
+  "version": {
+    "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+    "committed_at": "2026-09-27T10:02:30.000Z",
+    "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+    "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+    "project_id": "01M3H4Y6HGM2HVN32BD1V8XT25",
+    "ref": {
+      "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+      "instance_id": "01M3H4X980SG6946CFTC9GB0ER",
+      "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70"
+    },
+    "uri": "lantai://01M3H4X980SG6946CFTC9GB0ER/assets/01M3H51VQGEEE019MRN6AA10DX/versions/01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_number": 1
+  }
+}

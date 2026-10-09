@@ -1,0 +1,33 @@
+{
+  "alias_generation": 1,
+  "asset_id": "01M3H51VQG8JEFY6MKD72QCD20",
+  "committed_at": "2026-09-27T10:02:30.000Z",
+  "description": {
+    "asset_id": "01M3H51VQG8JEFY6MKD72QCD20",
+    "asset_type": "doc",
+    "defaults": {
+      "license": "LicenseRef-Owned",
+      "usage": "production"
+    },
+    "project_id": "01M3H4Y6HG5BHQETC5B58PV6SQ",
+    "revision": 1,
+    "sensitivity": "normal",
+    "slug": "linux-m211/cli",
+    "subjects": [],
+    "tags": [],
+    "title": "Linux 四客户端合成 Unicode",
+    "updated_by": "01M3H4X980JWJW2M9WYH43C0QN"
+  },
+  "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+  "operation_id": "01M3H51VQGT7QXHHB9C4B50ZN3",
+  "project_id": "01M3H4Y6HG5BHQETC5B58PV6SQ",
+  "ref": {
+    "asset_id": "01M3H51VQG8JEFY6MKD72QCD20",
+    "instance_id": "01M3H4X980VQG03YXHCAXVCG5M",
+    "version_id": "01M3H51VQGDWZFG4ZEHYX3C38J"
+  },
+  "slug": "linux-m211/cli",
+  "uri": "lantai://01M3H4X980VQG03YXHCAXVCG5M/assets/01M3H51VQG8JEFY6MKD72QCD20/versions/01M3H51VQGDWZFG4ZEHYX3C38J",
+  "version_id": "01M3H51VQGDWZFG4ZEHYX3C38J",
+  "version_number": 1
+}

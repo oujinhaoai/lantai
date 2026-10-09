@@ -1,0 +1,22 @@
+{
+  "exit": 0,
+  "response": {
+    "session": {
+      "channel": "cli",
+      "created_at": "2026-09-27T10:03:00.000Z",
+      "expires_at": "2026-09-27T22:03:00.000Z",
+      "principal_id": "01M3H4X980S7VTTM8SCE1ZYEMY",
+      "principal_kind": "human",
+      "scopes": [
+        "admin",
+        "ingest",
+        "organize",
+        "read",
+        "self",
+        "task"
+      ],
+      "session_id": "01M3H52S1059ZX7QMASMV6DCPC",
+      "session_kind": "normal"
+    }
+  }
+}

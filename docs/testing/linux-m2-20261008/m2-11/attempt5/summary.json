@@ -1,0 +1,14 @@
+{
+  "MCP_resource_push": "failed separately: normal rights object rejected by advertised null/array schema",
+  "archive_bytes_unchanged": true,
+  "backup_files": 39,
+  "completed_chain": "pass",
+  "files_each": 3,
+  "gateway_origin_unchanged": true,
+  "hash_rows": 72,
+  "product_mcp_clients_tested": false,
+  "read_clients": 4,
+  "receipts_operations_unchanged": true,
+  "result": "partial",
+  "upload_clients": 3
+}

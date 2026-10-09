@@ -1,0 +1,10 @@
+{
+  "commit_key": "01M4DZE9WVAPXG5EJST6JR9MVV",
+  "committing": true,
+  "create_key": "01M4DZE9WVKSK2RXSFKV2S1H5T",
+  "operation_id": "01M3H51VQGT7QXHHB9C4B50ZN3",
+  "origin": "<SYNTHETIC_GATEWAY_ORIGIN>",
+  "request_hash": "495f5e6452d2aaa1a2093c5a04793d7ae80ba9d55a1126f0b9bb7c1ff12f3d77",
+  "schema": "lantai.client-push/v1",
+  "upload_id": "01M3H51VQGGFC5FCN116SQJ4FY"
+}

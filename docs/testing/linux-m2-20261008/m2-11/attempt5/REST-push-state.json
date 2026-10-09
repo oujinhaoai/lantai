@@ -1,0 +1,43 @@
+{
+  "commit_key": "01M4DZHWMQT02WGJ9J41B5WDXH",
+  "committing": true,
+  "create_key": "01M4DZHWMQQTZ51T02V8WDX2TN",
+  "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+  "origin": "<SYNTHETIC_GATEWAY_ORIGIN>",
+  "request_hash": "775c7e75a563e618aaf269e65687903b30cae740d01e3af70e8872d50036f237",
+  "result": {
+    "alias_generation": 1,
+    "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+    "committed_at": "2026-09-27T10:02:30.000Z",
+    "description": {
+      "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+      "asset_type": "doc",
+      "defaults": {
+        "license": "LicenseRef-Owned",
+        "usage": "production"
+      },
+      "project_id": "01M3H4Y6HGM2HVN32BD1V8XT25",
+      "revision": 1,
+      "sensitivity": "normal",
+      "slug": "linux-m211/rest",
+      "subjects": [],
+      "tags": [],
+      "title": "Linux 四客户端合成 Unicode",
+      "updated_by": "01M3H4X980S7VTTM8SCE1ZYEMY"
+    },
+    "manifest_digest": "sha256:df19a634506ee7dda1a58c458db7aaf190d90d7efe4ec04e4580e2ae45ea87d3",
+    "operation_id": "01M3H51VQG6183PQ7C4JWB7J17",
+    "project_id": "01M3H4Y6HGM2HVN32BD1V8XT25",
+    "ref": {
+      "asset_id": "01M3H51VQGEEE019MRN6AA10DX",
+      "instance_id": "01M3H4X980SG6946CFTC9GB0ER",
+      "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70"
+    },
+    "slug": "linux-m211/rest",
+    "uri": "lantai://01M3H4X980SG6946CFTC9GB0ER/assets/01M3H51VQGEEE019MRN6AA10DX/versions/01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_id": "01M3H51VQGEXX0QRMYCDPXGQ70",
+    "version_number": 1
+  },
+  "schema": "lantai.client-push/v1",
+  "upload_id": "01M3H51VQGH3KYYDNGD5GQ1B9V"
+}

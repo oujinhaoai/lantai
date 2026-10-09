@@ -1,0 +1,13 @@
+{
+  "capabilities": {
+    "logging": {},
+    "tools": {
+      "listChanged": true
+    }
+  },
+  "protocolVersion": "2026-07-28",
+  "serverInfo": {
+    "name": "lantai",
+    "version": "0.2.0"
+  }
+}

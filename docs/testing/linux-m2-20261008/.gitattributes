@@ -1,0 +1,7 @@
+# Preserve archived bytes so manifest hashes remain valid across checkouts.
+** -text
+
+# These source artifacts intentionally retain their original formatting.
+/m2-11/attempt1/console.log whitespace=-space-before-tab
+/m2-11/build-info.txt whitespace=-blank-at-eol
+/m2-11/hash-matrix.csv whitespace=cr-at-eol

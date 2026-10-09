@@ -1,0 +1,13 @@
+{
+  "administrator": "01M3H4X980S7VTTM8SCE1ZYEMY",
+  "backup_id": "01M3H51VQGJSA63XSVPN4SN4FK",
+  "contract": "lantai.recovery-review/v1",
+  "deletions_reconciled": true,
+  "evidence_digest": "sha256:44c2ec6c76a718ed168b2ca0348e3f15f7730efc5d5bd5064b41a1ac4a34742b",
+  "manifest_digest": "sha256:35803c6066b5c740960d4d634057fe5fbfb70ba99988f135b42b7207cf8c3b83",
+  "note": "synthetic isolated Linux M2-11 rehearsal",
+  "open_operations_reconciled": true,
+  "recovery_epoch": 2,
+  "revocations_reconciled": true,
+  "run_id": "01M4DZJ35CKFJR0EBFSZVMQ7CZ"
+}

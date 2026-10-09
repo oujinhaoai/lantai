@@ -1,0 +1,7 @@
+=== RUN   TestBreakerWindowCountingAndExclusions
+--- PASS: TestBreakerWindowCountingAndExclusions (0.01s)
+=== RUN   TestBreakerCooldownHalfOpenAndEpochs
+--- PASS: TestBreakerCooldownHalfOpenAndEpochs (0.01s)
+=== RUN   TestBreakerPolicyOverride
+--- PASS: TestBreakerPolicyOverride (0.02s)
+PASS

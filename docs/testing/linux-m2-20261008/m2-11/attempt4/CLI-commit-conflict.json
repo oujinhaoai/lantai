@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "同一幂等键对应不同请求摘要；新意图必须使用新键",
+    "operation_id": "01M3H51VQGT7QXHHB9C4B50ZN3",
+    "recovery_action": "fix_request",
+    "request_id": "2390b7afde788587a667ac9a4cf1a501",
+    "retryable": false
+  }
+}

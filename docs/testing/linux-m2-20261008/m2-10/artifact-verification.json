@@ -1,0 +1,72 @@
+{
+  "result": "pass",
+  "saved_sqlite_snapshots": [
+    {
+      "phase": "seed",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "hold",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "reconcile",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "recover",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "closed",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "window_cold",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "fault_seed",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "fault_recover",
+      "integrity_check": [
+        "ok"
+      ]
+    },
+    {
+      "phase": "fault_closed",
+      "integrity_check": [
+        "ok"
+      ]
+    }
+  ],
+  "repos": {
+    "<ORIGINAL_SOURCE_CHECKOUT>": {
+      "head": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7",
+      "status": "",
+      "tracked_diff_empty": true
+    },
+    "<M210_SOURCE_WORKTREE>": {
+      "head": "bad6b8a54d9e48e8d8d85bb903d9257a5b06c7d7",
+      "status": "?? internal/extensions/linux_m2_10_owner_test.go\n",
+      "tracked_diff_empty": true
+    }
+  },
+  "owner_pid_survivors": []
+}
