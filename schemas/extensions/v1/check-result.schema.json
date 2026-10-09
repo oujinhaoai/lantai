@@ -38,6 +38,11 @@
     },
     "producer": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/producer_ref"
+    },
+    "check_key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,99}$",
+      "description": "Optional named business check. Omitted means the legacy structural schema check. Core-owned integrity, rights, authorization and target keys cannot be supplied by external processors."
     }
   }
 }

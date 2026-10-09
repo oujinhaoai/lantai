@@ -37,6 +37,7 @@ type ReviewFiles interface {
 type ReviewExecution interface {
 	Task(context.Context, authz.Context, commit.Committed, ReviewFlow, string) error
 	VerifyEvidence(context.Context, authz.Context, commit.Committed, ids.ID, ReviewEvidenceInput, bool) error
+	CheckApplicable(context.Context, authz.Context, commit.Committed, ids.ID, ReviewEvidenceInput, ids.ID) error
 }
 type ReviewProducerVerifier interface {
 	VerifyProducer(context.Context, storage.Producer) error
@@ -140,6 +141,7 @@ type QAReport struct {
 // ReviewEvidenceInput is the core record wrapper; Check preserves the existing
 // extension check-result wire format. A QA report is evidence, never approval.
 type ReviewEvidenceInput struct {
+	CheckRunID     ids.ID                  `json:"check_run_id,omitempty"`
 	ProjectID      ids.ID                  `json:"project_id"`
 	Ref            ids.PermanentRef        `json:"ref"`
 	ManifestDigest digest.Digest           `json:"manifest_digest"`
@@ -158,7 +160,7 @@ func (in ReviewEvidenceInput) validate() error {
 	}
 	switch in.Kind {
 	case "check_result":
-		if in.QA != nil || in.Check == nil || in.SchemaVersion != 1 || strings.TrimSpace(in.CheckKey) == "" || !in.ConfigDigest.Valid() || in.Check.Ref != in.Ref || in.Check.ManifestDigest != in.ManifestDigest {
+		if in.CheckRunID != "" && !in.CheckRunID.Valid() || in.QA != nil || in.Check == nil || in.SchemaVersion != 1 || strings.TrimSpace(in.CheckKey) == "" || !in.ConfigDigest.Valid() || in.Check.Ref != in.Ref || in.Check.ManifestDigest != in.ManifestDigest || in.Check.CheckKey != "" && in.Check.CheckKey != in.CheckKey {
 			return invalid("invalid check evidence binding")
 		}
 		raw, err := canonjson.CanonicalizeValue(in.Check)
@@ -177,7 +179,7 @@ func (in ReviewEvidenceInput) validate() error {
 			return errcode.Wrap(errcode.SchemaInvalid, "invalid check result", err)
 		}
 	case "qa_report":
-		if in.Check != nil || in.QA == nil || in.CheckKey != "" || in.ConfigDigest != "" || in.SchemaVersion != 0 || strings.TrimSpace(in.QA.Tool) == "" || strings.TrimSpace(in.QA.ToolVersion) == "" || strings.TrimSpace(in.QA.Observations) == "" || len(in.QA.Observations) > 16<<10 || (in.QA.Verdict != "pass" && in.QA.Verdict != "fail" && in.QA.Verdict != "unknown") {
+		if in.CheckRunID != "" || in.Check != nil || in.QA == nil || in.CheckKey != "" || in.ConfigDigest != "" || in.SchemaVersion != 0 || strings.TrimSpace(in.QA.Tool) == "" || strings.TrimSpace(in.QA.ToolVersion) == "" || strings.TrimSpace(in.QA.Observations) == "" || len(in.QA.Observations) > 16<<10 || (in.QA.Verdict != "pass" && in.QA.Verdict != "fail" && in.QA.Verdict != "unknown") {
 			return invalid("QA requires bounded observations, tool/version and a verdict")
 		}
 	default:
@@ -352,7 +354,7 @@ func (s *FileReviewSources) AppendEvidence(ctx context.Context, who authz.Contex
 	return out, err
 }
 func acceptedEvidence(record storage.Record, in ReviewEvidenceInput, hash digest.Digest) AcceptedEvidence {
-	e := AcceptedEvidence{ID: record.RecordID, Digest: hash, Ref: in.Ref, ManifestDigest: in.ManifestDigest, Kind: in.Kind, ActorID: record.AuthorID, Flow: in.Flow, CheckKey: in.CheckKey, SchemaVersion: in.SchemaVersion, ConfigDigest: in.ConfigDigest, Check: in.Check, CompletedAt: record.CreatedAt}
+	e := AcceptedEvidence{CheckRunID: in.CheckRunID, ID: record.RecordID, Digest: hash, Ref: in.Ref, ManifestDigest: in.ManifestDigest, Kind: in.Kind, ActorID: record.AuthorID, Flow: in.Flow, CheckKey: in.CheckKey, SchemaVersion: in.SchemaVersion, ConfigDigest: in.ConfigDigest, Check: in.Check, CompletedAt: record.CreatedAt}
 	if in.QA != nil {
 		e.QAVerdict = in.QA.Verdict
 	}
@@ -407,4 +409,11 @@ func (s *FileReviewSources) Evidence(ctx context.Context, who authz.Context, id 
 		return AcceptedEvidence{}, err
 	}
 	return acceptedEvidence(record, in, hash), nil
+}
+
+// CheckApplicable is separate from Evidence: immutable bytes remain readable
+// after revocation, while a new human acceptance must use current authority.
+func (s *FileReviewSources) CheckApplicable(ctx context.Context, who authz.Context, v commit.Committed, e AcceptedEvidence) error {
+	in := ReviewEvidenceInput{CheckRunID: e.CheckRunID, ProjectID: v.ProjectID, Ref: e.Ref, ManifestDigest: e.ManifestDigest, Flow: e.Flow, Kind: e.Kind, CheckKey: e.CheckKey, SchemaVersion: e.SchemaVersion, ConfigDigest: e.ConfigDigest, Check: e.Check}
+	return s.execution.CheckApplicable(ctx, who, v, e.ActorID, in, e.ID)
 }

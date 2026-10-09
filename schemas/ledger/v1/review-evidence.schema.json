@@ -103,6 +103,9 @@
           ]
         }
       }
+    },
+    "check_run_id": {
+      "$ref": "#/$defs/check_run_id"
     }
   },
   "oneOf": [
@@ -154,9 +157,20 @@
             "required": [
               "config_digest"
             ]
+          },
+          {
+            "required": [
+              "check_run_id"
+            ]
           }
         ]
       }
     }
-  ]
+  ],
+  "$defs": {
+    "check_run_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid",
+      "description": "Exact core-owned JobAttempt ID for check provenance. Optional only for legacy immutable evidence."
+    }
+  }
 }

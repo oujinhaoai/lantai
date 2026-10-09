@@ -1951,6 +1951,9 @@ type LantaiActivationSnapshotV1 struct {
 	Activation CommonV1ExecutionActivationRef `json:"activation"`
 	Contract   interface{}                    `json:"contract"`
 
+	// EffectiveConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	EffectiveConfigDigest *Digest `json:"effective_config_digest,omitempty"`
+
 	// EffectiveConfigRevision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
 	EffectiveConfigRevision Revision `json:"effective_config_revision"`
 
@@ -2639,6 +2642,9 @@ type LantaiJobAttemptV1 struct {
 
 // LantaiJobAttemptV1State defines model for LantaiJobAttemptV1.State.
 type LantaiJobAttemptV1State string
+
+// LantaiReviewEvidenceV1CheckRunId Exact core-owned JobAttempt ID for check provenance. Optional only for legacy immutable evidence.
+type LantaiReviewEvidenceV1CheckRunId = Ulid
 
 // LantaiSeatV1 defines model for LantaiSeatV1.
 type LantaiSeatV1 struct {
@@ -3567,10 +3573,13 @@ type M2LedgerAcceptanceProfile struct {
 // M2LedgerAcceptedEvidence defines model for M2LedgerAcceptedEvidence.
 type M2LedgerAcceptedEvidence struct {
 	// ActorId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
-	ActorId     Ulid                     `json:"actor_id"`
-	Check       *M2ExtensionsCheckResult `json:"check,omitempty"`
-	CheckKey    *string                  `json:"check_key,omitempty"`
-	CompletedAt string                   `json:"completed_at"`
+	ActorId  Ulid                     `json:"actor_id"`
+	Check    *M2ExtensionsCheckResult `json:"check,omitempty"`
+	CheckKey *string                  `json:"check_key,omitempty"`
+
+	// CheckRunId Exact core-owned JobAttempt ID for check provenance. Optional only for legacy immutable evidence.
+	CheckRunId  *LantaiReviewEvidenceV1CheckRunId `json:"check_run_id,omitempty"`
+	CompletedAt string                            `json:"completed_at"`
 
 	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
 	ConfigDigest *Digest `json:"config_digest,omitempty"`
@@ -3772,6 +3781,9 @@ type M2LedgerRestoreRequest struct {
 type M2LedgerReviewEvidenceInput struct {
 	Check    *M2ExtensionsCheckResult `json:"check,omitempty"`
 	CheckKey *string                  `json:"check_key,omitempty"`
+
+	// CheckRunId Exact core-owned JobAttempt ID for check provenance. Optional only for legacy immutable evidence.
+	CheckRunId *LantaiReviewEvidenceV1CheckRunId `json:"check_run_id,omitempty"`
 
 	// ConfigDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
 	ConfigDigest *Digest            `json:"config_digest,omitempty"`

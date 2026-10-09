@@ -38,7 +38,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - { os: ubuntu-latest, timeout: 20m }
+          - { os: macos-latest, timeout: 20m }
+          - { os: windows-latest, timeout: 30m }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,9 +51,9 @@ jobs:
         with:
           go-version-file: go.mod
       - name: go test
-        # Windows 上真实实例集成包累计执行可超过 Go 默认的 10 分钟；
-        # 这是整个测试包的防挂死上限，不修改用例断言或性能验收阈值。
-        run: go test -timeout=20m -count=1 ./...
+        # Windows 托管 runner 的真实实例矩阵可超过 20 分钟累计执行；
+        # 按平台限制整个测试包，不修改用例断言或性能验收阈值。
+        run: go test -timeout=${{ matrix.timeout }} -count=1 ./...
       - name: sqlite capability report
         shell: bash
         run: |

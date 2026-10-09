@@ -46,11 +46,14 @@ type Authority interface {
 
 // Host is the T09 processor port. Snapshot resolves the compiled builtin or a
 // reviewed, enabled and probed package without side effects; Run admits and
-// spawns one attempt; CheckSnapshot is the final activation gate; Settle
+// spawns one attempt; CheckSnapshot gates admitted result acceptance, including
+// a bounded normal drain. CheckCurrentSnapshot requires current qualification
+// when completed evidence is used for a new review or publication. Settle
 // reports a reconciled stop for breaker bookkeeping.
 type Host interface {
 	Snapshot(context.Context, ids.ID, string, int64) (ae.ActivationSnapshot, storage.Producer, error)
 	CheckSnapshot(context.Context, ids.ID, ae.ActivationSnapshot, ids.ID, int64) error
+	CheckCurrentSnapshot(context.Context, ids.ID, ae.ActivationSnapshot, ids.ID, int64) error
 	Run(context.Context, ids.ID, extensions.ProcessorInput, []byte) (extensions.InvocationResult, error)
 	Settle(context.Context, ids.ID, execution.InvocationOutcome) error
 }
@@ -253,7 +256,7 @@ func (s *Service) save(ctx context.Context, c commands.Context, j Job) (Job, err
 	})
 	return j, e
 }
-func (s *Service) target(ctx context.Context, w authz.Context, j Job) (commit.Committed, error) {
+func (s *Service) currentTarget(ctx context.Context, w authz.Context, j Job, allowDone bool) (commit.Committed, error) {
 	v, e := s.d.Catalog.ExecutionVersion(ctx, w, j.Request.Target.AssetID, j.Request.Target.VersionID)
 	if e != nil {
 		return commit.Committed{}, e
@@ -266,8 +269,16 @@ func (s *Service) target(ctx context.Context, w authz.Context, j Job) (commit.Co
 		return commit.Committed{}, e
 	}
 	f := j.Request.Flow
-	if t.Task.State != "submitted" || t.Attempt == nil || t.Attempt.ID != f.AttemptID || t.Attempt.Fence.LeaseFence != f.Fence || int64(t.Meta.Round) != f.Round || !slices.Contains(t.Task.OutputRefs, j.Request.Target) {
+	if t.Task.State != "submitted" && !(allowDone && t.Task.State == "done") || t.Attempt == nil || t.Attempt.ID != f.AttemptID || t.Attempt.Fence.LeaseFence != f.Fence || int64(t.Meta.Round) != f.Round || !slices.Contains(t.Task.OutputRefs, j.Request.Target) {
 		return commit.Committed{}, errcode.New(errcode.LeaseStale, "job production round is no longer current")
+	}
+	return v.Version, nil
+}
+
+func (s *Service) target(ctx context.Context, w authz.Context, j Job) (commit.Committed, error) {
+	v, e := s.currentTarget(ctx, w, j, false)
+	if e != nil {
+		return commit.Committed{}, e
 	}
 	s.mu.RLock()
 	x := s.execution
@@ -275,10 +286,10 @@ func (s *Service) target(ctx context.Context, w authz.Context, j Job) (commit.Co
 	if x == nil {
 		return commit.Committed{}, errcode.New(errcode.UnsupportedCapability, "production round authority required")
 	}
-	if e = x.Task(ctx, w, v.Version, j.Request.Flow, "review"); e != nil {
+	if e = x.Task(ctx, w, v, j.Request.Flow, "review"); e != nil {
 		return commit.Committed{}, e
 	}
-	return v.Version, nil
+	return v, nil
 }
 func (s *Service) StartJob(ctx context.Context, w authz.Context, in workflow.JobRequest) (workflow.JobRef, error) {
 	if !in.OperationID.Valid() || !in.ProjectID.Valid() || in.Processor == "" {

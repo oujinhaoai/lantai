@@ -70,6 +70,7 @@ type ReviewFlow struct {
 // T06 completion/producer provenance and the immutable file's hash. Mere file
 // presence or a worker-supplied result is not acceptance.
 type AcceptedEvidence struct {
+	CheckRunID     ids.ID                  `json:"check_run_id,omitempty"`
 	QAVerdict      string                  `json:"qa_verdict,omitempty"`
 	ID             ids.ID                  `json:"evidence_id"`
 	Digest         digest.Digest           `json:"digest"`
@@ -785,6 +786,13 @@ func (r *Reviews) satisfied(ctx context.Context, who authz.Context, v commit.Com
 			qa = e.QAVerdict == "pass" || qa
 		}
 		if e.Kind == "check_result" {
+			if current, ok := r.sources.(interface {
+				CheckApplicable(context.Context, authz.Context, commit.Committed, AcceptedEvidence) error
+			}); ok {
+				if err = current.CheckApplicable(ctx, who, v, e); err != nil {
+					return err
+				}
+			}
 			if _, ok := checks[e.CheckKey]; ok {
 				return fail("ambiguous duplicate check result")
 			}

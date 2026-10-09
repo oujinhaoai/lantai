@@ -1085,6 +1085,9 @@
           "contract": {
             "const": "lantai.activation-snapshot/v1"
           },
+          "effective_config_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
           "effective_config_revision": {
             "$ref": "#/components/schemas/Revision"
           },
@@ -3252,6 +3255,10 @@
         ],
         "title": "lantai.job-attempt/v1",
         "type": "object"
+      },
+      "LantaiReviewEvidenceV1CheckRunId": {
+        "$ref": "#/components/schemas/Ulid",
+        "description": "Exact core-owned JobAttempt ID for check provenance. Optional only for legacy immutable evidence."
       },
       "LantaiSeatV1": {
         "additionalProperties": false,
@@ -5680,6 +5687,9 @@
           "check_key": {
             "type": "string"
           },
+          "check_run_id": {
+            "$ref": "#/components/schemas/LantaiReviewEvidenceV1CheckRunId"
+          },
           "completed_at": {
             "type": "string"
           },
@@ -6163,6 +6173,9 @@
           },
           "check_key": {
             "type": "string"
+          },
+          "check_run_id": {
+            "$ref": "#/components/schemas/LantaiReviewEvidenceV1CheckRunId"
           },
           "config_digest": {
             "$ref": "#/components/schemas/Digest"

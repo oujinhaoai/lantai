@@ -365,3 +365,9 @@ func TestM2ReviewHumanGrantBindsTargetAndRevoke(t *testing.T) {
 		t.Fatal(state, err)
 	}
 }
+
+// CheckApplicable is a completion fixture; real activation acceptance is tested
+// through the assembled application and jobs service in m2_evidence_governance.
+func (f *reviewExecutionFixture) CheckApplicable(ctx context.Context, who authz.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, _ ids.ID) error {
+	return f.VerifyEvidence(ctx, who, v, actor, in, true)
+}

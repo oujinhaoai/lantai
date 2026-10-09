@@ -531,3 +531,9 @@ func TestM2FlowCreateReworkApprovePublish(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// CheckApplicable is a completion fixture; real activation acceptance is tested
+// through the assembled application and jobs service in m2_evidence_governance.
+func (j *jobFixture) CheckApplicable(ctx context.Context, who authz.Context, v commit.Committed, actor ids.ID, in ledger.ReviewEvidenceInput, _ ids.ID) error {
+	return j.VerifyCheck(ctx, who, v, actor, in, true)
+}
