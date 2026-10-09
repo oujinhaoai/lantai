@@ -19,6 +19,7 @@
 | 全部检查（格式、依赖整洁、vet、staticcheck、生成物无漂移、`-race` 测试、构建） | `scripts/check.sh` |
 | 同上，但不用 `-race` | `LANTAI_RACE=0 scripts/check.sh` |
 | 只跑测试 | `go test -timeout=20m ./...` |
+| TOTP 夹具碰撞与重放回归 | `go test ./tests/integration -run '^TestIntegrationFreshTOTP' -count=1`；固定合成种子覆盖相邻同码，保留真实重放拒绝，普通取码只推进一时间步 |
 | 重新生成派生文件 | `scripts/generate.sh` |
 | 构建入口 | `go build -o bin/lantai ./cmd/lantai` |
 | 查看版本、契约与协议支持状态 | `go run ./cmd/lantai version` |
@@ -52,6 +53,7 @@
 | T06/T07 真实模块联调 | `go test ./tests/integration -run 'Test(M2Manual\|M2Job\|M2Real\|RemoteM2)' -count=1` |
 | T09 一次性宿主、包治理、熔断与插件 SDK（构建合成 fixture 并真实起进程） | `go test ./internal/extensions/... ./sdk/go/... -count=1` |
 | T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension\|TestM2Business\|TestM2Governance' -count=1` |
+| 扩展治理/重启与宿主超时回收 | `go test -race ./tests/integration ./internal/extensions -run '^TestM2GovernanceRealScopesProbeAndRestart$\|^TestOneShotTimeoutAndCancelReclaimProcessTree$' -count=1`；治理用例使用常规夹具预算，专门超时/取消用例仍验证进程树回收 |
 | 检查适用性、raw 协议与公开来源包装回归 | `go test -race ./tests/integration -run 'TestM2BusinessCompletedCheckRetirementBeforeReview\|TestM2BusinessPublicContractPreservesActualRun\|TestM2GovernanceProbeCompleteRawProtocol\|TestM2GovernanceJobRejectsRawForbiddenFields' -count=1` |
 | T08 到期清除与 GC 调度 | `go test ./internal/operations -run Scheduler -count=1`；`go test ./tests/integration -run TestM2LifecycleSchedulerDuePurgeAndGC -count=1` |
 | 服务停止时运行一次到期提醒/清除与 GC | `go run ./cmd/lantai lifecycle -home <数据根>` |

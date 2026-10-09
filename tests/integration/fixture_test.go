@@ -27,6 +27,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
 	"github.com/oujinhaoai/lantai/internal/identity/password"
 	"github.com/oujinhaoai/lantai/internal/identity/totp"
+	"github.com/oujinhaoai/lantai/internal/identity/totp/totptest"
 	"github.com/oujinhaoai/lantai/internal/ledger"
 	"github.com/oujinhaoai/lantai/internal/operations"
 	"github.com/oujinhaoai/lantai/internal/provenance"
@@ -170,10 +171,9 @@ func (e *env) key() string {
 	return fmt.Sprintf("k-%d", e.keyN)
 }
 
-// fresh 推进到下一个时间步并返回该步的动态码（每个时间步只能成功一次）。
+// fresh 推进假时钟并避开窗口内同码碰撞，仍经过真实 TOTP 重放校验。
 func (e *env) fresh() string {
-	e.clk.Advance(totp.Period * time.Second)
-	return totp.Code(e.secret, totp.Counter(e.clk.Now()))
+	return totptest.Fresh(e.t, e.clk, e.secret)
 }
 
 func (e *env) login() identity.IssuedSession {

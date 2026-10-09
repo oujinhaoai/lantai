@@ -18,6 +18,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
 	"github.com/oujinhaoai/lantai/internal/identity/password"
 	"github.com/oujinhaoai/lantai/internal/identity/totp"
+	"github.com/oujinhaoai/lantai/internal/identity/totp/totptest"
 	"github.com/oujinhaoai/lantai/internal/operations"
 )
 
@@ -90,10 +91,9 @@ func (f *fixture) newService(key *masterkey.Key) *Service {
 	return svc
 }
 
-// fresh 把时钟推进到下一个时间步并返回该步的动态码：每个时间步只能成功一次。
+// fresh 推进假时钟并避开窗口内同码碰撞，仍经过真实 TOTP 重放校验。
 func (f *fixture) fresh(secret []byte) string {
-	f.clk.Advance(totp.Period * time.Second)
-	return totp.Code(secret, totp.Counter(f.clk.Now()))
+	return totptest.Fresh(f.t, f.clk, secret)
 }
 
 // now 返回当前时间步的动态码（不推进时钟）。

@@ -160,7 +160,8 @@ func (f *appFlow) enablePackage(pkg extensions.Package, config string, revision 
 	who, g, op := f.grant(a)
 	result, err := f.app.ExtensionManager.Enable(f.t.Context(), who, req, g, op, f.id)
 	if err != nil {
-		f.t.Fatal(err)
+		activation, _ := json.Marshal(result.Activation)
+		f.t.Fatalf("enablement probe: %v; activation=%s", err, activation)
 	}
 	return result
 }
@@ -523,7 +524,9 @@ func TestM2GovernanceRealScopesProbeAndRestart(t *testing.T) {
 	}
 	base := f.approvedProfile("profiles/bootstrap", profileDocument("bootstrap", builtin), ids.PermanentRef{})
 	dir := t.TempDir()
-	pkg := exttest.Write(t, dir, exttest.Spec{ID: "org.example.business", Server: true, CLI: true, TimeoutSeconds: 1})
+	// This case verifies governance and restart, not process startup latency.
+	// Use the ordinary fixture budget; dedicated host tests verify short deadlines.
+	pkg := exttest.Write(t, dir, exttest.Spec{ID: "org.example.business", Server: true, CLI: true})
 	v, flow := f.candidate("plugins/governed", manifest.TypePlugin, readDir(t, dir), map[string]any{"extension_id": pkg.Manifest.ID, "extension_version": pkg.Manifest.Version})
 	rec, err := m.Import(ctx, f.login().Context, f.key(), extensions.ImportRequest{AssetID: v.AssetID, VersionID: v.VersionID})
 	if err != nil {
@@ -582,8 +585,9 @@ func TestM2GovernanceRealScopesProbeAndRestart(t *testing.T) {
 		t.Fatal("unenforced sandbox silently accepted")
 	}
 	enabled, err := m.Enable(ctx, who, req, g, op, f.id)
-	if err != nil || enabled.Activation.State != "ready" {
-		t.Fatal(enabled, err)
+	if err != nil || enabled.Activation == nil || enabled.Activation.State != "ready" {
+		activation, _ := json.Marshal(enabled.Activation)
+		t.Fatalf("enablement probe: %v; activation=%s", err, activation)
 	}
 	if enabled.Activation.Environment.Capabilities.Sandbox || enabled.Activation.Environment.Capabilities.NetworkIsolation {
 		t.Fatal("false sandbox claim")
@@ -932,7 +936,9 @@ func TestM2GovernanceRealJobFaultResults(t *testing.T) {
 		t.Fatal(err)
 	}
 	base := f.approvedProfile("profiles/bootstrap", profileDocument("bootstrap", builtin), ids.PermanentRef{})
-	pkg, _ := f.approvedSpec(base, "plugins/faultjob", exttest.Spec{ID: "org.example.faultjob", Server: true, TimeoutSeconds: 1})
+	// Probe startup must succeed before exercising each job fault. The hanging
+	// job still reaches its dispatch deadline and must be reclaimed as a fault.
+	pkg, _ := f.approvedSpec(base, "plugins/faultjob", exttest.Spec{ID: "org.example.faultjob", Server: true})
 	f.sudo(&identity.SetPolicy{ProjectID: f.project.ProjectID, Key: "plugins.allowed", Value: json.RawMessage(`["org.example.faultjob"]`)})
 	for index, mode := range []string{"crash", "hang", "bad_schema", "no_result", "unsupported"} {
 		f.enablePackage(pkg, `{"mode":"`+mode+`"}`, int64(index+1))
@@ -947,6 +953,9 @@ func TestM2GovernanceRealJobFaultResults(t *testing.T) {
 		}
 		if j.Failure != want {
 			t.Fatal(mode, j.Failure)
+		}
+		if mode != "unsupported" && (j.Attempt.Outcome != execution.InvocationRuntimeFault || !j.Attempt.Termination.Confirmed || j.Attempt.Termination.UnresolvedEffects != 0) {
+			t.Fatal("runtime fault was not reclaimed", mode, j.Attempt)
 		}
 		if mode == "unsupported" && (!j.Attempt.ResultDigest.Valid() || j.Attempt.Outcome != execution.InvocationCompleted) {
 			t.Fatal("unsupported lost its completed result digest", j)
