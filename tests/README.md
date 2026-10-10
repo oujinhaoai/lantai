@@ -29,3 +29,5 @@ go test -race -count=1 -run '^TestClientConsistency' -v ./tests/integration
 `TestMCPPushInputContract` 用真实 stdio 检查上传对象输入、非法字段拒绝且无上传/回执/版本副作用，以及省略/null rights 的领域继承。`TestMCPPushFourClientRestore` 经 REST、CLI、Python SDK、官方 Go SDK stdio MCP 分别上传，核对四客户端三文件在备份/空恢复前后的 96 行字节/哈希、持久 rights、两键重放与冲突、旧会话/恢复状态/传输权拒绝以及历史回执/备份不变。可选 `LANTAI_M211_EVIDENCE` 指向仓库外的空目录保存合成证据；目标产品 MCP 客户端、设备故障与持续 RPO 需另验。
 
 当前基线的独立源码复核、两端完整检查及失败保留说明见 [MCP rights 独立复核](../docs/testing/mcp-rights-review.md)。
+
+M2 增量重同步补验使用真实应用、REST 与独立 CLI，并经正式保留裁剪触发过期；同时覆盖讨论/旧收件箱、里程碑进度及人审后的固定 context/decision 替代。命令、确定性并发点和证据边界见[增量重同步软件验收](../docs/testing/m2-resync-acceptance.md)。

@@ -71,3 +71,5 @@ lantai flow dispatch --server https://gateway.example --session-file session.jso
 工具包含 whoami、资源搜索/精确读取、任务领取/心跳/交付/阻塞/交接、执行登记/观测/工具记录/候选/检查点/提问/封存、讨论、QA 证据追加以及状态读取。精确版本读取附带 lantai:// 永久资源链接。核心组装可通过 `mcpserver.Config.Contributions` 为 T09 添加带扩展命名空间的别名；该端口只允许选择已启用的核心安全写命令，不接受 URL、凭据或可执行入口，`--extensions-registry FILE` 与 workspace 同时给出时，另把本机已安装且服务器当前启用的 `cli.command` 投影为 `ext_…` 工具，调用与 `lantai ext run` 同一路径。人审、身份管理、插件启停和删除不进入 MCP。取消协议请求会取消 HTTP 调用；远端是否已提交仍按原 key/operation 对账，不盲目重放。
 
 最小 Python SDK 见 [sdk/python](../../sdk/python/README.md)。它直接调用同一 REST，以标准库提供认证、资源、任务和精确单文件下载；版本/错误语义不另设一套。两种客户端都不把模型或外部完整平台作为前置。
+
+里程碑配置与进度通过 REST 接入 T01/T05，见[协作适配契约](collaboration-foundation.md#项目里程碑)。

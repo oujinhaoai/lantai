@@ -1768,6 +1768,77 @@ paths:
       summary: publications
       tags:
         - collaboration
+  /api/v1/projects/{project_id}/milestones:
+    get:
+      operationId: listMilestones
+      summary: 读取当前项目里程碑配置
+      tags: [collaboration]
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestonePage'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: putMilestone
+      summary: owner 创建或按修订更新里程碑
+      tags: [collaboration]
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneWriteRequest'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestoneResult'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{project_id}/milestones/{id}/progress:
+    get:
+      operationId: getMilestoneProgress
+      summary: 经当前权限和任务领域端口读取里程碑进度
+      tags: [collaboration]
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestoneProgress'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/resync:
     get:
       operationId: getResync
@@ -2692,6 +2763,81 @@ components:
         允许列表精确相同的 Origin（缺失即拒绝）并在 X-CSRF-Token 头中带与该会话相符的 CSRF
         令牌；同一请求不能同时带 Bearer 与会话 Cookie。
   schemas:
+    Milestone:
+      type: object
+      additionalProperties: false
+      properties:
+        milestone_id:
+          type: string
+          pattern: '^$|^[0-7][0-9A-HJKMNP-TV-Z]{25}$'
+          description: 创建时为空，更新时使用服务器分配的稳定 ID。
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 服务端计算；写入时以 expected_revision 为条件。
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        due_date:
+          type: string
+          pattern: '^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        owner_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        task_ids:
+          type: array
+          maxItems: 1000
+          uniqueItems: true
+          items:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      required: [project_id, name, owner_id, task_ids]
+    MilestoneWriteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_revision:
+          type: integer
+          format: int64
+          minimum: 0
+        milestone:
+          $ref: '#/components/schemas/Milestone'
+      required: [expected_revision, milestone]
+    MilestoneResult:
+      type: object
+      additionalProperties: false
+      properties:
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        replayed:
+          type: boolean
+        result:
+          $ref: '#/components/schemas/Milestone'
+      required: [operation_id, replayed, result]
+    MilestonePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+      required: [items]
+    MilestoneProgress:
+      type: object
+      additionalProperties: false
+      properties:
+        milestone:
+          $ref: '#/components/schemas/Milestone'
+        completed:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+      required: [milestone, completed, total]
     PartResult:
       type: object
       additionalProperties: false

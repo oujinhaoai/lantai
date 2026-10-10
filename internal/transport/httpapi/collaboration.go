@@ -32,6 +32,7 @@ func projectID(r *http.Request) (ids.ID, error) {
 	return id, nil
 }
 func (h *Handler) collaborationRoutes(m *http.ServeMux) {
+	h.milestoneRoutes(m)
 	if h.deps.Ledger != nil && h.deps.Discussions != nil {
 		h.route(m, "POST /api/v1/messages", false, commandEndpoint(h, func(ctx context.Context, w authz.Context, key string, in ledger.MessageInput) (ledger.Message, error) {
 			return h.deps.Ledger.PostMessage(ctx, w, key, in, h.deps.Discussions)

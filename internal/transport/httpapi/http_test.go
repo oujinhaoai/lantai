@@ -373,6 +373,7 @@ func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 	// Enable all optional route groups. These zero-value owner handles must
 	// never run: this test verifies authentication before domain dispatch.
 	f.h.deps.Tasks = &tasks.Service{}
+	f.h.deps.Milestones = &identity.Service{}
 	f.h.deps.Flows = &workflow.Service{}
 	f.h.deps.Execution = &ax.Service{}
 	f.h.deps.Jobs = &jobs.Service{}

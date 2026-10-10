@@ -72,6 +72,7 @@ type OperationReader interface {
 }
 
 type Deps struct {
+	Milestones     *identity.Service
 	Rights         *provenance.Service
 	Ledger         *ledger.Service
 	Reviews        *ledger.Reviews

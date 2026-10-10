@@ -58,6 +58,7 @@
 | T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension\|TestM2Business\|TestM2Governance' -count=1` |
 | 扩展治理/重启与宿主超时回收 | `go test -race ./tests/integration ./internal/extensions -run '^TestM2GovernanceRealScopesProbeAndRestart$\|^TestOneShotTimeoutAndCancelReclaimProcessTree$' -count=1`；治理用例使用常规夹具预算，专门超时/取消用例仍验证进程树回收 |
 | 检查适用性、raw 协议与公开来源包装回归 | `go test -race ./tests/integration -run 'TestM2BusinessCompletedCheckRetirementBeforeReview\|TestM2BusinessPublicContractPreservesActualRun\|TestM2GovernanceProbeCompleteRawProtocol\|TestM2GovernanceJobRejectsRawForbiddenFields' -count=1` |
+| M2 固定上下文、讨论、里程碑 REST 与正式裁剪后并发重同步 | `GOMAXPROCS=2 GOFLAGS=-p=2 go test -race -count=1 -run '^TestM2ResyncAcceptance' -v ./tests/integration`；合成实例、时钟和覆盖边界见[增量重同步验收](testing/m2-resync-acceptance.md) |
 | T08 到期清除与 GC 调度 | `go test ./internal/operations -run Scheduler -count=1`；`go test ./tests/integration -run TestM2LifecycleSchedulerDuePurgeAndGC -count=1` |
 | 服务停止时运行一次到期提醒/清除与 GC | `go run ./cmd/lantai lifecycle -home <数据根>` |
 | 扩展包导入、启用诊断、命令列表（远程） | `go run ./cmd/lantai plugin import\|list\|enablements\|probe\|commands ...` |
