@@ -43,6 +43,9 @@ step "Python SDK 契约与测试"
 python3 sdk/python/generate.py --check
 PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v
 
+step "发布工具边界测试"
+python3 -m unittest discover -s scripts/tests -v
+
 # 本脚本普通测试保持 20 分钟单包累计上限；race 的额外开销需要 30 分钟。
 # Windows CI 普通测试另设 30 分钟。只约束防挂死，不改变用例断言或性能阈值。
 # 慢速目标机可显式设置 LANTAI_TEST_TIMEOUT（Go duration），默认预算保持不变。

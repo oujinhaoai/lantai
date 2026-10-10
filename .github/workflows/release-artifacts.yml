@@ -1,0 +1,59 @@
+name: release-artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Exact final main commit (40 hex characters; successful main CI required)
+        required: true
+        type: string
+      version:
+        description: Maintainer-selected version, for example v0.1.0-rc.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-artifacts-${{ inputs.commit }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  linux-amd64:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: release-control
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+          path: release-source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: release-source/go.mod
+          cache-dependency-path: release-source/go.sum
+      - name: Build immutable local image archives and packages
+        env:
+          RELEASE_COMMIT: ${{ inputs.commit }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_OUT: ${{ runner.temp }}/lantai-release-${{ github.run_id }}
+        run: |
+          python3 release-control/scripts/build-release.py \
+            --source release-source --commit "$RELEASE_COMMIT" \
+            --version "$RELEASE_VERSION" --out "$RELEASE_OUT" \
+            --require-main-ci
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lantai-${{ inputs.version }}-linux-amd64-${{ inputs.commit }}
+          path: ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/
+          if-no-files-found: error
+          retention-days: 30

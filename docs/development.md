@@ -66,6 +66,8 @@
 | Python SDK 单元测试 | `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/python/tests -v` |
 | 已知漏洞扫描 | `go tool -modfile=scripts/tools/go.mod govulncheck ./...` |
 | 交叉编译示例 | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/lantai` |
+| 发布工具的离线门禁与归档验证 | `python3 -m unittest discover -s scripts/tests -v`；不代表真实镜像构建 |
+| 精确 main 制品构建（维护者手动，需全 10 项 main CI） | [发布制品](release-artifacts.md)；实际 Docker 镜像、六平台二进制与源码归档，不自动发布或部署 |
 
 `scripts/check.sh` 默认 race 测试的单包累计上限为 30 分钟；本脚本 `LANTAI_RACE=0` 及 Linux/macOS 普通 CI 测试保持 20 分钟，Windows 普通 CI 为 30 分钟。慢速目标机可显式设置 `LANTAI_TEST_TIMEOUT=60m scripts/check.sh`，完整执行相同检查与全部用例；报告必须注明覆盖预算，不得将它写成默认 30 分钟检查通过。较慢 runner 上的真实实例与进程强杀矩阵需要容纳执行开销；单个用例断言和性能验收阈值不变。Windows 手动全包验证可用 `go test -timeout=30m -count=1 ./...`。
 
