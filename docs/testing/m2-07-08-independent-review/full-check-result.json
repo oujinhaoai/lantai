@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "scripts/check.sh"
+  ],
+  "started_at": "2026-10-10T14:56:30.432340+00:00",
+  "finished_at": "2026-10-10T15:22:52.572921+00:00",
+  "elapsed_seconds": 1582.1418608329259,
+  "exit_code": 0,
+  "race": "default enabled",
+  "timeout": "default 30m",
+  "source_drift": [],
+  "shared_lock_serialized": true,
+  "stdout_sha256": "17f229b5725a0bd479b99742699da6d22510d5895056bb603a1961b45c52e2f9",
+  "stderr_sha256": "2e96b7d21623ad40844d5b193b0035cb4ed63fad4192ce2663a5c9007d250b33",
+  "package_results": [
+    "ok  \tgithub.com/oujinhaoai/lantai/tests/integration\t1329.813s"
+  ]
+}

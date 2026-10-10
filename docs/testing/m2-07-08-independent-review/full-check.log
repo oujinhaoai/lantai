@@ -1,0 +1,91 @@
+
+==> gofmt
+
+==> go mod tidy（主模块与工具模块）
+
+==> go vet
+
+==> staticcheck
+
+==> 生成物无漂移
+
+==> Python SDK 契约与测试
+
+==> go test -race (timeout=30m)
+?   	github.com/oujinhaoai/lantai/api	[no test files]
+ok  	github.com/oujinhaoai/lantai/cmd/lantai	11.338s
+ok  	github.com/oujinhaoai/lantai/deploy	5.080s
+?   	github.com/oujinhaoai/lantai/internal/agent_execution	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/apiv1	2.013s
+ok  	github.com/oujinhaoai/lantai/internal/application	6.274s
+ok  	github.com/oujinhaoai/lantai/internal/catalog	25.101s
+ok  	github.com/oujinhaoai/lantai/internal/catalog/manifest	2.401s
+ok  	github.com/oujinhaoai/lantai/internal/catalog/pathrule	1.953s
+ok  	github.com/oujinhaoai/lantai/internal/cli	1.988s
+ok  	github.com/oujinhaoai/lantai/internal/client	2.080s
+ok  	github.com/oujinhaoai/lantai/internal/commands	3.167s
+ok  	github.com/oujinhaoai/lantai/internal/contract/agentexec	2.136s
+?   	github.com/oujinhaoai/lantai/internal/contract/authz	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/contract/authz/authztest	1.818s
+ok  	github.com/oujinhaoai/lantai/internal/contract/canonjson	1.813s
+ok  	github.com/oujinhaoai/lantai/internal/contract/clock	1.809s
+?   	github.com/oujinhaoai/lantai/internal/contract/commit	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/contract/commit/committest	2.052s
+ok  	github.com/oujinhaoai/lantai/internal/contract/digest	4.947s
+ok  	github.com/oujinhaoai/lantai/internal/contract/errcode	1.964s
+ok  	github.com/oujinhaoai/lantai/internal/contract/event	1.958s
+ok  	github.com/oujinhaoai/lantai/internal/contract/execution	1.969s
+ok  	github.com/oujinhaoai/lantai/internal/contract/ids	1.791s
+ok  	github.com/oujinhaoai/lantai/internal/contract/install	1.963s
+ok  	github.com/oujinhaoai/lantai/internal/contract/install/installtest	1.925s
+ok  	github.com/oujinhaoai/lantai/internal/contract/ownership	1.829s
+ok  	github.com/oujinhaoai/lantai/internal/contract/pin	1.926s
+?   	github.com/oujinhaoai/lantai/internal/contract/pin/pintest	[no test files]
+?   	github.com/oujinhaoai/lantai/internal/contract/rights	[no test files]
+?   	github.com/oujinhaoai/lantai/internal/contract/rights/rightstest	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/contract/schema	2.166s
+ok  	github.com/oujinhaoai/lantai/internal/contract/tasks	1.944s
+ok  	github.com/oujinhaoai/lantai/internal/contract/tasks/taskstest	1.972s
+ok  	github.com/oujinhaoai/lantai/internal/contract/yamljson	1.788s
+ok  	github.com/oujinhaoai/lantai/internal/events	5.866s
+ok  	github.com/oujinhaoai/lantai/internal/extensions	50.428s
+?   	github.com/oujinhaoai/lantai/internal/extensions/exttest	[no test files]
+?   	github.com/oujinhaoai/lantai/internal/extensions/local	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/identity	52.653s
+ok  	github.com/oujinhaoai/lantai/internal/identity/httpauth	2.188s
+ok  	github.com/oujinhaoai/lantai/internal/identity/masterkey	2.188s
+ok  	github.com/oujinhaoai/lantai/internal/identity/password	1.838s
+ok  	github.com/oujinhaoai/lantai/internal/identity/totp	1.821s
+?   	github.com/oujinhaoai/lantai/internal/identity/totp/totptest	[no test files]
+?   	github.com/oujinhaoai/lantai/internal/jobs	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/ledger	38.903s
+ok  	github.com/oujinhaoai/lantai/internal/mcpserver	4.805s
+?   	github.com/oujinhaoai/lantai/internal/node	[no test files]
+ok  	github.com/oujinhaoai/lantai/internal/operations	76.721s
+ok  	github.com/oujinhaoai/lantai/internal/platform/fsutil	5.296s
+ok  	github.com/oujinhaoai/lantai/internal/platform/sqlite	7.797s
+ok  	github.com/oujinhaoai/lantai/internal/platform/sqlite/migrations	2.779s
+ok  	github.com/oujinhaoai/lantai/internal/provenance	15.990s
+ok  	github.com/oujinhaoai/lantai/internal/query	9.755s
+ok  	github.com/oujinhaoai/lantai/internal/storage	66.547s
+ok  	github.com/oujinhaoai/lantai/internal/storage/fileop	1.822s
+ok  	github.com/oujinhaoai/lantai/internal/storage/transfer	1.877s
+ok  	github.com/oujinhaoai/lantai/internal/tasks	11.051s
+ok  	github.com/oujinhaoai/lantai/internal/transport/httpapi	2.811s
+ok  	github.com/oujinhaoai/lantai/internal/workflow	2.380s
+?   	github.com/oujinhaoai/lantai/plugins	[no test files]
+?   	github.com/oujinhaoai/lantai/plugins/corecheck	[no test files]
+?   	github.com/oujinhaoai/lantai/schemas	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/gen/errcodes	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/gen/identity	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/gen/internal/genfile	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/gen/openapi	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/gen/ownership	[no test files]
+?   	github.com/oujinhaoai/lantai/scripts/probe/sqlite	[no test files]
+ok  	github.com/oujinhaoai/lantai/sdk/go/extension	1.790s
+?   	github.com/oujinhaoai/lantai/tests/fixtures/public/oneshot	[no test files]
+ok  	github.com/oujinhaoai/lantai/tests/integration	1329.813s
+
+==> 构建 lantai
+
+全部检查通过

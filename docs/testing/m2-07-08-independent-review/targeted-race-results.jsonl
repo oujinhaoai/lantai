@@ -1,0 +1,26 @@
+{"Time":"2026-10-10T22:54:22.560834+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2BusinessRecoveryAcceptance"}
+{"Time":"2026-10-10T22:54:22.560899+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2BusinessRecoveryAcceptance","Output":"=== RUN   TestM2BusinessRecoveryAcceptance\n"}
+{"Time":"2026-10-10T22:55:46.567791+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2BusinessRecoveryAcceptance","Output":"--- PASS: TestM2BusinessRecoveryAcceptance (84.01s)\n"}
+{"Time":"2026-10-10T22:55:46.567867+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2BusinessRecoveryAcceptance","Elapsed":84.01}
+{"Time":"2026-10-10T22:55:46.567919+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2MilestoneIndependentReviewRevokedReplay"}
+{"Time":"2026-10-10T22:55:46.567929+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2MilestoneIndependentReviewRevokedReplay","Output":"=== RUN   TestM2MilestoneIndependentReviewRevokedReplay\n"}
+{"Time":"2026-10-10T22:55:48.480834+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2MilestoneIndependentReviewRevokedReplay","Output":"--- PASS: TestM2MilestoneIndependentReviewRevokedReplay (1.91s)\n"}
+{"Time":"2026-10-10T22:55:48.480895+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2MilestoneIndependentReviewRevokedReplay","Elapsed":1.91}
+{"Time":"2026-10-10T22:55:48.480921+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceMilestoneREST"}
+{"Time":"2026-10-10T22:55:48.480926+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceMilestoneREST","Output":"=== RUN   TestM2ResyncAcceptanceMilestoneREST\n"}
+{"Time":"2026-10-10T22:55:50.482726+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceMilestoneREST","Output":"--- PASS: TestM2ResyncAcceptanceMilestoneREST (2.00s)\n"}
+{"Time":"2026-10-10T22:55:50.482772+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceMilestoneREST","Elapsed":2}
+{"Time":"2026-10-10T22:55:50.482837+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceDiscussionsAndInbox"}
+{"Time":"2026-10-10T22:55:50.482843+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceDiscussionsAndInbox","Output":"=== RUN   TestM2ResyncAcceptanceDiscussionsAndInbox\n"}
+{"Time":"2026-10-10T22:55:52.885303+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceDiscussionsAndInbox","Output":"--- PASS: TestM2ResyncAcceptanceDiscussionsAndInbox (2.40s)\n"}
+{"Time":"2026-10-10T22:55:52.885344+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceDiscussionsAndInbox","Elapsed":2.4}
+{"Time":"2026-10-10T22:55:52.885362+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceRetainedConcurrentReplace"}
+{"Time":"2026-10-10T22:55:52.885367+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceRetainedConcurrentReplace","Output":"=== RUN   TestM2ResyncAcceptanceRetainedConcurrentReplace\n"}
+{"Time":"2026-10-10T22:56:04.558558+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceRetainedConcurrentReplace","Output":"--- PASS: TestM2ResyncAcceptanceRetainedConcurrentReplace (11.67s)\n"}
+{"Time":"2026-10-10T22:56:04.558624+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceRetainedConcurrentReplace","Elapsed":11.67}
+{"Time":"2026-10-10T22:56:04.558639+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceFixedContextAndDecision"}
+{"Time":"2026-10-10T22:56:04.558647+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceFixedContextAndDecision","Output":"=== RUN   TestM2ResyncAcceptanceFixedContextAndDecision\n"}
+{"Time":"2026-10-10T22:56:29.40489+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceFixedContextAndDecision","Output":"--- PASS: TestM2ResyncAcceptanceFixedContextAndDecision (24.85s)\n"}
+{"Time":"2026-10-10T22:56:29.404916+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Test":"TestM2ResyncAcceptanceFixedContextAndDecision","Elapsed":24.85}
+{"Time":"2026-10-10T22:56:29.405018+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/tests/integration","Output":"PASS\n"}
+{"Time":"2026-10-10T22:56:30.427087+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/tests/integration","Elapsed":130.515}
