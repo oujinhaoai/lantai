@@ -193,6 +193,14 @@ class BuildGuards(unittest.TestCase):
         docker_build = next(argv for argv, kw in self.simulated_calls if argv[:2] == ["docker", "build"])
         self.assertEqual(docker_build[-1], str(frozen))
         self.assertTrue(all(kw["cwd"] == frozen for argv, kw in self.simulated_calls if argv[:2] == ["go", "build"]))
+        caddy_smoke = next(argv for argv, _ in self.simulated_calls
+                           if argv[:2] == ["docker", "run"] and "caddy version" in argv[-1])
+        self.assertEqual(caddy_smoke[caddy_smoke.index("--network") + 1], "none")
+        self.assertIn("--read-only", caddy_smoke)
+        self.assertEqual(caddy_smoke[caddy_smoke.index("--cap-drop") + 1], "ALL")
+        self.assertEqual(caddy_smoke[caddy_smoke.index("--cap-add") + 1], "NET_BIND_SERVICE")
+        self.assertEqual(caddy_smoke.count("--cap-add"), 1)
+        self.assertNotIn("--privileged", caddy_smoke)
 
     def test_wrong_oci_revision_never_exports_a_release_image(self):
         self.image_revision = "b" * 40
@@ -203,6 +211,14 @@ class BuildGuards(unittest.TestCase):
 
 
 class ArchiveAndImageChecks(unittest.TestCase):
+    def test_real_failed_command_preserves_exit_and_stderr(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr), self.assertRaises(subprocess.CalledProcessError) as caught:
+            release.command([sys.executable, "-c", "import sys;sys.stderr.write('synthetic exec denied\\n');sys.exit(126)"])
+        self.assertEqual(caught.exception.returncode, 126)
+        self.assertEqual(caught.exception.stderr, "synthetic exec denied\n")
+        self.assertEqual(stderr.getvalue(), "synthetic exec denied\n")
+
     def test_real_isolated_checkout_omits_ignored_private_files(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
