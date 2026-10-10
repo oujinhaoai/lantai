@@ -204,6 +204,7 @@ func (f *appFlow) review(profile, definition catalog.VersionResult, capability, 
 	f.sync()
 	f.dispatch()
 	f.sync()
+	f.dispatch() // production completion follows the persisted publication event
 	if view = f.flow(start.FlowID); view.Flow.State != "completed" {
 		f.t.Fatal(view.Flow, view.Commands)
 	}

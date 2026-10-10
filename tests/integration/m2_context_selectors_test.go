@@ -68,6 +68,7 @@ func (f *flowEnv) approvedContext(slug string, data []byte) catalog.VersionResul
 	f.sync()
 	f.dispatch()
 	f.sync()
+	f.dispatch() // accept production completion after the publication event
 	if fv := f.flow(started.FlowID); fv.Flow.State != "completed" {
 		f.t.Fatalf("flow must approve and publish %s: %+v", slug, fv.Flow)
 	}

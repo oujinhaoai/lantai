@@ -504,6 +504,7 @@ func TestM2FlowCreateReworkApprovePublish(t *testing.T) {
 	f.sync()
 	f.dispatch()
 	f.sync()
+	f.dispatch() // release production dependencies only after publication
 	v = f.flow(started.FlowID)
 	if v.Flow.State != "completed" || f.latest(v, "publish").StepRun.State != "completed" || f.latest(v, "produce").StepRun.State != "completed" {
 		t.Fatalf("flow completes only after publication: %+v %+v", v.Flow, v.Steps)
