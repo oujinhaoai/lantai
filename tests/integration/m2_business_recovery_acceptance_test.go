@@ -162,7 +162,10 @@ func newBusinessRecovery(t *testing.T) *businessRecovery {
 func (b *businessRecovery) startServe() {
 	t := b.f.t
 	b.starts++
-	cmd := exec.CommandContext(t.Context(), b.bin, "serve", "-home", b.home, "-merged", "-api-listen", "127.0.0.1:0", "-operations-listen", "127.0.0.1:0")
+	// This fixture owns every forced stop, including cleanup. T.Context is
+	// cancelled before Cleanup and CommandContext would race a second Kill
+	// against stop (Windows rejects termination of an already terminated child).
+	cmd := exec.Command(b.bin, "serve", "-home", b.home, "-merged", "-api-listen", "127.0.0.1:0", "-operations-listen", "127.0.0.1:0")
 	cmd.Env = consistencyEnv()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

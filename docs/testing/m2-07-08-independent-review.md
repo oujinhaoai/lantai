@@ -45,3 +45,11 @@ GOMAXPROCS=2 GOFLAGS=-p=2 go test -race -count=1 -timeout=10m \
 容器配方的 COPY 与专用 dockerignore 同时遗漏 `api/`，而 MCP 服务实际导入该包。关闭模块网络的原 COPY 隔离上下文真实 Go 编译退出 1；新增 `COPY api ./api` 与 `!api/**` 后，同一 Linux/amd64、CGO=0 编译退出 0。新增测试由真实 `cmd/lantai` 依赖图推导所需源码根目录，覆盖配方和 allowlist 两层；原配置准确失败，修复后部署包 race 通过。这里只验证源码输入与编译，本机没有 Docker 引擎；真实镜像/启动仍需目标环境验收，既有 Caddy 条件用例的 skip 不计网关通过。详见 [构建输入证据](m2-07-08-independent-review/docker-context-review.json)。
 
 包含两行修复及最终新测试的第二次冻结源码持同一共享排他锁，默认 race/30m 完整 `scripts/check.sh` 退出 0，累计 **1520.502 秒**，全部检查通过，1173 个冻结源码文件前后无漂移。实际业务链与五份 M2-07 补验证据再次生成；首次组合结果不移作这次结果。记录见 [最终完整日志](m2-07-08-independent-review/final-check.log)、[参数与制品绑定](m2-07-08-independent-review/final-check-result.json)和[完整冻结源码摘要](m2-07-08-independent-review/final-source-files.json)。结果文档是在检查结束后补入，最终提交对所有受测程序/测试/配置逐件核对摘要。
+
+## Windows CI 清理夹具修复
+
+原候选2a53304的[CI 38066163874](https://github.com/oujinhaoai/lantai/actions/runs/38066163874)保留为失败：9/10成功，Windows TestM2BusinessRecoveryAcceptance在71.17秒的清理阶段出现TerminateProcess Access is denied。Go测试在Cleanup前取消T.Context，CommandContext自动Kill与既有显式stop竞争；[微软TerminateProcess文档](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess)说明已终止进程可返回ERROR_ACCESS_DENIED。
+
+夹具改用exec.Command，由原有stop唯一管理生命周期；Kill错误、实际Wait、10秒截止及全部强杀重放断言保留。新增真实子进程回归在原夹具先准确失败（signal:killed），修复后在已取消测试context的Cleanup中用独立context读取真实API meta成功，再严格停止子进程。回归编写阶段的日志句柄遗漏和错误端口/healthz 404分别保留在私有原始记录，不计产品结论。
+
+本修复源码默认race/30m完整检查退出0，耗时1460.355秒；1178文件摘要前后相同，12强杀/12重放/15启动/15实际退出全部再现。原始输出及摘要见[windows-cleanup/result.json](evidence/m2-07-08-independent-review/windows-cleanup/result.json)。该结果只绑定记录的受测源码；修复后最终PR head和main全部十项CI须另行确认。
