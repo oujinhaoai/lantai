@@ -124,7 +124,7 @@ func (c *Client) Download(ctx context.Context, g DownloadGrant, rootDir, relativ
 		if same {
 			return nil
 		}
-		return errors.New("client: destination exists with different content")
+		return errcode.New(errcode.PathConflict, "client: destination exists with different content; preserve it and use an empty destination")
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

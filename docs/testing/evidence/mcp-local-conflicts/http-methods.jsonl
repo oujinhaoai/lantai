@@ -1,0 +1,8 @@
+{"Time":"2026-10-11T01:01:38.203907+08:00","Action":"start","Package":"github.com/oujinhaoai/lantai/internal/mcpserver"}
+{"Time":"2026-10-11T01:01:39.086615+08:00","Action":"run","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Test":"TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer"}
+{"Time":"2026-10-11T01:01:39.086923+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Test":"TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer","Output":"=== RUN   TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer\n"}
+{"Time":"2026-10-11T01:01:39.147138+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Test":"TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer","Output":"--- PASS: TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer (0.06s)\n"}
+{"Time":"2026-10-11T01:01:39.147228+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Test":"TestMCPPullOccupiedDestinationPreservesFileWithoutTransfer","Elapsed":0.06}
+{"Time":"2026-10-11T01:01:39.147564+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Output":"PASS\n"}
+{"Time":"2026-10-11T01:01:40.149839+08:00","Action":"output","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Output":"ok  \tgithub.com/oujinhaoai/lantai/internal/mcpserver\t1.945s\n"}
+{"Time":"2026-10-11T01:01:40.149871+08:00","Action":"pass","Package":"github.com/oujinhaoai/lantai/internal/mcpserver","Elapsed":1.946}
