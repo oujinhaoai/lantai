@@ -73,6 +73,7 @@ func extCommand(ctx context.Context, args []string) (client.Response, error) {
 	f.SetOutput(io.Discard)
 	f.StringVar(&o.server, "server", os.Getenv("LANTAI_SERVER"), "HTTPS gateway origin")
 	f.StringVar(&o.session, "session-file", os.Getenv("LANTAI_SESSION"), "private session file")
+	f.StringVar(&o.caFile, "ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	f.BoolVar(&o.allowHTTP, "allow-http", false, "allow loopback HTTP for development")
 	f.BoolVar(&o.json, "json", false, "stable JSON output (default)")
 	f.StringVar(&registry, "registry", os.Getenv("LANTAI_EXTENSIONS"), "private local extension registry file")
@@ -158,7 +159,7 @@ func connect(o options) (*client.Client, error) {
 	if o.server == "" {
 		return nil, usage("--server or LANTAI_SERVER is required")
 	}
-	c, err := client.New(client.Config{BaseURL: o.server, AllowHTTP: o.allowHTTP})
+	c, err := client.New(client.Config{BaseURL: o.server, AllowHTTP: o.allowHTTP, CAFile: o.caFile})
 	if err != nil {
 		return nil, usage(err.Error())
 	}

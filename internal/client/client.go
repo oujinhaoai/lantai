@@ -27,7 +27,9 @@ type Config struct {
 	BaseURL      string
 	SessionToken string
 	// AllowHTTP 只允许显式选择的 loopback 开发入口，绝不关闭 TLS 校验。
-	AllowHTTP           bool
+	AllowHTTP bool
+	// CAFile selects a PEM CA bundle for this client only, without system trust changes.
+	CAFile              string
 	TLSConfig           *tls.Config
 	APITimeout          time.Duration
 	TransferTimeout     time.Duration
@@ -55,6 +57,18 @@ func New(c Config) (*Client, error) {
 	}
 	if c.TLSConfig != nil && c.TLSConfig.InsecureSkipVerify {
 		return nil, errors.New("client: TLS certificate verification cannot be disabled")
+	}
+	if c.CAFile != "" {
+		if c.TLSConfig != nil {
+			return nil, errors.New("client: CAFile and TLSConfig cannot be combined")
+		}
+		if u.Scheme != "https" {
+			return nil, errors.New("client: CAFile requires HTTPS")
+		}
+		c.TLSConfig, err = tlsConfigFromCAFile(c.CAFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if err = checkToken(c.SessionToken); err != nil {
 		return nil, err

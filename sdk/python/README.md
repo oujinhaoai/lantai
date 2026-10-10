@@ -11,6 +11,8 @@ PYTHONPATH=sdk/python python3 sdk/python/examples/read_task.py
 
 示例从 `LANTAI_SERVER`、`LANTAI_SESSION_TOKEN`、`LANTAI_PROJECT_ID` 读取已有会话和合成测试项目，不把凭据写入源码、参数或输出。服务端必须是 HTTPS origin；仅本机开发可显式 `Client("http://127.0.0.1:8080", allow_http=True)`。TLS 验证始终开启，重定向和跨 origin 的文件授权被拒绝。
 
+私有 CA 使用 `Client("https://gateway.example", ca_file="/path/to/ca.pem")` 显式选择本客户端的 CA 包；不修改系统信任，证书链、有效期及主机名/IP SAN 仍须通过验证。CA 文件不可读或无效直接失败，不退回系统信任；`ca_file` 不能用于开发 HTTP。仅提供公开 CA 证书，签发私钥留在用户私有环境。
+
 ```python
 from lantai import APIError, Client
 

@@ -6,6 +6,13 @@
 
 所有命令使用 `--server https://gateway.example` 或 `LANTAI_SERVER`。网关必须是没有用户名、路径、查询参数的 HTTPS origin；`--allow-http` 仅显式允许 loopback HTTP 开发入口。客户端不提供跳过 TLS 校验开关。
 
+私有 CA 可通过 `--ca-file /path/to/ca.pem` 或 `LANTAI_CA_FILE` 显式选择，CLI、MCP 和本机扩展命令使用同一配置。Go 客户端对应 `client.Config.CAFile`；不能同时指定 `TLSConfig`。文件必须是至多 1 MiB 的非空 PEM CA 证书包，不能含私钥、无效证书或其他内容；失败不会退回系统信任。配置仅影响该客户端的 API 与传输连接池，不修改系统信任。未指定时保持系统默认信任；IP origin 必须由证书的 IP SAN 覆盖，DNS SAN 或 CN 不能代替。CA 公开证书应由用户经可信渠道核对指纹，签发私钥不交给客户端。
+
+```sh
+lantai meta --server https://gateway.example --ca-file /path/to/ca.pem
+lantai mcp --server https://gateway.example --ca-file /path/to/ca.pem --session-file session.json --workspace working-copy
+```
+
 普通 JSON 与文件传输各有独立的连接池：JSON 总超时 30 秒、每 origin 最多 16 连接；传输总超时 24 小时、最多 4 连接；拨号与 TLS 握手 10 秒、响应头 30 秒。调用方可通过 `client.Config` 调整合理的正数上限，传输连接数最多 64。取消 context 会中止请求，下载保留已同步的临时文件。当前 CLI 顺序处理文件和分片，以有界内存流式传输；不接受本机自报身份优先级。
 
 两个连接池均不采用 `HTTP_PROXY` / `HTTPS_PROXY`，包括私网与内网域名，避免局域网传输意外绕行。当前没有显式代理配置。任何 HTTP 重定向均不跟随，凭据不会因重定向跨 origin。文件 URL 必须来自当前服务器授权响应、属于相同 origin 且位于 `/xfer/`；相对 URL 按同一网关解析。上传只替换服务端 `part_url_template` 的 `{part_number}`，不推导内部地址。

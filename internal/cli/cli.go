@@ -27,7 +27,7 @@ func Names() []string {
 }
 func Help() string {
 	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
-公共参数：--server HTTPS_ORIGIN --session-file FILE [--json] [--allow-http（仅loopback开发）]
+公共参数：--server HTTPS_ORIGIN --session-file FILE [--ca-file PEM] [--json] [--allow-http（仅loopback开发）]
 凭据：LANTAI_SESSION_TOKEN 或私有会话文件；login --credentials-file FILE；session exchange --token-file FILE 或 LANTAI_TOKEN。
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
@@ -51,7 +51,7 @@ type sessionFile struct {
 	Token  string `json:"token"`
 }
 type options struct {
-	secretFile                                                                                                                                                           string
+	caFile, secretFile                                                                                                                                                   string
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
 	allowHTTP, json                                                                                                                                                      bool
 	limit                                                                                                                                                                int
@@ -134,6 +134,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.SetOutput(io.Discard)
 	f.StringVar(&o.server, "server", os.Getenv("LANTAI_SERVER"), "HTTPS gateway origin")
 	f.StringVar(&o.session, "session-file", os.Getenv("LANTAI_SESSION"), "private session file")
+	f.StringVar(&o.caFile, "ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	f.BoolVar(&o.allowHTTP, "allow-http", false, "allow loopback HTTP for development")
 	f.BoolVar(&o.json, "json", false, "stable JSON output (default)")
 	f.StringVar(&o.input, "input", "", "JSON/YAML request document")
@@ -169,7 +170,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	if o.server == "" {
 		return client.Response{}, usage("--server or LANTAI_SERVER is required")
 	}
-	c, err := client.New(client.Config{BaseURL: o.server, AllowHTTP: o.allowHTTP})
+	c, err := client.New(client.Config{BaseURL: o.server, AllowHTTP: o.allowHTTP, CAFile: o.caFile})
 	if err != nil {
 		return client.Response{}, usage(err.Error())
 	}

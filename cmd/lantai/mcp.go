@@ -21,6 +21,7 @@ func runMCP(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	session := f.String("session-file", os.Getenv("LANTAI_SESSION"), "private existing session file")
 	workspace := f.String("workspace", "", "existing local directory; enables bounded push/pull")
 	registry := f.String("extensions-registry", os.Getenv("LANTAI_EXTENSIONS"), "private local extension registry; projects installed, server-enabled commands (needs -workspace)")
+	caFile := f.String("ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	allowHTTP := f.Bool("allow-http", false, "allow loopback development HTTP")
 	if e := f.Parse(args); e != nil {
 		if errors.Is(e, flag.ErrHelp) {
@@ -31,7 +32,7 @@ func runMCP(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if f.NArg() != 0 {
 		return 2
 	}
-	c, e := client.New(client.Config{BaseURL: *server, AllowHTTP: *allowHTTP})
+	c, e := client.New(client.Config{BaseURL: *server, AllowHTTP: *allowHTTP, CAFile: *caFile})
 	if e != nil {
 		fmt.Fprintln(stderr, e)
 		return 2

@@ -64,7 +64,7 @@ def _redact(value, secrets):
 
 class Client:
     def __init__(self, origin: str, session_token: str = "", *, allow_http: bool = False,
-                 timeout: float = 30):
+                 timeout: float = 30, ca_file: str | None = None):
         u = urlsplit(origin)
         if not u.hostname or u.username is not None or u.password is not None or u.query or u.fragment or u.path not in ("", "/"):
             raise ValueError("server must be an HTTPS origin")
@@ -82,7 +82,9 @@ class Client:
         self._url = u
         self._token = _header(session_token)
         self.timeout = timeout
-        self._tls = ssl.create_default_context()
+        if ca_file is not None and u.scheme != "https":
+            raise ValueError("ca_file requires HTTPS")
+        self._tls = ssl.create_default_context(cafile=ca_file)
 
     def _connection(self):
         if self._url.scheme == "https":
