@@ -38,6 +38,8 @@ Actions artifact 保存 30 天。名称含版本、目标提交和 Linux amd64 �
 
 从导出的 Caddy 镜像复制其二进制，运行现有 `TestCaddySingleHTTPSGateway` 的真实进程、合成 loopback 流式/取消/路由验证；skip 不计通过。它仍是网关组件测试，不能代替目标主机的 core 初始化、真实容器卷权限或 NAS 流量验收。
 
+官方 Caddy 二进制带 `cap_net_bind_service` 文件能力。版本探测使用无网络、只读容器，先丢弃全部能力，再仅保留 `NET_BIND_SERVICE`；不授予 privileged 或宿主网络。该工作流的独立 Docker 回归会读取文件能力，复现全部丢弃时的退出126，并验证单一能力配置能实际执行版本命令。相关发布工具变更的 PR 自动运行此回归，PR 中的正式制品任务仍跳过；手动 main 发行同时运行回归与构建。命令失败保留非零退出并输出捕获的 stderr，不能把失败探测当作成功。
+
 下载完整 artifact 解压到独立目录后，先运行 `sha256sum -c SHA256SUMS`（macOS 用 `shasum -a 256 -c SHA256SUMS`），核对 manifest.source_commit/main_ci。导入镜像后核对 image inspect 的 ID、平台和 label 与清单一致；不要仅凭 tag 相同判断。归档与摘要没有自动签名，来源应绑定授权的 Actions run/提交和可信交付渠道。
 
 ## 部署边界

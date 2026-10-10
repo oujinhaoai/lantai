@@ -1,6 +1,11 @@
 name: release-artifacts
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/release-artifacts.yml
+      - scripts/build-release.py
+      - scripts/tests/test_build_release.py
   workflow_dispatch:
     inputs:
       commit:
@@ -17,10 +22,44 @@ permissions:
   actions: read
 
 concurrency:
-  group: release-artifacts-${{ inputs.commit }}-${{ inputs.version }}
+  group: release-artifacts-${{ github.event_name }}-${{ github.ref }}-${{ inputs.commit }}-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
+  caddy-image-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reproduce dropped file capability and verify the minimal capability
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, subprocess
+          image = 'caddy:2.11.4'
+          subprocess.run(['docker', 'pull', '--platform', 'linux/amd64', image], check=True)
+          info = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], text=True))[0]
+          assert (info['Os'], info['Architecture']) == ('linux', 'amd64')
+          prefix = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL']
+          def run(extra, command):
+              return subprocess.run(prefix + extra + ['--entrypoint', '/bin/sh', image, '-ec', command], text=True, capture_output=True)
+          caps = run([], 'getcap /usr/bin/caddy')
+          assert caps.returncode == 0 and caps.stdout.strip() == '/usr/bin/caddy cap_net_bind_service=ep', (caps.returncode, caps.stdout, caps.stderr)
+          denied = run([], 'caddy version')
+          assert denied.returncode == 126 and 'Operation not permitted' in denied.stderr, (denied.returncode, denied.stdout, denied.stderr)
+          allowed = run(['--cap-add', 'NET_BIND_SERVICE'], 'command -v wget >/dev/null; caddy version')
+          assert allowed.returncode == 0 and allowed.stdout.startswith('v2.11.4 '), (allowed.returncode, allowed.stdout, allowed.stderr)
+          result = {'image_id': info['Id'], 'repository_digests': info['RepoDigests'], 'platform': 'linux/amd64',
+                    'file_capabilities': caps.stdout.strip(), 'dropped_all': {'exit_code': denied.returncode, 'stderr': denied.stderr},
+                    'minimal_capability': {'exit_code': allowed.returncode, 'stdout': allowed.stdout, 'stderr': allowed.stderr},
+                    'network': 'none', 'read_only': True, 'cap_drop': ['ALL'], 'cap_add': ['NET_BIND_SERVICE'], 'nas_started': False}
+          pathlib.Path('caddy-image-smoke.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result))
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: caddy-image-smoke-${{ github.run_id }}
+          path: caddy-image-smoke.json
+          if-no-files-found: error
+          retention-days: 30
   linux-amd64:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

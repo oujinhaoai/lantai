@@ -9,13 +9,19 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import time
 
 
 def command(argv, *, cwd=None, env=None, capture=True):
-    result = subprocess.run(argv, cwd=cwd, env=env, check=True,
-                            text=True, capture_output=capture)
+    try:
+        result = subprocess.run(argv, cwd=cwd, env=env, check=True,
+                                text=True, capture_output=capture)
+    except subprocess.CalledProcessError as error:
+        if capture and error.stderr:
+            print(error.stderr, end="" if error.stderr.endswith("\n") else "\n", file=sys.stderr)
+        raise
     return result.stdout.strip() if capture else ""
 
 
@@ -212,11 +218,15 @@ def main():
         caddy_tag = "lantai-caddy:2.11.4-" + caddy["Id"].removeprefix("sha256:")[:12]
         command(["docker", "tag", "caddy:2.11.4", caddy_tag])
         caddy_version = command(["docker", "run", "--rm", "--network", "none", "--read-only",
-                                 "--cap-drop", "ALL", "--entrypoint", "/bin/sh", caddy_tag,
+                                 "--cap-drop", "ALL", "--cap-add", "NET_BIND_SERVICE",
+                                 "--entrypoint", "/bin/sh", caddy_tag,
                                  "-ec", "command -v wget >/dev/null; caddy version"])
         if not caddy_version.startswith("v2.11.4 "):
             raise RuntimeError("unexpected Caddy version")
         (deliver / "caddy-version.txt").write_text(caddy_version + "\n")
+        save_json(deliver / "caddy-smoke-config.json", {"network": "none", "read_only": True,
+                  "cap_drop": ["ALL"], "cap_add": ["NET_BIND_SERVICE"],
+                  "reason": "official Caddy executable has cap_net_bind_service file capability"})
         save_json(deliver / "caddy-image-inspect.json", image_info(caddy_tag))
         gzip_command(["docker", "image", "save", caddy_tag], deliver / "caddy-2.11.4-linux-amd64-image.tar.gz")
         # Exercise the repository's real Caddy transport test using the exact
