@@ -39,3 +39,9 @@ GOMAXPROCS=2 GOFLAGS=-p=2 go test -race -count=1 -timeout=10m \
 ## 组合完整检查
 
 同一冻结源码持有共享仓库外排他锁，实际执行 `GOMAXPROCS=2 GOFLAGS=-p=2 scripts/check.sh`，保留默认 race / 30m，退出 0，总 1582.142 秒。格式、依赖整洁、vet、staticcheck、生成物无漂移、Python SDK、全部 Go race 包测试及构建通过；受测源码检查前后无漂移。完整检查中的业务链与重同步另使用独立实例/ID和证据目录，不与定向实例混算。原始控制台日志见 [full-check.log](m2-07-08-independent-review/full-check.log)，执行参数及摘要见 [full-check-result.json](m2-07-08-independent-review/full-check-result.json)。
+
+## 容器构建输入补充修复与最终检查
+
+容器配方的 COPY 与专用 dockerignore 同时遗漏 `api/`，而 MCP 服务实际导入该包。关闭模块网络的原 COPY 隔离上下文真实 Go 编译退出 1；新增 `COPY api ./api` 与 `!api/**` 后，同一 Linux/amd64、CGO=0 编译退出 0。新增测试由真实 `cmd/lantai` 依赖图推导所需源码根目录，覆盖配方和 allowlist 两层；原配置准确失败，修复后部署包 race 通过。这里只验证源码输入与编译，本机没有 Docker 引擎；真实镜像/启动仍需目标环境验收，既有 Caddy 条件用例的 skip 不计网关通过。详见 [构建输入证据](m2-07-08-independent-review/docker-context-review.json)。
+
+包含两行修复及最终新测试的第二次冻结源码持同一共享排他锁，默认 race/30m 完整 `scripts/check.sh` 退出 0，累计 **1520.502 秒**，全部检查通过，1173 个冻结源码文件前后无漂移。实际业务链与五份 M2-07 补验证据再次生成；首次组合结果不移作这次结果。记录见 [最终完整日志](m2-07-08-independent-review/final-check.log)、[参数与制品绑定](m2-07-08-independent-review/final-check-result.json)和[完整冻结源码摘要](m2-07-08-independent-review/final-source-files.json)。结果文档是在检查结束后补入，最终提交对所有受测程序/测试/配置逐件核对摘要。

@@ -12,3 +12,5 @@
 源码摘要可在仓库根目录对照实际文件计算。记录中的组合提交先于新增独立补测，`tested_source_sha256` 包含本轮两个新增补测文件，因此实际受测边界以逐件摘要为准。报告和本目录随后加入，均无运行行为变更。
 
 `full-check.log` 是组合默认 race/30m 检查的完整原始控制台日志；`full-check-result.json` 固定参数、开始/完成时间、退出码、源码无漂移和 stdout/stderr 摘要。详细业务请求的另一完整检查实例独立归档。
+
+第二次完整检查含 Docker 输入修复及最终依赖图测试。`final-check.log` 是完整原始 stdout；`final-check-result.json` 绑定其参数、时长、固定 CLI 与摘要；`final-source-files.json` 保存 1173 个检查前后相同的文件摘要。两次完整检查和定向运行各有独立实例，不混算事件/ID。`docker-context-review.json` 仅证明配方输入和实际 Go 编译；没有 Docker 引擎或 NAS 通过声明。本文及评审结果段在检查结束后补充，不是受测可执行源码变化。

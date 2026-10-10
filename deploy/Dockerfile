@@ -6,6 +6,7 @@ COPY cmd ./cmd
 COPY internal ./internal
 COPY schemas ./schemas
 COPY plugins ./plugins
+COPY api ./api
 RUN CGO_ENABLED=0 go build -trimpath -o /out/lantai ./cmd/lantai
 
 FROM scratch
