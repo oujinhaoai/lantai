@@ -149,8 +149,11 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 	} else if err != nil {
 		return Response{}, err
 	}
-	if state.Schema != "lantai.client-push/v1" || state.Origin != c.Origin() || state.RequestHash != hash || state.CreateKey == "" || state.CommitKey == "" {
-		return Response{}, errors.New("client: state belongs to a different server or request; use its original input")
+	if state.Schema != "lantai.client-push/v1" || state.Origin != c.Origin() || state.CreateKey == "" || state.CommitKey == "" {
+		return Response{}, errcode.New(errcode.SchemaInvalid, "client: state belongs to a different server or is invalid; use its original server and state")
+	}
+	if state.RequestHash != hash {
+		return Response{}, errcode.New(errcode.IdempotencyConflict, "client: state belongs to a different request; restore its original input and reuse the same state")
 	}
 	body, err := commitBody(in)
 	if err != nil {

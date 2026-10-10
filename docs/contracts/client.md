@@ -95,15 +95,17 @@ lantai pull --server https://gateway.example --session-file session.json --asset
 
 `resource_push` 使用同一 `PushInput`：`input.content.rights`、`metadata`、`producer`、`describe` 和 `task` 是 JSON 对象，`uses` 是数组，不能把原始 JSON 转成字节数组。工具 schema 从嵌入的公共提交契约投影，保留字段、枚举和未知字段校验；只有本机计算的文件摘要/大小及服务端既定的可选字段作输入适配。`rights.noai` 与 `redistribute_raw` 省略时为 false；整个 `rights` 省略或为 null 时，新资产由领域拒绝，已有资产按当前规则继承。输入结构校验发生在创建本机恢复状态和远程上传之前；授权、依赖、生产者身份、提交和继承规则仍由服务端复验。
 
-状态文件在首次网络写入前持久化两个独立的 create/commit 幂等键，绑定 origin、完整输入及文件摘要；服务端返回后保存 upload/operation ID。每次恢复重新核对本机文件与请求绑定，GET 上传状态并仅补缺少的分片。每个分片先按服务端大小流式散列，再以 `Lantai-Part-Sha256` 发送；complete 由服务端核对整个文件。不同输入不能悄悄复用原状态。状态旁的 `.lock` 用操作系统文件锁防止同一恢复文件的并发写入；崩溃自动释放锁，保留 lock 文件是正常行为。
+状态文件在首次网络写入前持久化两个独立的 create/commit 幂等键，绑定 origin、完整输入及文件摘要；服务端返回后保存 upload/operation ID。每次恢复重新核对本机文件与请求绑定，GET 上传状态并仅补缺少的分片。每个分片先按服务端大小流式散列，再以 `Lantai-Part-Sha256` 发送；complete 由服务端核对整个文件。不同输入复用原状态返回 `IDEMPOTENCY_CONFLICT`，恢复原输入后继续使用原状态和键；状态格式、服务器绑定错误或键缺失返回 `SCHEMA_INVALID`。这些错误均不可自动重试，`recovery_action=fix_request`，拒绝发生在远程上传请求之前，原状态不被改写。状态旁的 `.lock` 用操作系统文件锁防止同一恢复文件的并发写入；崩溃自动释放锁，保留 lock 文件是正常行为。
 
 发送提交前先保存 `committing`。响应丢失后读取原 operation，再以同一 commit key 重放，取回权威回执；不会生成第二个版本或自动换键。禁用 Go HTTP 客户端基于 `Idempotency-Key` 的隐式请求体重放，恢复流程由显式对账控制。若服务端返回需要恢复/人工处理的错误，保留状态并返回该错误。单独使用 `commit` 时调用者负责持久保存其输入、key 与 upload ID。
 
 状态文件不保存会话或授权 URL。它包含业务请求摘要、对象 ID、键和已收到的版本回执，应按私有工作数据保存。取消上传是显式 `upload cancel`；context 取消只停止本机请求并保留恢复机会，不擅自销毁服务端内容。
 
+MCP 调用方报告超时，不证明适配器收到了取消通知，也不证明服务端事务已经结束。只有取消传播到适配器的请求 context，客户端才会中止相应 HTTP 请求；已经接受的服务端命令仍须对账。调用方应保留原输入、状态文件和幂等键，使用已有 operation ID 查询结果，再按上述恢复流程继续。没有 operation ID 的本机冲突按 `fix_request` 处理；不能轮询不存在的操作，也不能因超时自动换键或创建第二次提交。真实 Codex 的取消通知与进程结束行为须以对应版本的实测证据为准。
+
 ## 精确拉取与中断恢复
 
-pull 先取得 exact manifest，为每个文件申请当前会话的 read grant，核对路径、摘要、大小一致后才使用服务端 URL。新运行重新授权，不持久化短时 URL。已有相同内容文件会重新计算摘要后跳过；内容不同则拒绝覆盖。
+pull 先取得 exact manifest，为每个文件申请当前会话的 read grant，核对路径、摘要、大小一致后才使用服务端 URL。新运行重新授权，不持久化短时 URL。已有相同内容文件会重新计算摘要后跳过；内容不同则返回 `PATH_CONFLICT`，不可自动重试，`recovery_action=fix_request`。此时保留原文件，不开始文件传输、不创建下载临时文件；调用方保留原目标并选择空目标目录，不自动覆盖。
 
 下载写入同目录 `NAME.lantai-part`，绑定信息写入 `NAME.lantai-download.json`。稳定的 `NAME.lantai-lock` 跨进程文件锁覆盖读取、续传、校验与发布全程；同目标并发下载立即返回可见的本机错误，锁文件保留以避免锁定不同 inode。Range 恢复必须得到正确的 206 和精确 `Content-Range`；服务端忽略 Range 时不追加字节。完整大小和 SHA-256 通过后，以硬链接原子发布且不覆盖已有目标，再移除临时文件。摘要失败会把部分数据归零，避免后续继续使用损坏内容。目标文件系统必须支持同目录硬链接；不支持时保留已验证的部分文件并返回错误。
 

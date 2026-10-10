@@ -1,0 +1,47 @@
+{
+  "source_head_before": "93c9520e312eab0348c7a1dec5eb5c64a6809854",
+  "parameters": {
+    "GOMAXPROCS": "2",
+    "GOFLAGS": "-p=2",
+    "race": "default 1",
+    "timeout": "default 30m"
+  },
+  "frozen_files": 1184,
+  "source_unchanged": true,
+  "full_check": {
+    "label": "full-check",
+    "started_at": "2026-10-10T17:16:35.825113+00:00",
+    "exit_code": 0,
+    "elapsed_seconds": 1462.8632464170223,
+    "finished_at": "2026-10-10T17:40:58.696693+00:00"
+  },
+  "command": "scripts/check.sh",
+  "cli_sha256": "c9b1a1903d125c3219c2c8b2531c716af857c71b4e955bbcee30918f69e71ac2",
+  "logs": {
+    "full-check.stdout.log": "0aa75c6175cec34f2451d881578daa134819740a0735e5bdf6ab2d25a9b98736",
+    "full-check.stderr.log": "59b9016f875e53b3293e5d953934e5cdb9934cf1d1d65556e01bb500248e0a9e"
+  },
+  "reviewed_production_sha256": {
+    "internal/client/workflow.go": "a1592cbb5c5dcc5dccf06d32d82ead65f2dc0d136953599df21526a361a2b6e7",
+    "internal/client/transfer.go": "e8887b9ecab58e9f507a540ecb7cf2b439257f23dded81f45a7dae4ff1b45b4f"
+  },
+  "final_protocol_test_sha256": "1cd9f15d4d89a1466b5a18b414cc1192e41dc7b7cc55e2da53331bc0b954f4ba",
+  "independent_review": "reviewed minimal classification, reused registered envelope and unchanged unknown fallback; no blocking findings; keys invalid narrowed to missing in documentation",
+  "post_review_test_delta": "GET manifest and POST read-grant method assertions added and verified; production code unchanged",
+  "controlled_before": [
+    "resource_push changed input using original state -> INTERNAL/poll_operation without operation id",
+    "resource_pull occupied different-content target -> INTERNAL/poll_operation without operation id"
+  ],
+  "after": [
+    "IDEMPOTENCY_CONFLICT, nonretryable/fix_request, state bytes preserved and no REST request",
+    "PATH_CONFLICT, nonretryable/fix_request, original file preserved; one GET manifest and one POST read-grant, zero file transfer/temp files",
+    "SCHEMA_INVALID for invalid schema/origin/missing create-key/missing commit-key, state preserved and no REST request"
+  ],
+  "limitations": [
+    "real Go MCP SDK in-memory protocol, not actual Codex",
+    "final PR/head+main all-ten CI pending",
+    "actual Codex final-source supplement owned by coordinating release thread",
+    "no new cancellation semantics or deadline budgets; client timeout does not establish notification delivery or transaction completion",
+    "no deployment/RPO/soak/device/gate sign-off"
+  ]
+}
