@@ -321,6 +321,7 @@ func TestM2RealWorkerThroughHumanReviewAndPublication(t *testing.T) {
 	f.sync()
 	f.dispatch()
 	f.sync()
+	f.dispatch() // accept production completion after the publication event
 	v = f.flow(flow)
 	if v.Flow.State != "completed" {
 		t.Fatal(v.Flow, v.Commands)

@@ -39,6 +39,7 @@
 | 空目录恢复（保持维护状态） | `go run ./cmd/lantai restore -home <空目录> -backup <完整备份> -key-dir <单独恢复的原密钥目录>` |
 | 领域核验 / 恢复分派 / 索引重建 | `go run ./cmd/lantai fsck -home <数据根>`；`recover`；`reindex` |
 | 完成恢复对账 | `go run ./cmd/lantai restore-complete -home <数据根> -review review.json -evidence review.txt` |
+| 完整业务链、独立 serve 中断与空目录恢复 | `GOMAXPROCS=2 GOFLAGS=-p=2 go test -race -count=1 -timeout=10m -run '^TestM2BusinessRecoveryAcceptance$' ./tests/integration`；[层级与证据说明](testing/m2-business-recovery.md) |
 | 共同备份恢复与 CLI 集成 | `go test -run TestCommonBackup ./tests/integration/`；`go test -run TestLocalBackupRestoreCommandLifecycle ./cmd/lantai/` |
 | 真实 Caddy HTTPS 模板隔离验证 | `LANTAI_TEST_CADDY=<已校验的caddy绝对路径> go test -run TestCaddySingleHTTPSGateway -v ./deploy/` |
 | 单管理员本机离线恢复（交互式） | `go run ./cmd/lantai recover-admin -home <数据根> -admin <名称>` |
@@ -57,6 +58,7 @@
 | T09 真实模块贯通与本机命令/MCP | `go test ./tests/integration -run 'TestM2Extension\|TestRemoteExtension\|TestM2Business\|TestM2Governance' -count=1` |
 | 扩展治理/重启与宿主超时回收 | `go test -race ./tests/integration ./internal/extensions -run '^TestM2GovernanceRealScopesProbeAndRestart$\|^TestOneShotTimeoutAndCancelReclaimProcessTree$' -count=1`；治理用例使用常规夹具预算，专门超时/取消用例仍验证进程树回收 |
 | 检查适用性、raw 协议与公开来源包装回归 | `go test -race ./tests/integration -run 'TestM2BusinessCompletedCheckRetirementBeforeReview\|TestM2BusinessPublicContractPreservesActualRun\|TestM2GovernanceProbeCompleteRawProtocol\|TestM2GovernanceJobRejectsRawForbiddenFields' -count=1` |
+| M2 固定上下文、讨论、里程碑 REST 与正式裁剪后并发重同步 | `GOMAXPROCS=2 GOFLAGS=-p=2 go test -race -count=1 -run '^TestM2ResyncAcceptance' -v ./tests/integration`；合成实例、时钟和覆盖边界见[增量重同步验收](testing/m2-resync-acceptance.md) |
 | T08 到期清除与 GC 调度 | `go test ./internal/operations -run Scheduler -count=1`；`go test ./tests/integration -run TestM2LifecycleSchedulerDuePurgeAndGC -count=1` |
 | 服务停止时运行一次到期提醒/清除与 GC | `go run ./cmd/lantai lifecycle -home <数据根>` |
 | 扩展包导入、启用诊断、命令列表（远程） | `go run ./cmd/lantai plugin import\|list\|enablements\|probe\|commands ...` |

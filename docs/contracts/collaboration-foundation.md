@@ -20,6 +20,16 @@
 
 `ListMilestones` 按项目读取元数据；`MilestoneProgress` 经 `TaskProgressReader.MilestoneTasks` 获取 T05 的任务事实，进度为 `state=done` 数量 / 全部所列任务，空集合返回 0/0。返回任务必须恰好覆盖请求集合；缺失、重复、额外或跨项目任务均报错，不用不完整数据冒充进度。该进程内只读适配器继承安全锁，不重新取锁，不跨库联表。上下文内容与审定分别仍属 T02/T03。
 
+T07 的 REST 接线使用同一领域服务：
+
+| 方法与路由 | 语义 |
+|---|---|
+| `GET /api/v1/projects/{project_id}/milestones` | 读取本项目配置，返回 `items` |
+| `POST /api/v1/projects/{project_id}/milestones` | `Idempotency-Key` 必填；请求为 `expected_revision` 与 `milestone`，创建用 0 和空 `milestone_id`，更新用稳定 ID 和当前修订；返回身份回执及 `result` 配置 |
+| `GET /api/v1/projects/{project_id}/milestones/{id}/progress` | 经当前项目读取权限与 T05 端口取得 `milestone`、`completed`、`total` |
+
+写入的 `milestone.project_id` 必须与路径一致，`task_ids` 必须是数组；`revision` 由服务端按条件计算。身份权限、负责人资格、幂等回执、跨项目任务和旧修订拒绝均由 T01/T05 复验。`meta` 以 `milestones` 表示这组路由已组装，HTTP 类型定义在 [OpenAPI](../../api/openapi.yaml)。本组尚无独立 CLI/MCP 子命令。
+
 ## 回收站字节动作
 
 `storage.ApplyFileIntent` 只读取 `FileIntentSource.AcceptedFileIntent` 给出的 T03 持久意图。该意图包含 operation、trash ID、trash/restore/purge 、确切版本安装证明及每条追加记录的版本/record ID、SHA-256、大小；不接受任意主机路径。T03 必须先持久化业务意图及读写禁令，持久保存完整清除清单，并在文件动作期间防止追加证据或其他版本写入。storage 在取得资产与 Blob 锁后再次读取意图，拒绝变更后的计划。

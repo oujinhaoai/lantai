@@ -4845,6 +4845,51 @@ type MetaApiVersion string
 // MetaStage defines model for Meta.Stage.
 type MetaStage string
 
+// Milestone defines model for Milestone.
+type Milestone struct {
+	DueDate *string `json:"due_date,omitempty"`
+
+	// MilestoneId 创建时为空，更新时使用服务器分配的稳定 ID。
+	MilestoneId *string `json:"milestone_id,omitempty"`
+	Name        string  `json:"name"`
+
+	// OwnerId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OwnerId Ulid `json:"owner_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId Ulid `json:"project_id"`
+
+	// Revision 服务端计算；写入时以 expected_revision 为条件。
+	Revision *int64 `json:"revision,omitempty"`
+	TaskIds  []Ulid `json:"task_ids"`
+}
+
+// MilestonePage defines model for MilestonePage.
+type MilestonePage struct {
+	Items []Milestone `json:"items"`
+}
+
+// MilestoneProgress defines model for MilestoneProgress.
+type MilestoneProgress struct {
+	Completed int       `json:"completed"`
+	Milestone Milestone `json:"milestone"`
+	Total     int       `json:"total"`
+}
+
+// MilestoneResult defines model for MilestoneResult.
+type MilestoneResult struct {
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid      `json:"operation_id"`
+	Replayed    bool      `json:"replayed"`
+	Result      Milestone `json:"result"`
+}
+
+// MilestoneWriteRequest defines model for MilestoneWriteRequest.
+type MilestoneWriteRequest struct {
+	ExpectedRevision int64     `json:"expected_revision"`
+	Milestone        Milestone `json:"milestone"`
+}
+
 // Module 服务端模块名，例如 identity、ledger、agent_execution；已知集合见 internal/contract/ownership。
 type Module = string
 
@@ -5761,6 +5806,13 @@ type GetProjectParams struct {
 // GetProjectParamsView defines parameters for GetProject.
 type GetProjectParamsView string
 
+// PutMilestoneParams defines parameters for PutMilestone.
+type PutMilestoneParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // PostPublicationsParams defines parameters for PostPublications.
 type PostPublicationsParams struct {
 	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
@@ -6186,6 +6238,9 @@ type PostNodesObserveJSONRequestBody = M2NodeObservation
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = CreateProjectRequest
+
+// PutMilestoneJSONRequestBody defines body for PutMilestone for application/json ContentType.
+type PutMilestoneJSONRequestBody = MilestoneWriteRequest
 
 // PostPublicationsJSONRequestBody defines body for PostPublications for application/json ContentType.
 type PostPublicationsJSONRequestBody = M2LedgerPublishRequest

@@ -1,0 +1,27 @@
+{
+  "scope": "含Docker修复及最终依赖图测试的第二次组合完整检查",
+  "source_head_before": "ded9978cb21523e263afe57c6ef57599c501176d",
+  "source_manifest": "final-source-files.json",
+  "source_manifest_sha256": "a96f3080877e0c14d526e4600cae3a9ea4f9519864dcb6ba77487743f87781c1",
+  "source_files": 1173,
+  "command": [
+    "scripts/check.sh"
+  ],
+  "parameters": {
+    "GOMAXPROCS": "2",
+    "GOFLAGS": "-p=2",
+    "race": "default 1",
+    "timeout": "default 30m"
+  },
+  "shared_flock": true,
+  "started_at": "2026-10-10T15:33:57.273528+00:00",
+  "finished_at": "2026-10-10T15:59:17.771606+00:00",
+  "elapsed_seconds": 1520.5024634159636,
+  "exit_code": 0,
+  "source_unchanged": true,
+  "cli_sha256": "d37e52c51c9e303c19e31c248b453403994be2fad028cb966aa66fdef99f0e82",
+  "stdout_sha256": "060b34564d4de035f6e16db389f96c804bfef64fb9ad7b913aff781340c41806",
+  "stderr_sha256": "5ac13b79774c61cc0db38032e4e1bcee67ff4c1861d32c0af4de4d01f864b60c",
+  "integration_package_result": "ok  \tgithub.com/oujinhaoai/lantai/tests/integration\t1284.190s",
+  "limit": "macOS arm64合成实例；真实Docker镜像、NAS、产品Codex与延期设备/RPO/长稳各自验收"
+}

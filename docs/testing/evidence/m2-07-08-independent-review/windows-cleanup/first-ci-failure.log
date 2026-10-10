@@ -1,0 +1,2 @@
+test (windows-latest)	go test	2026-10-10T16:27:18.7920473Z --- FAIL: TestM2BusinessRecoveryAcceptance (71.17s)
+test (windows-latest)	go test	2026-10-10T16:27:18.7929952Z     m2_business_recovery_acceptance_test.go:216: TerminateProcess: Access is denied.

@@ -321,7 +321,7 @@ func (w *Service) preparePublication(ctx context.Context, asset, op ids.ID) ([]p
 			continue
 		}
 		out = append(out, plan{flow: r.flow.ID, revision: r.flow.Revision, apply: func(ctx context.Context, tx *sql.Tx, r *flowRow) ([]note, error) {
-			return w.onPublished(r, control, op)
+			return w.onPublished(ctx, tx, r, control, op)
 		}})
 	}
 	return out, nil
@@ -488,9 +488,6 @@ func (w *Service) onReview(ctx context.Context, tx *sql.Tx, r *flowRow, typ stri
 			return nil, err
 		}
 		r.meta.ReviewID, r.meta.ApprovedVersion = rv.ID, f.target.VersionID
-		if _, err := w.enqueue(ctx, tx, r, r.latest(w.produceKey(r)), "tasks.complete", "complete:"+string(rv.OperationID), taskAuthority{TaskID: r.meta.ProduceTaskID, AuthorityOperationID: rv.OperationID}); err != nil {
-			return nil, err
-		}
 		notes, err := w.startNext(ctx, tx, r, key, f)
 		return append([]note{{"flow.approved", map[string]any{"review_id": rv.ID, "version_id": f.target.VersionID}}}, notes...), err
 	case "return":
@@ -513,7 +510,7 @@ func (w *Service) onReview(ctx context.Context, tx *sql.Tx, r *flowRow, typ stri
 }
 
 // onPublished 仅当台账当前发布指针指向本流程批准的版本时完成发布步骤。
-func (w *Service) onPublished(r *flowRow, control ledger.AssetControl, op ids.ID) ([]note, error) {
+func (w *Service) onPublished(ctx context.Context, tx *sql.Tx, r *flowRow, control ledger.AssetControl, op ids.ID) ([]note, error) {
 	key := r.meta.Definition.Steps[len(r.meta.Definition.Steps)-1].Key
 	s := r.latest(key)
 	if s == nil || !open(s.run.State) || s.meta.ProductionRound != r.meta.ProductionRound {
@@ -526,6 +523,17 @@ func (w *Service) onPublished(r *flowRow, control ledger.AssetControl, op ids.ID
 		if err := transition(s, "running"); err != nil {
 			return nil, err
 		}
+	}
+	// A downstream task depends on this production task. Keep it submitted
+	// until the ledger really published the approved version; approval alone
+	// must not release that dependency in a manual publication flow.
+	reviewStep := r.latest(r.meta.Definition.Steps[len(r.meta.Definition.Steps)-2].Key)
+	if reviewStep == nil || !reviewStep.run.AuthorityOperationID.Valid() {
+		return nil, invalid("published flow has no accepted review authority")
+	}
+	authority := reviewStep.run.AuthorityOperationID
+	if _, err := w.enqueue(ctx, tx, r, r.latest(w.produceKey(r)), "tasks.complete", "complete:"+string(authority), taskAuthority{TaskID: r.meta.ProduceTaskID, AuthorityOperationID: authority}); err != nil {
+		return nil, err
 	}
 	s.run.AuthorityOperationID = op
 	s.run.OutputRefs = []ids.PermanentRef{r.meta.Subject.Ref}

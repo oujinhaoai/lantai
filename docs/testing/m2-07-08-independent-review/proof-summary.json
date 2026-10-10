@@ -1,0 +1,295 @@
+{
+  "raw_business_log_sha256": "ed1101de4a760a53bf6d63889306ae448f7ab7ef2ad58ae6e7d16148590f1737",
+  "event_counts": {
+    "fixture": 1,
+    "prerequisites": 1,
+    "old-publication": 1,
+    "actors": 1,
+    "serve-start": 15,
+    "http": 148,
+    "crash-barrier": 12,
+    "serve-exit": 15,
+    "replay-point": 12,
+    "manual-registration": 4,
+    "cli-push": 4,
+    "cli-pull": 4,
+    "cli": 3,
+    "approved-unpublished": 1,
+    "backup": 1,
+    "old-activation-denied": 1,
+    "old-active-fence-denied": 1,
+    "old-target-denied": 1,
+    "fresh-C-production-run": 1,
+    "result": 1
+  },
+  "barriers": [
+    "flow-start-durable-command",
+    "round-1-production-delivery",
+    "round-1-corecheck",
+    "round-1-independent-qa",
+    "round-1-review-target",
+    "human-return",
+    "round-2-production-delivery",
+    "round-2-corecheck",
+    "round-2-independent-qa",
+    "round-2-review-target",
+    "human-approved-unpublished",
+    "published-v2"
+  ],
+  "replay_points": [
+    {
+      "point": "flow-start-durable-command",
+      "result": "pass",
+      "exact_duplicate_count": 21,
+      "reverse_copy_count": 21
+    },
+    {
+      "point": "round-1-production-delivery",
+      "result": "pass",
+      "exact_duplicate_count": 25,
+      "reverse_copy_count": 25
+    },
+    {
+      "point": "round-1-corecheck",
+      "result": "pass",
+      "exact_duplicate_count": 25,
+      "reverse_copy_count": 25
+    },
+    {
+      "point": "round-1-independent-qa",
+      "result": "pass",
+      "exact_duplicate_count": 29,
+      "reverse_copy_count": 29
+    },
+    {
+      "point": "round-1-review-target",
+      "result": "pass",
+      "exact_duplicate_count": 30,
+      "reverse_copy_count": 30
+    },
+    {
+      "point": "human-return",
+      "result": "pass",
+      "exact_duplicate_count": 31,
+      "reverse_copy_count": 31
+    },
+    {
+      "point": "round-2-production-delivery",
+      "result": "pass",
+      "exact_duplicate_count": 34,
+      "reverse_copy_count": 34
+    },
+    {
+      "point": "round-2-corecheck",
+      "result": "pass",
+      "exact_duplicate_count": 34,
+      "reverse_copy_count": 34
+    },
+    {
+      "point": "round-2-independent-qa",
+      "result": "pass",
+      "exact_duplicate_count": 38,
+      "reverse_copy_count": 38
+    },
+    {
+      "point": "round-2-review-target",
+      "result": "pass",
+      "exact_duplicate_count": 39,
+      "reverse_copy_count": 39
+    },
+    {
+      "point": "human-approved-unpublished",
+      "result": "pass",
+      "exact_duplicate_count": 40,
+      "reverse_copy_count": 40
+    },
+    {
+      "point": "published-v2",
+      "result": "pass",
+      "exact_duplicate_count": 41,
+      "reverse_copy_count": 41
+    }
+  ],
+  "approved_unpublished_C_state": "waiting",
+  "old_published_version_while_approved": "01M3H61X40FJKWBN4JT2VFDNGZ",
+  "final_flow_id": "01M4K4Y6R12HS9RAKDKR5ZQ61W",
+  "final_flow_state": "completed",
+  "final_approved_version": "01M4K4YWK2F886KYT5WD5ANQC2",
+  "fresh_C_run_id": "01M4K505BEA4JWN3990Z4ZTDKX",
+  "old_C_run_id": "01M4K4ZQS1BJW67ZA329EQ9JQA",
+  "restored_epoch": 2,
+  "REST_denials": [
+    {
+      "method": "POST",
+      "path": "tasks/claim",
+      "status": 403,
+      "code": "SELF_REVIEW_FORBIDDEN"
+    },
+    {
+      "method": "POST",
+      "path": "tasks/claim",
+      "status": 403,
+      "code": "SELF_REVIEW_FORBIDDEN"
+    },
+    {
+      "method": "GET",
+      "path": "flows/01M4K4Y6R12HS9RAKDKR5ZQ61W",
+      "status": 401,
+      "code": "TOKEN_REVOKED"
+    },
+    {
+      "method": "GET",
+      "path": "flows/01M4K4Y6R12HS9RAKDKR5ZQ61W",
+      "status": 401,
+      "code": "TOKEN_REVOKED"
+    },
+    {
+      "method": "POST",
+      "path": "tasks/renew",
+      "status": 409,
+      "code": "LEASE_STALE"
+    },
+    {
+      "method": "POST",
+      "path": "task-runs/seal",
+      "status": 409,
+      "code": "LEASE_STALE"
+    }
+  ],
+  "backup_id": "01M4K4ZSX461TM28TKT4JF8VRN",
+  "retained_fact_tables": [
+    "ledger.command_receipts",
+    "ledger.ledger_asset_controls",
+    "ledger.ledger_check_records",
+    "ledger.ledger_messages",
+    "ledger.ledger_publications",
+    "ledger.ledger_review_targets",
+    "ledger.ledger_reviews",
+    "ledger.ledger_version_states",
+    "main.extensions_enablement_history",
+    "main.extensions_enablements",
+    "main.extensions_packages",
+    "runtime.agent_execution_admissions",
+    "runtime.agent_execution_history",
+    "runtime.agent_execution_runs",
+    "runtime.extensions_activations",
+    "runtime.extensions_breaker_faults",
+    "runtime.extensions_breakers",
+    "runtime.extensions_invocations",
+    "runtime.jobs_attempts",
+    "runtime.jobs_jobs",
+    "runtime.tasks_attempts",
+    "runtime.tasks_tasks",
+    "runtime.workflow_commands",
+    "runtime.workflow_flows",
+    "runtime.workflow_step_runs"
+  ],
+  "records_replayed_after_restore": 387,
+  "limitations": "internal event injection; synthetic bootstrap clock; software process kill only; no device/RPO/soak/GATE",
+  "targeted_tests": [
+    {
+      "Test": "TestM2BusinessRecoveryAcceptance",
+      "Action": "pass",
+      "Elapsed": 84.01
+    },
+    {
+      "Test": "TestM2MilestoneIndependentReviewRevokedReplay",
+      "Action": "pass",
+      "Elapsed": 1.91
+    },
+    {
+      "Test": "TestM2ResyncAcceptanceMilestoneREST",
+      "Action": "pass",
+      "Elapsed": 2
+    },
+    {
+      "Test": "TestM2ResyncAcceptanceDiscussionsAndInbox",
+      "Action": "pass",
+      "Elapsed": 2.4
+    },
+    {
+      "Test": "TestM2ResyncAcceptanceRetainedConcurrentReplace",
+      "Action": "pass",
+      "Elapsed": 11.67
+    },
+    {
+      "Test": "TestM2ResyncAcceptanceFixedContextAndDecision",
+      "Action": "pass",
+      "Elapsed": 24.85
+    },
+    {
+      "Action": "pass",
+      "Elapsed": 130.515
+    }
+  ],
+  "resync": {
+    "old_after": 43,
+    "pruned_through": 45,
+    "final_after": 54,
+    "replacement_rounds": 1,
+    "duplicate_deliveries": 1,
+    "snapshot_added": "01MARXB21R38KYPG58FZZB82JN",
+    "replay_added": "01MARXB21RJ76B0TZF8JBGVRJ7",
+    "removed_objects": [
+      "01M3H5ENWG9D011BEYX8GXMDGE",
+      "01M3H5ENWGYA3JX7Z8KJM4CSK9",
+      "01M3H5ENWGWQHFQKFKEKADEYNP"
+    ],
+    "objects": 8,
+    "client_equals_authority": true
+  },
+  "cli_pulls": [
+    {
+      "actor": "01M3H5B0PGBAYXGN4T637NS1MT",
+      "session": "01M4K1RGB3835486HQ3ZM84MP5",
+      "purpose": "archive_review",
+      "version": {
+        "instance_id": "01M3H4X980YY90Z120S9MCKT30",
+        "asset_id": "01M3H61X40E0MVQG8B7H5ZATAJ",
+        "version_id": "01M4K4Y9P3KEHMDXJWGG8H6Y3P"
+      },
+      "sha256": "sha256:befc4db85ef6bd806eab26d01c041f8b4fc3d9da10206869ecee8744ed338ffd",
+      "bytes": 48,
+      "result": "pass"
+    },
+    {
+      "actor": "01M3H5B0PGBAYXGN4T637NS1MT",
+      "session": "01M4K1RGB3835486HQ3ZM84MP5",
+      "purpose": "archive_review",
+      "version": {
+        "instance_id": "01M3H4X980YY90Z120S9MCKT30",
+        "asset_id": "01M3H61X40E0MVQG8B7H5ZATAJ",
+        "version_id": "01M4K4YWK2F886KYT5WD5ANQC2"
+      },
+      "sha256": "sha256:7e99a33e52c839ad1a561c1b657f666cf58bc25358f14029534e892cd4f00976",
+      "bytes": 48,
+      "result": "pass"
+    },
+    {
+      "actor": "01M4K1X2TK7PTKKNS3JNC1K4K9",
+      "session": "01M4K25AG34Z3PAT4PDBMNSCCP",
+      "purpose": "production",
+      "version": {
+        "instance_id": "01M3H4X980YY90Z120S9MCKT30",
+        "asset_id": "01M3H61X40E0MVQG8B7H5ZATAJ",
+        "version_id": "01M4K4YWK2F886KYT5WD5ANQC2"
+      },
+      "sha256": "sha256:7e99a33e52c839ad1a561c1b657f666cf58bc25358f14029534e892cd4f00976",
+      "bytes": 48,
+      "result": "pass"
+    },
+    {
+      "actor": "01M4K1X2TK7PTKKNS3JNC1K4K9",
+      "session": "01M4K53N2SCCD8R9VDSGBDR9PK",
+      "purpose": "production",
+      "version": {
+        "instance_id": "01M3H4X980YY90Z120S9MCKT30",
+        "asset_id": "01M3H61X40E0MVQG8B7H5ZATAJ",
+        "version_id": "01M4K4YWK2F886KYT5WD5ANQC2"
+      },
+      "sha256": "sha256:7e99a33e52c839ad1a561c1b657f666cf58bc25358f14029534e892cd4f00976",
+      "bytes": 48,
+      "result": "pass"
+    }
+  ]
+}

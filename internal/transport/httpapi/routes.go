@@ -79,6 +79,9 @@ func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) 
 	if h.deps.Collaboration != nil {
 		capabilities = append(capabilities, "filtered_events", "inbox")
 	}
+	if h.deps.Milestones != nil && h.deps.Tasks != nil {
+		capabilities = append(capabilities, "milestones")
+	}
 	if h.deps.Lifecycle != nil {
 		capabilities = append(capabilities, "lifecycle")
 	}

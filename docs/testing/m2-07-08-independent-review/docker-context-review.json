@@ -1,0 +1,63 @@
+{
+  "original_configuration_commit": "ded9978cb21523e263afe57c6ef57599c501176d",
+  "missing_local_dependency": "github.com/oujinhaoai/lantai/api",
+  "failure_layer": "依原Dockerfile COPY生成的隔离源码输入，实际Go编译；未使用Docker引擎",
+  "before": {
+    "exit_code": 1,
+    "copied_roots": [
+      "go.mod",
+      "go.sum",
+      "cmd",
+      "internal",
+      "schemas",
+      "plugins"
+    ],
+    "error": "internal/mcpserver/server.go:17:2: cannot find module providing package github.com/oujinhaoai/lantai/api: import lookup disabled by -mod=readonly"
+  },
+  "fix": [
+    "COPY api ./api",
+    "!api/**"
+  ],
+  "after": {
+    "exit_code": 0,
+    "copied_roots": [
+      "go.mod",
+      "go.sum",
+      "cmd",
+      "internal",
+      "schemas",
+      "plugins",
+      "api"
+    ],
+    "elapsed_seconds": 20.35803008300718,
+    "binary_sha256": "8e3a0e0606636a988016bccb8ed8ac8e115428bc23323d0a460729f8fae4b406",
+    "binary_bytes": 29346026
+  },
+  "build_parameters": {
+    "CGO_ENABLED": "0",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOPROXY": "off"
+  },
+  "regression_test": "TestDockerContextCoversCommandDependencies",
+  "final_regression_sha256": "d5124962c4f7ab80898c523dfc9dee6842f059821eadece45b078549de5c5d53",
+  "final_source_sha256": {
+    "deploy/Dockerfile": "92d62abb52f1793281b8612c27dea90526b81918b9301f87c7fdfc5b13dce55b",
+    "deploy/Dockerfile.dockerignore": "946343389922ed7a3d387a7366baa14455e6a3651ba080ca4f22e0a832a067b5",
+    "deploy/docker_context_test.go": "d5124962c4f7ab80898c523dfc9dee6842f059821eadece45b078549de5c5d53"
+  },
+  "race_package_passed": true,
+  "default_full_check_passed": true,
+  "docker_engine_used": false,
+  "gateway_environment_test": "未配置验证Caddy二进制，原有条件测试skip；不计实际网关验收",
+  "remaining": "真实ignore引擎、镜像构建/启动及NAS权限/网关由独立目标验收",
+  "final_test_negative_control": {
+    "exit_code": 1,
+    "elapsed_seconds": 4.2265929580898955,
+    "errors": [
+      "    docker_context_test.go:81: command dependency root \"api\" missing from Dockerfile COPY\n",
+      "    docker_context_test.go:88: command dependency root \"api\" missing from Docker context allowlist\n"
+    ],
+    "expected_negative_control": true
+  }
+}
