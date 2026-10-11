@@ -71,7 +71,7 @@ func (a *adapter) localTools() error {
 	if e != nil {
 		return e
 	}
-	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_push", InputSchema: inputSchema, Description: "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. Does not approve or publish."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PushArgs) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_push", InputSchema: inputSchema, Description: "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. A receipt with description_pending=true has already committed the files: read/pull its exact asset_id/version_id and do not start another upload. Initial metadata also requires organize scope. Does not approve or publish."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PushArgs) (*mcp.CallToolResult, any, error) {
 		directory, e := a.localPath(in.Directory, false)
 		if e != nil {
 			r, e := toolResult(client.Response{}, e)

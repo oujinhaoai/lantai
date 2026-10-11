@@ -89,6 +89,11 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err = enc.Encode(value); err != nil {
 		return 3
 	}
+	if args[0] == "push" || args[0] == "commit" {
+		if notice := client.CommitNotice(r); notice != "" {
+			fmt.Fprintln(stderr, "warning: "+notice)
+		}
+	}
 	return 0
 }
 func redactResult(command string, v any) {
