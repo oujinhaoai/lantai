@@ -1,0 +1,23 @@
+{
+  "sample": "A quiet observatory records three green lights.\n",
+  "push": {
+    "directory": "input",
+    "state": ".lantai/observatory-note.push-state.json",
+    "input": {
+      "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAX",
+      "slug": "observatory-note",
+      "content": {
+        "asset_type": "doc",
+        "files": [{"path": "sample.txt", "role": "primary"}],
+        "rights": {"license": "LicenseRef-Owned", "usage": "production", "sensitivity": "normal"}
+      }
+    }
+  },
+  "pull": {
+    "directory": "output",
+    "asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAY",
+    "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
+    "purpose": "production"
+  },
+  "invalid_purpose": "Verify the committed file in this workspace"
+}

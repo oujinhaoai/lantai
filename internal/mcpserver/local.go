@@ -35,24 +35,43 @@ func (a *adapter) localPath(relative string, createFile bool) (string, error) {
 	}
 	path := filepath.Join(a.workspace, clean)
 	check := path
+	pathError := "local path must exist and be accessible"
 	if createFile {
 		check = filepath.Dir(path)
+		pathError = "local state parent must be an existing accessible directory; create it inside the workspace or choose an existing parent"
 	}
 	actual, e := filepath.EvalSymlinks(check)
 	if e != nil {
-		return "", e
+		return "", errcode.New(errcode.SchemaInvalid, pathError)
 	}
 	rel, e := filepath.Rel(a.workspace, actual)
 	if e != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return "", errcode.New(errcode.SchemaInvalid, "path escapes workspace")
 	}
 	if createFile {
+		if info, e := os.Stat(actual); e != nil || !info.IsDir() {
+			return "", errcode.New(errcode.SchemaInvalid, pathError)
+		}
 		if stat, e := os.Lstat(path); e == nil && stat.Mode()&os.ModeSymlink != 0 {
 			return "", errcode.New(errcode.SchemaInvalid, "state symlink forbidden")
 		}
 	}
 	return path, nil
 }
+
+// Extension inputs also use localPath and may be files. Only the push/pull
+// workspace roots and state parents require a directory.
+func (a *adapter) localDirectory(relative string) (string, error) {
+	path, err := a.localPath(relative, false)
+	if err != nil {
+		return "", err
+	}
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		return "", errcode.New(errcode.SchemaInvalid, "local directory must be an existing accessible directory")
+	}
+	return path, nil
+}
+
 func (a *adapter) localTools() error {
 	root, e := filepath.Abs(a.workspace)
 	if e != nil {
@@ -71,8 +90,12 @@ func (a *adapter) localTools() error {
 	if e != nil {
 		return e
 	}
+	pullSchema, e := a.pullInputSchema()
+	if e != nil {
+		return e
+	}
 	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_push", InputSchema: inputSchema, Description: "Hash and stream files inside the configured workspace, using a persistent relative state file for resumable upload and idempotent commit. A receipt with description_pending=true has already committed the files: read/pull its exact asset_id/version_id and do not start another upload. Initial metadata also requires organize scope. Does not approve or publish."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PushArgs) (*mcp.CallToolResult, any, error) {
-		directory, e := a.localPath(in.Directory, false)
+		directory, e := a.localDirectory(in.Directory)
 		if e != nil {
 			r, e := toolResult(client.Response{}, e)
 			return r, nil, e
@@ -86,8 +109,8 @@ func (a *adapter) localTools() error {
 		r, e := toolResult(out, e)
 		return r, nil, e
 	})
-	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_pull", Description: "Stream an exact version into an existing relative workspace directory. Grants, paths, size and hashes are verified; signed transfer URLs and file bytes stay out of tool output."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PullArgs) (*mcp.CallToolResult, any, error) {
-		directory, e := a.localPath(in.Directory, false)
+	mcp.AddTool(a.s, &mcp.Tool{Name: "resource_pull", InputSchema: pullSchema, Description: "Stream an exact version into an existing relative workspace directory. Select purpose from the advertised enum for the intended use. Grants, paths, size and hashes are verified; signed transfer URLs and file bytes stay out of tool output."}, func(ctx context.Context, _ *mcp.CallToolRequest, in PullArgs) (*mcp.CallToolResult, any, error) {
+		directory, e := a.localDirectory(in.Directory)
 		if e != nil {
 			r, e := toolResult(client.Response{}, e)
 			return r, nil, e
