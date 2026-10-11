@@ -3,6 +3,7 @@ package deploy_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/oujinhaoai/lantai/internal/operations"
@@ -64,6 +65,12 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	}
 	if c.Services["core"].DependsOn["prepare"].Condition != "service_completed_successfully" {
 		t.Fatal("core must wait for successful volume preparation")
+	}
+	if n := c.Services["core"].Networks; len(n) != 1 || n[0] != "backend" {
+		t.Fatal("core must remain only on the internal backend")
+	}
+	if n := c.Services["gateway"].Networks; len(n) != 2 || !slices.Contains(n, "edge") || !slices.Contains(n, "backend") || c.Networks["edge"].Internal {
+		t.Fatal("gateway must bridge the publishable edge and internal backend")
 	}
 	for _, name := range []string{"core", "gateway"} {
 		mounts := c.Services[name].Tmpfs

@@ -54,10 +54,12 @@ services:
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
     security_opt: [no-new-privileges:true]
-    networks: [backend]
+    networks: [edge, backend]
     stop_grace_period: 15s
     restart: unless-stopped
 networks:
+  edge:
+    driver: bridge
   backend:
     internal: true
 volumes:

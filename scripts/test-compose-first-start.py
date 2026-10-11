@@ -153,6 +153,11 @@ def main():
                 print(diagnostic.stdout[:8192], flush=True)
                 raise RuntimeError("Initial synthetic Compose startup failed")
             print("PASS: Compose started", flush=True)
+            gateway = command(compose + ["ps", "-q", "gateway"])
+            ports = json.loads(command(["docker", "inspect", "--format",
+                                        "{{json .NetworkSettings.Ports}}", gateway]))
+            assert any(p["HostPort"] == str(port) for p in ports.get("443/tcp") or []), \
+                "Gateway HTTPS port was not published by Docker"
             try:
                 page = wait("/setup/", 200)
             except AssertionError:

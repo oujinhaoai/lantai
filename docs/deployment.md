@@ -94,7 +94,7 @@ docker compose --env-file /path/to/local.env -f deploy/compose.yaml up -d
 docker compose --env-file /path/to/local.env -f deploy/compose.yaml stop
 ```
 
-[Dockerfile 专用忽略文件](../deploy/Dockerfile.dockerignore)仅允许源码和依赖锁文件进入构建上下文，依据 [Docker 官方规则](https://docs.docker.com/build/concepts/context/#filename-and-location)。镜像本身不包含运行数据、主密钥或 TLS 私钥。容器私网不暴露核心端口；运维采样工具应在核心网络命名空间中访问 loopback，不能把 9090 发布或代理到公网。Scratch 镜像没有 shell/curl，不把宿主 `curl localhost:9090` 误当成容器内检查。
+[Dockerfile 专用忽略文件](../deploy/Dockerfile.dockerignore)仅允许源码和依赖锁文件进入构建上下文，依据 [Docker 官方规则](https://docs.docker.com/build/concepts/context/#filename-and-location)。镜像本身不包含运行数据、主密钥或 TLS 私钥。只有网关同时连接入口 `edge` 桥接网络与内部 `backend`；核心只连接内部网络，且不发布端口。运维采样工具应在核心网络命名空间中访问 loopback，不能把 9090 发布或代理到公网。Scratch 镜像没有 shell/curl，不把宿主 `curl localhost:9090` 误当成容器内检查。
 
 启动后打开 `https://<域名>:<端口>/setup/`。使用 NAS 管理文件界面读取 `LANTAI_SETUP_DIR/setup-code.json` 的 `code` 字段，粘贴到页面，设置用户名、口令、TOTP 并安全保存恢复码，最后确认。文件权限保持 0600、目录 0700；如果 NAS 管理界面无权读取，需管理员提供有权读取文件的操作方式，不能靠写入日志或放宽为公开权限解决。不同 NAS 的 GUI 读取能力仍须在目标设备验收。
 
