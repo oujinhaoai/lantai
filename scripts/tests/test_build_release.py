@@ -157,6 +157,12 @@ class BuildGuards(unittest.TestCase):
                     "\n\tbuild\tvcs.modified=false\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOOS=" + goos + "\n\tbuild\tGOARCH=" + goarch)
         if argv[:2] == ["go", "test"]:
             return "--- PASS: TestCaddySingleHTTPSGateway (0.01s)\nok"
+        if argv[0] == sys.executable and argv[1].endswith("test-compose-first-start.py"):
+            return getattr(self, "first_start_output", "\n".join([
+                "PASS: running core image sha256:" + "c" * 64,
+                "PASS: running Caddy image sha256:" + "c" * 64,
+                "PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy",
+            ]))
         if argv[0] in self.binary_platforms:
             return json.dumps({"vcs_revision": SHA, "vcs_modified": False,
                                "platform": "linux/amd64", "go_version": "go1.26.9"})
@@ -179,6 +185,9 @@ class BuildGuards(unittest.TestCase):
         self.assertEqual(manifest["source_commit"], SHA)
         self.assertEqual(manifest["main_ci"]["headSha"], SHA)
         self.assertFalse(manifest["nas_deployed"])
+        self.assertEqual(manifest["first_start_smoke"]["status"], "passed")
+        self.assertEqual(manifest["first_start_smoke"]["core_image_id"], manifest["core_image"]["id"])
+        self.assertTrue((deliver / "first-start-image-smoke.txt").is_file())
         self.assertEqual({x["platform"] for x in manifest["binaries"]}, {"/".join(x) for x in release.PLATFORMS})
         for item in manifest["files"]:
             self.assertEqual(item["size_bytes"], (deliver / item["name"]).stat().st_size)
@@ -201,6 +210,13 @@ class BuildGuards(unittest.TestCase):
         self.assertEqual(caddy_smoke[caddy_smoke.index("--cap-add") + 1], "NET_BIND_SERVICE")
         self.assertEqual(caddy_smoke.count("--cap-add"), 1)
         self.assertNotIn("--privileged", caddy_smoke)
+
+    def test_wrong_first_start_image_evidence_prevents_success_manifest(self):
+        self.image_revision = SHA
+        self.first_start_output = "PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy"
+        with self.assertRaisesRegex(RuntimeError, "exported image IDs"):
+            self.run_simulated_build()
+        self.assertFalse((self.out / "deliverables/manifest.json").exists())
 
     def test_wrong_oci_revision_never_exports_a_release_image(self):
         self.image_revision = "b" * 40
