@@ -42,6 +42,7 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 			Privileged  bool
 			Networks    []string
 			Volumes     []string
+			Tmpfs       []string
 			NetworkMode string `yaml:"network_mode"`
 			User        string
 			ReadOnly    bool `yaml:"read_only"`
@@ -63,6 +64,12 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	}
 	if c.Services["core"].DependsOn["prepare"].Condition != "service_completed_successfully" {
 		t.Fatal("core must wait for successful volume preparation")
+	}
+	for _, name := range []string{"core", "gateway"} {
+		mounts := c.Services[name].Tmpfs
+		if len(mounts) != 1 || mounts[0] != "/tmp:rw,noexec,nosuid,nodev,size=64m" {
+			t.Fatalf("%s tmpfs options must parse as one bounded private mount, got %v", name, mounts)
+		}
 	}
 	for _, s := range c.Services {
 		if s.TTY || len(s.Profiles) != 0 {
