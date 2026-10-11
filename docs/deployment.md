@@ -22,7 +22,7 @@ flowchart LR
 | [Caddyfile](../deploy/Caddyfile) | 单 HTTPS 入口、手动证书、API/传输分流、其余路径 404 |
 | [config.native.yaml](../deploy/config.native.yaml) | 原生运行，三个监听均绑定数字 loopback |
 | [config.container.yaml](../deploy/config.container.yaml) | 容器私网 API/传输监听；运维仍仅容器内 loopback |
-| [compose.yaml](../deploy/compose.yaml) | 一个核心容器与一个网关容器，仅网关发布端口 |
+| [compose.yaml](../deploy/compose.yaml) | 自动空卷准备、核心与网关；一次 up，仅网关发布端口 |
 | [Dockerfile](../deploy/Dockerfile) | Go 1.26.9 编译、无 shell 的非 root 核心镜像 |
 | [lantai.service](../deploy/lantai.service) | Linux systemd 核心服务模板，固定单进程、优雅停止 |
 
@@ -47,7 +47,7 @@ NAS 与容器：
 - 部分 NAS 系统把共享文件夹经厂商 FUSE 层映射进容器。2026-10 在一台极空间 NAS 的测试容器中实测（映射文件夹为 `zfuse`）：Lantai 的库在并发读写下出现 `SQLITE_CORRUPT` / `SQLITE_NOTADB` 并被持久写坏，有时运行中没有任何报错，只有完整性检查能发现；能力探针的低并发项照样全部通过。问题是间歇性的：同一位置在当天另外几次 10–15 分钟的并发实测中没有出现。这类映射文件夹不能放数据根或密钥目录；数据根放在上面时 Lantai 默认拒绝启动。
 - 同一台机器上，落在宿主本地 btrfs 上的 Docker 命名卷通过 15 分钟并发实测，并在其上完成 1 万资产 / 5 万版本的规模运行与空目录恢复。建议数据根与密钥目录各用一个命名卷，对应模板路径 `/var/lib/lantai` 与 `/var/lib/lantai-secrets`；映射的共享文件夹只放备份、导入导出与日志。在同一环境中，停机备份写到映射文件夹、校验后跨机器恢复已实测可用，备份副本的损坏由 `backup-verify` 的校验和发现。
 - 命名卷由 Docker 管理：删除卷（包括 `docker compose down -v`）或 Docker 存储损坏都会丢失数据。必须定期执行 `lantai backup`，用 `backup-verify` 校验后复制到另一台机器；密钥目录另行备份。
-- 模板 `compose.yaml` 用 `LANTAI_DATA_DIR`、`LANTAI_SECRETS_DIR` 绑定宿主目录。改用命名卷时，在私有覆盖文件中把 core 的这两项挂载改为命名卷，并在顶层 `volumes` 声明。镜像不含这两个挂载点，新建命名卷的根目录归 root，而核心容器以 65532 运行，首次启动前需让两个卷对 65532:65532 可写。上述实测的测试容器以 root 运行，覆盖文件与属主设置尚未在 Docker 引擎上实测。
+- 模板 `compose.yaml` 默认将数据与密钥放在两个独立命名卷。旧环境文件若设置 `LANTAI_DATA_DIR` / `LANTAI_SECRETS_DIR`，其原有绝对路径优先用于 prepare 和 core，不会被默认卷覆盖。`prepare` 服务在每次项目启动时检查三个目录，只对空目录根设置 65532:65532 / 0700，绝不递归修改、删除或重新初始化已有数据。已有数据根允许服务所有且不对组/其他用户开放写入的旧权限；密钥与 setup 目录必须 0700。不符时停止，由部署者核对原卷与服务身份。升级必须保留同一 Compose 项目名、原命名卷或原路径，不能换成新的空卷，否则会看到另一个全新实例。
 
 ## 本地原生运行
 
@@ -82,20 +82,27 @@ caddy run --config deploy/Caddyfile --adapter caddyfile
 
 ## 容器与系统服务
 
-Compose 的变量必须来自仓库外的本地环境文件：`LANTAI_IMAGE`、`LANTAI_DATA_DIR`、`LANTAI_SECRETS_DIR`、`LANTAI_CONFIG_FILE`、`LANTAI_TLS_DIR`、`LANTAI_DOMAIN`；可选 `LANTAI_HTTPS_PORT` 默认为 443。所有目录使用绝对路径，`LANTAI_TLS_DIR` 含 `cert.pem` / `key.pem`，配置采用容器模板。数据与密钥目录须预先允许 UID/GID 65532 写入；不要以放开全局写权限解决权限问题。
+Compose 的变量来自仓库外的本地环境文件：`LANTAI_IMAGE`、`LANTAI_SETUP_DIR`、`LANTAI_CONFIG_FILE`、`LANTAI_TLS_DIR`、`LANTAI_DOMAIN`；可选 `LANTAI_HTTPS_PORT` 默认为 443。路径使用绝对路径，`LANTAI_TLS_DIR` 含受客户端信任的 `cert.pem` / `key.pem`，配置采用容器模板。`allowed_origins` 必须精确匹配外部 HTTPS 地址，包括非默认端口。
+
+`LANTAI_SETUP_DIR` 是一个新的私有宿主目录，方便有权限的 NAS 管理员从文件界面读取首次引导码；不能与数据、密钥或 TLS 目录复用，也不能放入同步/公开共享目录。辅助容器需要 CHOWN、FOWNER 和 DAC_READ_SEARCH，只用来准备空目录根及检查现有目录，不访问网络。核心一直以 65532 身份运行且无 capabilities。
 
 ```sh
 docker build -f deploy/Dockerfile -t lantai:local .
 # 在私有环境文件中将 LANTAI_IMAGE 设为 lantai:local，并填写其余占位值。
 docker compose --env-file /path/to/local.env -f deploy/compose.yaml config --quiet
-docker compose --env-file /path/to/local.env -f deploy/compose.yaml run --rm -it core init --home /var/lib/lantai --admin ada
 docker compose --env-file /path/to/local.env -f deploy/compose.yaml up -d
 docker compose --env-file /path/to/local.env -f deploy/compose.yaml stop
 ```
 
 [Dockerfile 专用忽略文件](../deploy/Dockerfile.dockerignore)仅允许源码和依赖锁文件进入构建上下文，依据 [Docker 官方规则](https://docs.docker.com/build/concepts/context/#filename-and-location)。镜像本身不包含运行数据、主密钥或 TLS 私钥。容器私网不暴露核心端口；运维采样工具应在核心网络命名空间中访问 loopback，不能把 9090 发布或代理到公网。Scratch 镜像没有 shell/curl，不把宿主 `curl localhost:9090` 误当成容器内检查。
 
-systemd 模板需要先创建 `lantai` 服务账户、准备路径并安装已核验二进制；保持数据根、单实例锁与账户一致。容器和 systemd 模板默认不自动重启，不执行自动迁移/恢复/部署。此处未实测 Docker 引擎、systemd 或目标 NAS；本地网关测试不代表这些环境已通过。
+启动后打开 `https://<域名>:<端口>/setup/`。使用 NAS 管理文件界面读取 `LANTAI_SETUP_DIR/setup-code.json` 的 `code` 字段，粘贴到页面，设置用户名、口令、TOTP 并安全保存恢复码，最后确认。文件权限保持 0600、目录 0700；如果 NAS 管理界面无权读取，需管理员提供有权读取文件的操作方式，不能靠写入日志或放宽为公开权限解决。不同 NAS 的 GUI 读取能力仍须在目标设备验收。
+
+完成后设置入口永久关闭，核心自动开始正常服务。不需要 profile、交互 run、TTY 或第二次 up。未确认的 TOTP/恢复码只在内存；页面刷新、进程重启、10 分钟超时后重新登记。确认请求丢失时保留已经显示并保存的恢复码，检查服务状态；数据库已提交时重启会完成激活，不再建立管理员。引导码仅在初始化期间有效，成功后尽力删除；残留文件不能重新开启设置。
+
+已有 active 实例跳过首次设置，旧 `init` / `serve` 命令继续支持，并沿用正常启动对权威库缺失的拒绝与派生索引重建规则。初始化中的实例只在五库完整、绑定匹配、迁移已应用时续接，不自动补库、迁移、替换密钥或清卷。极早期建库中断造成不完整库集时停止；先用 `doctor` 检查、备份，再由管理员选择原有离线修复流程。升级前备份，始终复用原数据卷与密钥卷；不要执行 `down -v`。
+
+Compose 中 core/gateway 使用 `unless-stopped`，prepare 成功退出。systemd 模板保持原有显式 init/serve 流程，需要先创建服务账户并安装二进制。自动首次设置当前支持 Linux 容器及 macOS 开发验证；Windows 原生保留 CLI 初始化。实现与 HTTP 边界见 [首次设置契约](../api/first-start.md)。CI 的容器测试与目标 NAS 验收分别记录，不能相互替代。
 
 ## 本机健康与指标
 

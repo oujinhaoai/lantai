@@ -30,6 +30,10 @@ jobs:
             scripts/tools/go.sum
       - name: scripts/check.sh
         run: scripts/check.sh
+      - name: Real Compose first-start smoke (synthetic data and TLS only)
+        run: python3 scripts/test-compose-first-start.py
+      - name: Setup page sensitive-state regression
+        run: node scripts/test-first-start-ui.cjs
       - name: govulncheck
         run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
 

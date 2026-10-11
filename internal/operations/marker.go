@@ -21,7 +21,7 @@ const MarkerContract = "lantai.instance/v1"
 type MarkerState string
 
 const (
-	// MarkerInitializing 表示初始化尚未完成，只能由 lantai init 继续。
+	// MarkerInitializing 表示初始化尚未完成，由 init 或严格恢复的 start 继续。
 	MarkerInitializing MarkerState = "initializing"
 	// MarkerActive 表示初始化已完成。
 	MarkerActive MarkerState = "active"

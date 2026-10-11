@@ -19,11 +19,68 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
 	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
+	"github.com/oujinhaoai/lantai/internal/platform/sqlite"
 	"github.com/oujinhaoai/lantai/internal/platform/sqlite/migrations"
 )
 
 // testConfig 让测试不依赖临时盘至少有 1 GiB 可用；磁盘余量检查另有专门测试。
 const testConfig = "contract: lantai.config/v1\nstorage:\n  min_free_bytes: 1048576\n"
+
+func TestStrictResumeDoesNotMigrateOrRebind(t *testing.T) {
+	for _, kind := range []string{"foreign", "pending", "missing binding"} {
+		t.Run(kind, func(t *testing.T) {
+			home := t.TempDir()
+			inst := create(t, home, Options{})
+			db := inst.DB(ownership.Main)
+			switch kind {
+			case "foreign":
+				_, err := db.Exec("UPDATE instance_binding SET instance_id = 'foreign-instance'")
+				if err != nil {
+					t.Fatal(err)
+				}
+			case "pending":
+				_, err := db.Exec("DELETE FROM schema_migrations WHERE version=(SELECT max(version) FROM schema_migrations)")
+				if err != nil {
+					t.Fatal(err)
+				}
+			case "missing binding":
+				_, err := db.Exec("DELETE FROM instance_binding")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			var before int
+			if err := db.QueryRow("SELECT count(*) FROM schema_migrations").Scan(&before); err != nil {
+				t.Fatal(err)
+			}
+			if err := inst.Close(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if resumed, err := Create(t.Context(), CreateOptions{Options: Options{Home: home}, StrictResume: true}); err == nil {
+				resumed.Close(t.Context())
+				t.Fatal("unsafe automatic resume accepted")
+			}
+			conn, err := sqlite.Open(t.Context(), filepath.Join(home, "db", "main.db"), sqlite.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer conn.Close()
+			var after int
+			if err := conn.QueryRow("SELECT count(*) FROM schema_migrations").Scan(&after); err != nil {
+				t.Fatal(err)
+			}
+			if before != after {
+				t.Fatal("automatic resume applied migrations")
+			}
+			if kind == "foreign" {
+				var binding string
+				if err := conn.QueryRow("SELECT instance_id FROM instance_binding").Scan(&binding); err != nil || binding != "foreign-instance" {
+					t.Fatal("automatic resume rewrote binding")
+				}
+			}
+		})
+	}
+}
 
 func create(t *testing.T, home string, opts Options) *Instance {
 	t.Helper()

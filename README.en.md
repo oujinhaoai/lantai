@@ -103,6 +103,8 @@ M2 runs one-shot processors through a file protocol (spawn/run/exit), adding pac
 
 ## Top-level layout
 
+First container setup uses one Compose configuration and one `up`: empty volume roots are prepared automatically, then a protected page on the existing HTTPS endpoint creates the administrator with TOTP and saved recovery codes. Restarts reuse the instance without automatic migration or reset; the original local `init` remains available. This minimal installation page does not complete the planned business web UI or web extensions. See [deployment](docs/deployment.md).
+
 ```text
 lantai/
 ├── api/        # HTTP contracts and generation rules

@@ -30,10 +30,30 @@ type BootstrapRequest struct {
 
 // Bootstrap 是一次进行中的本机初始化：种子只在内存里，确认前不写任何数据。
 type Bootstrap struct {
-	s          *Service
-	req        BootstrapRequest
-	record     password.Record
-	Enrollment Enrollment
+	s             *Service
+	req           BootstrapRequest
+	record        password.Record
+	Enrollment    Enrollment
+	recoveryCodes []string
+}
+
+// PrepareRecoveryCodes freezes the codes before the final confirmation. A
+// setup UI can require the human to save them before the database commit, so
+// a lost confirmation response cannot lose their only copy. Callers serialize
+// access to a Bootstrap; no state is persisted until Confirm succeeds.
+func (b *Bootstrap) PrepareRecoveryCodes() ([]string, error) {
+	if b.recoveryCodes == nil {
+		codes := make([]string, b.s.cfg.RecoveryCodes)
+		for i := range codes {
+			code, err := newCode()
+			if err != nil {
+				return nil, err
+			}
+			codes[i] = code
+		}
+		b.recoveryCodes = codes
+	}
+	return append([]string(nil), b.recoveryCodes...), nil
 }
 
 // BootstrapResult 是初始化结果；RecoveryCodes 只展示这一次，主库只存校验值。
@@ -65,6 +85,16 @@ func (s *Service) bootstrapOpen(ctx context.Context, q commands.DBTX) error {
 		return ErrBootstrapClosed
 	}
 	return nil
+}
+
+// BootstrapIsOpen is the identity owner's read-only check for first-start key
+// provisioning. A missing key must not be regenerated after an admin exists.
+func BootstrapIsOpen(ctx context.Context, q commands.DBTX) (bool, error) {
+	err := (&Service{}).bootstrapOpen(ctx, q)
+	if errors.Is(err, ErrBootstrapClosed) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // BootstrapOpen 报告是否还能初始化首个管理员。
@@ -114,8 +144,12 @@ func (b *Bootstrap) Confirm(ctx context.Context, code string) (BootstrapResult, 
 	if res != totp.Accepted {
 		return BootstrapResult{}, errcode.New(errcode.HumanProofRequired, "the code does not match the new authenticator; check the device clock and try the current code")
 	}
+	codes, err := b.PrepareRecoveryCodes()
+	if err != nil {
+		return BootstrapResult{}, err
+	}
 	var out BootstrapResult
-	err := inTx(ctx, s.main, func(tx *sql.Tx) error {
+	err = inTx(ctx, s.main, func(tx *sql.Tx) error {
 		if err := s.bootstrapOpen(ctx, tx); err != nil {
 			return err
 		}
@@ -142,8 +176,7 @@ func (b *Bootstrap) Confirm(ctx context.Context, code string) (BootstrapResult, 
 		if _, err := s.insertFactor(ctx, tx, id, b.Enrollment.raw, factorEnabled, counter); err != nil {
 			return err
 		}
-		codes, err := s.issueRecoveryCodes(ctx, tx, id)
-		if err != nil {
+		if err := s.storeRecoveryCodes(ctx, tx, id, codes); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE identity_state SET bootstrap_state = 'closed', bootstrap_admin_id = ?,

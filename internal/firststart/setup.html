@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lantai · 首次设置</title>
+<link rel="stylesheet" href="/setup/setup.css">
+<script src="/setup/setup.js" defer></script>
+<main>
+<h1>设置 Lantai 管理员</h1>
+<p>仅首次启动可用。请在可信设备上操作，不要分享引导码或下面的恢复码。</p>
+<p id="status" role="status" aria-live="polite"></p>
+<form id="begin">
+<label>引导码<input id="claim" type="password" autocomplete="off" required></label>
+<p>从 NAS 管理文件界面打开配置的 setup 目录，读取 setup-code.json 的 code 值。该文件仅允许服务账户和有权限的管理员读取。</p>
+<label>管理员用户名<input id="name" autocomplete="username" pattern="[a-z0-9_-]{1,32}" maxlength="32" required></label>
+<label>口令（至少 12 个字符）<input id="password" type="password" autocomplete="new-password" minlength="12" required></label>
+<label>再次输入口令<input id="repeat" type="password" autocomplete="new-password" minlength="12" required></label>
+<button>继续</button>
+</form>
+<section id="enroll" hidden>
+<h2>保存恢复码并设置验证器</h2>
+<p>在验证器中手动添加下面的密钥，类型选择 TOTP。此步骤在 10 分钟后过期；重载页面后需重新开始。</p>
+<code id="secret"></code>
+<p>将这批恢复码保存在可信的密码管理器或离线安全位置。每个恢复码只能使用一次，完成后不能再次查看。</p>
+<pre id="codes"></pre>
+<form id="confirm">
+<label class="check"><input id="saved" type="checkbox" required>我已安全保存这些恢复码</label>
+<label>验证器当前 6 位动态码<input id="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+<button>完成设置</button>
+</form>
+</section>
+<section id="complete" hidden>
+<h2>管理员已建立</h2>
+<p>服务正在启动。请保留已保存的恢复码；首次设置入口现已关闭。</p>
+<p><a href="/api/v1/meta">查看服务状态</a></p>
+</section>
+</main>
+</html>

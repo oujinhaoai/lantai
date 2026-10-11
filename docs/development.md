@@ -29,6 +29,8 @@
 | SQLite 能力实测（输出 JSON） | `go run ./scripts/probe/sqlite -dir <被测文件系统上的目录>` |
 | 验证实例数据位置（能力项加 15 分钟并发读写与完整性检查） | `go run ./scripts/probe/sqlite -dir <数据位置下的目录> -stress 15m` |
 | 本机初始化实例与首个管理员（交互式） | `go run ./cmd/lantai init -home <数据根> -admin <名称>` |
+| 自动衔接受保护首次设置与正常服务（HTTPS 网关、私有 setup 目录已配置） | `go run ./cmd/lantai start -home <数据根> -setup-dir <私有引导目录>` |
+| 真实容器首次启动、TLS、旧挂载兼容与重启测试（需要 Docker Compose） | `python3 scripts/test-compose-first-start.py`，仅使用随机测试项目、临时数据与合成证书 |
 | 启动同进程 API / 传输 / 本机运维监听 | `go run ./cmd/lantai serve -home <数据根>` |
 | 本机开发合并 API 与传输监听 | `go run ./cmd/lantai serve -home <数据根> -merged` |
 | REST 与 CLI 纵向联调（merged / split、身份管理、提交丢响应后重启恢复） | `go test -run 'TestRemoteCLIStorage\|TestRemoteIdentityAdministration' -v ./tests/integration/` |

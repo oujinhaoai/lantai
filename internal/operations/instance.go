@@ -319,6 +319,10 @@ type CreateOptions struct {
 	Options
 	// Name 为空时取配置中的实例名。
 	Name string
+	// StrictResume is for unattended first start. Existing initializing instances
+	// must already have all five matching, current databases; never repair or
+	// migrate ambiguous partial state automatically. Interactive init is unchanged.
+	StrictResume bool
 }
 
 var instanceNameRE = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
@@ -383,6 +387,27 @@ func Create(ctx context.Context, opts CreateOptions) (_ *Instance, err error) {
 		// initializing：继续上一次未完成的初始化。
 		if err := i.checkFileSystem(i.layout.Home, i.layout.DBDir()); err != nil {
 			return nil, err
+		}
+		if opts.StrictResume {
+			i.marker = marker
+			for _, db := range migrations.Databases {
+				if !exists(i.layout.DBPath(db)) {
+					return nil, startupErr(CodeDatabaseMissing, "automatic setup refuses an incomplete database set; inspect or restore the instance before resuming")
+				}
+			}
+			if err := i.openDatabases(ctx); err != nil {
+				return nil, err
+			}
+			fatal, blocked, _, err := i.assess(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if reasons := append(fatal, blocked...); len(reasons) != 0 {
+				return nil, &StartupError{Reasons: reasons}
+			}
+			i.state = StateInitializing
+			i.gate.Close(commands.ReasonInitializing)
+			return i, nil
 		}
 	}
 	i.marker = marker

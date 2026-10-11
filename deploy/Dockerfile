@@ -14,4 +14,4 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 COPY --from=build /out/lantai /usr/local/bin/lantai
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/lantai"]
-CMD ["serve", "--home", "/var/lib/lantai"]
+CMD ["start", "--home", "/var/lib/lantai", "--setup-dir", "/var/lib/lantai-setup"]

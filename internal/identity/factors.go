@@ -124,35 +124,44 @@ func (s *Service) disableFactors(ctx context.Context, tx *sql.Tx, principal ids.
 
 // issueRecoveryCodes 作废旧恢复码并生成新的一批，返回明文（只展示一次）。
 func (s *Service) issueRecoveryCodes(ctx context.Context, tx *sql.Tx, principal ids.ID) ([]string, error) {
-	if err := s.invalidateRecoveryCodes(ctx, tx, principal); err != nil {
-		return nil, err
-	}
-	batch, err := s.newID()
-	if err != nil {
-		return nil, err
-	}
-	now := clock.Millis(s.now())
-	codes := make([]string, 0, s.cfg.RecoveryCodes)
-	for range s.cfg.RecoveryCodes {
+	codes := make([]string, s.cfg.RecoveryCodes)
+	for i := range codes {
 		code, err := newCode()
 		if err != nil {
 			return nil, err
 		}
+		codes[i] = code
+	}
+	if err := s.storeRecoveryCodes(ctx, tx, principal, codes); err != nil {
+		return nil, err
+	}
+	return codes, nil
+}
+
+func (s *Service) storeRecoveryCodes(ctx context.Context, tx *sql.Tx, principal ids.ID, codes []string) error {
+	if err := s.invalidateRecoveryCodes(ctx, tx, principal); err != nil {
+		return err
+	}
+	batch, err := s.newID()
+	if err != nil {
+		return err
+	}
+	now := clock.Millis(s.now())
+	for _, code := range codes {
 		salt, hash, err := sealCode(code)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		id, err := s.newID()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO identity_recovery_codes (code_id, principal_id, batch_id, salt, hash, created_at)
 			VALUES (?, ?, ?, ?, ?, ?)`, id, principal, batch, salt, hash, now); err != nil {
-			return nil, err
+			return err
 		}
-		codes = append(codes, code)
 	}
-	return codes, nil
+	return nil
 }
 
 func (s *Service) invalidateRecoveryCodes(ctx context.Context, tx *sql.Tx, principal ids.ID) error {
