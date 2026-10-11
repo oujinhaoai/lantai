@@ -6,6 +6,8 @@ on:
       - .github/workflows/release-artifacts.yml
       - scripts/build-release.py
       - scripts/tests/test_build_release.py
+      - scripts/test-compose-first-start.py
+      - scripts/tests/test_compose_first_start.py
   workflow_dispatch:
     inputs:
       commit:

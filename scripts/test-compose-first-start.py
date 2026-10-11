@@ -4,6 +4,7 @@
 Uses synthetic credentials/certificates in a temporary directory. Never prints
 secret-bearing HTTP bodies or container output. No production files are used.
 """
+import argparse
 import base64
 from contextlib import contextmanager
 import hashlib
@@ -54,11 +55,29 @@ def temporary_project():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def select_images(image, caddy_image):
+    for value in (image, caddy_image):
+        if value is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/@-]*", value):
+            raise ValueError("invalid local image reference")
+    if image is None:
+        image = "lantai:first-start-smoke"
+        command(["docker", "build", "-f", str(ROOT / "deploy/Dockerfile"), "-t", image, str(ROOT)])
+        print("PASS: test image built", flush=True)
+    # A supplied release image is inspected locally, never rebuilt or pulled.
+    core_id = command(["docker", "image", "inspect", "--format", "{{.Id}}", image])
+    caddy_id = None
+    if caddy_image is not None:
+        caddy_id = command(["docker", "image", "inspect", "--format", "{{.Id}}", caddy_image])
+    return image, core_id, caddy_image or "caddy:2.11.4", caddy_id
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--image", help="existing local core image; do not rebuild or pull")
+    parser.add_argument("--caddy-image", help="existing local Caddy image; do not pull")
+    args = parser.parse_args()
     command(["docker", "compose", "version"])
-    command(["docker", "build", "-f", str(ROOT / "deploy/Dockerfile"),
-             "-t", "lantai:first-start-smoke", str(ROOT)])
-    print("PASS: test image built", flush=True)
+    image, core_id, caddy_image, caddy_id = select_images(args.image, args.caddy_image)
     with temporary_project() as root:
         tls = root / "tls"
         tls.mkdir()
@@ -80,12 +99,20 @@ def main():
                           .replace("min_free_bytes: 5368709120", "min_free_bytes: 1048576"))
         os.chmod(config, 0o644)
         env = root / "compose.env"
-        env.write_text(f"LANTAI_IMAGE=lantai:first-start-smoke\nLANTAI_SETUP_DIR={setup}\n"
+        env.write_text(f"LANTAI_IMAGE={image}\nLANTAI_SETUP_DIR={setup}\n"
                        f"LANTAI_CONFIG_FILE={config}\nLANTAI_TLS_DIR={tls}\n"
                        f"LANTAI_DOMAIN=library.example\nLANTAI_HTTPS_PORT={port}\n")
         project = "lantai-smoke-" + secrets.token_hex(6)
+        template = (ROOT / "deploy/compose.yaml").read_text()
+        if template.count("image: caddy:2.11.4") != 1:
+            raise RuntimeError("review the changed Caddy image template")
+        template = template.replace("image: caddy:2.11.4", "image: " + caddy_image)
+        if args.caddy_image is not None:
+            template = template.replace("image: " + caddy_image + "\n", "image: " + caddy_image + "\n    pull_policy: never\n")
+        (root / "compose.yaml").write_text(template)
+        shutil.copyfile(ROOT / "deploy/Caddyfile", root / "Caddyfile")
         compose = ["docker", "compose", "--project-name", project, "--env-file",
-                   str(env), "-f", str(ROOT / "deploy/compose.yaml")]
+                   str(env), "-f", str(root / "compose.yaml")]
         context = ssl.create_default_context(cafile=str(tls / "cert.pem"))
 
         class LocalTLS(http.client.HTTPSConnection):
@@ -154,6 +181,8 @@ def main():
                 raise RuntimeError("Initial synthetic Compose startup failed")
             print("PASS: Compose started", flush=True)
             gateway = command(compose + ["ps", "-q", "gateway"])
+            if caddy_id is not None:
+                assert command(["docker", "inspect", "--format", "{{.Image}}", gateway]) == caddy_id
             ports = json.loads(command(["docker", "inspect", "--format",
                                         "{{json .NetworkSettings.Ports}}", gateway]))
             assert any(p["HostPort"] == str(port) for p in ports.get("443/tcp") or []), \
@@ -168,6 +197,10 @@ def main():
             assert request("/api/v1/meta")[0] == 404
             assert request("/setup/begin", {}, "wrong")[0] == 401
             cid = command(compose + ["ps", "-q", "core"])
+            assert command(["docker", "inspect", "--format", "{{.Image}}", cid]) == core_id
+            print("PASS: running core image " + core_id, flush=True)
+            if caddy_id is not None:
+                print("PASS: running Caddy image " + caddy_id, flush=True)
             claim_path = root / "claim.json"
             command(["docker", "cp", cid + ":/var/lib/lantai-setup/setup-code.json", str(claim_path)])
             os.chmod(claim_path, 0o600)
@@ -211,7 +244,7 @@ def main():
                 subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none",
                                 "--read-only", "--cap-drop", "ALL", "--cap-add", "CHOWN",
                                 "--user", "0:0", "--mount", f"type=bind,src={setup},dst=/cleanup",
-                                "--entrypoint", "/bin/chown", "caddy:2.11.4",
+                                "--entrypoint", "/bin/chown", caddy_image,
                                 f"{os.getuid()}:{os.getgid()}", "/cleanup"],
                                capture_output=True, text=True, env=TEST_ENV)
 

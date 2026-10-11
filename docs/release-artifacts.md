@@ -36,7 +36,9 @@ Actions artifact 保存 30 天。名称含版本、目标提交和 Linux amd64 �
 
 脚本解析 Go 基础镜像的 repository digest，再用仓库外 Dockerfile 固定该 digest；保留原源码与 Docker allowlist。RepoDigest 可能指向多平台索引，因此另记录实测 linux/amd64 image ID。核心 image 的 OCI revision/version 和 UID:GID 65532:65532 必须匹配。短命、无网络容器运行真实 `version --json`，核对 Go 和平台；独立 Linux amd64 二进制另运行 version 核对 VCS。Docker 上下文没有 .git，不能假设镜像内和独立二进制的 SHA 或 VCS 信息相同；由源归档、有效构建输入、OCI label、image ID 和归档摘要共同绑定。
 
-从导出的 Caddy 镜像复制其二进制，运行现有 `TestCaddySingleHTTPSGateway` 的真实进程、合成 loopback 流式/取消/路由验证；skip 不计通过。它仍是网关组件测试，不能代替目标主机的 core 初始化、真实容器卷权限或 NAS 流量验收。
+从导出的 Caddy 镜像复制其二进制，运行现有 `TestCaddySingleHTTPSGateway` 的真实进程、合成 loopback 流式/取消/路由验证；skip 不计通过。
+
+随后用 `scripts/test-compose-first-start.py --image <核心 tag> --caddy-image <网关 tag>` 验证这两份本地发行镜像，不重建或拉取替代镜像。随机测试项目仅使用合成证书、引导码和数据，检查单次 Compose up、TLS、受保护管理员设置、重启不重开引导及日志隐私；实际运行的两个容器 image ID 必须与归档对应清单一致。证据写入 `first-start-image-smoke.txt` 并计入 manifest 与 SHA256SUMS，缺少成功或精确 image ID 证据不生成成功清单。真实 NAS 的文件管理权限、文件系统和流量仍需单独验收。
 
 官方 Caddy 二进制带 `cap_net_bind_service` 文件能力。版本探测使用无网络、只读容器，先丢弃全部能力，再仅保留 `NET_BIND_SERVICE`；不授予 privileged 或宿主网络。该工作流的独立 Docker 回归会读取文件能力，复现全部丢弃时的退出126，并验证单一能力配置能实际执行版本命令。相关发布工具变更的 PR 自动运行此回归，PR 中的正式制品任务仍跳过；手动 main 发行同时运行回归与构建。命令失败保留非零退出并输出捕获的 stderr，不能把失败探测当作成功。
 

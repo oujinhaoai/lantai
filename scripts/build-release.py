@@ -246,6 +246,14 @@ def main():
         if "--- PASS: TestCaddySingleHTTPSGateway" not in gateway_output:
             raise RuntimeError("real Caddy gateway test did not pass (skip is not acceptance)")
         (deliver / "gateway-smoke.txt").write_text(gateway_output + "\n")
+        first_start_output = command([sys.executable, str(build_source / "scripts/test-compose-first-start.py"),
+                                      "--image", core_tag, "--caddy-image", caddy_tag], cwd=build_source)
+        expected_smoke = "PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy"
+        if (expected_smoke not in first_start_output
+                or "PASS: running core image " + core["Id"] not in first_start_output
+                or "PASS: running Caddy image " + caddy["Id"] not in first_start_output):
+            raise RuntimeError("release image first-start smoke did not verify the exported image IDs")
+        (deliver / "first-start-image-smoke.txt").write_text(first_start_output + "\n")
         stamp = int(command(["git", "show", "-s", "--format=%ct", args.commit], cwd=build_source))
         binaries = []
         for goos, goarch in PLATFORMS:
@@ -278,7 +286,7 @@ def main():
             raise RuntimeError("source changed during build")
         (deliver / "release-images.env").write_text(f"LANTAI_IMAGE={core_tag}\nLANTAI_CADDY_IMAGE={caddy_tag}\n")
         files = [{"name": p.name, "size_bytes": p.stat().st_size, "sha256": digest(p)} for p in sorted(deliver.iterdir())]
-        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-smoke",
+        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-and-first-start-smoke",
                     "version": args.version, "source_commit": args.commit, "platform": "linux/amd64",
                     "go_version": go_version, "main_ci": ci,
                     "build_run": {"repository": os.environ.get("GITHUB_REPOSITORY"), "run_id": os.environ.get("GITHUB_RUN_ID"),
@@ -289,6 +297,9 @@ def main():
                     "files": files, "nas_deployed": False, "nas_acceptance": "pending",
                     "actual_codex_final_commit_acceptance": "separate evidence required",
                     "gateway_smoke": "real Caddy image binary; synthetic loopback transport test passed",
+                    "first_start_smoke": {"status": "passed", "core_image_id": core["Id"],
+                                          "caddy_image_id": caddy["Id"], "evidence": "first-start-image-smoke.txt",
+                                          "scope": "synthetic Compose one-up, TLS, setup, restart, and log privacy; not NAS acceptance"},
                     "build_inputs": "fresh local clone of the exact commit; ignored/untracked files are not copied",
                     "note": "Repository digests can name multi-platform indexes; inspected image IDs and platform are retained. Docker image and standalone binary use different VCS contexts."}
         save_json(deliver / "manifest.json", manifest)
