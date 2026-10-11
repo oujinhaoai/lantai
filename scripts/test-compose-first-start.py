@@ -110,7 +110,18 @@ def main():
                 mounts = {v["target"]: v for v in parsed["services"][name]["volumes"]}
                 assert mounts["/var/lib/lantai"]["source"] == str(root / "old-data")
                 assert mounts["/var/lib/lantai-secrets"]["source"] == str(root / "old-secrets")
-            command(compose + ["up", "-d"])
+            startup = subprocess.run(compose + ["up", "-d"], capture_output=True,
+                                     text=True, env=TEST_ENV)
+            if startup.returncode:
+                # Only the first up, before enrollment, may print Docker's
+                # startup diagnostics. The prepare helper never reads secrets;
+                # do not print core/gateway logs or later command output.
+                print(startup.stdout[:8192], flush=True)
+                print(startup.stderr[:8192], flush=True)
+                diagnostic = subprocess.run(compose + ["logs", "--no-color", "prepare"],
+                                            capture_output=True, text=True, env=TEST_ENV)
+                print(diagnostic.stdout[:8192], flush=True)
+                raise RuntimeError("Initial synthetic Compose startup failed")
             print("PASS: Compose started", flush=True)
             page = wait("/setup/", 200)
             print("PASS: setup reached over verified TLS", flush=True)
