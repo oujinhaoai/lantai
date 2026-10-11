@@ -3,6 +3,7 @@ package deploy_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/oujinhaoai/lantai/internal/operations"
@@ -38,17 +39,48 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	}
 	var c struct {
 		Services map[string]struct {
-			Ports      []string
-			Privileged bool
-			Networks   []string
-			Volumes    []string
+			Ports       []string
+			Privileged  bool
+			Networks    []string
+			Volumes     []string
+			Tmpfs       []string
+			NetworkMode string `yaml:"network_mode"`
+			User        string
+			ReadOnly    bool `yaml:"read_only"`
+			Profiles    []string
+			TTY         bool
+			DependsOn   map[string]struct{ Condition string } `yaml:"depends_on"`
 		}
 		Networks map[string]struct{ Internal bool }
 	}
 	if err := yaml.Unmarshal(b, &c); err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Services) != 2 || len(c.Services["core"].Ports) != 0 || len(c.Services["gateway"].Ports) != 1 || c.Services["core"].Privileged || !c.Networks["backend"].Internal {
+	if len(c.Services) != 3 || len(c.Services["core"].Ports) != 0 || len(c.Services["gateway"].Ports) != 1 || c.Services["core"].Privileged || !c.Networks["backend"].Internal {
 		t.Fatal("container topology publishes core or adds another public service")
+	}
+	p := c.Services["prepare"]
+	if len(p.Ports) != 0 || p.NetworkMode != "none" || p.Privileged || !p.ReadOnly || p.User != "0:0" {
+		t.Fatal("volume preparation must be an isolated, nonprivileged, read-only helper")
+	}
+	if c.Services["core"].DependsOn["prepare"].Condition != "service_completed_successfully" {
+		t.Fatal("core must wait for successful volume preparation")
+	}
+	if n := c.Services["core"].Networks; len(n) != 1 || n[0] != "backend" {
+		t.Fatal("core must remain only on the internal backend")
+	}
+	if n := c.Services["gateway"].Networks; len(n) != 2 || !slices.Contains(n, "edge") || !slices.Contains(n, "backend") || c.Networks["edge"].Internal {
+		t.Fatal("gateway must bridge the publishable edge and internal backend")
+	}
+	for _, name := range []string{"core", "gateway"} {
+		mounts := c.Services[name].Tmpfs
+		if len(mounts) != 1 || mounts[0] != "/tmp:rw,noexec,nosuid,nodev,size=64m" {
+			t.Fatalf("%s tmpfs options must parse as one bounded private mount, got %v", name, mounts)
+		}
+	}
+	for _, s := range c.Services {
+		if s.TTY || len(s.Profiles) != 0 {
+			t.Fatal("default startup must not depend on profiles or a TTY")
+		}
 	}
 }

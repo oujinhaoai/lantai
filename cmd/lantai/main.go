@@ -32,6 +32,8 @@ type command struct {
 }
 
 var commands = []command{
+	{"start", "自动衔接受保护的首次管理员设置与正常服务", runStart},
+	{"prepare-volumes", "仅准备空容器卷的根目录，已有目录只校验", runPrepareVolumes},
 	{"mcp", "使用现有会话启动官方 Go SDK stdio MCP 适配器", runMCP},
 	{"version", "显示版本、构建信息、公共契约与协议支持状态", runVersion},
 	{"schema", "列出公共契约 schema，或校验 JSON/YAML 文档", runSchema},

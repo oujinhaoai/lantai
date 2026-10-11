@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -48,6 +49,16 @@ func TestBootstrapOnlyOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	prepared, err := b.PrepareRecoveryCodes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved := append([]string(nil), prepared...)
+	prepared[0] = "caller-mutated-copy"
+	prepared, err = b.PrepareRecoveryCodes()
+	if err != nil || !slices.Equal(prepared, saved) {
+		t.Fatal("prepared recovery codes are unstable or expose mutable state")
+	}
 	wrong := totp.Code(b.Enrollment.raw, totp.Counter(clk.Now())+5)
 	if _, err := b.Confirm(ctx, wrong); !isCode(err, errcode.HumanProofRequired) {
 		t.Fatalf("confirm with wrong code = %v", err)
@@ -63,6 +74,9 @@ func TestBootstrapOnlyOnce(t *testing.T) {
 	}
 	if len(res.RecoveryCodes) != 10 || res.Principal.Kind != authz.Human {
 		t.Fatalf("result = %+v", res)
+	}
+	if !slices.Equal(saved, res.RecoveryCodes) {
+		t.Fatal("confirmation changed the pre-displayed recovery codes")
 	}
 	if open, _ := svc.BootstrapOpen(ctx); open {
 		t.Fatal("bootstrap must close after the first administrator")

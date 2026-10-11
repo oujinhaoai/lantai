@@ -28,6 +28,10 @@ jobs:
           cache-dependency-path: |
             go.sum
             scripts/tools/go.sum
+      - name: Real Compose first-start smoke (synthetic data and TLS only)
+        run: python3 scripts/test-compose-first-start.py
+      - name: Setup page sensitive-state regression
+        run: node scripts/test-first-start-ui.cjs
       - name: scripts/check.sh
         run: scripts/check.sh
       - name: govulncheck

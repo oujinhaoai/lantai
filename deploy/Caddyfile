@@ -31,6 +31,15 @@
 	log {
 		output discard
 	}
+	@setup path /setup /setup/*
+	handle @setup {
+		reverse_proxy {$LANTAI_API_UPSTREAM:127.0.0.1:8080} {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 40s
+			}
+		}
+	}
 	@api path /api/v1/*
 	handle @api {
 		reverse_proxy {$LANTAI_API_UPSTREAM:127.0.0.1:8080} {
