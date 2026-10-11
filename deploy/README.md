@@ -8,6 +8,6 @@
 
 入口为[部署与本机观测](../docs/deployment.md)。`Caddyfile` 用于手动证书的单 HTTPS 入口；`config.native.yaml`、`config.container.yaml`、`compose.yaml`、`Dockerfile` 与 `lantai.service` 是需要在目标环境审查的通用模板。
 
-Compose 默认使用独立数据/密钥命名卷，先自动校验并准备空卷根，再由非 root 核心运行受保护首次设置。一次 `up` 后在 `/setup/` 完成管理员、TOTP 与恢复码，无需交互终端。升级务必保留原卷名和映射；更换为新空卷会建立另一个实例。首次设置不是公开注册，详细边界见[协议](../api/first-start.md)。
+Compose 默认使用独立数据/密钥命名卷，先自动校验并准备空卷根，再由非 root 核心运行受保护首次设置。一次 `up` 后在 `/setup/` 完成管理员、TOTP 与恢复码，无需交互终端。第一次使用请读[逐步指南](../docs/first-setup.md)，包括受限引导码的获取、Mac/手机手动添加验证器和第二步过期处理。升级务必保留原卷名和映射；更换为新空卷会建立另一个实例。首次设置不是公开注册，详细边界见[协议](../api/first-start.md)。
 
 `gateway_test.go` 在显式指定已核验的 Caddy 2.11.4 二进制后，用随机 loopback 端口、临时证书和合成后端验证实际模板。容器引擎、systemd、目标 NAS 与其他平台必须分别验收，不能由本地网关测试推导。
