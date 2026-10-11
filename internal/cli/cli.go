@@ -31,6 +31,7 @@ func Help() string {
 凭据：LANTAI_SESSION_TOKEN 或私有会话文件；login --credentials-file FILE；session exchange --token-file FILE 或 LANTAI_TOKEN。
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
+pull --purpose：archive_review（默认）| reference | production | generative_input | raw_export；用途须经服务端权利与授权校验。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
 协作命令：task | flow | run | job | node | message | review | rights | evidence | trash | human | context | events | resync | inbox。
 扩展：plugin import/list/enablements/probe/commands（启停经 human prepare 的 extension_enable/extension_disable）；

@@ -108,6 +108,8 @@ lantai pull --server https://gateway.example --session-file session.json --asset
 
 状态文件不保存会话或授权 URL。它包含业务请求摘要、对象 ID、键和已收到的版本回执，应按私有工作数据保存。取消上传是显式 `upload cancel`；context 取消只停止本机请求并保留恢复机会，不擅自销毁服务端内容。
 
+MCP 的上传源目录、下载目标目录以及 `state` 的父目录必须预先存在于配置的工作区内。目录缺失、不可访问或实际为普通文件时，返回本地 `SCHEMA_INVALID`、`retryable=false`、`recovery_action=fix_request`，不附带 operation ID，也不发起远程上传。调用方先创建工作区内的目录或选择已有目录，再复用原输入和 state 路径；客户端不自动创建父目录。路径穿越、逃逸工作区的符号链接和 state 符号链接仍被拒绝。
+
 ### 文件已提交、初始著录未完成
 
 `description_pending=true` 与 `description_error` 是提交回执已有的部分成功字段：`asset_id`、`version_id`、`committed_at` 和永久引用指向**已经提交**的文件版本，初始标题等著录尚未生效。这不同于提交响应丢失、结果未知，也不同于文件入藏失败。可以立即用回执中的精确版本执行 `show` / `resource_read` 和 `pull` / `resource_pull`。
@@ -129,6 +131,8 @@ CLI 的 `push` / `commit` 保留 stdout 的原始 JSON 和退出码 0，在 stde
 MCP 调用方报告超时，不证明适配器收到了取消通知，也不证明服务端事务已经结束。只有取消传播到适配器的请求 context，客户端才会中止相应 HTTP 请求；已经接受的服务端命令仍须对账。调用方应保留原输入、状态文件和幂等键，使用已有 operation ID 查询结果，再按上述恢复流程继续。没有 operation ID 的本机冲突按 `fix_request` 处理；不能轮询不存在的操作，也不能因超时自动换键或创建第二次提交。真实 Codex 的取消通知与进程结束行为须以对应版本的实测证据为准。
 
 ## 精确拉取与中断恢复
+
+CLI `pull --purpose` 与 MCP `resource_pull.purpose` 使用公共 read-grant 契约中的固定用途：`archive_review`、`reference`、`production`、`generative_input`、`raw_export`。CLI 默认 `archive_review`；MCP 必须显式选择枚举值，不能填自由文本理由。工具 schema 从同一契约投影枚举；合法枚举不表示已获授权，服务端仍按用途检查权利与访问权限。
 
 pull 先取得 exact manifest，为每个文件申请当前会话的 read grant，核对路径、摘要、大小一致后才使用服务端 URL。新运行重新授权，不持久化短时 URL。已有相同内容文件会重新计算摘要后跳过；内容不同则返回 `PATH_CONFLICT`，不可自动重试，`recovery_action=fix_request`。此时保留原文件，不开始文件传输、不创建下载临时文件；调用方保留原目标并选择空目标目录，不自动覆盖。
 

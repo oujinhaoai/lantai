@@ -8,12 +8,34 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/oujinhaoai/lantai/api"
 	"github.com/oujinhaoai/lantai/internal/client"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 )
+
+func TestHelpPullPurposeMatchesPublicContract(t *testing.T) {
+	var contract map[string]any
+	if err := json.Unmarshal(api.OpenAPI, &contract); err != nil {
+		t.Fatal(err)
+	}
+	want := contract["components"].(map[string]any)["schemas"].(map[string]any)["ReadGrantRequest"].(map[string]any)["properties"].(map[string]any)["purpose"].(map[string]any)["enum"]
+	var got []any
+	for _, line := range strings.Split(Help(), "\n") {
+		if values, ok := strings.CutPrefix(line, "pull --purpose："); ok {
+			values, _, _ = strings.Cut(values, "；")
+			for _, value := range strings.Split(values, "|") {
+				got = append(got, strings.TrimSpace(strings.ReplaceAll(value, "（默认）", "")))
+			}
+		}
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("help purpose values differ from public contract: got=%v want=%v", got, want)
+	}
+}
 
 func invoke(t *testing.T, server string, args ...string) (int, string, string) {
 	t.Helper()
