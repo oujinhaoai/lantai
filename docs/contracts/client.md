@@ -62,7 +62,7 @@ lantai session end --server https://gateway.example --session-file session.json
 
 | 退出码 | 含义 |
 | --- | --- |
-| 0 | 成功 |
+| 0 | 成功取得回执；提交回执中的 `description_pending` 仍须检查 |
 | 1 | 服务端领域拒绝，包括无权限 |
 | 2 | 参数、请求格式或 schema 错误 |
 | 3 | 本机文件、网络、响应协议或客户端内部错误 |
@@ -107,6 +107,24 @@ lantai pull --server https://gateway.example --session-file session.json --asset
 发送提交前先保存 `committing`。响应丢失后读取原 operation，再以同一 commit key 重放，取回权威回执；不会生成第二个版本或自动换键。禁用 Go HTTP 客户端基于 `Idempotency-Key` 的隐式请求体重放，恢复流程由显式对账控制。若服务端返回需要恢复/人工处理的错误，保留状态并返回该错误。单独使用 `commit` 时调用者负责持久保存其输入、key 与 upload ID。
 
 状态文件不保存会话或授权 URL。它包含业务请求摘要、对象 ID、键和已收到的版本回执，应按私有工作数据保存。取消上传是显式 `upload cancel`；context 取消只停止本机请求并保留恢复机会，不擅自销毁服务端内容。
+
+### 文件已提交、初始著录未完成
+
+`description_pending=true` 与 `description_error` 是提交回执已有的部分成功字段：`asset_id`、`version_id`、`committed_at` 和永久引用指向**已经提交**的文件版本，初始标题等著录尚未生效。这不同于提交响应丢失、结果未知，也不同于文件入藏失败。可以立即用回执中的精确版本执行 `show` / `resource_read` 和 `pull` / `resource_pull`。
+
+CLI 的 `push` / `commit` 保留 stdout 的原始 JSON 和退出码 0，在 stderr 另给出警告；MCP 保留原 `structuredContent`、成功状态和永久资源链接，另附文本说明。自动化调用方必须检查已有的 `description_pending`，不能只看进程退出码或 MCP `isError`，也不要靠解析提示文字裁决业务结果。
+
+最小权限要分开考虑：
+
+| 目标 | 角色与 scope |
+| --- | --- |
+| 上传并提交文件 | 同一项目的 `contributor` 或 `owner`，以及 `ingest` |
+| 精确读取和下载 | 该项目的可读角色以及 `read`；文件用途与权利规则仍须通过 |
+| 完成自己新资产的初始著录 | 合适的项目角色以及 `organize`；`contributor` 可以修改自己资产的著录 |
+
+仅 `read,ingest,self` 的 contributor 可以完成文件闭环，但不能完成需要 `catalog.patch_own_metadata` 的初始著录；此时回执可出现 `description_error=FORBIDDEN`。初始著录即使省略 `describe` 也会尝试生成，删掉标题字段不是权限修复。客户端不会为此增加 scope 或角色。
+
+恢复时保留原输入、state、upload/operation ID 和幂等键，先区分已提交文件与待完成著录。**不要换 state/key、另建上传或重新创建资产来“修复”这个已提交版本。** 后续是否完成著录，须按现有权限和服务状态单独决定；需要新权限时由用户授权。相同输入与 state 的显式重放会取回原版本并尝试原后续步骤，权限仍不足时继续返回同一部分成功回执，不会新建版本。真实案例及测试见[最小权限入藏的部分成功](../testing/minimal-ingest-partial-result.md)。
 
 MCP 调用方报告超时，不证明适配器收到了取消通知，也不证明服务端事务已经结束。只有取消传播到适配器的请求 context，客户端才会中止相应 HTTP 请求；已经接受的服务端命令仍须对账。调用方应保留原输入、状态文件和幂等键，使用已有 operation ID 查询结果，再按上述恢复流程继续。没有 operation ID 的本机冲突按 `fix_request` 处理；不能轮询不存在的操作，也不能因超时自动换键或创建第二次提交。真实 Codex 的取消通知与进程结束行为须以对应版本的实测证据为准。
 

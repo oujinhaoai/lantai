@@ -191,6 +191,9 @@ func toolResult(response client.Response, e error) (*mcp.CallToolResult, error) 
 			}
 		}
 	}
+	if notice := client.CommitNotice(response); notice != "" {
+		out.Content = append(out.Content, &mcp.TextContent{Text: notice})
+	}
 	encoded, _ := json.Marshal(out)
 	if len(encoded) > MaxResultBytes {
 		return toolResult(client.Response{}, errcode.New(errcode.QuotaExceeded, "serialized result exceeds MCP limit; reduce page size or retrieve via REST"))

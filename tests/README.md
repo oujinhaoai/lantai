@@ -30,4 +30,6 @@ go test -race -count=1 -run '^TestClientConsistency' -v ./tests/integration
 
 当前基线的独立源码复核、两端完整检查及失败保留说明见 [MCP rights 独立复核](../docs/testing/mcp-rights-review.md)。
 
+`TestIngestPartialResult` 覆盖仅 read/ingest/self 的真实 Agent 入藏：初始著录被拒绝时 CLI/MCP 明确区分已提交版本与待完成元数据，保留稳定 JSON、精确引用和权限边界；同状态重放不创建第二份上传/版本，原版本仍能精确读取、下载。实测背景和复现命令见[最小权限入藏的部分成功](../docs/testing/minimal-ingest-partial-result.md)。
+
 M2 增量重同步补验使用真实应用、REST 与独立 CLI，并经正式保留裁剪触发过期；同时覆盖讨论/旧收件箱、里程碑进度及人审后的固定 context/decision 替代。命令、确定性并发点和证据边界见[增量重同步软件验收](../docs/testing/m2-resync-acceptance.md)。

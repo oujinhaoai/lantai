@@ -118,6 +118,30 @@ func TestStableExitsAndIfMatch(t *testing.T) {
 		t.Errorf("cancellation exit=%d", got)
 	}
 }
+
+func TestCommitPendingMetadataNotice(t *testing.T) {
+	t.Setenv("LANTAI_SESSION_TOKEN", "fixture-session")
+	receipt := map[string]any{"asset_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV", "version_id": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+		"committed_at": "2026-10-11T12:17:15.335Z", "description_pending": true, "description_error": "FORBIDDEN"}
+	server := serve(t, func(w http.ResponseWriter, r *http.Request) { respond(w, receipt) })
+	input := filepath.Join(t.TempDir(), "commit.json")
+	if err := os.WriteFile(input, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := invoke(t, server, "commit", "--upload", "fixture-upload", "--idempotency-key", "fixture-key", "--input", input)
+	var got map[string]any
+	if code != 0 || json.Unmarshal([]byte(stdout), &got) != nil || !bytes.Equal(mustJSONForNotice(got), mustJSONForNotice(receipt)) {
+		t.Fatalf("changed successful JSON receipt: code=%d stdout=%s", code, stdout)
+	}
+	if !strings.HasPrefix(stderr, "warning: Files are committed") || !strings.Contains(stderr, "organize scope") || strings.Contains(stderr, "fixture-session") {
+		t.Fatalf("missing or unsafe warning: %s", stderr)
+	}
+}
+
+func mustJSONForNotice(value any) []byte {
+	raw, _ := json.Marshal(value)
+	return raw
+}
 func TestMetaNeedsNoSessionAndPullRejectsGrantMismatch(t *testing.T) {
 	t.Setenv("LANTAI_SESSION_TOKEN", "")
 	url := serve(t, func(w http.ResponseWriter, r *http.Request) {
