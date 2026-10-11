@@ -5,13 +5,16 @@ Uses synthetic credentials/certificates in a temporary directory. Never prints
 secret-bearing HTTP bodies or container output. No production files are used.
 """
 import base64
+from contextlib import contextmanager
 import hashlib
 import hmac
 import http.client
 import json
 import os
 from pathlib import Path
+import re
 import secrets
+import shutil
 import socket
 import ssl
 import struct
@@ -33,13 +36,30 @@ def command(args):
     return result.stdout.strip()
 
 
+def redact_startup_log(output, key):
+    for value in (key, json.dumps(key)[1:-1], *key.splitlines()):
+        if value:
+            output = output.replace(value, "[REDACTED TLS KEY]")
+    return re.sub(r"[A-Za-z0-9_+/=-]{32,}", "[REDACTED TOKEN]", output)
+
+
+@contextmanager
+def temporary_project():
+    root = Path(tempfile.mkdtemp(prefix="lantai-compose-"))
+    try:
+        yield root
+    finally:
+        # A container may have changed the setup directory's owner. Failed
+        # cleanup must not replace the actual test failure with a traceback.
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     command(["docker", "compose", "version"])
     command(["docker", "build", "-f", str(ROOT / "deploy/Dockerfile"),
              "-t", "lantai:first-start-smoke", str(ROOT)])
     print("PASS: test image built", flush=True)
-    with tempfile.TemporaryDirectory(prefix="lantai-compose-", ignore_cleanup_errors=True) as tmp:
-        root = Path(tmp)
+    with temporary_project() as root:
         tls = root / "tls"
         tls.mkdir()
         setup = root / "setup"
@@ -90,15 +110,25 @@ def main():
 
         def wait(path, status):
             deadline = time.monotonic() + 60
+            last = "no response"
             while time.monotonic() < deadline:
                 try:
                     result = request(path)
+                    last = "HTTP " + str(result[0])
                     if result[0] == status:
                         return result
-                except (OSError, http.client.HTTPException):
-                    pass
+                except (OSError, http.client.HTTPException) as error:
+                    last = type(error).__name__ + ": " + str(error)
                 time.sleep(0.25)
-            raise AssertionError(f"{path} never returned {status}")
+            raise AssertionError(f"{path} never returned {status}; last: {last}")
+
+        def diagnose_before_enrollment():
+            # No password, TOTP or recovery codes exist yet. Still redact the
+            # synthetic TLS key, possible claim codes, and long token strings.
+            diagnostic = subprocess.run(compose + ["logs", "--no-color", "--tail", "30"],
+                                        capture_output=True, text=True, env=TEST_ENV)
+            output = redact_startup_log(diagnostic.stdout, (tls / "key.pem").read_text())
+            print(output[:12000], flush=True)
 
         try:
             # Existing bind path variables must remain effective during upgrades.
@@ -123,7 +153,11 @@ def main():
                 print(diagnostic.stdout[:8192], flush=True)
                 raise RuntimeError("Initial synthetic Compose startup failed")
             print("PASS: Compose started", flush=True)
-            page = wait("/setup/", 200)
+            try:
+                page = wait("/setup/", 200)
+            except AssertionError:
+                diagnose_before_enrollment()
+                raise
             print("PASS: setup reached over verified TLS", flush=True)
             assert page[2] == "no-store"
             assert request("/api/v1/meta")[0] == 404
@@ -164,7 +198,17 @@ def main():
             print("PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy")
         finally:
             # Only this randomly named synthetic test project's volumes.
-            command(compose + ["down", "--volumes", "--remove-orphans"])
+            try:
+                command(compose + ["down", "--volumes", "--remove-orphans"])
+            finally:
+                # Return only this test-created directory root to the runner;
+                # keep mode 0700 and never recurse or touch production paths.
+                subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none",
+                                "--read-only", "--cap-drop", "ALL", "--cap-add", "CHOWN",
+                                "--user", "0:0", "--mount", f"type=bind,src={setup},dst=/cleanup",
+                                "--entrypoint", "/bin/chown", "caddy:2.11.4",
+                                f"{os.getuid()}:{os.getgid()}", "/cleanup"],
+                               capture_output=True, text=True, env=TEST_ENV)
 
 
 if __name__ == "__main__":
