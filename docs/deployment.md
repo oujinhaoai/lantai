@@ -84,7 +84,7 @@ caddy run --config deploy/Caddyfile --adapter caddyfile
 
 Compose 的变量来自仓库外的本地环境文件：`LANTAI_IMAGE`、`LANTAI_SETUP_DIR`、`LANTAI_CONFIG_FILE`、`LANTAI_TLS_DIR`、`LANTAI_DOMAIN`；可选 `LANTAI_HTTPS_PORT` 默认为 443。路径使用绝对路径，`LANTAI_TLS_DIR` 含受客户端信任的 `cert.pem` / `key.pem`，配置采用容器模板。`allowed_origins` 必须精确匹配外部 HTTPS 地址，包括非默认端口。
 
-`LANTAI_SETUP_DIR` 是一个新的私有宿主目录，方便有权限的 NAS 管理员从文件界面读取首次引导码；不能与数据、密钥或 TLS 目录复用，也不能放入同步/公开共享目录。辅助容器需要 CHOWN、FOWNER 和 DAC_READ_SEARCH，只用来准备空目录根及检查现有目录，不访问网络。核心一直以 65532 身份运行且无 capabilities。
+`LANTAI_SETUP_DIR` 是独立的私有宿主目录，不能与数据、密钥或 TLS 目录复用，也不能放入同步/公开共享目录。它挂载到容器 `/var/lib/lantai-setup`；GUI 交付包通常使用项目旁的 `./setup`，不是数据命名卷中的 `db/`。文件界面能否读取其内容取决于 NAS 管理员的实际权限，不保证 GUI 可读。辅助容器需要 CHOWN、FOWNER 和 DAC_READ_SEARCH，只用来准备空目录根及检查现有目录，不访问网络。核心一直以 65532 身份运行且无 capabilities。
 
 ```sh
 docker build -f deploy/Dockerfile -t lantai:local .
@@ -96,9 +96,9 @@ docker compose --env-file /path/to/local.env -f deploy/compose.yaml stop
 
 [Dockerfile 专用忽略文件](../deploy/Dockerfile.dockerignore)仅允许源码和依赖锁文件进入构建上下文，依据 [Docker 官方规则](https://docs.docker.com/build/concepts/context/#filename-and-location)。镜像本身不包含运行数据、主密钥或 TLS 私钥。只有网关同时连接入口 `edge` 桥接网络与内部 `backend`；核心只连接内部网络，且不发布端口。运维采样工具应在核心网络命名空间中访问 loopback，不能把 9090 发布或代理到公网。Scratch 镜像没有 shell/curl，不把宿主 `curl localhost:9090` 误当成容器内检查。
 
-启动后打开 `https://<域名>:<端口>/setup/`。使用 NAS 管理文件界面读取 `LANTAI_SETUP_DIR/setup-code.json` 的 `code` 字段，粘贴到页面，设置用户名、口令、TOTP 并安全保存恢复码，最后确认。文件权限保持 0600、目录 0700；如果 NAS 管理界面无权读取，需管理员提供有权读取文件的操作方式，不能靠写入日志或放宽为公开权限解决。不同 NAS 的 GUI 读取能力仍须在目标设备验收。
+启动后按[首次管理员设置逐步指南](first-setup.md)操作：在有权限的 NAS 文件界面或已有的授权宿主管理工具中读取 `LANTAI_SETUP_DIR/setup-code.json` 的 `code` 字段，打开 `https://<域名>:<端口>/setup/` 填写用户名与口令，再把第二屏的 TOTP 设置密钥手动添加到验证器。页面没有二维码；保存全部恢复码，最后填入验证器当前的 6 位码。文件权限保持 0600、目录 0700；GUI 无权读取时，由管理员提供已有的特权读取方式，不通过日志、公开复制或放宽权限解决。核心镜像没有 shell，不提供容器内 `cat` 读取方法。不同 NAS 的 GUI 能力仍须在目标设备验收。
 
-完成后设置入口永久关闭，核心自动开始正常服务。不需要 profile、交互 run、TTY 或第二次 up。未确认的 TOTP/恢复码只在内存；页面刷新、进程重启、10 分钟超时后重新登记。确认请求丢失时保留已经显示并保存的恢复码，检查服务状态；数据库已提交时重启会完成激活，不再建立管理员。引导码仅在初始化期间有效，成功后尽力删除；残留文件不能重新开启设置。
+完成后设置入口永久关闭，核心自动开始正常服务。不需要 profile、交互 run、TTY 或第二次 up。第二步的未确认登记 10 分钟过期；此时刷新 `/setup/`，用原引导码重新填写第一屏，并替换验证器中未完成登记的旧 TOTP 密钥和整组恢复码，不需要重启或删卷。重复开始至少间隔约 10 秒。确认请求丢失时保留密码、TOTP 和恢复码，先检查状态：`/api/v1/meta` 为 200 且 `/setup/` 为 404 表示正常服务已启动；根路径 404 也正常。若提示 `Administrator saved`，身份已提交，按同一实例的激活故障处理，不再建立管理员；仅在相应运维流程要求时重启。引导码仅在初始化期间有效，成功后尽力删除；残留文件不能重新开启设置。
 
 已有 active 实例跳过首次设置，旧 `init` / `serve` 命令继续支持，并沿用正常启动对权威库缺失的拒绝与派生索引重建规则。初始化中的实例只在五库完整、绑定匹配、迁移已应用时续接，不自动补库、迁移、替换密钥或清卷。极早期建库中断造成不完整库集时停止；先用 `doctor` 检查、备份，再由管理员选择原有离线修复流程。升级前备份，始终复用原数据卷与密钥卷；不要执行 `down -v`。
 

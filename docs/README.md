@@ -12,6 +12,7 @@ The project overview is available in [English](../README.en.md). Engineering doc
 | [公共契约](contracts/README.md) | 标识、摘要与规范化、幂等回执、错误模型、事件、操作阶段、跨模块接口、所有权与版本规则；[错误码表](contracts/error-codes.md)、[所有权](contracts/ownership.md)、[执行与扩展宿主的公共约定](contracts/execution.md)、[实例生命周期与维护屏障](contracts/instance.md)、[身份与授权](contracts/identity.md)与[动作和策略登记](contracts/identity-actions.md) |
 | [共同备份与恢复](contracts/backup-restore.md) | 四库共同点、永久 pin、空目录恢复、凭据轮换与对账 |
 | [单网关部署与运维](deployment.md) | Caddy / 容器 / systemd 模板、内部监听和本机指标 |
+| [首次管理员设置逐步指南](first-setup.md) | rc2 引导码、密码、TOTP 设置密钥、动态码和恢复码；Mac/手机操作、超时与断线处理 |
 | [开发与验证](development.md) | 真实可运行的构建、测试、生成、检查命令与平台验证状态 |
 | [依赖与许可证](dependencies.md) | 锁定的依赖与工具版本、许可证核对与选型依据 |
 | [架构决策记录](adr/README.md) | 本轮基线、被替代的建议与支持边界 |

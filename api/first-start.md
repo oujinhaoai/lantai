@@ -2,6 +2,8 @@
 
 本协议仅在未完成初始化时由 `lantai start` 的专用 handler 提供，所有者为 T08 生命周期与 T01 身份模块。不属于常规业务 REST、公开 SDK 或公众注册。页面与静态资源作为最小安装入口随核心发布，不宣称交付 M3 业务网页或插件宿主。原有本机 `init` 保持兼容。
 
+面向首次使用者的按钮、验证器与错误处理步骤见[首次管理员设置指南](../docs/first-setup.md)。页面没有二维码，TOTP 使用手动密钥添加。
+
 ## 前置与隔离
 
 - 一个核心进程独占数据根锁，业务 gate 保持关闭。网关只发布既有 HTTPS 端口；后端复用 API 监听，不开启传输及运维监听。
@@ -21,9 +23,11 @@
 | `POST /setup/begin` | `name`、`password` | `enrollment_id`、`totp_secret`、`totp_uri`、`recovery_codes`、`expires_in_seconds: 600` |
 | `POST /setup/confirm` | `enrollment_id`、`totp_code`、`recovery_codes_saved: true` | `complete: true` |
 
-用户名、口令、TOTP 沿用身份模块规则。每次 begin 至少间隔 10 秒，并使前一登记失效；同一时刻仅保留一个内存登记。登记 10 分钟过期，最多尝试 5 次 TOTP；重启或页面丢失后重新 begin。身份事务提交前不持久化口令登记、TOTP 种子或恢复码。
+用户名、口令、TOTP 沿用身份模块规则。每次 begin 至少间隔 10 秒，并使前一登记失效；同一时刻仅保留一个内存登记。登记 10 分钟过期，最多尝试 5 次 TOTP。尚未完成设置时，页面丢失或出现 `Enrollment expired; start again` 后刷新 `/setup/`，用原引导码重新 begin，替换验证器中旧的未完成登记密钥及整组恢复码；无需重启、重装或删卷。身份事务提交前不持久化口令登记、TOTP 种子或恢复码。
 
 网页先展示该批恢复码，要求用户保存后再确认。身份模块将同一批码的校验值、管理员、口令和加密 TOTP 在一个主库事务提交，并永久关闭 bootstrap。确认响应丢失不会丢失用户预先保存的恢复码。提交后 handler 立即关闭，即使激活或清理失败也不能再次创建管理员；重启核验现有密钥并完成激活。
+
+确认断线后先保留原密码、TOTP 与恢复码并检查状态：正常服务 `/api/v1/meta` 为 200 且 `/setup/` 为 404；根路径 404 是预期行为。只有 setup 404、meta 不可用时不能推断服务全就绪；`Administrator saved` 明确表示身份已提交，需排查同一实例的激活，不能指导用户重开初始化。
 
 ## 重启与升级
 

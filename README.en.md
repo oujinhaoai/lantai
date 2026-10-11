@@ -33,6 +33,7 @@ The web app, resident extension instances, third-party web plugins, and automati
 - [Architecture and top-level layout](docs/architecture.md) — Chinese
 - [Shared contracts](docs/contracts/README.md) — Chinese
 - [Common-point backup and restoration](docs/contracts/backup-restore.md) / [Gateway deployment templates](docs/deployment.md) — Chinese
+- [First administrator setup, step by step](docs/first-setup.md) — Chinese: locate the setup code, add TOTP on Mac or phone, save recovery codes, and handle expiry or a lost confirmation response.
 - [Release artifacts](docs/release-artifacts.md) — Chinese: maintainers manually build images, six-platform binaries and checksums from an exact commit with successful main CI; CLI/MCP accept a client-scoped private CA through `--ca-file`.
 - [Development and verification commands](docs/development.md) — Chinese
 - [Commit process-kill, recovery and native file-fault drivers](docs/testing/commit-fault-matrix.md)
