@@ -200,13 +200,21 @@ def main():
 
     def ops(cid, label):
         pid = str(inspect(cid)['State']['Pid'])
-        values = {}
-        for endpoint in ['healthz', 'readyz']:
-            text = run(['sudo', 'nsenter', '--target', pid, '--net', '--', 'curl', '--noproxy', '*',
-                        '--max-time', '8', '--silent', '--show-error', '--fail', 'http://127.0.0.1:9090/' + endpoint])
-            values[endpoint] = json.loads(text)
-        check(label + ' health and readiness', values['healthz']['live'] and values['readyz']['ready']
-              and values['readyz']['business_ready'] and values['readyz']['reason_codes'] == [], values=values)
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
+            values = {}
+            for endpoint in ['healthz', 'readyz']:
+                p = subprocess.run(['sudo', 'nsenter', '--target', pid, '--net', '--', 'curl', '--noproxy', '*',
+                    '--max-time', '8', '--silent', '--show-error', '--fail', 'http://127.0.0.1:9090/' + endpoint],
+                    capture_output=True, text=True, env=ENV)
+                if p.returncode == 0:
+                    values[endpoint] = json.loads(p.stdout)
+            if (values.get('healthz', {}).get('live') and values.get('readyz', {}).get('ready')
+                    and values['readyz']['business_ready'] and values['readyz']['reason_codes'] == []):
+                check(label + ' health and readiness', values=values)
+                return
+            time.sleep(0.5)
+        raise AssertionError(label + ' health/readiness did not converge')
 
     def snapshot(cid, name):
         root = work / ('snapshot-' + name)
