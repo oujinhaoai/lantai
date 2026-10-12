@@ -125,13 +125,13 @@ def main():
     tls.mkdir(mode=0o700)
     setup.mkdir(mode=0o700)
     run(['openssl', 'req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
-         '-days', '1', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1',
+         '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost',
          '-keyout', str(tls / 'key.pem'), '-out', str(tls / 'cert.pem')])
     (tls / 'key.pem').chmod(0o600)
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
-    origin = 'https://127.0.0.1:' + str(port)
+    origin = 'https://localhost:' + str(port)
     config = work / 'config.yaml'
     config.write_text((ROOT / 'deploy/config.container.yaml').read_text().replace('https://library.example', origin)
                       .replace('min_free_bytes: 5368709120', 'min_free_bytes: 1048576'))
@@ -150,7 +150,7 @@ def main():
     def select(image):
         env_file.write_text('LANTAI_IMAGE=' + image + '\nLANTAI_SETUP_DIR=' + str(setup) +
             '\nLANTAI_CONFIG_FILE=' + str(config) + '\nLANTAI_TLS_DIR=' + str(tls) +
-            '\nLANTAI_DOMAIN=127.0.0.1\nLANTAI_HTTPS_PORT=' + str(port) + '\n')
+            '\nLANTAI_DOMAIN=localhost\nLANTAI_HTTPS_PORT=' + str(port) + '\n')
         env_file.chmod(0o600)
 
     context = ssl.create_default_context(cafile=str(tls / 'cert.pem'))
@@ -158,7 +158,7 @@ def main():
     secrets_in_memory = []
 
     def request(path, payload=None, credential=None, idempotency_key=None):
-        c = http.client.HTTPSConnection('127.0.0.1', port, context=context, timeout=8)
+        c = http.client.HTTPSConnection('localhost', port, context=context, timeout=8)
         headers = {'Origin': origin}
         if credential:
             headers['Authorization'] = 'Bearer ' + credential
@@ -242,6 +242,12 @@ def main():
         RESULT['phase'] = 'start rc2 and seed synthetic resource'
         select(old['core_image']['tag'])
         parsed_old = json.loads(run(compose + ['config', '--format', 'json']))
+        alternate = list(compose)
+        alternate[3] = project_name + '-other'
+        alternate_config = json.loads(run(alternate + ['config', '--format', 'json']))
+        check('changing the project changes default volume identities',
+              parsed_old['volumes']['lantai_data']['name'] != alternate_config['volumes']['lantai_data']['name']
+              and parsed_old['volumes']['lantai_secrets']['name'] != alternate_config['volumes']['lantai_secrets']['name'])
         # Also validate the legacy bind-directory configuration without starting it.
         legacy_env = dict(ENV, LANTAI_DATA_DIR=str(work / 'legacy-data'), LANTAI_SECRETS_DIR=str(work / 'legacy-keys'))
         legacy = json.loads(subprocess.check_output(compose + ['config', '--format', 'json'], env=legacy_env, text=True))
