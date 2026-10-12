@@ -176,15 +176,17 @@ def main():
 
     def wait(path, status):
         deadline = time.monotonic() + 75
+        last = 'no response'
         while time.monotonic() < deadline:
             try:
                 r = request(path)
+                last = 'HTTP ' + str(r[0])
                 if r[0] == status:
                     return r[1]
-            except (OSError, http.client.HTTPException):
-                pass
+            except (OSError, http.client.HTTPException) as error:
+                last = type(error).__name__ + ': ' + str(error)
             time.sleep(0.3)
-        raise AssertionError('Expected HTTP ' + str(status) + ' for ' + path)
+        raise AssertionError('Expected HTTP ' + str(status) + ' for ' + path + '; last ' + last)
 
     def cli(binary, *args):
         output = run([str(binary), *args, '--server', origin, '--ca-file', str(tls / 'cert.pem'),
@@ -248,7 +250,16 @@ def main():
             check(service + ' legacy bind overrides retained', v['/var/lib/lantai']['source'] == str(work / 'legacy-data')
                   and v['/var/lib/lantai-secrets']['source'] == str(work / 'legacy-keys'))
         run(compose + ['up', '-d'])
-        wait('/setup/', 200)
+        try:
+            wait('/setup/', 200)
+        except Exception:
+            # Before enrollment there are no user passwords, factors or sessions.
+            # Still filter the synthetic key and all long token-like values.
+            logs = subprocess.run(compose + ['logs', '--no-color', '--tail', '35'], capture_output=True, text=True, env=ENV)
+            diagnostic = helper.redact_startup_log(logs.stdout + logs.stderr, (tls / 'key.pem').read_text())
+            (OUT / 'startup-diagnostic.redacted.txt').write_text(diagnostic[:14000])
+            print(diagnostic[:14000], flush=True)
+            raise
         cid = run(compose + ['ps', '-q', 'core'])
         check('rc2 actual image ID', inspect(cid)['Image'] == old['core_image']['id'])
         claim = work / 'claim.json'
