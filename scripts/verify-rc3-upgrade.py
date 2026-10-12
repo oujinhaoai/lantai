@@ -313,7 +313,7 @@ def main():
         membership = json.loads(b)
         intent = {'action': 'identity.grant_project_role', 'command': {
             'project_id': project['project_id'], 'expected_revision': membership['revision'],
-            'principal_id': who['principal_id'], 'role': 'owner', 'grant': True}}
+            'principal_id': who['principal']['principal_id'], 'role': 'owner', 'grant': True}}
         s, b = request('/api/v1/identity/challenges', intent, token)
         check('synthetic project owner challenge', s == 201)
         challenge = json.loads(b)
@@ -353,7 +353,7 @@ def main():
         check('same data and key volume identities', mounts(cid) == old_mounts)
         check('same instance identity', current_meta['instance_id'] == meta['instance_id'])
         check('setup remains closed after upgrade', request('/setup/')[0] == 404)
-        check('same administrator session survives', cli(new_cli, 'whoami')['principal_id'] == who['principal_id'])
+        check('same administrator session survives', cli(new_cli, 'whoami')['principal']['principal_id'] == who['principal']['principal_id'])
         ops(cid, 'rc3')
         cli(new_cli, 'show', '--asset', receipt['asset_id'], '--version', receipt['version_id'], '--view', 'full')
         output = work / 'download-new'
@@ -377,7 +377,7 @@ def main():
         check('rollback uses retained rc2 image', inspect(cid)['Image'] == old['core_image']['id'])
         check('rollback keeps volumes and instance', mounts(cid) == old_mounts and rolled['instance_id'] == meta['instance_id'])
         check('rollback does not reopen setup', request('/setup/')[0] == 404)
-        check('administrator unchanged after rollback', cli(old_cli, 'whoami')['principal_id'] == who['principal_id'])
+        check('administrator unchanged after rollback', cli(old_cli, 'whoami')['principal']['principal_id'] == who['principal']['principal_id'])
         ops(cid, 'rollback rc2')
         output = work / 'download-rollback'
         output.mkdir()
