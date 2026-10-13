@@ -28,7 +28,7 @@ async function main() {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const report = { csp, checks: [], screenshots: [] };
+  const report = { csp, checks: [], screenshots: [], screenshotHarnessWarnings: [] };
   const browsers = [];
   try {
     for (const device of [
@@ -41,8 +41,17 @@ async function main() {
       const context = await browser.newContext({ viewport: device.viewport, isMobile: !!device.isMobile, hasTouch: !!device.hasTouch });
       const page = await context.newPage();
       const errors = [];
+      let capturing = false;
       page.on("pageerror", (error) => errors.push(error.message));
-      page.on("console", (message) => { if (message.type() === "error") errors.push(message.text() + " " + message.location().url); });
+      page.on("console", (message) => {
+        if (message.type() !== "error") return;
+        // Playwright WebKit screenshots inject a temporary `body {}` style to
+        // sync animations. CSP correctly rejects it. Never ignore this message
+        // during navigation or page interaction, or any other console error.
+        if (capturing && device.engine === webkit && message.text().startsWith("Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline'")) {
+          report.screenshotHarnessWarnings.push({ device: device.name, message: message.text() });
+        } else errors.push(message.text() + " " + message.location().url);
+      });
       page.on("request", (request) => assert.ok(request.url().startsWith(origin + "/"), "external request"));
       for (const name of pages) {
         console.log(`${device.name}: ${name}`);
@@ -51,7 +60,6 @@ async function main() {
         await page.locator(".search:not([hidden])").waitFor();
         assert.equal(await page.locator("h1").count(), 1);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${device.name}: overflow ${name}`);
-        if (name === "accounts.html") await page.screenshot({ path: path.join(output, `${device.name}-accounts.png`), fullPage: true });
         // Legacy mode keeps axe in this same-origin document rather than adding
         // a finish iframe, which the production frame-ancestors policy forbids.
         const axe = await Promise.race([
@@ -62,9 +70,6 @@ async function main() {
         report.checks.push({ device: device.name, page: name, http: 200, overflow: false, axeViolations: 0 });
       }
       await page.goto(`${origin}/help/index.html`);
-      const indexShot = `${device.name}-index.png`;
-      await page.screenshot({ path: path.join(output, indexShot), fullPage: true });
-      report.screenshots.push(indexShot);
       // Touch WebKit does not tab through links by default. Verify the native
       // anchor's keyboard activation there; desktop also verifies Tab order.
       if (device.engine === chromium) await page.keyboard.press("Tab");
@@ -96,11 +101,16 @@ async function main() {
         await page.keyboard.press("Enter");
         await page.waitForURL("**/install.html");
       }
-      await page.goto(`${origin}/help/setup.html`);
-      const setupShot = `${device.name}-setup.png`;
-      await page.screenshot({ path: path.join(output, setupShot), fullPage: true });
-      report.screenshots.push(setupShot);
       assert.deepEqual(errors, [], `${device.name}: script/CSP errors`);
+      for (const name of ["index", "setup"]) {
+        await page.goto(`${origin}/help/${name}.html`);
+        const shot = `${device.name}-${name}.png`;
+        capturing = true;
+        try { await page.screenshot({ path: path.join(output, shot), fullPage: true, caret: "initial" }); }
+        finally { capturing = false; }
+        report.screenshots.push(shot);
+      }
+      assert.deepEqual(errors, [], `${device.name}: screenshot errors`);
       await context.close();
       await browser.close();
     }

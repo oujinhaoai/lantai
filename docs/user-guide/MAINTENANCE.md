@@ -31,7 +31,9 @@ scripts/check.sh
 node docs/user-guide/browser-check.cjs web/node_modules /tmp/lantai-help-browser
 ```
 
-浏览器脚本只监听随机本机回环端口，发送与主站一致的 CSP，测试九页在 Chromium 桌面、WebKit 平板/手机的状态、溢出、WCAG 2/2.1 A/AA axe 检查、搜索、清空、键盘与无 JS 的 320px 阅读。结果及合成截图写入指定目录。这里只测试同源文档，因此 axe 使用同源 legacy 模式，无需添加测试 iframe或降低 CSP；自动扫描不能替代人工阅读、屏幕阅读器和真实设备验证。
+浏览器脚本只监听随机本机回环端口，发送与主站一致的 CSP，测试九页在 Chromium 桌面、WebKit 平板/手机的状态、溢出、WCAG 2/2.1 A/AA axe 检查、搜索、清空、键盘与无 JS 的 320px 阅读。桌面验证 Tab 顺序；触屏 WebKit 验证聚焦后的键盘激活。结果及合成截图写入指定目录。这里只测试同源文档，因此 axe 使用同源 legacy 模式，无需添加测试 iframe 或降低 CSP；自动扫描不能替代人工阅读、屏幕阅读器和真实设备验证。
+
+WebKit 的 Playwright 截图过程会注入临时 `body {}` 样式同步动画，该样式被 CSP 拒绝；脚本仅在截图调用期间单独记录这一精确提示为 `screenshotHarnessWarnings`，不忽略导航/交互期间的相同错误或其他控制台错误。页面 CSS 仍从外置文件加载，不放宽 CSP。
 
 合并入前端后还须在 Vite 产物及真实网关下重跑，确认主站入口有文件时出现、无文件时隐藏，以及 `/help/` 不泄露实例私有数据。该分支的页面测试不证明主应用认证或目标 NAS 的部署成功。
 

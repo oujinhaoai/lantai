@@ -10,7 +10,7 @@
   --border: #dce3df;
 }
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; overflow-wrap: anywhere; }
 a { color: var(--accent); text-underline-offset: .2em; overflow-wrap: anywhere; }
 a:hover { color: #122f2a; }
 button, input, summary { font: inherit; }
