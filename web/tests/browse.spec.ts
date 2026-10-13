@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import AxeBuilder from "@axe-core/playwright";
 
 async function control(request: APIRequestContext, action: string) {
   const reply = await request.post(`/__fixture/${action}`, {
@@ -190,6 +191,22 @@ test("loading, server failure, retry and late response after navigation", async 
   page,
   request,
 }, info) => {
+  await page.route("**/api/v1/whoami", async (route) => {
+    await route.fulfill({
+      status: 503,
+      json: { error: { code: "SERVER_ERROR" } },
+    });
+  });
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "暂时无法连接兰台" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "打开受保护的设置页" }),
+  ).toHaveAttribute("href", "/setup/");
+  await page.unroute("**/api/v1/whoami");
+  await page.getByRole("button", { name: "重试" }).click();
+  await expect(page.getByRole("heading", { name: "登录兰台" })).toBeVisible();
   await login(page, request);
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -343,4 +360,40 @@ test("responsive portrait/landscape, long filenames, touch targets and keyboard 
   await expect(
     page.getByRole("heading", { name: "声音素材索引" }),
   ).toBeVisible();
+});
+
+test("WCAG accessibility for login, home, search and fixed detail", async ({
+  page,
+  request,
+}) => {
+  const audit = async () => {
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(
+      result.violations.map((v) => ({
+        id: v.id,
+        nodes: v.nodes.map((n) => ({
+          target: n.target,
+          failure: n.failureSummary,
+        })),
+      })),
+    ).toEqual([]);
+  };
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "登录兰台" })).toBeVisible();
+  await audit();
+  await login(page, request);
+  await expect(page.locator(".asset-list li")).toHaveCount(6);
+  await audit();
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: "资源库" })
+    .click();
+  await expect(page.locator(".asset-list li")).toHaveCount(24);
+  await audit();
+  await page.locator(".asset-list a").first().click();
+  await expect(page.getByRole("heading", { name: "著录信息" })).toBeVisible();
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+  await audit();
 });

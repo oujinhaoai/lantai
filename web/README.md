@@ -28,7 +28,7 @@ npx playwright install chromium webkit
 npm test
 ```
 
-测试自动启动 Go TestWebBrowserFixture，使用临时真实实例、SQLite、文件存储、随机主密钥、合成管理员和资源；不读取实际实例配置或凭据。Chrome、手机 WebKit 与平板 WebKit 覆盖登录、Cookie、CSRF、中文搜索、分页、详情、导航、空数据、撤权、过期、失败、重复提交和迟到响应，含横竖屏、长文件名、触控目标与键盘焦点。自签名 TLS 仅测试上下文接受；不修改系统证书信任。测试结束关闭实例。
+测试自动启动 Go TestWebBrowserFixture，使用临时真实实例、SQLite、文件存储、随机主密钥、合成管理员和资源；不读取实际实例配置或凭据。Chrome、手机 WebKit 与平板 WebKit 覆盖登录、Cookie、CSRF、中文搜索、分页、详情、导航、空数据、撤权、过期、失败、重复提交和迟到响应，含横竖屏、长文件名、触控目标与键盘焦点，另以 axe 扫描登录/首页/检索/详情的 WCAG 2.1 A/AA 自动规则。自动扫描不替代屏幕阅读器和真实设备人工验收。自签名 TLS 仅测试上下文接受；不修改系统证书信任。测试结束关闭实例。
 
 独立保留本机预览：
 

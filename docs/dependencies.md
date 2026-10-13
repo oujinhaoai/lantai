@@ -89,6 +89,7 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 | eslint / @eslint/js | 10.12.0 / 10.0.1 | 静态检查 | MIT |
 | typescript-eslint | 8.71.2 | TypeScript lint | MIT |
 | eslint-plugin-react-hooks | 7.1.1 | Hooks 检查 | MIT |
+| @axe-core/playwright | 4.13.0 | 浏览器 WCAG 自动扫描（仅开发测试） | MPL-2.0 |
 | prettier | 3.9.10 | 前端源码格式化 | MIT |
 | @types/node | 26.6.5 | 构建工具类型 | MIT |
 | @types/react / @types/react-dom | 19.3.0 | React 类型 | MIT |

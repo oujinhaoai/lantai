@@ -1154,6 +1154,9 @@ function App() {
             setAttempt((n) => n + 1);
           }}
         />
+        <p className="setup-help">
+          首次安装？<a href="/setup/">打开受保护的设置页</a>
+        </p>
       </main>
     );
   if (
