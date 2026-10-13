@@ -38,7 +38,9 @@ jobs:
       - name: Setup page sensitive-state regression
         run: node scripts/test-first-start-ui.cjs
       - name: Web install and build
-        run: npm ci && npm run lint && npm run build
+        run: |
+          if [ -f ../docs/user-guide/build.py ]; then python3 ../docs/user-guide/build.py --check; fi
+          npm ci && npm run lint && npm run build
         working-directory: web
       - name: Web test browsers
         run: npx playwright install --with-deps chromium webkit

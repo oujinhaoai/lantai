@@ -153,6 +153,9 @@ export default function TextPreview({
         </p>
       )}
       <p className="subtle">
+        源码区可单独横向滚动；复制仅包含当前预览显示的文本。
+      </p>
+      <p className="subtle">
         只读 UTF-8 文本，不编辑或运行代码。HTML、SVG 等仅显示源码。
       </p>
     </div>

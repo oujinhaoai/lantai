@@ -105,7 +105,7 @@ func TestWebBrowserFixture(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		rights := manifest.Rights{Usage: "production", License: "CC0-1.0", RedistributeRaw: true, Sensitivity: "normal"}
+		rights := manifest.Rights{Usage: "production", License: "CC0-1.0", RedistributeRaw: name != "restricted", Sensitivity: "normal"}
 		v, err := e.catalog.CommitVersion(t.Context(), catalog.VersionRequest{Who: e.admin.Context, IdempotencyKey: e.key(), UploadID: u.UploadID, Slug: name, Content: catalog.ContentInput{AssetType: kind, Rights: &rights, Files: inputs}})
 		if err != nil {
 			t.Fatal(err)
@@ -115,7 +115,7 @@ func TestWebBrowserFixture(t *testing.T) {
 	for _, item := range []struct {
 		name, file string
 		kind       manifest.AssetType
-	}{{"image", "sample.png", manifest.TypeImage}, {"audio", "sample.wav", manifest.TypeAudio}, {"video", "sample.mp4", manifest.TypeVideo}} {
+	}{{"image", "sample.png", manifest.TypeImage}, {"audio", "sample.wav", manifest.TypeAudio}, {"video", "sample.mp4", manifest.TypeVideo}, {"restricted", "sample.png", manifest.TypeImage}} {
 		body, err := os.ReadFile(filepath.Join("../fixtures/media", item.file))
 		if err != nil {
 			t.Fatal(err)
@@ -131,6 +131,7 @@ func TestWebBrowserFixture(t *testing.T) {
 		"config.yaml":   []byte("name: 合成项目\nenabled: true\n"),
 		"config.toml":   []byte("name = \"合成项目\"\nenabled = true\n"),
 		"long.txt":      []byte(strings.Repeat("这是一行可安全阅读的合成文本。\n", 15000)),
+		"boundary.txt":  append(bytes.Repeat([]byte("a"), 65535), []byte("中\n")...),
 		"unknown.txt":   {0xff, 0xfe, 0x80},
 		"disguised.txt": []byte("PK synthetic renamed archive, never shown"),
 		"archive.zip":   []byte("PK synthetic archive, never expanded"),

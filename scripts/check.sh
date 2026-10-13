@@ -62,6 +62,11 @@ fi
 step "构建 lantai"
 go build -o /dev/null ./cmd/lantai
 
+if [ -f docs/user-guide/build.py ]; then
+  step "帮助页生成物无漂移"
+  python3 docs/user-guide/build.py --check
+fi
+
 step "Web 依赖、lint、TypeScript 与生产构建（Node.js 24）"
 npm ci --prefix web
 npm run lint --prefix web

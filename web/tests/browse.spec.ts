@@ -130,6 +130,7 @@ test("Chinese browse, project isolation, real pagination, fixed detail and histo
   await expect(
     page.getByRole("heading", { name: "镜头语言与场景参考" }),
   ).toBeVisible();
+  await page.getByText("查看文件清单与 SHA-256", { exact: true }).click();
   await expect(page.getByRole("cell", { name: "content.txt" })).toBeVisible();
   await shot(page, info, "detail");
   await page.goBack();
@@ -324,6 +325,7 @@ test("responsive portrait/landscape, long filenames, touch targets and keyboard 
   await page.getByLabel("搜索资源").fill("声音素材");
   await page.getByRole("button", { name: "搜索", exact: true }).click();
   await page.getByRole("link", { name: /声音素材索引/ }).click();
+  await page.getByText("查看文件清单与 SHA-256", { exact: true }).click();
   const longFile = page.getByRole("cell", {
     name: /very-long-multilingual-filename/,
   });
@@ -393,6 +395,8 @@ test("WCAG accessibility for login, home, search and fixed detail", async ({
   await expect(page.locator(".asset-list li")).toHaveCount(24);
   await audit();
   await page.locator(".asset-list a").first().click();
+  await page.getByText("著录与技术详情", { exact: true }).click();
+  await page.getByText("查看文件清单与 SHA-256", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "著录信息" })).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await audit();

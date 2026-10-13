@@ -668,62 +668,13 @@ function AssetDetail({
             >
               {asset.description.summary || "暂无摘要。"}
             </Heading>
-            <div className="detail-grid">
-              <section className="panel">
-                <h2>著录信息</h2>
-                <dl>
-                  <dt>资源类型</dt>
-                  <dd>{typeNames[asset.asset_type] || asset.asset_type}</dd>
-                  <dt>资源路径名</dt>
-                  <dd>{asset.description.slug}</dd>
-                  <dt>著录修订</dt>
-                  <dd>r{asset.description.revision}</dd>
-                  <dt>标签</dt>
-                  <dd className="tags">
-                    {asset.description.tags?.length
-                      ? asset.description.tags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))
-                      : "暂无标签"}
-                  </dd>
-                  <dt>主题</dt>
-                  <dd>
-                    {asset.description.subjects?.join("、") || "暂无主题"}
-                  </dd>
-                  <dt>资源标识</dt>
-                  <dd>
-                    <code>{asset.asset_id}</code>
-                  </dd>
-                </dl>
-              </section>
-              <section className="panel">
+            <section>
+              <div className="section-head">
                 <h2>
                   当前固定版本{" "}
                   <span className="badge">v{asset.latest.version_number}</span>
                 </h2>
-                <dl>
-                  <dt>提交时间</dt>
-                  <dd>{date(asset.latest.committed_at)}</dd>
-                  <dt>版本标识</dt>
-                  <dd>
-                    <code>{asset.latest.version_id}</code>
-                  </dd>
-                  <dt>永久引用</dt>
-                  <dd>
-                    <code>{asset.latest.uri}</code>
-                  </dd>
-                  <dt>清单摘要</dt>
-                  <dd>
-                    <code>{asset.latest.manifest_digest}</code>
-                  </dd>
-                </dl>
-                <p className="subtle">版本内容不可变，著录修订独立记录。</p>
-              </section>
-            </div>
-            <section>
-              <div className="section-head">
-                <h2>版本文件</h2>
-                <span>当前固定版本的清单</span>
+                <span>{date(asset.latest.committed_at)}</span>
               </div>
               <Resource<ExactVersion>
                 path={`/api/v1/assets/${encodeURIComponent(assetID)}/versions/${asset.latest.version_id}?view=full`}
@@ -743,34 +694,37 @@ function AssetDetail({
                       />
                     )}
                     {exact.manifest?.content.files.length ? (
-                      <div className="table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th scope="col">文件路径</th>
-                              <th scope="col">用途</th>
-                              <th scope="col">大小</th>
-                              <th scope="col">SHA-256</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {exact.manifest.content.files.map((file) => (
-                              <tr key={file.path}>
-                                <td data-label="文件路径">{file.path}</td>
-                                <td data-label="用途">
-                                  {file.role === "primary"
-                                    ? "主文件"
-                                    : file.role}
-                                </td>
-                                <td data-label="大小">{bytes(file.size)}</td>
-                                <td data-label="SHA-256">
-                                  <code>{file.sha256}</code>
-                                </td>
+                      <details className="file-manifest">
+                        <summary>查看文件清单与 SHA-256</summary>
+                        <div className="table-scroll">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th scope="col">文件路径</th>
+                                <th scope="col">用途</th>
+                                <th scope="col">大小</th>
+                                <th scope="col">SHA-256</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody>
+                              {exact.manifest.content.files.map((file) => (
+                                <tr key={file.path}>
+                                  <td data-label="文件路径">{file.path}</td>
+                                  <td data-label="用途">
+                                    {file.role === "primary"
+                                      ? "主文件"
+                                      : file.role}
+                                  </td>
+                                  <td data-label="大小">{bytes(file.size)}</td>
+                                  <td data-label="SHA-256">
+                                    <code>{file.sha256}</code>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
                     ) : (
                       <Empty title="没有可显示的文件清单">
                         此版本未返回文件清单。
@@ -780,6 +734,63 @@ function AssetDetail({
                 )}
               </Resource>
             </section>
+            <details className="detail-metadata">
+              <summary>著录与技术详情</summary>
+              <div className="detail-grid">
+                <section className="panel">
+                  <h2>著录信息</h2>
+                  <dl>
+                    <dt>资源类型</dt>
+                    <dd>{typeNames[asset.asset_type] || asset.asset_type}</dd>
+                    <dt>资源路径名</dt>
+                    <dd>{asset.description.slug}</dd>
+                    <dt>著录修订</dt>
+                    <dd>r{asset.description.revision}</dd>
+                    <dt>标签</dt>
+                    <dd className="tags">
+                      {asset.description.tags?.length
+                        ? asset.description.tags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))
+                        : "暂无标签"}
+                    </dd>
+                    <dt>主题</dt>
+                    <dd>
+                      {asset.description.subjects?.join("、") || "暂无主题"}
+                    </dd>
+                    <dt>资源标识</dt>
+                    <dd>
+                      <code>{asset.asset_id}</code>
+                    </dd>
+                  </dl>
+                </section>
+                <section className="panel">
+                  <h2>
+                    当前固定版本{" "}
+                    <span className="badge">
+                      v{asset.latest.version_number}
+                    </span>
+                  </h2>
+                  <dl>
+                    <dt>提交时间</dt>
+                    <dd>{date(asset.latest.committed_at)}</dd>
+                    <dt>版本标识</dt>
+                    <dd>
+                      <code>{asset.latest.version_id}</code>
+                    </dd>
+                    <dt>永久引用</dt>
+                    <dd>
+                      <code>{asset.latest.uri}</code>
+                    </dd>
+                    <dt>清单摘要</dt>
+                    <dd>
+                      <code>{asset.latest.manifest_digest}</code>
+                    </dd>
+                  </dl>
+                  <p className="subtle">版本内容不可变，著录修订独立记录。</p>
+                </section>
+              </div>
+            </details>
           </>
         )}
       </Resource>
@@ -866,6 +877,11 @@ function Workspace({
               {label}
             </a>
           ))}
+          {helpAvailable && (
+            <a className="help-link" href="/help/">
+              使用帮助
+            </a>
+          )}
         </nav>
         <div className="sidebar-bottom">
           <Icon kind="lock" size={17} />
@@ -882,11 +898,6 @@ function Workspace({
             素材档案库 <span className="divider">/</span>{" "}
             {nav.find((n) => n[0] === section)?.[2]}
           </span>
-          {helpAvailable && (
-            <a className="help-link" href="/help/">
-              使用帮助
-            </a>
-          )}
           <div className="account">
             <span className="avatar">
               {(who.principal.display_name || who.principal.name).slice(0, 1)}

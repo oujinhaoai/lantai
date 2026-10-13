@@ -1390,3 +1390,84 @@ select {
     min-height: 44px;
   }
 }
+
+/* Keep reading first; long immutable references remain available on demand. */
+.detail-metadata,
+.file-manifest {
+  margin: 24px 0;
+  min-width: 0;
+}
+.detail-metadata > summary,
+.file-manifest > summary {
+  cursor: pointer;
+  color: var(--green);
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 600;
+}
+.detail-metadata .detail-grid {
+  margin-top: 12px;
+}
+.detail-metadata .panel,
+.detail-metadata dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .detail-metadata .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .app-shell {
+    position: relative;
+  }
+  .sidebar {
+    padding: 12px 20px 0;
+  }
+  .brand {
+    height: 40px;
+    width: fit-content;
+  }
+  nav {
+    margin: 12px -20px 0;
+    padding: 0 12px;
+    gap: 4px;
+    border-top: 1px solid var(--line);
+  }
+  nav a {
+    padding: 0 6px;
+  }
+  .topbar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 64px;
+    padding: 0 20px;
+    border: 0;
+    background: transparent;
+  }
+  .account {
+    gap: 4px;
+  }
+  .account .avatar {
+    display: none;
+  }
+  .account > span:not(.avatar) {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .account .text-button {
+    padding-left: 8px;
+    padding-right: 0;
+  }
+  main {
+    padding-top: 18px;
+  }
+  .preview-panel {
+    padding: 16px;
+    margin-top: 12px;
+  }
+}

@@ -60,12 +60,12 @@ LANTAI_WEB_REUSE=1 npm test
 
 帮助任务只维护 `docs/user-guide/` 与 `web/public/help/`；主应用拥有认证、布局、导航和网关。入口为普通静态路径 `/help/`，资源使用相对路径，不依赖 React、Cookie 或业务 API。现有 CSP 不接受内联脚本/样式，建议 `index.html` 配合同目录外置 CSS；不放宽主应用安全策略。
 
-构建时只有检测到 `web/public/help/index.html` 才显示“使用帮助”链接；帮助文件尚未合并时不展示死链接。Vite 将 public/help 原样产出到 dist/help，Caddy 显式开放 /help 与 /help/*，不放开未知 API 或运维路径。帮助内容合并后需重新构建并统一验收导航、CSP、资源及三设备布局，不能以本次预留接线声明帮助内容已发布。
+构建时只有检测到 `web/public/help/index.html` 才显示“使用帮助”链接；帮助文件尚未合并时不展示死链接。Vite 将 public/help 原样产出到 dist/help，Caddy 显式开放 /help 与 /help/*，不放开未知 API 或运维路径。帮助内容合并后，按 `python3 docs/user-guide/build.py --check` → `npm run lint --prefix web` → `npm run build --prefix web` → 真实 Caddy 联合验收的顺序检查。`scripts/check.sh` 在帮助构建脚本存在时先校验生成物，再执行 Web lint/build。联合验收需覆盖帮助存在/缺失、无 JavaScript、主应用条件入口、CSP、资源及 API/运维路由隔离，不能以本次预留接线声明帮助内容已发布。
 
 ## 只读文件展示
 
 - 列表只显示类型图标与著录摘要，不自动请求原件或缩略图。详情中选择文件后显式点击预览，使用现有 `archive_review` 读取用途；下载单独申请 `raw_export`。服务端用途限制仍可拒绝请求，不自动换用途绕过。
-- PNG/JPEG/GIF/WebP/AVIF 使用原生图片元素，原图大于 16 MiB 时仅提示和下载。MP3/WAV/OGG/M4A/AAC/FLAC 与 MP4/WebM/MOV/M4V/OGV 使用原生音视频控件，`preload=metadata`、不自动播放；具体编码由浏览器支持，失败显示降级提示，不自动转码。已选原件按需 Range，列表没有全量预取。
+- PNG/JPEG/GIF/WebP/AVIF 使用原生图片元素，原图大于 16 MiB 时仅提示和下载。MP3/WAV/OGG/M4A/AAC/FLAC 与 MP4/WebM/MOV/M4V/OGV 使用原生音视频控件，`preload=metadata`、不自动播放；具体编码由浏览器支持，失败显示降级提示，不自动转码。列表不请求原件。`preload=metadata` 只是浏览器提示，原生播放器可能自行读取更多甚至整个文件；当前未验证大媒体播放前的传输量或取消点，也不保证音视频下载字节上限。独立 Range 测试只验证服务端支持授权分段读取。
 - txt/md、py/go/js/ts/html/css 等代码、json/yaml/toml/ini 等配置只读显示。UTF-8 严格解码；首次最多 64 KiB，手动分段扩展至 256 KiB，最多显示 2000 行，截断明确提示。较长文本停止高亮以保持响应，源码始终可选取与复制。
 - Markdown 使用 react-markdown 默认安全 AST 渲染并禁用 HTML；图片与链接仅作为文字显示，不自动请求任何内嵌资源。提供阅读/源码切换。代码高亮使用 lowlight AST 映射为 React 文本节点，不注入 HTML。HTML/SVG 只显示源码，不执行或嵌入。
 - ZIP/RAR/7z/TAR 等压缩包、PDF/Office 与其他未支持的二进制仅显示基础元数据与提示，不解压、不执行、不做十六进制展示。误命名为文本的压缩签名、控制字节和未知编码同样降级。

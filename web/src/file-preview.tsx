@@ -465,8 +465,8 @@ function Viewer({
       )}
       {state.url && (kind === "video" || kind === "audio") && (
         <p className="subtle">
-          点击播放后按需传输，不自动播放；能否解码取决于浏览器。新 Range
-          请求继续校验权限，关闭预览即可停止。
+          不自动播放；浏览器可能为读取媒体信息加载较多数据，能否解码取决于浏览器。
+          新请求继续校验权限，关闭预览可取消后续加载。
         </p>
       )}
       {state.text !== undefined && (

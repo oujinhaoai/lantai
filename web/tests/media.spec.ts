@@ -63,6 +63,16 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
   });
   await open(page, assets.image);
   expect(grants).toBe(0);
+  await expect(page.locator(".detail-metadata")).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  expect((await page.getByLabel("选择版本文件").boundingBox())!.y).toBeLessThan(
+    page.viewportSize()!.height - 100,
+  );
+  await page.getByText("著录与技术详情", { exact: true }).click();
+  await expect(page.locator(".detail-metadata")).toHaveAttribute("open", "");
+  await page.getByText("著录与技术详情", { exact: true }).click();
   expect(
     (await page.getByLabel("选择版本文件").boundingBox())!.height,
   ).toBeGreaterThanOrEqual(44);
@@ -213,13 +223,89 @@ test("text ranges are bounded, explicitly truncated and expanded only on demand"
     page.getByText("仅预览前 128 KiB；后续内容已截断。"),
   ).toBeVisible();
   expect(ranges.at(-1)).toBe("bytes=0-131071");
-  expect(await page.locator(".code-line").count()).toBeLessThanOrEqual(2000);
+  for (const kib of [192, 256]) {
+    await page
+      .getByRole("button", { name: "读取更多（最多 256 KiB）" })
+      .click();
+    await expect(
+      page.getByText(`仅预览前 ${kib} KiB；后续内容已截断。`),
+    ).toBeVisible();
+  }
+  expect(ranges).toEqual([
+    "bytes=0-65535",
+    "bytes=0-131071",
+    "bytes=0-196607",
+    "bytes=0-262143",
+  ]);
+  await expect(
+    page.getByRole("button", { name: "读取更多（最多 256 KiB）" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "预览已截断（最多显示 2000 行）；复制仅包含当前显示的文本。",
+    ),
+  ).toBeVisible();
+  expect(await page.locator(".code-line").count()).toBe(2000);
   await shot(page, info, "text-truncated");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("UTF-8 characters spanning the initial byte boundary are completed on explicit expansion", async ({
+  page,
+  request,
+}) => {
+  const assets = await login(page, request);
+  const ranges: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/xfer/")) ranges.push(r.headers().range || "");
+  });
+  await open(page, assets.text, "boundary.txt");
+  await preview(page);
+  await expect(page.locator(".code-preview")).toBeVisible();
+  expect(await page.locator(".code-preview code").innerText()).not.toMatch(
+    /中|\uFFFD/,
+  );
+  await page.getByRole("button", { name: "读取更多（最多 256 KiB）" }).click();
+  await expect(page.locator(".code-preview")).toContainText("中");
+  expect(await page.locator(".code-preview code").innerText()).not.toContain(
+    "\uFFFD",
+  );
+  expect(ranges).toEqual(["bytes=0-65535", "bytes=0-65538"]);
+  await expect(
+    page.getByRole("button", { name: "读取更多（最多 256 KiB）" }),
+  ).toHaveCount(0);
+});
+
+test("archive review may preview while raw export is denied without purpose fallback", async ({
+  page,
+  request,
+}, info) => {
+  const assets = await login(page, request);
+  const purposes: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/read-grants"))
+      purposes.push(r.postDataJSON().purpose);
+  });
+  await open(page, assets.restricted);
+  await preview(page);
+  await expect
+    .poll(() =>
+      page
+        .locator(".media-image")
+        .evaluate((el: HTMLImageElement) => el.naturalWidth),
+    )
+    .toBe(160);
+  await page.getByRole("button", { name: "申请下载原文件" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "此文件不允许用于当前读取用途。",
+  );
+  await expect(page.getByRole("link", { name: "下载原文件" })).toHaveCount(0);
+  expect(purposes).toEqual(["archive_review", "raw_export"]);
+  await shot(page, info, "restricted-export");
 });
 
 test("archives and unknown binaries never preview; encoding and decoder errors degrade safely", async ({
