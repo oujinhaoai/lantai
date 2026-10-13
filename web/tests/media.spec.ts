@@ -58,10 +58,8 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
 }, info) => {
   const assets = await login(page, request);
   let grants = 0;
-  const transfers: string[] = [];
   page.on("request", (r) => {
     if (r.url().includes("/read-grants")) grants++;
-    if (r.url().includes("/xfer/")) transfers.push(r.headers().range || "full");
   });
   await open(page, assets.image);
   expect(grants).toBe(0);
@@ -86,6 +84,17 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
       .toBeGreaterThan(0);
     expect(await media.getAttribute("preload")).toBe("metadata");
     expect(await media.getAttribute("autoplay")).toBeNull();
+    // Tiny native media may arrive in one response, and WebKit/GStreamer does
+    // not consistently expose its internal Range headers to Playwright.
+    // Verify the actual authorized byte-range contract independently.
+    const part = await page
+      .context()
+      .request.get((await media.getAttribute("src"))!, {
+        headers: { Range: "bytes=0-1" },
+      });
+    expect(part.status()).toBe(206);
+    expect(part.headers()["content-range"]).toMatch(/^bytes 0-1\/\d+$/);
+    expect((await part.body()).length).toBe(2);
     await media.evaluate(async (el: HTMLMediaElement) => {
       el.muted = true;
       await el.play();
@@ -98,7 +107,6 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
     await expect(media).toHaveCount(0);
   }
   expect(grants).toBe(3);
-  expect(transfers.some((range) => range.startsWith("bytes="))).toBeTruthy();
 });
 
 test("safe Markdown, code and configuration render without executing or fetching embedded content", async ({
