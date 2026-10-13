@@ -94,6 +94,8 @@ func TestCaddySingleHTTPSGateway(t *testing.T) {
 	_ = listener.Close()
 	url := "https://localhost:" + big.NewInt(int64(port)).String()
 	env := append(os.Environ(), "LANTAI_HTTPS_ADDRESS="+url, "LANTAI_GATEWAY_BIND=127.0.0.1", "LANTAI_TLS_CERT="+certFile, "LANTAI_TLS_KEY="+keyFile, "LANTAI_API_UPSTREAM="+strings.TrimPrefix(api.URL, "http://"), "LANTAI_TRANSFER_UPSTREAM="+strings.TrimPrefix(xfer.URL, "http://"), "XDG_DATA_HOME="+filepath.Join(dir, "data"), "XDG_CONFIG_HOME="+filepath.Join(dir, "config"))
+	webRoot := filepath.Join(dir, "web")
+	env = append(env, "LANTAI_WEB_ROOT="+webRoot)
 	validate := exec.Command(bin, "validate", "--config", "Caddyfile", "--adapter", "caddyfile")
 	validate.Env = env
 	if out, err := validate.CombinedOutput(); err != nil {
@@ -144,6 +146,37 @@ func TestCaddySingleHTTPSGateway(t *testing.T) {
 	}
 	if apiCalls.Load() != before {
 		t.Fatal("private route reached API upstream")
+	}
+	// An absent optional bundle preserves the previous root 404. Installing a
+	// static bundle only opens the exact page/assets routes; APIs and operations
+	// never fall through to a SPA catch-all.
+	if err := os.MkdirAll(filepath.Join(webRoot, "assets"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{"index.html": "<!doctype html><title>Lantai synthetic UI</title>", "assets/app.js": "/* synthetic bundle */"} {
+		if err := os.WriteFile(filepath.Join(webRoot, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range []string{"/", "/assets/app.js"} {
+		res, err := c.Get(url + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK || res.Header.Get("Cache-Control") != "no-store" || !strings.Contains(res.Header.Get("Content-Security-Policy"), "frame-ancestors 'none'") {
+			t.Errorf("static route %s: status=%d headers=%v", path, res.StatusCode, res.Header)
+		}
+	}
+	for _, path := range []string{"/unknown", "/healthz", "/api/v2/meta", "/assets/../../metrics"} {
+		res, err := c.Get(url + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusNotFound {
+			t.Errorf("static bundle exposed %s: %d", path, res.StatusCode)
+		}
 	}
 	request, _ := http.NewRequest("GET", url+"/xfer/v1/read?sig=secret-query", nil)
 	request.Header.Set("Range", "bytes=2-4")

@@ -1,0 +1,7 @@
+# 可选网页覆盖层：先在 web/ 执行 npm ci && npm run build。
+# 从仓库根运行 docker compose -f deploy/compose.yaml -f deploy/compose.web.yaml ...
+# 只为网关添加只读静态文件；数据、密钥和首次设置卷沿用原 Compose 配置。
+services:
+  gateway:
+    volumes:
+      - ../web/dist:/srv/lantai-web:ro

@@ -62,5 +62,10 @@ fi
 step "构建 lantai"
 go build -o /dev/null ./cmd/lantai
 
+step "Web 依赖、lint、TypeScript 与生产构建（Node.js 24）"
+npm ci --prefix web
+npm run lint --prefix web
+npm run build --prefix web
+
 echo
 echo "全部检查通过"

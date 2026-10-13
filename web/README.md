@@ -1,11 +1,57 @@
-# web · 独立网页工程
+# web · 兰台浏览工作台
 
-首个实现阶段：M3。计划使用 TypeScript/React，工程与依赖在启动该阶段时建立。
+TypeScript / React / Vite 独立静态网页，只调用现有同源 `/api/v1/`。首版提供口令＋TOTP 登录、首页、当前授权范围内的项目及资源列表/详情、著录文字检索、类型筛选、分页，以及加载、无权限、空数据、错误和过期提示。
 
-首版范围是登录、待审证据与决定、任务状态和回收站，复用 M2 已成立的 API 与敏感动作授权。网页独立构建/部署，经网关与 API 同源；不访问核心数据库或数据目录。
+本次是 M3 基础浏览切片，不代表 M3/T09.7 全部完成。编辑、人审、回收站、文件下载、媒体预览、插件 registry 和第三方网页尚未接入。固定版本详情展示真实清单，不把文件路径当作可公开下载 URL。
 
-转码预览、标注与版本对比留 M5。本目录目前只有职责说明，详见[后续工作](../docs/tasks/README.md#later-work)。
+## 构建
 
-[T09.7](../docs/tasks/T09-extension-platform.md) 在 M3 实现官方组件、声明式 UI registry 与设置表单，提供预览、侧栏、动作、任务结果等插槽；首方 React 组件随应用发布。登录、人审、插件启停和权限管理由宿主提供。
+Node.js 24（CI 固定主版本）、npm；Go 工具链由仓库固定。依赖精确版本见 package.json 和 package-lock.json。
 
-第三方网页视图属于按需工作，不是 M3 承诺。未来接入须使用独立 origin、sandbox iframe 与有界 broker，采用与主站不同的可注册域并验证目标浏览器 site 隔离；内网特殊后缀须实测，仅有同站点子域不足以证明隔离。扩展来源不承载会话凭据，各不互信包隔离，精确 Origin 检查和 CSRF 防护仍必需；单网关端口可以按主机名分流，但不降低这些条件。插件实现规格以[三端扩展设计](../docs/extensions.md)为唯一权威。
+```sh
+cd web
+npm ci
+npm run lint
+npm run build
+```
+
+产物是 web/dist，不需要运行 Node 服务。生产环境由已有 HTTPS 网关提供静态文件，与 API 完全同源。路由使用 `/#/projects` 和 `/#/assets`，刷新或深链接无需 catch-all；未知 API 和运维地址仍返回 404。
+
+`npm run dev` 只监听 loopback，向 127.0.0.1:8080 代理 API。真实登录仍要求 HTTPS/安全 Cookie 与精确允许的 Origin。不要为 HTTP 调试关闭 Secure、TOTP 或来源校验。可重复验证优先使用自带 HTTPS 合成实例。
+
+## 浏览器验证与预览
+
+```sh
+cd web
+npm run build
+npx playwright install chromium webkit
+npm test
+```
+
+测试自动启动 Go TestWebBrowserFixture，使用临时真实实例、SQLite、文件存储、随机主密钥、合成管理员和资源；不读取实际实例配置或凭据。Chrome、手机 WebKit 与平板 WebKit 覆盖登录、Cookie、CSRF、中文搜索、分页、详情、导航、空数据、撤权、过期、失败、重复提交和迟到响应，含横竖屏、长文件名、触控目标与键盘焦点。自签名 TLS 仅测试上下文接受；不修改系统证书信任。测试结束关闭实例。
+
+独立保留本机预览：
+
+```sh
+# 仓库根，只用于合成测试，不绑定外部接口
+LANTAI_WEB_FIXTURE=1 go test -run '^TestWebBrowserFixture$' -count=1 -timeout=30m ./tests/integration
+# 另一个终端在 web/ 执行以复用实例
+LANTAI_WEB_REUSE=1 npm test
+```
+
+地址 https://localhost:4180。它不使用真实凭据，测试工具通过仅存在于测试二进制中的控制接口生成合成登录输入。不要将此服务用于部署。`LANTAI_WEB_EVIDENCE=/path/out npm test` 保存不含登录输入的截图。测试不自动重试 TOTP。
+
+## 认证与数据边界
+
+- 登录固定 channel=browser，只申请 self/read。服务端发 Secure/HttpOnly/SameSite=Strict/host-only Cookie，JS 不读取会话令牌，也不接收主密钥、长期凭据或 HumanGrant。
+- CSRF 值与会话 ID 只存在当前标签页 sessionStorage（存储受限时在内存）。刷新先用 whoami 复验；CSRF 必须匹配会话 ID。新标签页利用 Cookie 浏览；没有 CSRF 时提示回原登录标签页退出，或手动重新验证，不声称清 UI 就已结束服务器会话。
+- 退出走既有 DELETE /sessions/current，带原有 CSRF。过期/撤销清空视图和 CSRF，不自动签发、交换或续期。返回应用时复验身份，新页面/筛选向服务端请求，不持久化业务数据，无 Service Worker 或离线缓存。
+- 页面切换取消旧读取并卸载旧视图，迟到结果不装入新视图。分页显式加载下一页；过滤后空页仍允许继续，游标失效后回第一页。
+- 用户字段作为文本渲染，无外部 CDN、埋点或第三方脚本。CSS/脚本均同源，网关静态路由提供 CSP 与禁止缓存头。
+- 第一版没有权限自动推送。已展示的字节不能收回；刷新与新请求由服务端重新过滤。不引入全馆计数、隐藏项数量或权限推断。
+
+## 部署接线
+
+[compose.web.yaml](../deploy/compose.web.yaml) 只把已构建的 web/dist 以只读方式挂到现有网关，不修改核心镜像、数据/密钥/首次设置卷。现场升级与发布新版本须另行审查，本仓库构建不会自动部署。
+
+第三方网页和未来 UI 插槽仍遵守[扩展规格](../docs/extensions.md)，本版不激活扩展脚本。

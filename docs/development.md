@@ -7,6 +7,7 @@
 - Go 由 `go.mod` 的 `toolchain go1.26.9` 固定；本机 Go ≥ 1.21 且 `GOTOOLCHAIN` 为默认的 `auto` 时，`go` 命令会自动下载并使用该版本。
 - 纯 Go 构建，不需要 CGo 或 C 编译器；只有 `-race` 测试需要本机 C 工具链。
 - 开发工具（oapi-codegen、staticcheck、govulncheck）锁定在独立的 [`scripts/tools/go.mod`](../scripts/tools/go.mod)，通过 `go tool -modfile=scripts/tools/go.mod <tool>` 运行，不影响运行时依赖的版本选择。
+- Node.js 24 与 npm 用于独立 Web 的锁定安装、lint、类型检查和生产构建；`scripts/check.sh` 包含这些检查。真实浏览器另运行 `cd web && npx playwright install chromium webkit && npm test`，仅使用临时合成实例。
 - Python ≥ 3.11 用于最小 SDK、契约元数据生成与联调测试；运行时仅用标准库，`scripts/check.sh` 也运行 Python 测试。
 - 数据库、运行数据与真实配置放在仓库之外；测试只使用临时目录和合成数据。
 

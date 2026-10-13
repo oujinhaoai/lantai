@@ -96,7 +96,7 @@ HTTP 层防护在 [`internal/identity/httpauth`](../../internal/identity/httpaut
 
 ## 已知限制
 
-- REST 与 CLI 已接入真实身份模块；完整网页尚未建设。网页 Cookie 与 Origin/CSRF 契约由 HTTP 自动化测试验证。
+- REST、CLI 与首版 Web 浏览入口已接入真实身份模块；Web 只申请 self/read，复用现有 Cookie/Origin/CSRF 契约。编辑、人审和恢复设置界面尚未接入。见 [Web 说明](../../web/README.md) 的标签页 CSRF 和浏览器验证边界。
 - 资源审定、解锁、清除、限制解除等 M2 敏感动作与批次授权（逐项子操作）尚未实现（T01.5 的 M2 部分）。
 - 限速按主体与来源（客户端地址）计数，来源由 transport 提供；经网关转发时需由 T07/T08 确定可信的来源地址。
 - Argon2id 参数在开发机上约 0.1 秒一次；目标 NAS 上的耗时须实测后再调整（只影响新记录）。

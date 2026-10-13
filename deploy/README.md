@@ -11,3 +11,9 @@
 Compose 默认使用独立数据/密钥命名卷，先自动校验并准备空卷根，再由非 root 核心运行受保护首次设置。一次 `up` 后在 `/setup/` 完成管理员、TOTP 与恢复码，无需交互终端。第一次使用请读[逐步指南](../docs/first-setup.md)，包括受限引导码的获取、Mac/手机手动添加验证器和第二步过期处理。升级务必保留原卷名和映射；更换为新空卷会建立另一个实例。首次设置不是公开注册，详细边界见[协议](../api/first-start.md)。
 
 `gateway_test.go` 在显式指定已核验的 Caddy 2.11.4 二进制后，用随机 loopback 端口、临时证书和合成后端验证实际模板。容器引擎、systemd、目标 NAS 与其他平台必须分别验收，不能由本地网关测试推导。
+
+## 可选 Web 静态挂载
+
+在仓库根先执行 `npm ci --prefix web && npm run build --prefix web`，审查 `web/dist/` 后可使用 `docker compose -f deploy/compose.yaml -f deploy/compose.web.yaml ...` 将其只读挂载到网关。原数据、密钥、设置卷仍由基础 Compose 文件决定，不能更换既有卷名。也可在原生 Caddy 中设置 `LANTAI_WEB_ROOT` 指向只包含静态构建产物的目录。根路径提供登录与工作台，`/#/` 哈希路由不需要放开未知后端路径。没有静态挂载时根路径仍为 404；`/setup/` 的关闭条件不变。
+
+不要把源码根、数据根或 secrets 目录当作静态文件根。此操作是另行审查后的部署选项，构建和测试本身不会变更现场。

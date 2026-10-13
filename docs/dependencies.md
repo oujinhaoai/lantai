@@ -73,3 +73,24 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 - **ULID、规范化 JSON**：规则简单且是摘要安全的关键，自行实现并用 ULID 规范示例与 RFC 8785 附录样例测试，不引入额外依赖。
 - **口令与密钥（T01，2026-09-27 核对）**：口令用 x/crypto 的 Argon2id（Go 维护的官方扩展库），不自制 KDF；默认 64 MiB、3 轮、单线程（RFC 9106 第二推荐方案的单线程形式），参数随每条记录保存，同时计算数默认 2，开发机（Apple 芯片）约 0.1 秒一次，目标 NAS 须实测后再调整。TOTP 种子加密用标准库经过验证的 AES-256-GCM，子密钥用标准库 `crypto/hkdf`；TOTP 本身按 RFC 6238 用标准库 HMAC-SHA1 实现，并以 RFC 6238 附录 B 的测试向量验证，不引入第三方 OTP 库。二维码生成暂未引入，登记时展示 Base32 种子与 otpauth 地址。
 - **文件锁与平台能力**：标准库没有公开的文件锁与磁盘余量接口，改用 x/sys；只实现 Linux、macOS、Windows（锁另支持 BSD），其他平台明确返回不支持。
+
+
+## Web 工程（2026-10-13）
+
+独立静态构建，Node.js 24 / npm；精确锁定在 `web/package.json` 与 `web/package-lock.json`。运行浏览器只加载打包后的 React 和业务代码，无 CDN、后端 Node 服务或移动 App。版本与许可证已核对安装包的 package.json；构建分发仍需保留 React 等随包许可证，工具不进入浏览器运行时。
+
+| 依赖 | 版本 | 用途 | 许可证 |
+|---|---|---|---|
+| react / react-dom | 19.3.0 | 官方组件与渲染 | MIT |
+| vite | 8.3.4 | 静态开发/构建 | MIT |
+| @vitejs/plugin-react | 6.1.2 | React 构建集成 | MIT |
+| typescript | 6.0.3 | 静态类型检查 | Apache-2.0 |
+| @playwright/test | 1.64.0 | 真实 Chromium / WebKit 浏览器测试 | Apache-2.0 |
+| eslint / @eslint/js | 10.12.0 / 10.0.1 | 静态检查 | MIT |
+| typescript-eslint | 8.71.2 | TypeScript lint | MIT |
+| eslint-plugin-react-hooks | 7.1.1 | Hooks 检查 | MIT |
+| prettier | 3.9.10 | 前端源码格式化 | MIT |
+| @types/node | 26.6.5 | 构建工具类型 | MIT |
+| @types/react / @types/react-dom | 19.3.0 | React 类型 | MIT |
+
+浏览器目标采用 Vite 的默认现代浏览器基线；桌面、手机和平板的验收以真实浏览器引擎和 viewport 记录为准，不表示已经在对应硬件实测。CI 的 setup-node v6 固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`。
