@@ -52,7 +52,7 @@ LANTAI_WEB_REUSE=1 npm test
 
 ## 部署接线
 
-[compose.web.yaml](../deploy/compose.web.yaml) 只把已构建的 web/dist 以只读方式挂到现有网关，不修改核心镜像、数据/密钥/首次设置卷。现场升级与发布新版本须另行审查，本仓库构建不会自动部署。
+[compose.web.yaml](../deploy/compose.web.yaml) 只把 `LANTAI_WEB_DIR` 指定的已核验静态目录以只读方式挂到现有网关，不修改核心镜像、数据/密钥/首次设置卷。现场升级与发布新版本须另行审查，本仓库构建不会自动部署。
 
 第三方网页和未来 UI 插槽仍遵守[扩展规格](../docs/extensions.md)，本版不激活扩展脚本。
 

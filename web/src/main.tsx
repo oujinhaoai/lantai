@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -38,15 +39,17 @@ const decodeKey = (key: string) => {
     return "";
   }
 };
+const routeSnapshot = () => location.hash.slice(1) || "/";
+const subscribeRoute = (change: () => void) => {
+  addEventListener("hashchange", change);
+  return () => removeEventListener("hashchange", change);
+};
 function useRoute() {
-  const [route, setRoute] = useState(location.hash.slice(1) || "/");
-  useEffect(() => {
-    const change = () => setRoute(location.hash.slice(1) || "/");
-    addEventListener("hashchange", change);
-    return () => removeEventListener("hashchange", change);
-  }, []);
-  return route;
+  // React rechecks the snapshot when subscribing, including a navigation that
+  // happened between rendering the workspace and attaching the listener.
+  return useSyncExternalStore(subscribeRoute, routeSnapshot);
 }
+
 function Icon({ kind, size = 20 }: { kind: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     home: (

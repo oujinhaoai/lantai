@@ -401,3 +401,39 @@ test("WCAG accessibility for login, home, search and fixed detail", async ({
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await audit();
 });
+
+test("navigation between rendering and route subscription is not lost", async ({
+  page,
+  request,
+}) => {
+  const credentials = await (await control(request, "login")).json();
+  await page.addInitScript(() => {
+    const subscribe = window.addEventListener.bind(window);
+    let armed = true;
+    Object.defineProperty(window, "addEventListener", {
+      configurable: true,
+      value: (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ) => {
+        if (type === "hashchange" && armed) {
+          armed = false;
+          // Reproduce navigation after render but before the listener exists.
+          // replaceState models an already-dispatched hashchange event.
+          history.replaceState(null, "", "#/projects");
+        }
+        subscribe(type, listener, options);
+      },
+    });
+  });
+  await page.goto("/");
+  await page.getByLabel("账户名称").fill(credentials.name);
+  await page.getByLabel("口令", { exact: true }).fill(credentials.password);
+  await page.getByLabel("验证器动态码").fill(credentials.code);
+  await page.getByRole("button", { name: "登录并浏览" }).click();
+  await expect(page).toHaveURL(/#\/projects$/);
+  await expect(
+    page.getByRole("heading", { name: "我的项目", level: 1 }),
+  ).toBeVisible();
+});
