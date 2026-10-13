@@ -148,6 +148,7 @@ jobs:
           name: delivery-failure-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/failure.json
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/first-start-lifecycle.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-image-smoke.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-browser-screenshots.tar.gz
           if-no-files-found: ignore

@@ -261,7 +261,14 @@ def main():
             raise RuntimeError("real Caddy gateway test did not pass (skip is not acceptance)")
         (deliver / "gateway-smoke.txt").write_text(gateway_output + "\n")
         first_start_output = command([sys.executable, str(build_source / "scripts/test-compose-first-start.py"),
-                                      "--image", core_tag, "--caddy-image", caddy_tag], cwd=build_source)
+                                      "--image", core_tag, "--caddy-image", caddy_tag,
+                                      "--evidence-file", str(deliver / "first-start-lifecycle.json")], cwd=build_source)
+        lifecycle = json.loads((deliver / "first-start-lifecycle.json").read_text())
+        if (lifecycle.get("status") != "passed" or lifecycle.get("core_image_id") != core["Id"]
+                or lifecycle.get("caddy_image_id") != caddy["Id"]
+                or not {"core-restart-ready", "full-up-1-ready", "full-up-2-ready", "full-up-3-ready"}.issubset(
+                    {x.get("phase") for x in lifecycle.get("snapshots", [])})):
+            raise RuntimeError("release first-start lifecycle evidence incomplete")
         expected_smoke = "PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy"
         if (expected_smoke not in first_start_output
                 or "PASS: running core image " + core["Id"] not in first_start_output
@@ -341,6 +348,7 @@ def main():
                     "gateway_smoke": "real Caddy image binary; synthetic loopback transport test passed",
                     "first_start_smoke": {"status": "passed", "core_image_id": core["Id"],
                                           "caddy_image_id": caddy["Id"], "evidence": "first-start-image-smoke.txt",
+                                          "lifecycle_evidence": "first-start-lifecycle.json",
                                           "scope": "synthetic Compose one-up, TLS, setup, restart, and log privacy; not NAS acceptance"},
                     "build_inputs": "fresh local clone of the exact commit; ignored/untracked files are not copied",
                     "note": "Repository digests can name multi-platform indexes; inspected image IDs and platform are retained. Docker image and standalone binary use different VCS contexts."}

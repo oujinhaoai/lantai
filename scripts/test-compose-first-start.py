@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import hashlib
 import hmac
 import http.client
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,7 @@ import socket
 import ssl
 import struct
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -42,6 +44,74 @@ def redact_startup_log(output, key):
         if value:
             output = output.replace(value, "[REDACTED TLS KEY]")
     return re.sub(r"[A-Za-z0-9_+/=-]{32,}", "[REDACTED TOKEN]", output)
+
+
+def public_container_state(info):
+    """Allowlist Docker lifecycle/port fields; never serialize Config or logs."""
+    state = info.get("State", {})
+    result = {"id": info["Id"], "image": info["Image"],
+              "state": {key: state.get(key) for key in (
+                  "Status", "Running", "Restarting", "OOMKilled", "Dead", "ExitCode",
+                  "StartedAt", "FinishedAt")},
+              "restart_count": info.get("RestartCount"),
+              "configured_https_bindings": (info.get("HostConfig", {}).get("PortBindings") or {}).get("443/tcp"),
+              "actual_https_bindings": (info.get("NetworkSettings", {}).get("Ports") or {}).get("443/tcp"),
+              "networks": {}}
+    for name, network in info.get("NetworkSettings", {}).get("Networks", {}).items():
+        role = name.rsplit("_", 1)[-1]
+        if role not in ("edge", "backend"):
+            continue
+        result["networks"][role] = {key: network.get(key, "") for key in (
+            "IPAddress", "Gateway", "GlobalIPv6Address", "IPv6Gateway")}
+    return result
+
+
+def tcp_probe(address, port):
+    # Only numeric addresses from this disposable project's inspect result.
+    ipaddress.ip_address(address)
+    try:
+        with socket.create_connection((address, port), timeout=1):
+            return {"address": address, "port": port, "connected": True}
+    except OSError as error:
+        return {"address": address, "port": port, "connected": False,
+                "error_type": type(error).__name__, "errno": error.errno}
+
+
+def lifecycle_snapshot(compose, port):
+    result = {"request_endpoint": {"address": "127.0.0.1", "port": port,
+                                    "tls_server_name": "library.example"},
+              "host_https_tcp": tcp_probe("127.0.0.1", port), "services": {}}
+    for service in ("prepare", "core", "gateway"):
+        try:
+            found = subprocess.run(compose + ["ps", "--all", "-q", service],
+                                   capture_output=True, text=True, env=TEST_ENV,
+                                   check=True, timeout=5).stdout.split()
+            if len(found) != 1 or not re.fullmatch(r"[0-9a-f]{12,64}", found[0]):
+                result["services"][service] = {"container_count": len(found)}
+                continue
+            info = json.loads(subprocess.run(["docker", "inspect", found[0]],
+                              capture_output=True, text=True, env=TEST_ENV,
+                              check=True, timeout=5).stdout)[0]
+            item = public_container_state(info)
+            result["services"][service] = item
+            item["container_tcp"] = []
+            if service in ("core", "gateway") and item["state"]["Running"]:
+                for network in item["networks"].values():
+                    if network["IPAddress"]:
+                        item["container_tcp"].append(tcp_probe(
+                            network["IPAddress"], 8080 if service == "core" else 443))
+            if service == "gateway" and item["state"]["Running"]:
+                # Only exit status, no HTTP body or stderr (including on failure).
+                probe = subprocess.run(["docker", "exec", found[0], "wget", "-q",
+                                        "-T", "3", "-O", "/dev/null",
+                                        "http://core:8080/api/v1/meta"],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                       env=TEST_ENV, timeout=5)
+                item["gateway_to_core_meta_exit_code"] = probe.returncode
+        except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError) as error:
+            # Never include raw subprocess output, exception text, or full inspect.
+            result["services"].setdefault(service, {})["diagnostic_error_type"] = type(error).__name__
+    return result
 
 
 @contextmanager
@@ -75,6 +145,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", help="existing local core image; do not rebuild or pull")
     parser.add_argument("--caddy-image", help="existing local Caddy image; do not pull")
+    parser.add_argument("--evidence-file", type=Path, help="write nonsecret lifecycle/port diagnostics")
     args = parser.parse_args()
     command(["docker", "compose", "version"])
     image, core_id, caddy_image, caddy_id = select_images(args.image, args.caddy_image)
@@ -147,7 +218,8 @@ def main():
                 except (OSError, http.client.HTTPException) as error:
                     last = type(error).__name__ + ": " + str(error)
                 time.sleep(0.25)
-            raise AssertionError(f"{path} never returned {status}; last: {last}")
+            raise AssertionError(f"{path} via 127.0.0.1:{port} (TLS SNI library.example) "
+                                 f"never returned {status}; last: {last}")
 
         def diagnose_before_enrollment():
             # No password, TOTP or recovery codes exist yet. Still redact the
@@ -156,6 +228,15 @@ def main():
                                         capture_output=True, text=True, env=TEST_ENV)
             output = redact_startup_log(diagnostic.stdout, (tls / "key.pem").read_text())
             print(output[:12000], flush=True)
+
+        evidence = {"schema": "lantai.first-start-lifecycle/v1", "status": "running",
+                    "core_image_id": core_id, "caddy_image_id": caddy_id, "snapshots": []}
+        phase = "initial-start"
+
+        def record(label):
+            evidence["snapshots"].append({"phase": label, **lifecycle_snapshot(compose, port)})
+            if args.evidence_file:
+                args.evidence_file.write_text(json.dumps(evidence, indent=2) + "\n")
 
         try:
             # Existing bind path variables must remain effective during upgrades.
@@ -193,6 +274,7 @@ def main():
                 diagnose_before_enrollment()
                 raise
             print("PASS: setup reached over verified TLS", flush=True)
+            record("initial-setup-ready")
             assert page[2] == "no-store"
             assert request("/api/v1/meta")[0] == 404
             assert request("/setup/begin", {}, "wrong")[0] == 401
@@ -201,6 +283,7 @@ def main():
             print("PASS: running core image " + core_id, flush=True)
             if caddy_id is not None:
                 print("PASS: running Caddy image " + caddy_id, flush=True)
+            phase = "administrator-enrollment"
             claim_path = root / "claim.json"
             command(["docker", "cp", cid + ":/var/lib/lantai-setup/setup-code.json", str(claim_path)])
             os.chmod(claim_path, 0o600)
@@ -222,18 +305,37 @@ def main():
             wait("/api/v1/meta", 200)
             print("PASS: administrator committed and normal service started", flush=True)
             assert request("/setup/")[0] == 404
+            record("enrolled-ready")
+            phase = "core-restart"
             command(compose + ["restart", "core"])
             wait("/api/v1/meta", 200)
             assert request("/setup/")[0] == 404
-            command(compose + ["stop"])
-            command(compose + ["up", "-d"])
-            wait("/api/v1/meta", 200)
-            assert request("/setup/")[0] == 404
+            record("core-restart-ready")
+            # Reuse the same enrolled instance and fixed published port. Repeated
+            # stop/up catches restart-only port loss without rebuilding state.
+            for cycle in range(1, 4):
+                phase = f"full-stop-{cycle}"
+                command(compose + ["stop"])
+                record(phase)
+                phase = f"full-up-{cycle}"
+                command(compose + ["up", "-d"])
+                record(phase + "-returned")
+                wait("/api/v1/meta", 200)
+                assert request("/setup/")[0] == 404
+                record(phase + "-ready")
+            phase = "log-privacy"
             logs = command(compose + ["logs", "--no-color"])
             for value in [token, password, registration["totp_secret"], registration["enrollment_id"],
                           *registration["recovery_codes"]]:
                 assert value not in logs, "Secret appeared in ordinary container logs"
+            evidence["status"] = "passed"
+            record("complete")
             print("PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy")
+        except Exception:
+            evidence["status"] = "failed"
+            record(phase + "-failed")
+            print("FIRST_START_DIAGNOSTICS " + json.dumps(evidence), file=sys.stderr, flush=True)
+            raise
         finally:
             # Only this randomly named synthetic test project's volumes.
             try:
