@@ -20,6 +20,9 @@ button, summary { cursor: pointer; }
 .skip { position: fixed; left: 1rem; top: -5rem; z-index: 10; background: #fff; padding: .6rem 1rem; }
 .skip:focus { top: .6rem; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 4%; border-bottom: 1px solid var(--border); background: #fff; }
+.topbar-actions { display: flex; align-items: center; gap: 1.25rem; }
+.app-back { display: inline-flex; align-items: center; gap: .35rem; min-height: 44px; padding: .4rem .75rem; border: 1px solid #a9b8b2; border-radius: .45rem; font-size: .85rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.app-back:hover { background: #e9f0eb; }
 .brand { display: inline-flex; align-items: center; gap: .75rem; text-decoration: none; color: #213d36; letter-spacing: .1em; font-weight: 700; }
 .brand-mark { display: grid; place-items: center; height: 2.6rem; width: 2.6rem; border-radius: .7rem; color: #fff; background: var(--accent); font-size: 1.3rem; }
 .brand small { margin-left: .6rem; font-weight: 500; letter-spacing: 0; }
@@ -89,7 +92,7 @@ footer { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1.5
   .mobile-nav summary { padding: .75rem 1rem; color: var(--accent); min-height: 48px; font-weight: 600; }
   .mobile-nav nav { padding: 0 .5rem .7rem; }
   .topbar { padding: .85rem 1.25rem; }
-  .edition { font-size: .75rem; }
+  .edition { display: none; }
   .brand small { display: block; margin: -.15rem 0 0; font-size: .7rem; }
   .brand-mark { height: 2.4rem; width: 2.4rem; }
   .search { margin-bottom: 1.5rem; }

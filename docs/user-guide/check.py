@@ -18,6 +18,7 @@ class Page(HTMLParser):
     def __init__(self, text):
         super().__init__()
         self.ids, self.links, self.h1 = set(), [], 0
+        self.app_returns = 0
         self.inline_script = False
         self.feed(text)
 
@@ -28,6 +29,9 @@ class Page(HTMLParser):
             self.ids.add(attrs["id"])
         if tag == "h1":
             self.h1 += 1
+        if "app-back" in attrs.get("class", "").split():
+            assert tag == "a" and attrs.get("href") == "/" and "target" not in attrs, "invalid application return"
+            self.app_returns += 1
         assert not any(name.startswith("on") or name == "style" for name in attrs), "inline handler/style"
         assert tag != "style", "inline style"
         assert tag != "script" or "src" in attrs, "inline script"
@@ -47,7 +51,10 @@ def main():
     count = 0
     for name, page in pages.items():
         assert page.h1 == 1, f"{name}: expected one h1"
+        assert page.app_returns == 1 and page.links.count("/") == 1, f"{name}: expected one application return"
         for href in page.links:
+            if href == "/":
+                continue  # The sole root link is the native, same-origin application return.
             parsed = urlsplit(href)
             if parsed.scheme:
                 assert parsed.scheme == "https", f"unsafe URL: {href}"
@@ -105,7 +112,7 @@ def main():
     else:
         # Non-HTTPS input is converted to a fixed repository URL, never executed.
         assert build.link_url("javascript:alert(1)").startswith("https://github.com/")
-    print(f"PASS: {len(pages)} pages, {count} local HTML links, {md_links} source links, {len(commands)} CLI command forms; generated/CSP/privacy/shell checks")
+    print(f"PASS: {len(pages)} pages, {count} local HTML links, {len(pages)} application returns, {md_links} source links, {len(commands)} CLI command forms; generated/CSP/privacy/shell checks")
 
 
 if __name__ == "__main__":
