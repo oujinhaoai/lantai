@@ -8,7 +8,7 @@
 <div class="search" role="search" hidden><label for="help-search">搜索全部帮助</label><div class="search-row"><input id="help-search" type="search" maxlength="120" placeholder="试试：恢复码、备份、项目权限" aria-controls="search-results" autocomplete="off"><button type="button" id="search-clear">清除</button></div><p class="search-hint">仅搜索通用手册，不会访问你的项目或发送输入。</p><section id="search-results" aria-label="搜索结果" hidden><p id="search-status" role="status" aria-live="polite"></p><ul id="search-list"></ul></section></div>
 <main id="content" tabindex="-1"><div class="page-meta"><span class="eyebrow">任务 04</span><span>文档核对 · 2026-10-13</span></div>
 <article><h1 id="浏览入藏与下载资源">浏览、入藏与下载资源</h1>
-<p>目标：找到有权限的项目和精确版本，安全上传或下载文件。下面的命令在<strong>自己的电脑终端</strong>运行，不在 NAS 数据卷内操作。前提：已安装匹配版本的 Lantai CLI，并按<a href="accounts.html">账户</a>取得私有 <code>session.json</code>。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#1-确认我在哪个实例和身份下">1. 确认我在哪个实例和身份下</a></li><li><a href="#2-搜索并查看精确版本">2. 搜索并查看精确版本</a></li><li><a href="#3-把文件下载到电脑">3. 把文件下载到电脑</a></li><li><a href="#4-将一份合成文件入藏">4. 将一份合成文件入藏</a></li><li><a href="#5-中断修改和后续工作">5. 中断、修改和后续工作</a></li></ul></details>
+<p>目标：找到有权限的项目和精确版本，安全上传或下载文件。下面的命令在<strong>自己的电脑终端</strong>运行，不在 NAS 数据卷内操作。前提：已安装匹配版本的 Lantai CLI，并按<a href="accounts.html">账户</a>取得私有 <code>session.json</code>。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#1-确认我在哪个实例和身份下">1. 确认我在哪个实例和身份下</a></li><li><a href="#2-搜索并查看精确版本">2. 搜索并查看精确版本</a></li><li><a href="#文件类型与媒体预览边界">文件类型与媒体预览边界</a></li><li><a href="#3-把文件下载到电脑">3. 把文件下载到电脑</a></li><li><a href="#4-将一份合成文件入藏">4. 将一份合成文件入藏</a></li><li><a href="#5-中断修改和后续工作">5. 中断、修改和后续工作</a></li></ul></details>
 <h2 id="1-确认我在哪个实例和身份下">1. 确认我在哪个实例和身份下</h2>
 <pre tabindex="0" aria-label="sh 示例"><code>lantai meta --server https://library.example:32444
 lantai whoami --server https://library.example:32444 --session-file session.json
@@ -20,6 +20,10 @@ lantai search --server https://library.example:32444 --session-file session.json
 lantai show --server https://library.example:32444 --session-file session.json --asset ASSET_ID --version VERSION_ID --view full</code></pre>
 <p>把占位 ID 换成回执值。列表有下一页游标时用返回的游标作为 <code>--cursor</code> 继续，不把第一页当全部结果。<code>show</code> 的 full 视图用于核对精确版本与清单。永久 <code>lantai://…</code> 引用可用 <code>--ref</code> 读取，客户端会核对实例 ID，不能把另一实例的 ID 混过来。</p>
 <p>成功标志：找到预期项目、资产 ID 和版本 ID，full 视图内容符合预期。<code>NOT_FOUND</code> 也可能是权限过滤；让管理员核对身份与项目，不对陌生 ID 反复猜测。</p>
+<h2 id="文件类型与媒体预览边界">文件类型与媒体预览边界</h2>
+<p>rc.3 没有业务资源预览页。开发中的首版前端当前只展示列表元数据和文件清单，尚未提供媒体播放或图片预览；不能因为看到了文件名就认为能在线查看文件内容。</p>
+<p>压缩包及其他不支持预览的二进制只展示类型、大小和基础元数据，并明确提示“不支持预览”。不会解压、执行或增加十六进制视图。需要文件时，仍按下节的授权下载流程在自己的电脑处理。</p>
+<p>图片、音频和视频分别属于媒体类型，不因它们是二进制就一概禁止预览。后续是否可预览、可用格式和浏览器支持范围，以实际发布功能及验证结果为准；本手册目前不承诺已经提供这些能力。</p>
 <h2 id="3-把文件下载到电脑">3. 把文件下载到电脑</h2>
 <p>先在电脑创建一个空的 <code>downloads</code> 文件夹，再运行：</p>
 <pre tabindex="0" aria-label="sh 示例"><code>lantai pull --server https://library.example:32444 --session-file session.json --asset ASSET_ID --version VERSION_ID --directory downloads --purpose archive_review</code></pre>
