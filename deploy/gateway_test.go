@@ -134,7 +134,7 @@ func TestCaddySingleHTTPSGateway(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	before := apiCalls.Load()
-	for _, path := range []string{"/", "/healthz", "/readyz", "/metrics", "/debug/pprof/", "/api/v2/meta", "/api/v1/../../metrics", "/xfer/v1/../../metrics"} {
+	for _, path := range []string{"/", "/help/", "/healthz", "/readyz", "/metrics", "/debug/pprof/", "/api/v2/meta", "/api/v1/../../metrics", "/xfer/v1/../../metrics"} {
 		res, err := c.Get(url + path)
 		if err != nil {
 			t.Fatal(err)
@@ -153,12 +153,15 @@ func TestCaddySingleHTTPSGateway(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(webRoot, "assets"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for name, content := range map[string]string{"index.html": "<!doctype html><title>Lantai synthetic UI</title>", "assets/app.js": "/* synthetic bundle */"} {
+	if err := os.MkdirAll(filepath.Join(webRoot, "help"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{"index.html": "<!doctype html><title>Lantai synthetic UI</title>", "assets/app.js": "/* synthetic bundle */", "help/index.html": "<!doctype html><title>Synthetic help</title>"} {
 		if err := os.WriteFile(filepath.Join(webRoot, name), []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, path := range []string{"/", "/assets/app.js"} {
+	for _, path := range []string{"/", "/assets/app.js", "/help/"} {
 		res, err := c.Get(url + path)
 		if err != nil {
 			t.Fatal(err)

@@ -29,6 +29,7 @@ import "./style.css";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
+const helpAvailable = import.meta.env.LANTAI_HELP_AVAILABLE === true;
 const decodeKey = (key: string) => {
   try {
     return decodeURIComponent(key);
@@ -875,6 +876,11 @@ function Workspace({
             素材档案库 <span className="divider">/</span>{" "}
             {nav.find((n) => n[0] === section)?.[2]}
           </span>
+          {helpAvailable && (
+            <a className="help-link" href="/help/">
+              使用帮助
+            </a>
+          )}
           <div className="account">
             <span className="avatar">
               {(who.principal.display_name || who.principal.name).slice(0, 1)}
@@ -1072,6 +1078,11 @@ function Login({
               设置完成后入口永久关闭。成员设置与验证器恢复请使用现有受保护流程。
             </small>
           </p>
+          {helpAvailable && (
+            <a className="help-link" href="/help/">
+              使用帮助
+            </a>
+          )}
         </form>
       </main>
     </div>
@@ -1157,6 +1168,11 @@ function App() {
         <p className="setup-help">
           首次安装？<a href="/setup/">打开受保护的设置页</a>
         </p>
+        {helpAvailable && (
+          <a className="help-link" href="/help/">
+            使用帮助
+          </a>
+        )}
       </main>
     );
   if (

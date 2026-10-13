@@ -55,3 +55,9 @@ LANTAI_WEB_REUSE=1 npm test
 [compose.web.yaml](../deploy/compose.web.yaml) 只把已构建的 web/dist 以只读方式挂到现有网关，不修改核心镜像、数据/密钥/首次设置卷。现场升级与发布新版本须另行审查，本仓库构建不会自动部署。
 
 第三方网页和未来 UI 插槽仍遵守[扩展规格](../docs/extensions.md)，本版不激活扩展脚本。
+
+## 独立帮助页集成约定
+
+帮助任务只维护 `docs/user-guide/` 与 `web/public/help/`；主应用拥有认证、布局、导航和网关。入口为普通静态路径 `/help/`，资源使用相对路径，不依赖 React、Cookie 或业务 API。现有 CSP 不接受内联脚本/样式，建议 `index.html` 配合同目录外置 CSS；不放宽主应用安全策略。
+
+构建时只有检测到 `web/public/help/index.html` 才显示“使用帮助”链接；帮助文件尚未合并时不展示死链接。Vite 将 public/help 原样产出到 dist/help，Caddy 显式开放 /help 与 /help/*，不放开未知 API 或运维路径。帮助内容合并后需重新构建并统一验收导航、CSP、资源及三设备布局，不能以本次预留接线声明帮助内容已发布。
