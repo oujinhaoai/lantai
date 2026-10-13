@@ -12,7 +12,7 @@
 
 1. 在发行包中找到镜像归档与校验和，先核对归档 SHA-256。不要只凭文件名或 `latest` 标签判断版本。
 2. 在 NAS 镜像管理器选择“导入”，导入 Lantai 核心镜像和配置包指定的 Caddy 镜像。导入不会让旧容器自动更新。
-3. 记录镜像 tag、image ID、OCI revision 和架构。rc.3 源码 revision 应为 `9bf4b56b08deb4e5ea6ba4f294629e51df1bc9f9`；具体镜像 ID 以该平台发行清单为准。
+3. 记录镜像 tag、image ID、OCI revision 和架构。rc.4 的 source_commit、镜像 ID 和静态包摘要均以同一平台发行 manifest 为准；同时准备 Web/help 与部署配置归档，不能只导入 core 镜像。
 
 成功标志：镜像管理器中存在清单指定的镜像，架构匹配。导入失败或校验不符时重新取得原发行物，不进入启动步骤。
 

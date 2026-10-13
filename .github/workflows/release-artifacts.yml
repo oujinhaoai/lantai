@@ -5,9 +5,14 @@ on:
     paths:
       - .github/workflows/release-artifacts.yml
       - scripts/build-release.py
+      - scripts/release_bundle.py
+      - scripts/test-release-delivery.py
+      - scripts/test-release-browser.cjs
+      - scripts/tests/test_release_bundle.py
       - scripts/tests/test_build_release.py
       - scripts/test-compose-first-start.py
       - scripts/tests/test_compose_first_start.py
+      - deploy/**
   workflow_dispatch:
     inputs:
       commit:
@@ -17,6 +22,21 @@ on:
       version:
         description: Maintainer-selected version, for example v0.1.0-rc.1
         required: true
+        type: string
+      baseline_run:
+        description: Original release artifact run for the direct retained-volume upgrade
+        required: true
+        default: '38130493256'
+        type: string
+      baseline_artifact:
+        description: Exact original release artifact name
+        required: true
+        default: lantai-v0.1.0-rc.2-linux-amd64-676de7aa5777e6e71e10d68ef98331b87776b8b8
+        type: string
+      baseline_commit:
+        description: Exact original release source commit
+        required: true
+        default: 676de7aa5777e6e71e10d68ef98331b87776b8b8
         type: string
 
 permissions:
@@ -63,9 +83,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   linux-amd64:
-    if: github.ref == 'refs/heads/main'
+    # PR packages are synthetic candidates with no main gate or publication.
+    # Manual release packages still require the exact successful main CI.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,7 +95,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.commit }}
+          ref: ${{ github.event.pull_request.head.sha || inputs.commit }}
           path: release-source
           fetch-depth: 0
           persist-credentials: false
@@ -81,20 +103,51 @@ jobs:
         with:
           go-version-file: release-source/go.mod
           cache-dependency-path: release-source/go.sum
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: release-source/web/package-lock.json
+      - name: Install the locked browser for artifact acceptance
+        run: |
+          npm ci --prefix release-source/web
+          npm exec --prefix release-source/web -- playwright install --with-deps chromium
+      - name: Download original release artifacts (no production state)
+        env:
+          BASE_RUN: ${{ inputs.baseline_run || '38130493256' }}
+          BASE_ARTIFACT: ${{ inputs.baseline_artifact || 'lantai-v0.1.0-rc.2-linux-amd64-676de7aa5777e6e71e10d68ef98331b87776b8b8' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$BASE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name "$BASE_ARTIFACT" --dir "$RUNNER_TEMP/lantai-upgrade-baseline"
       - name: Build immutable local image archives and packages
         env:
-          RELEASE_COMMIT: ${{ inputs.commit }}
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || inputs.commit }}
+          RELEASE_VERSION: ${{ github.event_name == 'pull_request' && format('v0.0.0-pr.{0}', github.event.number) || inputs.version }}
+          BASE_COMMIT: ${{ inputs.baseline_commit || '676de7aa5777e6e71e10d68ef98331b87776b8b8' }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_OUT: ${{ runner.temp }}/lantai-release-${{ github.run_id }}
         run: |
+          gate=()
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then gate=(--require-main-ci); fi
           python3 release-control/scripts/build-release.py \
             --source release-source --commit "$RELEASE_COMMIT" \
             --version "$RELEASE_VERSION" --out "$RELEASE_OUT" \
-            --require-main-ci
+            --upgrade-from-dir "$RUNNER_TEMP/lantai-upgrade-baseline" \
+            --upgrade-from-commit "$BASE_COMMIT" "${gate[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: lantai-${{ inputs.version }}-linux-amd64-${{ inputs.commit }}
+          name: lantai-${{ github.event_name == 'pull_request' && format('v0.0.0-pr.{0}', github.event.number) || inputs.version }}-linux-amd64-${{ github.event.pull_request.head.sha || inputs.commit }}
           path: ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/
           if-no-files-found: error
           retention-days: 30
+      - name: Preserve nonsecret acceptance failures
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: delivery-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/failure.json
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-image-smoke.json
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-browser-screenshots.tar.gz
+          if-no-files-found: ignore

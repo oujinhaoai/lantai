@@ -30,6 +30,14 @@ class BuildGuards(unittest.TestCase):
         (self.source / "deploy/Dockerfile").write_text("FROM golang:1.26.9 AS build\nCOPY api ./api\n")
         (self.source / "deploy/Dockerfile.dockerignore").write_text("**\n!api/**\n")
         (self.source / "go.mod").write_text("module example.test/release\ngo 1.26.0\ntoolchain go1.26.9\n")
+        for name in ("Caddyfile", "config.container.yaml", "compose.web.yaml", "release-install.md", "release-upgrade.md"):
+            (self.source / "deploy" / name).write_text("synthetic public deployment template\n")
+        (self.source / "deploy/compose.yaml").write_text("services:\n  gateway:\n    image: caddy:2.11.4\n")
+        (self.source / "web").mkdir()
+        (self.source / "web/package-lock.json").write_text("{}\n")
+        self.baseline = self.root / "original-artifacts"
+        self.baseline.mkdir()
+        (self.baseline / "manifest.json").write_text(json.dumps({"source_commit": "b" * 40}))
         self.out = self.root / "output"
         self.head = SHA
         self.dirty = ""
@@ -63,7 +71,8 @@ class BuildGuards(unittest.TestCase):
 
     def run_main(self, *extra):
         args = ["build-release.py", "--source", str(self.source), "--commit", SHA,
-                "--version", "v0.1.0-rc.1", "--out", str(self.out), "--require-main-ci", *extra]
+                "--version", "v0.1.0-rc.1", "--out", str(self.out), "--require-main-ci",
+                "--upgrade-from-dir", str(self.baseline), "--upgrade-from-commit", "b" * 40, *extra]
         with patch.object(sys, "argv", args), patch.dict(os.environ, {"GITHUB_REPOSITORY": "example/repo"}), patch.object(release, "command", self.command), patch.object(release, "gzip_command"):
             release.main()
 
@@ -125,7 +134,30 @@ class BuildGuards(unittest.TestCase):
     def simulate_build_command(self, argv, **kwargs):
         # Test orchestration/provenance only; no real Go or Docker build occurs.
         self.simulated_calls.append((argv, kwargs))
+        if argv == ["node", "--version"]:
+            return "v24.14.0"
+        if argv == ["npm", "--version"]:
+            return "11.9.0"
+        if argv[:2] == ["python3", "docs/user-guide/build.py"] or argv[:2] == ["python3", "docs/user-guide/check.py"]:
+            return "synthetic help guard passed"
+        if argv[0] == "npm":
+            if argv[1:3] == ["run", "build"]:
+                dist = kwargs["cwd"] / "web/dist"
+                (dist / "assets").mkdir(parents=True)
+                (dist / "help").mkdir()
+                (dist / "index.html").write_text('<script src="/assets/index.js"></script><link href="/assets/index.css">')
+                for name in ("index.js", "index.css", "THIRD_PARTY_NOTICES.txt"):
+                    (dist / "assets" / name).write_text("synthetic production output")
+                for page in release.build_web_bundle.__globals__["HELP_PAGES"]:
+                    (dist / "help" / (page + ".html")).write_text('<a href="/">return</a>')
+                for name in ("help.css", "help.js", "search-data.js", "icon.svg"):
+                    (dist / "help" / name).write_text("synthetic public output")
+                if getattr(self, "missing_static", False):
+                    (dist / "help/index.html").unlink()
+            return "synthetic npm result"
         if argv[0] == "docker":
+            if argv[1:3] == ["context", "inspect"]:
+                return "unix:///var/run/docker.sock"
             if argv[1:3] == ["image", "inspect"]:
                 info = {"Os": "linux", "Architecture": "amd64", "Id": "sha256:" + "c" * 64,
                         "RepoDigests": ["example@sha256:" + "d" * 64], "Config": {}}
@@ -163,6 +195,15 @@ class BuildGuards(unittest.TestCase):
                 "PASS: running Caddy image sha256:" + "c" * 64,
                 "PASS: real Compose one-up setup, verified TLS, legacy mount preservation, restart idempotence, and log privacy",
             ]))
+        if argv[0] == sys.executable and argv[1].endswith("test-release-delivery.py"):
+            out = Path(argv[argv.index("--out") + 1])
+            result = {"status": "passed", "source_commit": SHA, "baseline_commit": "b" * 40,
+                      "core_image_id": "sha256:" + "c" * 64, "caddy_image_id": "sha256:" + "c" * 64,
+                      **{k: True for k in ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
+                                          "original_totp_login_passed", "static_archive_served", "volumes_preserved")}}
+            result.update(getattr(self, "delivery_override", {}))
+            (out / "delivery-image-smoke.json").write_text(json.dumps(result))
+            return "synthetic orchestration only; not a Docker test"
         if argv[0] in self.binary_platforms:
             return json.dumps({"vcs_revision": SHA, "vcs_modified": False,
                                "platform": "linux/amd64", "go_version": "go1.26.9"})
@@ -172,7 +213,8 @@ class BuildGuards(unittest.TestCase):
         self.binary_platforms = {}
         self.simulated_calls = []
         args = ["build-release.py", "--source", str(self.source), "--commit", SHA,
-                "--version", "v0.1.0-rc.1", "--out", str(self.out), "--require-main-ci"]
+                "--version", "v0.1.0-rc.1", "--out", str(self.out), "--require-main-ci",
+                "--upgrade-from-dir", str(self.baseline), "--upgrade-from-commit", "b" * 40]
         (self.source / "LICENSE").write_text("synthetic license")
         with patch.object(sys, "argv", args), patch.dict(os.environ, {"GITHUB_REPOSITORY": "example/repo"}), patch.object(release, "command", self.simulate_build_command), patch.object(release, "gzip_command", side_effect=lambda argv, path, **kw: path.write_bytes(b"synthetic archive")), contextlib.redirect_stdout(io.StringIO()):
             release.main()
@@ -185,6 +227,11 @@ class BuildGuards(unittest.TestCase):
         self.assertEqual(manifest["source_commit"], SHA)
         self.assertEqual(manifest["main_ci"]["headSha"], SHA)
         self.assertFalse(manifest["nas_deployed"])
+        self.assertEqual(manifest["web"]["source_commit"], SHA)
+        self.assertEqual(manifest["deployment"]["source_commit"], SHA)
+        self.assertTrue(manifest["deployment"]["web_mount"]["read_only"])
+        self.assertFalse(manifest["deployment"]["web_mount"]["create_host_path"])
+        self.assertTrue(manifest["delivery_smoke"]["direct_upgrade_passed"])
         self.assertEqual(manifest["first_start_smoke"]["status"], "passed")
         self.assertEqual(manifest["first_start_smoke"]["core_image_id"], manifest["core_image"]["id"])
         self.assertTrue((deliver / "first-start-image-smoke.txt").is_file())
@@ -224,6 +271,19 @@ class BuildGuards(unittest.TestCase):
             self.run_simulated_build()
         self.assertFalse((self.out / "deliverables/manifest.json").exists())
         self.assertFalse(list((self.out / "deliverables").glob("*image.tar.gz")))
+
+    def test_missing_help_or_wrong_delivery_evidence_prevents_manifest(self):
+        self.image_revision = SHA
+        self.missing_static = True
+        with self.assertRaisesRegex(RuntimeError, "required help pages missing"):
+            self.run_simulated_build()
+        self.assertFalse((self.out / "deliverables/manifest.json").exists())
+        shutil.rmtree(self.out)
+        self.missing_static = False
+        self.delivery_override = {"baseline_commit": "d" * 40}
+        with self.assertRaisesRegex(RuntimeError, "direct-upgrade smoke did not pass"):
+            self.run_simulated_build()
+        self.assertFalse((self.out / "deliverables/manifest.json").exists())
 
 
 class ArchiveAndImageChecks(unittest.TestCase):

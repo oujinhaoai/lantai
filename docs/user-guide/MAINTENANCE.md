@@ -44,6 +44,6 @@ WebKit 的 Playwright 截图过程会注入临时 `body {}` 样式同步动画�
 - 身份与命令：`internal/cli`、`internal/identity/admin.go`、`docs/contracts/client.md`、`identity.md`、`identity-actions.md`、`api/openapi.yaml`，以及 `tests/integration/remote_identity_test.go`。
 - MCP：`cmd/lantai/mcp.go`、`internal/mcpserver`、`docs/contracts/manual-execution.md`；Codex 配置引用正文中核对日期的官方文档。
 - 部署与备份：`deploy/compose.yaml`、`config.container.yaml`、`cmd/lantai/maintenance.go`、`internal/operations`、`docs/contracts/backup-restore.md`。
-- 升级版本对：固定 rc.2 `676de7a` 与 rc.3 `9bf4b56` 的源码和已有隔离验证记录；不将私有部署路径、主机地址或密钥复制入手册。
+- 升级版本对：rc.2 `676de7a` → rc.4 直接升级的实际发行 manifest/delivery_smoke；旧 rc.3 仅历史参考；不将私有部署路径、主机地址或密钥复制入手册。
 
 更新服务器/CLI 版本或增加网页能力时先重新核对实际发布物，再更新能力表和步骤。设计完成、实现合并、发行包含、目标机器部署成功是不同结论；不能因有帮助页就把在建功能标成可用。

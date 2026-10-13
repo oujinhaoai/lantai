@@ -1,6 +1,6 @@
 # 精确提交的发布制品
 
-`release-artifacts` 是维护者手动运行的 GitHub Actions 工作流。它生成可导入的 Linux amd64 核心/Caddy 镜像和六平台客户端二进制，不发布 registry、GitHub Release 或 Git tag，不部署服务、不创建管理员或生产凭据。版本由维护者明确选择；例如 `v0.1.0-rc.1` 是候选版，MCP 的固定 implementation 版本不决定核心版本。实际阶段验收仍按独立证据判断。
+`release-artifacts` 是维护者手动运行的 GitHub Actions 工作流。它生成可导入的 Linux amd64 核心/Caddy 镜像、六平台客户端二进制、独立 Web/help 静态包和部署配置包，不发布 registry、GitHub Release 或 Git tag，不部署服务、不创建管理员或生产凭据。版本由维护者明确选择；例如 `v0.1.0-rc.1` 是候选版，MCP 的固定 implementation 版本不决定核心版本。实际阶段验收仍按独立证据判断。
 
 ## 前置与触发
 
@@ -8,12 +8,15 @@
 
 ```sh
 gh workflow run release-artifacts.yml --ref main \
-  -f commit=FINAL_MAIN_40_CHARACTER_SHA -f version=v0.1.0-rc.1
+  -f commit=FINAL_MAIN_40_CHARACTER_SHA -f version=v0.1.0-rc.4 \
+  -f baseline_run=38130493256 \
+  -f baseline_artifact=lantai-v0.1.0-rc.2-linux-amd64-676de7aa5777e6e71e10d68ef98331b87776b8b8 \
+  -f baseline_commit=676de7aa5777e6e71e10d68ef98331b87776b8b8
 ```
 
 控制脚本和目标源码各自 checkout，目标必须在 origin/main 历史上并具有该精确提交的成功 main CI。检查缺失、跳过、失败或名称不符都拒绝构建。工作流仅授予 contents/actions 读取权限，无额外 secret；版本参数经格式校验后通过 argv 传给命令，不作为 shell 代码。源码、制品和实际客户端验收应绑定同一明确目标；旧提交通过不能自动沿用。
 
-在已有受支持的 Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.9 和 gh；输出必须位于源码树外的新目录：
+在本机 Linux Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.9、Node 24/npm、锁定的 Chromium 和 gh；必须使用本地 Linux Unix Docker socket（拒绝远程 context/DOCKER_HOST），输出位于源码树外的新目录：
 
 ```sh
 # gh 使用构建者已授权的只读身份；先 fetch main，保留工作区已有改动。
@@ -21,7 +24,9 @@ git fetch origin main
 export GITHUB_REPOSITORY=OWNER/REPOSITORY
 python3 scripts/build-release.py --source /path/to/clean-checkout \
   --commit FINAL_MAIN_40_CHARACTER_SHA --version v0.1.0-rc.1 \
-  --out /path/outside-source/new-artifacts --require-main-ci
+  --out /path/outside-source/new-artifacts --require-main-ci \
+  --upgrade-from-dir /path/to/verified-original-release-artifacts \
+  --upgrade-from-commit ORIGINAL_RELEASE_40_CHARACTER_SHA
 ```
 
 省略 `--require-main-ci` 仅适合已有独立门禁证据的本机开发构建，此时 manifest.main_ci 为 null，不能称为经 main CI 门禁的发行。脚本拒绝修改源码和覆盖已有输出，并从精确提交新建本地 clone/checkout，仅复制提交对象；忽略文件与未跟踪文件不会进入 Docker 上下文或 Go 构建。工作流的 Docker 构建不是 Go 编译模拟；失败不上传成功制品目录。
@@ -49,3 +54,13 @@ Actions artifact 保存 30 天。名称含版本、目标提交和 Linux amd64 �
 私有部署配置、TLS 私钥与数据放在仓库/制品之外。镜像导入不等于运行验收；本流程不启动目标服务、不改变系统信任。私有 CA 的显式客户端信任见[客户端契约](contracts/client.md)，部署见[单网关模板](deployment.md)。设备故障、恢复/RPO、实际客户端和长稳验收均按其独立任务执行，不因制品构建成功自动收口。
 
 首次使用 rc2 的人可直接读[管理员设置逐步指南](first-setup.md)。本地交付包若只修订文档，应保留旧文档/ZIP 与校验索引，标明文档修订日期，刷新文档及 ZIP 的摘要；镜像、运行配置、原发行清单与其 `source_commit` 保持不变，不把文档提交冒充镜像重建或新的 Release。
+
+## 网页与直接升级的发行验收
+
+PR 的发行工具回归也构建实际镜像和静态包，版本为 v0.0.0-pr.N，main_ci 为 null；它不发布、不等于正式 main 制品。手动 main 构建仍要求精确源码的十项成功 CI。基线参数选择原发行的 Actions artifact，不读取生产目录；artifact 过期或无法验证时失败停止，由维护者提供核验后的原发行归档，不跳过直接升级证明。
+
+在干净 committed-source clone 中运行帮助生成/check→npm ci→完整 lint→Vite；Node/npm/lockfile 摘要随 manifest 记录。仅白名单普通静态文件进入 `*-web.tar.gz` 的 web/，部署配置进入 `*-deployment.tar.gz` 的 deploy/；无 Node 服务、运行数据、真实私钥/令牌或系统信任变更。
+
+`test-release-delivery.py` 重新加载导出的实际镜像并解包刚生成的静态/配置归档，核对全部成员与摘要，通过真实 Caddy 返回逐文件同字节内容。两个独立合成 Docker 项目分别验证新装及原 rc.2→目标版直接升级：旧版实际 core 建立身份/资源，再保留项目、端口、data/key/setup/config 挂载、实例及原管理员/TOTP 切目标；正常登录、Cookie/CSRF、授权预览/下载、帮助原生返回、无JS帮助和API/运维隔离均来自实际发行服务，无 mock 或 dev server。测试 TLS 私钥与身份仅在私有临时目录，证据只记录非秘密对比及登录后截图；Chromium 的测试例外精确绑定该次合成证书 SPKI，Python 独立验证 CA/主机名，不修改生产或系统信任。
+
+发行 manifest 只有上述验收成功后才生成，绑定静态包/config包的版本、source_commit、逐文件hash与实际运行核心/Caddy image ID。失败/skip不能当成功。代码/静态包/真实 NAS 仍需分别归因；条件反向回退只按本次实际测试版本对及未迁移状态认定。用户从[新装](../deploy/release-install.md)或[原地升级](../deploy/release-upgrade.md)选择正确入口，已有实例不能拿新装 Compose/.env 覆盖原项目。

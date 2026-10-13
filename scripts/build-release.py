@@ -13,6 +13,9 @@ import sys
 import tarfile
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from release_bundle import build_web_bundle, build_deployment_bundle, require_local_docker
+
 
 def command(argv, *, cwd=None, env=None, capture=True):
     try:
@@ -113,9 +116,19 @@ def main():
     parser.add_argument("--version", required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--require-main-ci", action="store_true")
+    parser.add_argument("--upgrade-from-dir", type=Path, required=True,
+                        help="verified original release artifact directory; never a runtime data directory")
+    parser.add_argument("--upgrade-from-commit", required=True,
+                        help="exact original release SHA for the direct upgrade smoke")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.commit):
         parser.error("commit must be a lowercase 40-character SHA")
+    if not re.fullmatch(r"[0-9a-f]{40}", args.upgrade_from_commit):
+        parser.error("upgrade-from-commit must be a lowercase 40-character SHA")
+    baseline = args.upgrade_from_dir.resolve()
+    baseline_manifest = json.loads((baseline / "manifest.json").read_text())
+    if baseline_manifest.get("source_commit") != args.upgrade_from_commit:
+        raise RuntimeError("upgrade baseline commit mismatch")
     if len(args.version) > 96 or not re.fullmatch(r"v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", args.version):
         parser.error("invalid release version")
     source, out = args.source.resolve(), args.out.resolve()
@@ -173,6 +186,7 @@ def main():
         allowlist = build_source / "deploy/Dockerfile.dockerignore"
         source_name = f"lantai-{args.version}-source.tar.gz"
         gzip_command(["git", "archive", "--format=tar", args.commit], deliver / source_name, cwd=build_source)
+        require_local_docker(command)
         docker_version = command(["docker", "version", "--format", "{{json .}}"])
         compose_version = command(["docker", "compose", "version"])
         (deliver / "docker-version.json").write_text(docker_version + "\n")
@@ -280,13 +294,39 @@ def main():
                         or version.get("platform") != "linux/amd64" or version.get("go_version") != "go1.26.9"):
                     raise RuntimeError("standalone version smoke mismatch")
                 save_json(deliver / "binary-version-linux-amd64.json", version)
+        web = build_web_bundle(build_source, deliver, args.version, args.commit, stamp, command)
+        deployment = build_deployment_bundle(build_source, work, deliver, args.version, args.commit,
+                                             stamp, core_tag, caddy_tag)
+        candidate = {"version": args.version, "source_commit": args.commit,
+                     "core_image": {"tag": core_tag, "id": core["Id"]},
+                     "caddy_image": {"tag": caddy_tag, "id": caddy["Id"]},
+                     "web": web, "deployment": deployment, "binaries": binaries,
+                     "files": [{"name": p.name, "size_bytes": p.stat().st_size, "sha256": digest(p)}
+                               for p in sorted(deliver.iterdir())]}
+        candidate_file = work / "candidate-manifest.json"
+        save_json(candidate_file, candidate)
+        delivery_output = command([sys.executable, str(build_source / "scripts/test-release-delivery.py"),
+                                   "--manifest", str(candidate_file), "--artifacts", str(deliver),
+                                   "--baseline", str(baseline), "--baseline-commit", args.upgrade_from_commit,
+                                   "--out", str(deliver)], cwd=build_source)
+        delivery_result = json.loads((deliver / "delivery-image-smoke.json").read_text())
+        if (delivery_result.get("status") != "passed"
+                or delivery_result.get("source_commit") != args.commit
+                or delivery_result.get("baseline_commit") != args.upgrade_from_commit
+                or delivery_result.get("core_image_id") != core["Id"]
+                or delivery_result.get("caddy_image_id") != caddy["Id"]
+                or not all(delivery_result.get(x) for x in
+                           ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
+                            "original_totp_login_passed", "static_archive_served", "volumes_preserved"))):
+            raise RuntimeError("actual delivery image/static/direct-upgrade smoke did not pass")
+        (deliver / "delivery-image-smoke.txt").write_text(delivery_output + "\n")
         if (command(["git", "rev-parse", "HEAD"], cwd=source) != args.commit
                 or command(["git", "status", "--porcelain", "--untracked-files=all"], cwd=source)
                 or command(["git", "status", "--porcelain", "--untracked-files=all"], cwd=build_source)):
             raise RuntimeError("source changed during build")
         (deliver / "release-images.env").write_text(f"LANTAI_IMAGE={core_tag}\nLANTAI_CADDY_IMAGE={caddy_tag}\n")
         files = [{"name": p.name, "size_bytes": p.stat().st_size, "sha256": digest(p)} for p in sorted(deliver.iterdir())]
-        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-and-first-start-smoke",
+        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-web-and-direct-upgrade-smoke",
                     "version": args.version, "source_commit": args.commit, "platform": "linux/amd64",
                     "go_version": go_version, "main_ci": ci,
                     "build_run": {"repository": os.environ.get("GITHUB_REPOSITORY"), "run_id": os.environ.get("GITHUB_RUN_ID"),
@@ -294,6 +334,8 @@ def main():
                     "core_image": {"tag": core_tag, "id": core["Id"], "base_repository_digest": base, "base_image_id": go_image["Id"]},
                     "caddy_image": {"tag": caddy_tag, "id": caddy["Id"], "repository_digests": caddy.get("RepoDigests", [])},
                     "binaries": binaries,
+                    "web": web, "deployment": deployment,
+                    "delivery_smoke": delivery_result,
                     "files": files, "nas_deployed": False, "nas_acceptance": "pending",
                     "actual_codex_final_commit_acceptance": "separate evidence required",
                     "gateway_smoke": "real Caddy image binary; synthetic loopback transport test passed",

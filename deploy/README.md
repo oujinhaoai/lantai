@@ -14,6 +14,8 @@ Compose 默认使用独立数据/密钥命名卷，先自动校验并准备空�
 
 ## 可选 Web 静态挂载
 
-在仓库根先执行 `npm ci --prefix web && npm run build --prefix web`，审查 `web/dist/` 后可使用 `docker compose -f deploy/compose.yaml -f deploy/compose.web.yaml ...` 将其只读挂载到网关。原数据、密钥、设置卷仍由基础 Compose 文件决定，不能更换既有卷名。也可在原生 Caddy 中设置 `LANTAI_WEB_ROOT` 指向只包含静态构建产物的目录。根路径提供登录与工作台，`/#/` 哈希路由不需要放开未知后端路径。没有静态挂载时根路径仍为 404；`/setup/` 的关闭条件不变。
+在仓库根先执行 `npm ci --prefix web && npm run build --prefix web`，审查 `web/dist/` 并将 `LANTAI_WEB_DIR` 设为其绝对路径后可使用 `docker compose -f deploy/compose.yaml -f deploy/compose.web.yaml ...` 将其只读挂载到网关。原数据、密钥、设置卷仍由基础 Compose 文件决定，不能更换既有卷名。也可在原生 Caddy 中设置 `LANTAI_WEB_ROOT` 指向只包含静态构建产物的目录。根路径提供登录与工作台，`/#/` 哈希路由不需要放开未知后端路径。没有静态挂载时根路径仍为 404；`/setup/` 的关闭条件不变。
 
 不要把源码根、数据根或 secrets 目录当作静态文件根。此操作是另行审查后的部署选项，构建和测试本身不会变更现场。
+
+正式制品含独立 Web/help 与部署配置归档，分别见[新装](release-install.md)和[原地升级](release-upgrade.md)。已有项目不得用新装模板覆盖原卷、端口或私有环境文件。
