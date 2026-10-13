@@ -18,14 +18,16 @@
 
 ## 2. 准备目录和 Compose 参数
 
-1. 建一个新的私有项目目录，保存 `compose.yaml`、`Caddyfile`、`config.container.yaml`、私有 `setup/` 和 `tls/`。不要放在公共共享目录里。
+1. 建一个新的私有项目目录。将同版 `*-deployment.tar.gz` 解出 `deploy/`（内含 Compose、Caddyfile 和 config 模板），将 `*-web.tar.gz` 解出 `web/`；逐文件核对 manifest 摘要。另备私有 `setup/` 和 `tls/`，不要放在公共共享目录里。
 2. 把证书链和私钥按配置放到 `tls/cert.pem`、`tls/key.pem`。让容器所需身份可读，其他用户不可读私钥；不要放宽成全员可写。
-3. 在项目编辑器导入配置包中的 Compose。若 GUI 不会加载 `.env`，在它的环境变量编辑器填值，或由部署者将占位值明确展开；不要留下未解析的 `${…}`。
+3. 在项目编辑器使用发行的 `deploy/compose.yaml`，将 `compose.web.yaml` 中的只读静态 bind 合入 `services.gateway.volumes`，保留其余挂载。GUI 的主目录指向该 `deploy/` 目录，使 `./Caddyfile` 正确定位；支持多文件的设备也可按顺序加载这两个文件。将 env.example 复制到自己的私有 env 后逐项填写并在 GUI 选择它；若 GUI 不会加载 env，在环境变量编辑器填值，或由部署者明确展开占位值，不留下未解析的 `${…}`。
 4. 核对下表所有值和挂载。若端口不是 443，Origin 必须包含端口。示例 `https://library.example:32444` 只用于说明。
 
 | 配置项 | 应填什么 |
 | --- | --- |
 | `LANTAI_IMAGE` | 已导入且审核过的 Lantai 精确镜像 tag；`prepare` 与 `core` 一致 |
+| `LANTAI_CADDY_IMAGE` | 同一发行 manifest 中的 Caddy 精确镜像 tag；保留 `pull_policy: never` |
+| `LANTAI_WEB_DIR` | 核验后的 `web/` 绝对目录，直接包含 index.html、assets/、help/；仅 gateway 挂到 `/srv/lantai-web` 且只读 |
 | `LANTAI_DOMAIN` / `LANTAI_HTTPS_PORT` | 证书覆盖的域名 / 未占用的 HTTPS 端口 |
 | `LANTAI_CONFIG_FILE` | 本项目 `config.container.yaml` 的实际文件路径 |
 | `LANTAI_SETUP_DIR` | 本项目私有 `setup/` 的实际目录 |
@@ -40,7 +42,7 @@
 1. 在项目界面“启动 / 应用”一次。`prepare` 用 root 仅准备空目录权限，正常退出 0；已有非空目录只校验，不递归更改。
 2. 检查 `core`、`gateway` 状态。`core` 使用 UID/GID `65532:65532`。只发布网关的 HTTPS 端口，8080、8081、9090 不对外发布。
 3. 在浏览器打开自己的 `https://域名:端口/setup/`。引导码从 `core` 的 `/var/lib/lantai-setup` 实际宿主挂载下 `setup-code.json` 读取，继续按[首次设置](setup.md)操作。
-4. 初始化成功后访问 `/api/v1/meta`，记录 `instance_id` 到私有安装记录。核对 `/setup/` 已关闭，并使用[日常操作](daily.md)做一次有权限的精确读取。
+4. 初始化成功后访问 `/api/v1/meta`，记录 `instance_id` 到私有安装记录。核对 `/setup/` 已关闭；根页应显示登录/首页，`/help/` 应能阅读并返回主页，不能把新版首页 404 当成正常。使用原管理员口令和 TOTP 登录，再按[日常操作](daily.md)做一次有权限的精确读取。
 
 成功标志：`prepare` 退出 0，core/gateway 持续运行，meta 返回 200，初始化后 setup 返回 404；设备管理员进一步确认内部 readyz 的 `ready` 和 `business_ready` 均为 true。容器 Running 单独不能证明业务就绪。
 

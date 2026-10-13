@@ -1,6 +1,6 @@
 # 精确提交的发布制品
 
-`release-artifacts` 是维护者手动运行的 GitHub Actions 工作流。它生成可导入的 Linux amd64 核心/Caddy 镜像、六平台客户端二进制、独立 Web/help 静态包和部署配置包，不发布 registry、GitHub Release 或 Git tag，不部署服务、不创建管理员或生产凭据。版本由维护者明确选择；例如 `v0.1.0-rc.1` 是候选版，MCP 的固定 implementation 版本不决定核心版本。实际阶段验收仍按独立证据判断。
+`release-artifacts` 是维护者手动运行的 GitHub Actions 工作流。它生成可导入的 Linux amd64 核心/Caddy 镜像、六平台客户端二进制、独立 Web/help 静态包和部署配置包，不发布 registry、GitHub Release 或 Git tag，不部署目标 NAS、不创建真实管理员或生产凭据；验收仅建立随机隔离的合成实例。版本由维护者明确选择；例如 `v0.1.0-rc.1` 是候选版，MCP 的固定 implementation 版本不决定核心版本。实际阶段验收仍按独立证据判断。
 
 ## 前置与触发
 
