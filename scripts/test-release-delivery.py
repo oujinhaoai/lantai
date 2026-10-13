@@ -47,7 +47,7 @@ def run(argv, *, stdin=None, timeout=600):
 
 def check(name, condition=True, **details):
     if not condition:
-        raise AssertionError(name)
+        raise AssertionError(name + (": " + json.dumps(details) if details else ""))
     RESULT["checks"].append({"name": name, "passed": True, **details})
     print("PASS: " + name, flush=True)
 
@@ -313,8 +313,13 @@ class Instance:
         check("normal reduced-scope synthetic session issued", status == 201)
         token = json.loads(body)["token"]
         PRIVATE_VALUES.append(token)
-        check("reduced-scope session cannot list resources", self.request(
-            "/api/v1/assets", credential=token)[0] == 403)
+        status, body, _ = self.request("/api/v1/assets", credential=token)
+        check("reduced-scope query exposes no resources", status == 200
+              and json.loads(body).get("items") == [], http_status=status)
+        status, _, _ = self.request(
+            "/api/v1/assets/" + self.receipt["asset_id"] + "/versions/" + self.receipt["version_id"] + "/read-grants",
+            {"path": "README.md", "purpose": "archive_review"}, token)
+        check("reduced-scope session cannot obtain file authorization", status == 403, http_status=status)
         time.sleep(4)
         check("actual expired session is rejected", self.request(
             "/api/v1/whoami", credential=token)[0] == 401)
