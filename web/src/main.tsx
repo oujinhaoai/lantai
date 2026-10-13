@@ -26,6 +26,7 @@ import {
   type Session,
 } from "./api";
 import "./style.css";
+import { FilePreview } from "./file-preview";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
@@ -733,6 +734,14 @@ function AssetDetail({
                     {exact.manifest?.content.version_note && (
                       <p>{exact.manifest.content.version_note}</p>
                     )}
+                    {!!exact.manifest?.content.files.length && (
+                      <FilePreview
+                        files={exact.manifest.content.files}
+                        assetID={assetID}
+                        versionID={asset.latest.version_id}
+                        expire={expire}
+                      />
+                    )}
                     {exact.manifest?.content.files.length ? (
                       <div className="table-scroll">
                         <table>
@@ -767,9 +776,6 @@ function AssetDetail({
                         此版本未返回文件清单。
                       </Empty>
                     )}
-                    <p className="subtle">
-                      此版提供目录、著录与文件清单浏览；文件下载和媒体预览将在后续接入。
-                    </p>
                   </>
                 )}
               </Resource>

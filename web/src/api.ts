@@ -182,6 +182,8 @@ export function message(e: unknown) {
     TOKEN_EXPIRED: "会话已过期，请重新登录。",
     TOKEN_REVOKED: "会话已失效，请重新登录。",
     FORBIDDEN: "当前账号没有访问权限。",
+    USE_RESTRICTED: "此文件不允许用于当前读取用途。",
+    RIGHTS_PENDING: "此文件的权利核验尚未完成，暂时不能读取。",
     NOT_FOUND: "内容不存在，或你没有查看权限。",
     CURSOR_EXPIRED: "列表已变化，请刷新后从第一页浏览。",
     RATE_LIMITED: "尝试过于频繁，请稍后再试。",

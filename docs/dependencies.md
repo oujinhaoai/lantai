@@ -95,3 +95,13 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 | @types/react / @types/react-dom | 19.3.0 | React 类型 | MIT |
 
 浏览器目标采用 Vite 的默认现代浏览器基线；桌面、手机和平板的验收以真实浏览器引擎和 viewport 记录为准，不表示已经在对应硬件实测。CI 的 setup-node v6 固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`。
+
+### Web 文本预览依赖（2026-10-13）
+
+| 依赖 | 固定版本 | 用途 | 许可证 |
+|---|---|---|---|
+| react-markdown | 10.1.0 | CommonMark 转 React AST；关闭原始 HTML、自定义图片/链接为纯文字 | MIT |
+| lowlight | 3.3.0 | 高亮 AST；通过 React 文本节点显示，不注入 HTML | MIT |
+| highlight.js（间接） | 11.11.2 | lowlight 的语言语法 | BSD-3-Clause |
+
+依据已安装发布包的 package.json 与许可证文件，并参考 [react-markdown 安全说明](https://github.com/remarkjs/react-markdown#security)和 [lowlight](https://github.com/wooorm/lowlight)。Markdown/高亮相关传递依赖由 package-lock.json 锁定，运行时完整声明汇入 web/public/assets/THIRD_PARTY_NOTICES.txt。文档模块仅在打开文本预览后加载，不引入远程脚本或在线查看服务。
