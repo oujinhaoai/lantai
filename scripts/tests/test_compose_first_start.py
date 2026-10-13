@@ -1,3 +1,5 @@
+import ast
+import http.client
 import importlib.util
 import json
 import errno
@@ -98,6 +100,85 @@ class LifecycleDiagnostics(unittest.TestCase):
             report = smoke.tcp_probe("127.0.0.1", 32444)
         self.assertEqual(report, {"address": "127.0.0.1", "port": 32444, "connected": False,
                                  "error_type": "ConnectionRefusedError", "errno": errno.ECONNREFUSED})
+
+
+class RestartDeadline(unittest.TestCase):
+    def run_restart_sequence(self, ready_after, diagnostic_seconds):
+        # Execute the real wait and restart control flow with a virtual clock.
+        # Docker commands, TCP, TLS, sleeps and credentials are never used.
+        tree = ast.parse(Path(smoke.__file__).read_text())
+        wait_node = next(node for node in ast.walk(tree)
+                         if isinstance(node, ast.FunctionDef) and node.name == "wait")
+        loop = next(node for node in ast.walk(tree)
+                    if isinstance(node, ast.For) and isinstance(node.target, ast.Name)
+                    and node.target.id == "cycle")
+
+        class Clock:
+            now = 0.0
+
+            def monotonic(self):
+                return self.now
+
+            def sleep(self, seconds):
+                self.now += seconds
+
+        clock = Clock()
+        up_times, ready_times, meta_times = [], [], []
+
+        def command(argv):
+            if argv[-2:] == ["up", "-d"]:
+                up_times.append(clock.now)
+
+        def record(phase):
+            if phase.endswith("-returned"):
+                clock.now += diagnostic_seconds
+            elif phase.endswith("-ready"):
+                ready_times.append(clock.now - up_times[-1])
+
+        def request(path):
+            if path == "/setup/":
+                return (404, b"", None)
+            elapsed = clock.now - up_times[-1]
+            meta_times.append(elapsed)
+            if elapsed >= ready_after:
+                return (200, b"", None)
+            raise ConnectionRefusedError("synthetic not ready")
+
+        env = {"time": clock, "http": http, "request": request, "command": command,
+               "record": record, "compose": ["synthetic-compose"], "port": 32444}
+        module = ast.Module(body=[wait_node, loop], type_ignores=[])
+        try:
+            exec(compile(ast.fix_missing_locations(module), "<restart deadline>", "exec"), env)
+            passed = True
+        except AssertionError:
+            passed = False
+        return passed, ready_times, meta_times, clock.now - up_times[-1]
+
+    def test_diagnostics_cannot_admit_service_ready_after_original_deadline(self):
+        passed, ready, _, elapsed = self.run_restart_sequence(70, 20)
+        self.assertFalse(passed)
+        self.assertEqual(ready, [])
+        self.assertEqual(elapsed, 60)
+
+    def test_each_cycle_can_recover_within_its_original_window(self):
+        passed, ready, _, _ = self.run_restart_sequence(55, 20)
+        self.assertTrue(passed)
+        self.assertEqual(ready, [55, 55, 55])
+
+    def test_diagnostics_exhausting_window_cannot_start_another_wait(self):
+        for diagnostic_seconds in (60, 65):
+            with self.subTest(diagnostic_seconds=diagnostic_seconds):
+                passed, ready, requests, elapsed = self.run_restart_sequence(0, diagnostic_seconds)
+                self.assertFalse(passed)
+                self.assertEqual(ready, [])
+                self.assertEqual(requests, [])
+                self.assertEqual(elapsed, diagnostic_seconds)
+
+    def test_no_diagnostics_preserves_original_timeout(self):
+        passed, ready, _, elapsed = self.run_restart_sequence(70, 0)
+        self.assertFalse(passed)
+        self.assertEqual(ready, [])
+        self.assertEqual(elapsed, 60)
 
 
 class ReleaseImageSelection(unittest.TestCase):

@@ -206,8 +206,9 @@ def main():
             finally:
                 conn.close()
 
-        def wait(path, status):
-            deadline = time.monotonic() + 60
+        def wait(path, status, deadline=None):
+            if deadline is None:
+                deadline = time.monotonic() + 60
             last = "no response"
             while time.monotonic() < deadline:
                 try:
@@ -319,8 +320,11 @@ def main():
                 record(phase)
                 phase = f"full-up-{cycle}"
                 command(compose + ["up", "-d"])
+                # Diagnostics consume the original recovery window; they must
+                # never grant an extra 60 seconds after their own completion.
+                deadline = time.monotonic() + 60
                 record(phase + "-returned")
-                wait("/api/v1/meta", 200)
+                wait("/api/v1/meta", 200, deadline)
                 assert request("/setup/")[0] == 404
                 record(phase + "-ready")
             phase = "log-privacy"
