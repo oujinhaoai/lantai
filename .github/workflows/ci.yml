@@ -30,12 +30,34 @@ jobs:
             scripts/tools/go.sum
       - name: Real Compose first-start smoke (synthetic data and TLS only)
         run: python3 scripts/test-compose-first-start.py
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: Setup page sensitive-state regression
         run: node scripts/test-first-start-ui.cjs
+      - name: Web install and build
+        run: |
+          if [ -f ../docs/user-guide/build.py ]; then python3 ../docs/user-guide/build.py --check; fi
+          npm ci && npm run lint && npm run build
+        working-directory: web
+      - name: Web test browsers
+        run: npx playwright install --with-deps chromium webkit
+        working-directory: web
+      - name: Web real-instance responsive acceptance
+        run: npm test
+        working-directory: web
       - name: scripts/check.sh
         run: scripts/check.sh
       - name: govulncheck
         run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: failure()
+        with:
+          name: web-browser-results
+          path: web/test-results/
+          if-no-files-found: ignore
 
   test:
     name: test (${{ matrix.os }})

@@ -59,6 +59,20 @@
 			}
 		}
 	}
+	# 可选的独立网页产物。只开放根页与构建资源，未知 API/运维路径仍为 404。
+	# 未挂载 web/dist 时继续返回 404，不影响首次设置与旧部署。
+	@web path / /assets/* /help /help/*
+	handle @web {
+		root * {$LANTAI_WEB_ROOT:/srv/lantai-web}
+		header {
+			Cache-Control "no-store"
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "no-referrer"
+			Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		}
+		file_server
+	}
 	# 运维、pprof、未知 API 版本、未来路由均不公开。
 	handle {
 		respond 404

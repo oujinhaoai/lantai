@@ -28,6 +28,9 @@
 
 # Tool caches
 node_modules/
+/web/dist/
+/web/test-results/
+/web/playwright-report/
 .venv/
 __pycache__/
 *.pyc

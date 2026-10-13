@@ -31,7 +31,7 @@
 | [`scripts/`](../scripts/README.md) | 可重复的开发、生成、构建和检查脚本 | T00 起；不放领域业务、不替代正式运维命令 |
 | [`sdk/`](../sdk/README.md) | 外部客户端 SDK、插件 SDK 及其生成规则 | M2 最小客户端/插件 SDK；其余语言有使用方再加。核心内部 HTTP client 留 internal |
 | [`tests/`](../tests/README.md) | 跨模块契约、故障注入、集成、端到端测试与合成 fixture | T00/M1；包内单元测试仍与源码相邻 |
-| [`web/`](../web/README.md) | TypeScript/React 网页及其构建、测试配置 | M3；只走公开接口，不读取数据库或服务端目录 |
+| [`web/`](../web/README.md) | TypeScript/React 网页及其构建、测试配置 | M3 基础浏览切片已提供；只走公开接口，不读取数据库或服务端目录 |
 
 根文件为 `README.md`（中文默认）、`README.en.md`、`LICENSE` 和 `.gitignore`。`go.mod`/`go.sum`（固定 Go 工具链）、`scripts/tools/go.mod`（开发工具版本）与 CI 配置 `.github/workflows/` 归 T00，已建立，命令见[开发与验证](development.md)；`.github/` 只放 CI 配置，不计入一级目录；`NOTICE` 随实际引入的第三方代码建立，不预填归属声明。
 
