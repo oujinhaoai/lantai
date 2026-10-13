@@ -105,6 +105,10 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
     expect(part.status()).toBe(206);
     expect(part.headers()["content-range"]).toMatch(/^bytes 0-1\/\d+$/);
     expect((await part.body()).length).toBe(2);
+    // Native video pipelines may defer offscreen frames. Exercise playback
+    // after the user can see and operate the control, including mobile WebKit.
+    await media.scrollIntoViewIfNeeded();
+    await expect(media).toBeInViewport();
     await media.evaluate(async (el: HTMLMediaElement) => {
       el.muted = true;
       await el.play();
