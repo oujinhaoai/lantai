@@ -188,11 +188,11 @@ def main():
 
         class LocalTLS(http.client.HTTPSConnection):
             def connect(self):
-                sock = socket.create_connection(("127.0.0.1", port), timeout=5)
+                sock = socket.create_connection(("127.0.0.1", port), timeout=self.timeout)
                 self.sock = context.wrap_socket(sock, server_hostname="library.example")
 
-        def request(path, payload=None, token=None):
-            conn = LocalTLS("library.example", port, context=context, timeout=5)
+        def request(path, payload=None, token=None, timeout=5):
+            conn = LocalTLS("library.example", port, context=context, timeout=timeout)
             headers = {"Origin": origin}
             if token:
                 headers["Authorization"] = "Bearer " + token
@@ -210,15 +210,23 @@ def main():
             if deadline is None:
                 deadline = time.monotonic() + 60
             last = "no response"
-            while time.monotonic() < deadline:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
                 try:
-                    result = request(path)
+                    result = request(path, timeout=min(5, remaining))
                     last = "HTTP " + str(result[0])
+                    if time.monotonic() >= deadline:
+                        last += " after deadline"
+                        break
                     if result[0] == status:
                         return result
                 except (OSError, http.client.HTTPException) as error:
                     last = type(error).__name__ + ": " + str(error)
-                time.sleep(0.25)
+                remaining = deadline - time.monotonic()
+                if remaining > 0:
+                    time.sleep(min(0.25, remaining))
             raise AssertionError(f"{path} via 127.0.0.1:{port} (TLS SNI library.example) "
                                  f"never returned {status}; last: {last}")
 

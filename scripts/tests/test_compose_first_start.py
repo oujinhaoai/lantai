@@ -6,7 +6,7 @@ import errno
 import subprocess
 from pathlib import Path
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 spec = importlib.util.spec_from_file_location(
@@ -103,7 +103,7 @@ class LifecycleDiagnostics(unittest.TestCase):
 
 
 class RestartDeadline(unittest.TestCase):
-    def run_restart_sequence(self, ready_after, diagnostic_seconds):
+    def run_restart_sequence(self, ready_after, diagnostic_seconds, request_seconds=0):
         # Execute the real wait and restart control flow with a virtual clock.
         # Docker commands, TCP, TLS, sleeps and credentials are never used.
         tree = ast.parse(Path(smoke.__file__).read_text())
@@ -124,6 +124,7 @@ class RestartDeadline(unittest.TestCase):
 
         clock = Clock()
         up_times, ready_times, meta_times = [], [], []
+        self.request_timeouts = []
 
         def command(argv):
             if argv[-2:] == ["up", "-d"]:
@@ -135,9 +136,13 @@ class RestartDeadline(unittest.TestCase):
             elif phase.endswith("-ready"):
                 ready_times.append(clock.now - up_times[-1])
 
-        def request(path):
+        def request(path, timeout=5):
             if path == "/setup/":
                 return (404, b"", None)
+            self.request_timeouts.append(timeout)
+            # Deliberately allow transport completion to overrun the per-operation
+            # timeout: acceptance must independently check the absolute deadline.
+            clock.now += request_seconds
             elapsed = clock.now - up_times[-1]
             meta_times.append(elapsed)
             if elapsed >= ready_after:
@@ -173,6 +178,54 @@ class RestartDeadline(unittest.TestCase):
                 self.assertEqual(ready, [])
                 self.assertEqual(requests, [])
                 self.assertEqual(elapsed, diagnostic_seconds)
+
+    def test_response_completing_after_deadline_is_rejected(self):
+        for diagnostics, ready_after, expected_elapsed in ((57, 61, 61), (20, 61, 62.25)):
+            with self.subTest(diagnostics=diagnostics):
+                passed, ready, _, elapsed = self.run_restart_sequence(ready_after, diagnostics, 4)
+                self.assertFalse(passed)
+                self.assertEqual(ready, [])
+                self.assertEqual(elapsed, expected_elapsed)
+
+    def test_response_completing_exactly_at_deadline_is_rejected(self):
+        passed, ready, _, elapsed = self.run_restart_sequence(60, 57, 3)
+        self.assertFalse(passed)
+        self.assertEqual(ready, [])
+        self.assertEqual(elapsed, 60)
+
+    def test_response_completing_before_deadline_passes_each_cycle(self):
+        passed, ready, _, _ = self.run_restart_sequence(59, 57, 2)
+        self.assertTrue(passed)
+        self.assertEqual(ready, [59, 59, 59])
+        self.assertEqual(self.request_timeouts, [3, 3, 3])
+
+    def test_last_request_uses_remaining_budget(self):
+        self.run_restart_sequence(61, 20, 4)
+        self.assertEqual(self.request_timeouts[-1], 1.75)
+        self.assertTrue(all(0 < timeout <= 5 for timeout in self.request_timeouts))
+
+    def test_remaining_timeout_reaches_connection_and_tcp_socket(self):
+        tree = ast.parse(Path(smoke.__file__).read_text())
+        request_node = next(node for node in ast.walk(tree)
+                            if isinstance(node, ast.FunctionDef) and node.name == "request")
+        connect_node = next(node for node in ast.walk(tree)
+                            if isinstance(node, ast.FunctionDef) and node.name == "connect")
+        connection, context, sock = Mock(), Mock(), Mock()
+        local_tls = Mock(return_value=connection)
+        socket_module = Mock()
+        socket_module.create_connection.return_value = sock
+        env = {"LocalTLS": local_tls, "context": context, "port": 32444,
+               "origin": "https://library.example:32444", "json": json,
+               "socket": socket_module}
+        module = ast.Module(body=[request_node, connect_node], type_ignores=[])
+        exec(compile(ast.fix_missing_locations(module), "<request budget>", "exec"), env)
+        env["request"]("/api/v1/meta", timeout=1.75)
+        local_tls.assert_called_once_with("library.example", 32444, context=context, timeout=1.75)
+        connection.close.assert_called_once()
+        transport = Mock(timeout=1.75)
+        env["connect"](transport)
+        socket_module.create_connection.assert_called_once_with(("127.0.0.1", 32444), timeout=1.75)
+        context.wrap_socket.assert_called_once_with(sock, server_hostname="library.example")
 
     def test_no_diagnostics_preserves_original_timeout(self):
         passed, ready, _, elapsed = self.run_restart_sequence(70, 0)
