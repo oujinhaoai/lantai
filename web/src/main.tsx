@@ -651,7 +651,7 @@ function AssetDetail({
     ? from
     : "/assets";
   return (
-    <>
+    <div className="asset-detail">
       <a className="back" href={href(safeFrom)}>
         <Icon kind="back" size={17} />
         返回列表
@@ -666,7 +666,7 @@ function AssetDetail({
               eyebrow={`资源 / ${typeNames[asset.asset_type] || asset.asset_type}`}
               title={asset.description.title || asset.description.slug}
             >
-              {asset.description.summary || "暂无摘要。"}
+              {asset.description.summary}
             </Heading>
             <section>
               <div className="section-head">
@@ -688,6 +688,7 @@ function AssetDetail({
                     {!!exact.manifest?.content.files.length && (
                       <FilePreview
                         files={exact.manifest.content.files}
+                        assetType={asset.asset_type}
                         assetID={assetID}
                         versionID={asset.latest.version_id}
                         expire={expire}
@@ -794,7 +795,7 @@ function AssetDetail({
           </>
         )}
       </Resource>
-    </>
+    </div>
   );
 }
 function Workspace({

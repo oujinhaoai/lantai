@@ -122,6 +122,7 @@ func TestWebBrowserFixture(t *testing.T) {
 		}
 		seed(item.name, item.kind, map[string][]byte{item.file: body})
 	}
+	seed("unsupported", manifest.TypeDoc, map[string][]byte{"archive.zip": []byte("PK synthetic archive"), "binary.bin": {0, 1, 2, 3}})
 	seed("text", manifest.TypeDoc, map[string][]byte{
 		"readme.md":     []byte("# 安全阅读\n\n**中文 Markdown**\n\n![外部图片](https://example.invalid/tracker.png)\n\n<script>window.previewExecuted=true</script>\n\n[危险链接](javascript:alert(1))\n"),
 		"source.py":     []byte("# 合成代码，不执行\nprint('只读预览')\n"),

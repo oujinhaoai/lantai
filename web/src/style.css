@@ -1471,3 +1471,47 @@ select {
     margin-top: 12px;
   }
 }
+
+/* Compact detail hierarchy leaves room for the content without smaller targets. */
+.asset-detail > .back {
+  margin-bottom: 8px;
+}
+.asset-detail > .page-heading {
+  margin-bottom: 12px;
+}
+.asset-detail > .page-heading .eyebrow {
+  margin-bottom: 4px;
+}
+.asset-detail > .page-heading > p:last-child:not(:first-child) {
+  margin-top: 4px;
+}
+.asset-detail .section-head {
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.asset-detail .preview-panel {
+  margin-top: 0;
+}
+.preview-meta {
+  display: block;
+  margin: 8px 0;
+}
+.file-viewer > .preview-actions {
+  gap: 8px;
+  margin: 8px 0;
+}
+.file-viewer > .preview-actions > button,
+.file-viewer > .preview-actions > a {
+  padding: 8px 10px;
+}
+.file-viewer > .preview-actions > .text-button {
+  padding: 8px 6px;
+}
+.asset-detail .media-image {
+  margin: 12px auto;
+}
+@media (max-width: 760px) {
+  .asset-detail > .page-heading h1 {
+    font-size: 24px;
+  }
+}

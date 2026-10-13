@@ -84,6 +84,11 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
         .evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
     .toBe(160);
+  if (info.project.name === "webkit-mobile") {
+    expect((await page.locator(".media-image").boundingBox())!.y).toBeLessThan(
+      550,
+    );
+  }
   await shot(page, info, "media-image");
   for (const kind of ["audio", "video"]) {
     await open(page, assets[kind]);
@@ -121,6 +126,76 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
     await expect(media).toHaveCount(0);
   }
   expect(grants).toBe(3);
+});
+
+test("mixed versions default to a previewable file without reading and keep unsupported choices", async ({
+  page,
+  request,
+}) => {
+  const assets = await login(page, request);
+  let reads = 0;
+  page.on("request", (r) => {
+    if (r.url().includes("/read-grants") || r.url().includes("/xfer/")) reads++;
+  });
+  await open(page, assets.text);
+  await expect(page.getByLabel("选择版本文件")).toHaveValue("readme.md");
+  await expect(
+    page.getByRole("button", { name: "预览文件", exact: true }),
+  ).toBeVisible();
+  expect(reads).toBe(0);
+  await page.getByLabel("选择版本文件").selectOption("archive.zip");
+  await expect(page.getByText(/此版本另有 .* 个可预览候选/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "预览文件", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByLabel("选择版本文件").locator("option[value='binary.bin']"),
+  ).toHaveCount(1);
+  expect(reads).toBe(0);
+  // Metadata-only boundary case: an image resource with an oversized cover
+  // and a readable note must not select or fetch the cover automatically.
+  const assetURL = (url: URL) =>
+    url.pathname === `/api/v1/assets/${assets.text}`;
+  const versionURL = (url: URL) =>
+    url.pathname.startsWith(`/api/v1/assets/${assets.text}/versions/`);
+  await page.route(assetURL, async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.asset_type = "image";
+    await route.fulfill({ response, json: data });
+  });
+  await page.route(versionURL, async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    const note = data.manifest.content.files.find(
+      (item: { path: string }) => item.path === "readme.md",
+    );
+    data.manifest.content.files = [
+      { ...note, path: "cover.png", size: 17 * 1024 * 1024 },
+      note,
+    ];
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto("/#/assets");
+  await open(page, assets.text);
+  await expect(page.getByLabel("选择版本文件")).toHaveValue("readme.md");
+  await page.getByLabel("选择版本文件").selectOption("cover.png");
+  await expect(page.getByText(/图片超过 16 MiB/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "预览文件", exact: true }),
+  ).toHaveCount(0);
+  expect(reads).toBe(0);
+  await page.unroute(assetURL);
+  await page.unroute(versionURL);
+  await open(page, assets.unsupported);
+  await expect(page.getByLabel("选择版本文件").locator("option")).toHaveCount(
+    2,
+  );
+  await expect(page.getByText(/此格式不支持预览/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "预览文件", exact: true }),
+  ).toHaveCount(0);
+  expect(reads).toBe(0);
 });
 
 test("safe Markdown, code and configuration render without executing or fetching embedded content", async ({

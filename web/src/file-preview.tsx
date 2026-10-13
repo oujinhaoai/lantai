@@ -345,11 +345,10 @@ function Viewer({
   return (
     <div className="file-viewer">
       <div className="preview-meta">
-        <strong>{file.path}</strong>
         <span>
-          {kindNames[kind]} · 格式：
+          {kindNames[kind]} ·{" "}
           {file.path.split(".").pop()?.toUpperCase() || "未知"} ·{" "}
-          {file.size.toLocaleString("zh-CN")} 字节
+          {file.size.toLocaleString("zh-CN")} B
         </span>
       </div>
       {kind === "unsupported" && (
@@ -499,18 +498,44 @@ function Viewer({
     </div>
   );
 }
+function canPreview(file: PreviewFile) {
+  const kind = fileKind(file.path);
+  return (
+    kind !== "unsupported" && (kind !== "image" || file.size <= imageLimit)
+  );
+}
+
 export function FilePreview({
   files,
+  assetType,
   assetID,
   versionID,
   expire,
 }: {
   files: PreviewFile[];
+  assetType: string;
   assetID: string;
   versionID: string;
   expire: (error: unknown) => void;
 }) {
-  const [selected, setSelected] = useState(files[0]?.path || "");
+  const candidates = files.filter(canPreview);
+  const primary = candidates.filter((item) => item.role === "primary");
+  const pool = primary.length ? primary : candidates;
+  const matching = pool.filter((item) => {
+    const kind = fileKind(item.path);
+    return (
+      kind === assetType ||
+      (assetType === "doc" && (kind === "text" || kind === "markdown"))
+    );
+  });
+  const preferred = matching.length ? matching : pool;
+  const first =
+    preferred.find((item) =>
+      /(?:^|\/)readme\.(?:md|markdown|txt)$/i.test(item.path),
+    ) ||
+    preferred[0] ||
+    files[0];
+  const [selected, setSelected] = useState(first?.path || "");
   const file = files.find((item) => item.path === selected);
   if (!file) return null;
   return (
@@ -532,6 +557,12 @@ export function FilePreview({
           ⌄
         </span>
       </label>
+      {!canPreview(file) && candidates.length > 0 && (
+        <p className="subtle">
+          此版本另有 {candidates.length}{" "}
+          个可预览候选，可在上方选择。文件仍需点击后读取。
+        </p>
+      )}
       <Viewer
         key={file.path}
         file={file}
