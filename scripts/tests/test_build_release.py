@@ -190,6 +190,14 @@ class BuildGuards(unittest.TestCase):
         if argv[:2] == ["go", "test"]:
             return "--- PASS: TestCaddySingleHTTPSGateway (0.01s)\nok"
         if argv[0] == sys.executable and argv[1].endswith("test-compose-first-start.py"):
+            evidence = {"status": "passed", "core_image_id": "sha256:" + "c" * 64,
+                        "caddy_image_id": "sha256:" + "c" * 64,
+                        "snapshots": [{"phase": phase} for phase in (
+                            "core-restart-ready", "full-up-1-ready", "full-up-2-ready", "full-up-3-ready")]}
+            evidence.update(getattr(self, "lifecycle_override", {}))
+            Path(argv[argv.index("--evidence-file") + 1]).write_text(json.dumps(evidence))
+            if getattr(self, "lifecycle_failure", False):
+                raise subprocess.CalledProcessError(1, argv, stderr="synthetic restart failure")
             return getattr(self, "first_start_output", "\n".join([
                 "PASS: running core image sha256:" + "c" * 64,
                 "PASS: running Caddy image sha256:" + "c" * 64,
@@ -271,6 +279,24 @@ class BuildGuards(unittest.TestCase):
             self.run_simulated_build()
         self.assertFalse((self.out / "deliverables/manifest.json").exists())
         self.assertFalse(list((self.out / "deliverables").glob("*image.tar.gz")))
+
+    def test_restart_failure_retains_lifecycle_without_success_manifest(self):
+        self.image_revision = SHA
+        self.lifecycle_failure = True
+        self.lifecycle_override = {"status": "failed"}
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_simulated_build()
+        deliver = self.out / "deliverables"
+        self.assertEqual(json.loads((deliver / "first-start-lifecycle.json").read_text())["status"], "failed")
+        self.assertFalse((deliver / "manifest.json").exists())
+        self.assertFalse((deliver / "SHA256SUMS").exists())
+
+    def test_partial_restart_evidence_prevents_success_manifest(self):
+        self.image_revision = SHA
+        self.lifecycle_override = {"snapshots": [{"phase": "core-restart-ready"}]}
+        with self.assertRaisesRegex(RuntimeError, "lifecycle evidence incomplete"):
+            self.run_simulated_build()
+        self.assertFalse((self.out / "deliverables/manifest.json").exists())
 
     def test_missing_help_or_wrong_delivery_evidence_prevents_manifest(self):
         self.image_revision = SHA

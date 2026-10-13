@@ -45,6 +45,8 @@ Actions artifact 保存 30 天。名称含版本、目标提交和 Linux amd64 �
 
 随后用 `scripts/test-compose-first-start.py --image <核心 tag> --caddy-image <网关 tag>` 验证这两份本地发行镜像，不重建或拉取替代镜像。随机测试项目仅使用合成证书、引导码和数据，检查单次 Compose up、TLS、受保护管理员设置、重启不重开引导及日志隐私；实际运行的两个容器 image ID 必须与归档对应清单一致。证据写入 `first-start-image-smoke.txt` 并计入 manifest 与 SHA256SUMS，缺少成功或精确 image ID 证据不生成成功清单。真实 NAS 的文件管理权限、文件系统和流量仍需单独验收。
 
+首次启动验收另保存 `first-start-lifecycle.json`：在同一已设置实例上执行 core 单独重启及三轮完整 stop/up，记录各阶段 core/gateway/prepare 的状态、退出码、实际镜像、配置与实际 HTTPS 端口映射，以及宿主端口、容器端口和 gateway→core 的连接结果。每轮完整重启的 meta 恢复判定以 60 秒为限，截止时间固定在 `up -d` 返回时，同步诊断和请求耗时计入同一窗口，HTTP 响应读完后再次检查截止时间，截止后返回 200 也判失败。单次 socket 超时取剩余预算与 5 秒中的较小值，轮询间隔也不超过剩余预算；全部恢复必须重新通过 TLS 的 meta=200 和 setup=404。诊断采用字段白名单，不输出环境变量、挂载内容、认证请求/响应或设置后的容器日志。失败时保留该 JSON 和非零退出，不能生成成功 manifest；诊断缺项不能代替实际恢复验收。
+
 官方 Caddy 二进制带 `cap_net_bind_service` 文件能力。版本探测使用无网络、只读容器，先丢弃全部能力，再仅保留 `NET_BIND_SERVICE`；不授予 privileged 或宿主网络。该工作流的独立 Docker 回归会读取文件能力，复现全部丢弃时的退出126，并验证单一能力配置能实际执行版本命令。相关发布工具变更的 PR 自动运行此回归，PR 中的正式制品任务仍跳过；手动 main 发行同时运行回归与构建。命令失败保留非零退出并输出捕获的 stderr，不能把失败探测当作成功。
 
 下载完整 artifact 解压到独立目录后，先运行 `sha256sum -c SHA256SUMS`（macOS 用 `shasum -a 256 -c SHA256SUMS`），核对 manifest.source_commit/main_ci。导入镜像后核对 image inspect 的 ID、平台和 label 与清单一致；不要仅凭 tag 相同判断。归档与摘要没有自动签名，来源应绑定授权的 Actions run/提交和可信交付渠道。
