@@ -1,13 +1,13 @@
 # 共同备份与空目录恢复
 
-M1 实现由 `operations` 编排、各领域所有者核验；实现见 [`internal/operations`](../../internal/operations/)、[`application`](../../internal/application/)、[实例生命周期](instance.md)。公开文件协议为 [`lantai.backup/v1`](../../schemas/operations/v1/backup.schema.json) 和 [`lantai.recovery-review/v1`](../../schemas/operations/v1/recovery-review.schema.json)。本机命令需要停止服务并持有数据根独占锁；库内 API 也可在运行实例的共同维护屏障下备份。
+M1 实现由 `operations` 编排、各领域所有者核验；实现见 [`internal/operations`](../../internal/operations/)、[`application`](../../internal/application/)、[实例生命周期](instance.md)。公开文件协议为 [`lantai.backup/v1`](../../schemas/operations/v1/backup.schema.json) 和 [`lantai.recovery-review/v1`](../../schemas/operations/v1/recovery-review.schema.json)。旧本机 `backup` 命令需要停止服务并持有数据根独占锁；含新功能的开发版本提供 [运行中互斥备份](../online-backup.md)，由同一 core 内部服务协调 CLI 与[本机控制接口](../../api/backup-control.md)。该能力不属于已发布 rc.4。
 
 ## 冻结共同点
 
 1. 关闭写入口、等待前台和后台在途写入结束。通过所属模块执行深度 fsck，排空已持久 outbox 并记录事件、审计及裁剪水位。
 2. 枚举并核验 CAS 原件，将整个 Blob 清单持久写入源实例的 `backups/records/<backup_id>.json`。该记录是 `operations` 的 backup pin，复制未完成时不按 TTL 释放。
 3. 在同一个独占窗口内对 `main`、`ledger`、`runtime`、`events` 执行 `VACUUM INTO`，包括已提交 WAL 内容；核对完整性、实例绑定及迁移摘要。复制 `instance.json`、可选 `config.yaml` 和 `projects/`、`trash/`、`staging/`、`quarantine/`、`audit/`、`logs/` 中的可变文件。每件记录相对路径、大小和 SHA-256。
-4. 持久发布 `copying` 清单后才恢复写入。其后只复制已固定的不可变 Blob，流式读写，不把整个原件装入内存。
+4. 持久发布 `copying` 清单后只复制已固定的不可变 Blob，流式读写，不把整个原件装入内存。在线协调器继续持有维护屏障，业务读写保持关闭，直到复制、校验和水位确认全部结束；底层 API 原有的分段捕获模式只供受控内部调用。
 5. 四库及所有文件再次校验后写 `complete` 清单和绑定其精确字节摘要的 `COMPLETE` 文件，最后释放源 backup pin。应用层仅在此后向事件模块确认冻结的备份水位；确认失败可重试，不自动裁剪事件。
 
 `index.db` 可重建，不进入备份；密钥、锁、旧备份也不复制。密钥仅保存 `key_id` 引用，须独立保存。备份与数据根必须是互不包含的目录，路径穿越、符号链接、非普通文件、重复路径、非法 CAS 路径或摘要不符均拒绝。M1 保守地保存所有 CAS 内容，不实现物理 GC。

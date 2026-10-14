@@ -1,5 +1,8 @@
 # deploy · 部署模板
 
+运行中互斥备份的可选一次性挂载与日常命令见[在线备份](../docs/online-backup.md)。使用 `compose.backup.yaml` 时不需要每次修改 Compose 或手工停启 core；该能力属于开发版本，不属于已发布 rc.4。
+
+
 归属：[T08 运维与部署](../docs/tasks/T08-operations-deploy.md)。
 
 存放可公开的容器、HTTPS 网关、系统服务管理与配置模板。模板仅使用示例域名和变量占位，真实配置在仓库之外。

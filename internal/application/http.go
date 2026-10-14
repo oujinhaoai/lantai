@@ -59,7 +59,7 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 		option(&o)
 	}
 	logger := &accessLogger{out: o.accessLog}
-	businessReady := func() bool { return a.Instance.Readiness().Ready }
+	businessReady := func() bool { return a.Readiness().Ready }
 	if !a.Ready() {
 		return nil, errors.New("application: instance is not ready")
 	}
@@ -81,7 +81,7 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	t := cfg.Transfer
 	scheduler := transfer.New(transfer.Limits{InteractiveSlots: t.InteractiveSlots, BatchSlots: t.BatchSlots, BatchPerPrincipal: t.BatchPerPrincipal, BatchBytesPerSecond: t.BatchBytesPerSecond, BatchBytesPerSecondWhileInteractive: t.BatchBytesPerSecondWhileInteractive})
 	xfer := h.Transfer(a.Storage, scheduler)
-	r := &HTTPServers{errors: make(chan error, 3)}
+	r := &HTTPServers{errors: make(chan error, 4)}
 	api := h.APIConfig(cfg.Listen.API)
 	if cfg.Listen.Merged {
 		api = httpapi.TransferConfig(cfg.Listen.API, h.Merged(xfer))
@@ -90,10 +90,10 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	if cfg.Listen.Merged {
 		surface = "merged"
 	}
-	api.Handler = logger.wrap(surface, readinessGuard(businessReady, api.Handler))
+	api.Handler = logger.wrap(surface, a.business.wrap(readinessGuard(businessReady, api.Handler)))
 	r.servers = append(r.servers, api)
 	if !cfg.Listen.Merged {
-		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, logger.wrap("transfer", readinessGuard(businessReady, xfer))))
+		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, logger.wrap("transfer", a.business.wrap(readinessGuard(businessReady, xfer)))))
 	}
 	r.servers = append(r.servers, httpapi.APIConfig(cfg.Listen.Operations, logger.wrap("operations", a.operationsHandler(scheduler))))
 	var listeners []net.Listener
@@ -111,7 +111,22 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 		srv.ErrorLog = log.New(io.Discard, "", 0)
 		srv.BaseContext = func(net.Listener) context.Context { return ctx }
 	}
-	r.Addresses = Listeners{API: listeners[0].Addr().String(), Operations: listeners[len(listeners)-1].Addr().String(), Merged: cfg.Listen.Merged}
+	opsAddress := listeners[len(listeners)-1].Addr().String()
+	if a.backupControl != nil {
+		ln, e := a.backupControl.listen()
+		if e != nil {
+			for _, l := range listeners {
+				_ = l.Close()
+			}
+			return nil, e
+		}
+		srv := httpapi.APIConfig("", a.backupControl.Handler())
+		srv.ErrorLog = log.New(io.Discard, "", 0)
+		srv.BaseContext = func(net.Listener) context.Context { return ctx }
+		listeners = append(listeners, ln)
+		r.servers = append(r.servers, srv)
+	}
+	r.Addresses = Listeners{API: listeners[0].Addr().String(), Operations: opsAddress, Merged: cfg.Listen.Merged}
 	if cfg.Listen.Merged {
 		r.Addresses.Transfer = r.Addresses.API
 	} else {

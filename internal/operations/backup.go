@@ -73,8 +73,9 @@ type BackupOptions struct {
 	KeyID       ids.ID
 	// Check runs under the common exclusive barrier, before any snapshot. It
 	// is the application owner's deep domain integrity check.
-	Check      func(context.Context) error
-	Watermarks func(context.Context) (map[string]int64, error)
+	Check            func(context.Context) error
+	CheckDestination func(context.Context) error
+	Watermarks       func(context.Context) (map[string]int64, error)
 	// Fault is internal test-only injection after durable protocol boundaries.
 	fault func(string) error
 }
@@ -114,7 +115,7 @@ func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManife
 				return rec.Manifest, err
 			}
 		}
-		return i.finishBackup(ctx, &rec, opts.fault)
+		return i.finishBackup(ctx, &rec, opts)
 	}
 	if !opts.KeyID.Valid() {
 		return BackupManifest{}, errors.New("operations: backup requires the separately recoverable master key ID")
@@ -143,7 +144,7 @@ func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManife
 	if err = i.captureBackup(ctx, &rec, opts); err != nil {
 		return rec.Manifest, err
 	}
-	return i.finishBackup(ctx, &rec, opts.fault)
+	return i.finishBackup(ctx, &rec, opts)
 }
 
 func ensureEmptyDirectory(dir string) error {
@@ -169,6 +170,11 @@ func ensureEmptyDirectory(dir string) error {
 // an upgrade must be able to back up the old schema before changing it. It never
 // opens that instance's gate or bypasses a recorded incomplete migration.
 func (i *Instance) captureWindow(ctx context.Context) (context.Context, func(), error) {
+	// The online coordinator already holds this instance's exclusive barrier
+	// through copy, verification and application acknowledgement.
+	if i.gate.RequireMaintenance(ctx) == nil {
+		return ctx, func() {}, nil
+	}
 	i.mu.Lock()
 	old := i.state
 	if i.marker.State != MarkerActive || i.marker.Migration != nil || i.marker.Restore != nil || old == StateClosed || old == StateStopping || old == StateMaintenance || old == StateRecovering {
@@ -201,6 +207,11 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 		return err
 	}
 	defer end()
+	if opts.CheckDestination != nil {
+		if err = opts.CheckDestination(c); err != nil {
+			return err
+		}
+	}
 	if opts.Check != nil {
 		if err = opts.Check(c); err != nil {
 			return err
@@ -317,6 +328,11 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 			if d.IsDir() {
 				return nil
 			}
+			if opts.CheckDestination != nil {
+				if e = opts.CheckDestination(c); e != nil {
+					return e
+				}
+			}
 			f, e := copyBackupFile(c, src, p, dst, p, nil)
 			if e != nil {
 				return e
@@ -365,8 +381,14 @@ func verifyBackupDB(ctx context.Context, file string, name ownership.Database, i
 	return st, nil
 }
 
-func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault func(string) error) (BackupManifest, error) {
+func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, opts BackupOptions) (BackupManifest, error) {
 	m := &rec.Manifest
+	fault := opts.fault
+	if opts.CheckDestination != nil {
+		if err := opts.CheckDestination(ctx); err != nil {
+			return *m, err
+		}
+	}
 	if m.InstanceID != i.InstanceID() {
 		return *m, errors.New("operations: backup belongs to a different instance")
 	}
@@ -399,6 +421,11 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault fu
 	}
 	defer dst.Close()
 	for _, f := range m.Blobs {
+		if opts.CheckDestination != nil {
+			if err := opts.CheckDestination(ctx); err != nil {
+				return *m, err
+			}
+		}
 		if got, e := hashBackupFile(ctx, dst, f.Stored); e == nil && got.SHA256 == f.SHA256 && got.Size == f.Size {
 			continue
 		}
@@ -413,6 +440,11 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault fu
 	}
 	if err = verifyBackupContents(ctx, rec.Destination, *m); err != nil {
 		return *m, err
+	}
+	if opts.CheckDestination != nil {
+		if err := opts.CheckDestination(ctx); err != nil {
+			return *m, err
+		}
 	}
 	m.State = "complete"
 	m.CompletedAt = i.clock.Now()

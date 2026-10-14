@@ -161,3 +161,38 @@ func TestCancelBackupTimeoutCannotReleaseCopyPin(t *testing.T) {
 		t.Fatal("cancelled interrupted copy reported complete")
 	}
 }
+
+func TestBackupRetainsCallerMaintenanceThroughCopyVerifyAndFailure(t *testing.T) {
+	for _, stage := range []string{"common_point_captured", "blob_copied", "complete_marked"} {
+		t.Run(stage, func(t *testing.T) {
+			i := backupInstance(t)
+			backupBlob(t, i, []byte("immutable source for full maintenance"))
+			m, err := i.Maintain(t.Context(), "backup")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = i.Backup(m.Context(), BackupOptions{Destination: filepath.Join(t.TempDir(), "archive"), KeyID: ids.New(), fault: func(at string) error {
+				if i.Readiness().Ready {
+					t.Errorf("business reopened at %s", at)
+				}
+				if i.Gate().RequireMaintenance(m.Context()) != nil {
+					t.Errorf("lost barrier at %s", at)
+				}
+				if at == stage {
+					return errBackupCrash
+				}
+				return nil
+			}})
+			if !errors.Is(err, errBackupCrash) {
+				t.Fatal(err)
+			}
+			if i.Readiness().Ready {
+				t.Fatal("failure released caller's barrier")
+			}
+			m.End()
+			if !i.Readiness().Ready {
+				t.Fatal("maintenance did not restore")
+			}
+		})
+	}
+}

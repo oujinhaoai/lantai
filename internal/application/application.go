@@ -53,15 +53,17 @@ type Options struct {
 }
 
 type App struct {
-	Instance   *operations.Instance
-	Identity   *identity.Service
-	Ledger     *ledger.Service
-	Rights     *provenance.Service
-	Storage    *storage.Service
-	Catalog    *catalog.Service
-	Events     *events.Store
-	Query      *query.Service
-	Extensions *extensions.Registry
+	business      businessGate
+	backupControl *BackupControl
+	Instance      *operations.Instance
+	Identity      *identity.Service
+	Ledger        *ledger.Service
+	Rights        *provenance.Service
+	Storage       *storage.Service
+	Catalog       *catalog.Service
+	Events        *events.Store
+	Query         *query.Service
+	Extensions    *extensions.Registry
 	// ExtensionManager governs imported packages and serves the jobs host port.
 	ExtensionManager *extensions.Manager
 	// Scheduler runs due reminders/purges and GC; serve starts it only when
@@ -189,15 +191,15 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 				case <-ctx.Done():
 					return nil
 				case <-t.C:
-					_, _ = a.Scheduler.RunOnce(ctx) // Failures stay in job rows and retry with backoff.
+					a.backgroundOperation(func(c context.Context) { _, _ = a.Scheduler.RunOnce(c) })(ctx) // Failures stay in job rows and retry with backoff.
 				}
 			}
 		})
 	}
 	// 失败反映在 readiness，并按阶段写脱敏诊断；保留原操作并在下次恢复同一进度。
-	i.Go("outbox-query", every(time.Second, func(ctx context.Context) { a.observeSync(ctx, taskOutboxQuery, a.syncCore(ctx, false)) }))
-	i.Go("inbox-audit", every(time.Second, func(ctx context.Context) { a.observeSync(ctx, taskInboxAudit, a.syncTail(ctx)) }))
-	i.Go("upload-expiry", every(cmp.Or(opts.UploadSweepInterval, time.Minute), a.SweepUploads))
+	i.Go("outbox-query", every(time.Second, a.backgroundOperation(func(ctx context.Context) { a.observeSync(ctx, taskOutboxQuery, a.syncCore(ctx, false)) })))
+	i.Go("inbox-audit", every(time.Second, a.backgroundOperation(func(ctx context.Context) { a.observeSync(ctx, taskInboxAudit, a.syncTail(ctx)) })))
+	i.Go("upload-expiry", every(cmp.Or(opts.UploadSweepInterval, time.Minute), a.backgroundOperation(a.SweepUploads)))
 	return a, nil
 }
 
@@ -242,11 +244,18 @@ func every(interval time.Duration, run func(context.Context)) func(context.Conte
 	}
 }
 
-func (a *App) Close(ctx context.Context) error { return a.Instance.Close(ctx) }
+func (a *App) Close(ctx context.Context) error {
+	if a.backupControl != nil {
+		if err := a.backupControl.Close(ctx); err != nil {
+			return err
+		}
+	}
+	return a.Instance.Close(ctx)
+}
 
 // observeSync 记录一轮后台同步的结果；停止服务时的取消不算失败。
 func (a *App) observeSync(ctx context.Context, task string, err error) {
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || errcode.CodeOf(err) == errcode.MaintenanceMode {
 		return
 	}
 	a.background.observe(task, err)
@@ -282,7 +291,14 @@ func (a *App) syncTail(ctx context.Context) error {
 
 // syncCoreLocked 收录 outbox 并追平查询投影。
 func (a *App) syncCoreLocked(ctx context.Context, startup bool) (err error) {
-	defer func() { a.healthMu.Lock(); a.coreFailed = err != nil; a.healthMu.Unlock() }()
+	defer func() {
+		if errcode.CodeOf(err) == errcode.MaintenanceMode {
+			return
+		}
+		a.healthMu.Lock()
+		a.coreFailed = err != nil
+		a.healthMu.Unlock()
+	}()
 	for _, db := range []ownership.Database{ownership.Main, ownership.Ledger, ownership.Runtime} {
 		src := commands.OutboxSource{Label: string(db), DB: a.Instance.DB(db), Gate: a.Instance.Gate()}
 		// 启动尚无监听或后台业务写者，可安全排空现存 outbox；运行期有界轮转。
@@ -309,7 +325,14 @@ func (a *App) syncCoreLocked(ctx context.Context, startup bool) (err error) {
 
 // syncTailLocked 推进收件箱消费与审计导出。
 func (a *App) syncTailLocked(ctx context.Context) (err error) {
-	defer func() { a.healthMu.Lock(); a.tailFailed = err != nil; a.healthMu.Unlock() }()
+	defer func() {
+		if errcode.CodeOf(err) == errcode.MaintenanceMode {
+			return
+		}
+		a.healthMu.Lock()
+		a.tailFailed = err != nil
+		a.healthMu.Unlock()
+	}()
 	if a.Collaboration != nil {
 		if _, err = a.Collaboration.CatchUpInbox(ctx, 1000); err != nil {
 			return atStage(stageInbox, err)
@@ -323,7 +346,7 @@ func (a *App) syncTailLocked(ctx context.Context) (err error) {
 func (a *App) Ready() bool {
 	a.healthMu.RLock()
 	defer a.healthMu.RUnlock()
-	return a.Instance.Readiness().Ready && !a.coreFailed && !a.tailFailed
+	return a.Readiness().Ready && !a.coreFailed && !a.tailFailed
 }
 
 // storageConfig 合并存储配置：调用方显式给出的值优先（测试用），其余取实例
