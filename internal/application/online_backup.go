@@ -81,6 +81,12 @@ func (a *App) EnableBackups(ctx context.Context, root, rootID string) (*BackupCo
 		return nil, err
 	}
 	for _, entry := range entries {
+		if handled, e := b.recoverJournalTemp(entry); handled || e != nil {
+			if e != nil {
+				return nil, e
+			}
+			continue
+		}
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 			return nil, errors.New("invalid backup journal")
 		}
@@ -88,12 +94,11 @@ func (a *App) EnableBackups(ctx context.Context, root, rootID string) (*BackupCo
 		if !id.Valid() {
 			return nil, errors.New("invalid backup journal ID")
 		}
-		var j BackupJob
-		raw, e := os.ReadFile(filepath.Join(b.journalDir(), entry.Name()))
+		j, e := readBackupJob(filepath.Join(b.journalDir(), entry.Name()))
 		if e != nil {
 			return nil, e
 		}
-		if e = json.Unmarshal(raw, &j); e != nil || j.ID != id {
+		if j.ID != id {
 			return nil, errors.New("invalid backup journal")
 		}
 		switch j.State {
@@ -399,19 +404,8 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 	if err = b.checkCapacity(c); err != nil {
 		return
 	}
-	b.mu.Lock()
-	attempted := j.CaptureStarted
-	j.State, j.UpdatedAt = "backing_up", time.Now().UTC()
-	j.CaptureStarted = true
-	err = b.save(j)
-	b.jobs[j.ID] = j
-	b.mu.Unlock()
-	if err != nil {
-		return
-	}
 	target := filepath.Join(b.root, string(j.ID))
-	st, e := os.Lstat(target)
-	if e == nil {
+	if st, e := os.Lstat(target); e == nil {
 		resolved, e := filepath.EvalSymlinks(target)
 		if e != nil || !st.IsDir() || resolved != target {
 			err = errors.New("unsafe backup target")
@@ -422,20 +416,24 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		return
 	}
 	if req.Resume != "" {
-		// If capture was attempted, a missing destination cannot be silently replaced
-		// by a fresh point. Start a new job explicitly or restore the original volume.
-		raw, e := os.ReadFile(filepath.Join(target, "manifest.json"))
-		if e == nil {
-			var old operations.BackupManifest
-			if e = json.Unmarshal(raw, &old); e != nil || !old.BackupID.Valid() {
-				err = errors.New("invalid resumed manifest")
+		resolved, e := b.app.Instance.ResolveBackupID(c, j.BackupID, target)
+		if e != nil {
+			if !errors.Is(e, fs.ErrNotExist) || j.CaptureStarted {
+				err = e
 				return
 			}
-			j.BackupID = old.BackupID
-		} else if attempted {
-			err = errors.New("resume requires original backup destination")
-			return
+		} else {
+			j.BackupID = resolved
 		}
+	}
+	b.mu.Lock()
+	j.State, j.UpdatedAt = "backing_up", time.Now().UTC()
+	j.CaptureStarted = true
+	err = b.save(j)
+	b.jobs[j.ID] = j
+	b.mu.Unlock()
+	if err != nil {
+		return
 	}
 	m, err = b.run(c, operations.BackupOptions{Destination: target, BackupID: j.BackupID, CheckDestination: func(context.Context) error { return b.checkDestination() }})
 }

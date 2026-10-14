@@ -100,15 +100,16 @@ func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManife
 		if !opts.BackupID.Valid() {
 			return BackupManifest{}, errors.New("operations: invalid backup ID")
 		}
-		var rec backupRecord
-		if err := readBackupJSON(i.backupRecordPath(opts.BackupID), &rec); err != nil {
-			return BackupManifest{}, err
-		}
+		target := ""
 		if opts.Destination != "" {
-			abs, err := filepath.Abs(opts.Destination)
-			if err != nil || abs != rec.Destination {
-				return rec.Manifest, errors.New("operations: resume destination differs from the original backup")
+			target, err = filepath.Abs(opts.Destination)
+			if err != nil {
+				return BackupManifest{}, err
 			}
+		}
+		rec, err := i.readBoundBackupRecord(opts.BackupID, target)
+		if err != nil {
+			return rec.Manifest, err
 		}
 		if rec.Manifest.State == "capturing" {
 			if err := i.resumeCapture(ctx, &rec, opts); err != nil {
@@ -760,6 +761,9 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 		return errors.New("operations: invalid capture reset journal")
 	}
 	if _, err := os.Lstat(rec.RetiredDestination); errors.Is(err, fs.ErrNotExist) {
+		if err = validateResetCapture(rec.Destination, rec.Manifest); err != nil {
+			return err
+		}
 		if err = os.Rename(rec.Destination, rec.RetiredDestination); err != nil {
 			return err
 		}
@@ -769,10 +773,12 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 	} else if err != nil {
 		return err
 	}
+	if err := validateResetCapture(rec.RetiredDestination, rec.Manifest); err != nil {
+		return err
+	}
 	if err := ensureEmptyDirectory(rec.Destination); err != nil {
 		entries, e := os.ReadDir(rec.Destination)
-		var current BackupManifest
-		if e != nil || len(entries) != 1 || entries[0].Name() != "manifest.json" || readBackupJSON(filepath.Join(rec.Destination, "manifest.json"), &current) != nil || current.BackupID != rec.Manifest.BackupID || current.State != "capturing" {
+		if e != nil || len(entries) != 1 || entries[0].Name() != "manifest.json" || validateResetCapture(rec.Destination, rec.Manifest) != nil {
 			return err
 		}
 	}

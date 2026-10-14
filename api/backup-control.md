@@ -27,7 +27,7 @@ HTTP Host 必须为 `lantai-backup`，`X-Lantai-Instance` 必须匹配实例 ID�
 
 HTTP 创建请求/CLI 断开不取消 core 任务。取消接口、总期限及 core 退出会取消工作上下文；文件系统阻塞调用不保证立即结束，在其返回前仍保持维护。排空失败可安全恢复原业务，因为尚未复制。超时/取消不是强制解锁。
 
-控制记录保存于源数据根 `backups/online/<id>.json`，原有 pin/manifest 保存在原位置。启动时，旧执行态记录转为 `interrupted`；正常实例启动检查先完成，没有工作在重启后自动继续。显式 `resume` 重新获得互斥保护；存在 `copying/complete` 的目标只续传/重验同一点，捕获未完成沿用既有重置日志。已经尝试捕获但目标丢失时拒绝续传，不能静默创建新点。取消/失败保留部分文件和 pin，可显式续传；若要放弃并释放 pin，服务停止后使用原有 `backup -cancel <backup_id>`。控制日志写入失败只在内存报告失败，磁盘旧执行态在下次启动转为 `interrupted`，不可据此宣称成功。
+控制记录保存于源数据根 `backups/online/<id>.json`，原有 pin/manifest 保存在原位置。启动仅将符合原子写协议名称且为私有普通文件的残留移至 `backups/online-interrupted/`；不采用临时内容、不覆盖既有隔离证据，正式日志的 ID/字段/重复键/文件类型继续严格验证。启动时，旧执行态记录转为 `interrupted`；正常实例启动检查先完成，没有工作在重启后自动继续。显式 `resume` 重新获得互斥保护；存在 `copying/complete` 的目标只续传/重验同一点，捕获未完成沿用既有重置日志。续传由 operations 核验绑定的源记录：合法 `RetiredDestination` 重置日志允许原目录/manifest 暂缺，并先核验保留目录的 backup/key/instance/state，再完成同一次重置。没有源记录、已发布冻结点丢失、异实例/异目标或不一致捕获仍拒绝，不能静默创建新点。取消/失败保留部分文件和 pin，可显式续传；若要放弃并释放 pin，服务停止后使用原有 `backup -cancel <backup_id>`。控制日志写入失败只在内存报告失败，磁盘旧执行态在下次启动转为 `interrupted`，不可据此宣称成功。
 
 ## 目标与密钥
 

@@ -13,7 +13,7 @@
 
 ```sh
 go test -race ./internal/application ./internal/operations ./cmd/lantai \
-  -run '^TestOnlineBackup|^TestBackupRetainsCaller' -count=1 -v
+  -run '^TestIndependentReview|^TestOnlineBackup|^TestBackup' -count=1 -v
 ```
 
 | 场景 | 实际验证 |
@@ -26,6 +26,8 @@ go test -race ./internal/application ./internal/operations ./cmd/lantai \
 | 停止竞争 | 等待复制退出超时，实例锁仍不可被第二个实例取得；停止中的控制器不重新开放入口 |
 | 真实副本 | 实际四库/文件快照、独立 VerifyBackup、禁止复制 secrets |
 | 目录与恢复 | 未挂载/标记缺失、数据/密钥目录重叠、符号链接、替换目录 inode 均拒绝；目标故障保留不完整记录并可续传 |
+| 原子日志恢复 | 正式日志存在/不存在、临时 JSON 截断/完整均隔离保留且不提升；未知文件、目录、符号链接、共享权限和畸形正式日志拒绝 |
+| 捕获重置恢复 | 重置日志、rename、空目录、manifest 重建、清除重置记录等边界，含控制记录尚无 backup_id；异源/异目标/异 key/冻结点替换等负向拒绝 |
 | 重启 | 模拟持久执行态恢复；另以真实子进程强杀验证 COMPLETE 已发布但结果未记录时，启动标 interrupted，续传重验同一 backup_id |
 | 实际 CLI/传输 | 真实本机 TCP 服务与私有 socket，CLI 完成备份；socket 0600；缺少本机实例头拒绝；TCP 面不暴露备份入口；旧 CLI 不能绕过活动实例锁 |
 
