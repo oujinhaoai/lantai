@@ -13,7 +13,7 @@
 
 ```sh
 go test -race ./internal/application ./internal/operations ./cmd/lantai \
-  -run '^TestIndependentReview|^TestOnlineBackup|^TestBackup' -count=1 -v
+  -run '^TestIndependentReview|^TestIndependentFixReview|^TestOnlineBackup|^TestBackup' -count=1 -v
 ```
 
 | 场景 | 实际验证 |
@@ -28,6 +28,8 @@ go test -race ./internal/application ./internal/operations ./cmd/lantai \
 | 目录与恢复 | 未挂载/标记缺失、数据/密钥目录重叠、符号链接、替换目录 inode 均拒绝；目标故障保留不完整记录并可续传 |
 | 原子日志恢复 | 正式日志存在/不存在、临时 JSON 截断/完整均隔离保留且不提升；未知文件、目录、符号链接、共享权限和畸形正式日志拒绝 |
 | 捕获重置恢复 | 重置日志、rename、空目录、manifest 重建、清除重置记录等边界，含控制记录尚无 backup_id；异源/异目标/异 key/冻结点替换等负向拒绝 |
+| 完成副本替换 | 同实例另一备份/跨实例完整副本，控制 ID 已知或缺失、源状态 copying/complete 均拒绝；保留原任务 ID、源日志和替换档案；找回原副本后续传成功 |
+| 冻结点绑定 | 对 key/epoch/捕获时间/完成时间/矩阵/水位/文件/CAS 清单逐项替换；缺失或损坏 COMPLETE 不能绕过绑定；合法同点完成恢复及滞后源日志采纳仍通过 |
 | 重启 | 模拟持久执行态恢复；另以真实子进程强杀验证 COMPLETE 已发布但结果未记录时，启动标 interrupted，续传重验同一 backup_id |
 | 实际 CLI/传输 | 真实本机 TCP 服务与私有 socket，CLI 完成备份；socket 0600；缺少本机实例头拒绝；TCP 面不暴露备份入口；旧 CLI 不能绕过活动实例锁 |
 

@@ -339,6 +339,11 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		if recover() != nil {
 			err = errors.New("backup panic")
 		}
+		// Once resolved from the source journal, a job can never be rebound by
+		// the worker's result, even on a failed or otherwise valid backup.
+		if m.BackupID != "" && j.BackupID != "" && m.BackupID != j.BackupID {
+			err = errors.New("backup result differs from the original job")
+		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		if err != nil && ctx.Err() != nil {
@@ -354,7 +359,7 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		default:
 			j.State, j.Error = "failed", "backup_failed"
 		}
-		if m.BackupID != "" {
+		if m.BackupID != "" && j.BackupID == "" {
 			j.BackupID = m.BackupID
 		}
 		j.UpdatedAt = time.Now().UTC()

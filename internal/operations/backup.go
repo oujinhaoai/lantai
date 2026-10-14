@@ -398,13 +398,25 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, opts Bac
 	}
 	if m.State == "complete" {
 		v, err := VerifyBackup(ctx, rec.Destination)
-		return v, err
+		if err == nil {
+			err = validateBackupPoint(*m, v)
+		}
+		return *m, err
+	}
+	// Check even an incomplete destination before copying into it. Otherwise a
+	// substituted manifest with missing/invalid COMPLETE could be overwritten.
+	prior, err := readDestinationManifest(rec.Destination)
+	if err != nil {
+		return *m, err
+	}
+	if err = validateBackupPoint(*m, prior); err != nil {
+		return *m, err
 	}
 	// A durable complete marker may precede releasing the source pin after a
 	// crash. Verify it, then finish the same source record; never recapture.
 	if done, err := VerifyBackup(ctx, rec.Destination); err == nil {
-		if done.BackupID != m.BackupID {
-			return *m, errors.New("operations: destination contains another backup")
+		if err = validateBackupPoint(*m, done); err != nil {
+			return *m, err
 		}
 		*m = done
 		rec.PinReleasedAt = i.clock.Now()
@@ -731,8 +743,7 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 		return err
 	}
 	if rec.RetiredDestination == "" {
-		var prior BackupManifest
-		err := readBackupJSON(filepath.Join(rec.Destination, "manifest.json"), &prior)
+		prior, err := readDestinationManifest(rec.Destination)
 		if err != nil {
 			return err
 		}
@@ -740,8 +751,12 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 			return errors.New("operations: interrupted capture destination changed")
 		}
 		if prior.State == "copying" || prior.State == "complete" {
+			if err = validatePublishedCapture(rec.Manifest, prior); err != nil {
+				return err
+			}
 			// Keep the source pin held until full verification and COMPLETE.
 			prior.State = "copying"
+			prior.CompletedAt = time.Time{}
 			rec.Manifest = prior
 			return writeBackupJSON(i.backupRecordPath(prior.BackupID), rec)
 		}

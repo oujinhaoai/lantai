@@ -1,15 +1,77 @@
 package operations
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 )
+
+// A valid archive is not necessarily this backup. Compare the complete frozen
+// point with its authoritative source record before accepting or modifying a
+// destination. Only copying -> complete may add a completion timestamp.
+func validateBackupPoint(want, got BackupManifest) error {
+	if got.State != "copying" && got.State != "complete" {
+		return errors.New("operations: destination has no published backup point")
+	}
+	if want.State == "copying" {
+		got.State, got.CompletedAt = want.State, want.CompletedAt
+	}
+	return equalBackupManifest(want, got)
+}
+
+func equalBackupManifest(want, got BackupManifest) error {
+	w, err := canonjson.CanonicalizeValue(want)
+	if err != nil {
+		return err
+	}
+	g, err := canonjson.CanonicalizeValue(got)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(w, g) {
+		return errors.New("operations: destination differs from the recorded backup point")
+	}
+	return nil
+}
+
+func readDestinationManifest(dir string) (BackupManifest, error) {
+	var m BackupManifest
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return m, err
+	}
+	defer root.Close()
+	if err = regularPath(root, "manifest.json"); err != nil {
+		return m, err
+	}
+	f, err := root.Open("manifest.json")
+	if err != nil {
+		return m, err
+	}
+	defer f.Close()
+	_, err = decodeBackupJSON(f, &m)
+	return m, err
+}
+
+// Before the source journal publishes copying, it has already persisted the
+// instance, epoch, key, creation time, watermarks and CAS pin. A destination may
+// supply the newly captured file/database inventory, but cannot replace any of
+// those established bindings.
+func validatePublishedCapture(want, got BackupManifest) error {
+	want.Files, got.Files = nil, nil
+	want.Matrix.Databases, got.Matrix.Databases = nil, nil
+	want.State, got.State = "capturing", "capturing"
+	want.CompletedAt, got.CompletedAt = time.Time{}, time.Time{}
+	return equalBackupManifest(want, got)
+}
 
 // ResolveBackupID identifies an online job's existing point from the source
 // journal. The destination manifest can be absent during a durable capture

@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -118,9 +117,6 @@ func TestBackupJournalAtomicTempsAreQuarantinedNotAdopted(t *testing.T) {
 func TestBackupJournalRejectsUnknownUnsafeAndCorruptFormalEntries(t *testing.T) {
 	for _, kind := range []string{"unknown", "invalid-id-temp", "noncanonical-suffix", "overflow-suffix", "temp-directory", "temp-symlink", "temp-shared", "quarantine-symlink", "quarantine-shared", "formal-directory", "formal-symlink", "formal-corrupt", "formal-mismatched-id", "formal-trailing", "formal-unknown-field", "formal-duplicate-field"} {
 		t.Run(kind, func(t *testing.T) {
-			if (kind == "temp-shared" || kind == "quarantine-shared") && runtime.GOOS == "windows" {
-				t.Skip("POSIX permission mode")
-			}
 			a := openTestApp(t)
 			b := testBackupControl(t, a)
 			if err := os.MkdirAll(b.journalDir(), 0700); err != nil {
