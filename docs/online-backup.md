@@ -15,6 +15,24 @@ docker compose -f deploy/compose.yaml -f deploy/compose.backup.yaml up -d
 
 启用后，core 启动时也会核验备份根；根缺失、身份不符、不可写或低于空间余量会拒绝启动，应先修复挂载/权限/空间。运行中备份发生错误则在工作退出后恢复原业务状态。
 
+GUI 只接受一个 Compose 文件时，将 `compose.backup.yaml` 的两项 environment 和一个 bind **一次性合入原 core**，保留原数据/密钥卷、网络、UID 和只读根；不要为每次备份创建或切换维护服务：
+
+```yaml
+services:
+  core:
+    environment:
+      LANTAI_BACKUP_ROOT: /var/lib/lantai-backup
+      LANTAI_BACKUP_ROOT_ID: ${LANTAI_BACKUP_ROOT_ID:?set the provisioned backup volume identity}
+    volumes:
+      - type: bind
+        source: ${LANTAI_BACKUP_DIR:?set an existing private directory on the backup filesystem}
+        target: /var/lib/lantai-backup
+        bind:
+          create_host_path: false
+```
+
+只在原私有环境文件增加 `LANTAI_BACKUP_DIR` 和 `LANTAI_BACKUP_ROOT_ID`；示例片段用于增量合并，不能替换整个原配置。首次加入挂载需要在经批准的升级/部署窗口重建 core；之后正常备份只执行下述命令，不再改 YAML，也不手工停启 core。只读根容器还必须给 `/tmp` 提供可写 tmpfs；模板明确设置 `mode=1777`，让 UID 65532 在容器重启后也能建立私有 `0700` 控制目录和 `0600` socket。目录应由服务账户持有且为 `0700`（或经过核验的等效私有 ACL）；本版不会代替管理员纠正共享可写目录。它与数据根、密钥根互不包含，密钥不能存放其中。
+
 原生部署在 core 的服务环境设置 `LANTAI_BACKUP_ROOT=<备份目录绝对规范路径>` 和 `LANTAI_BACKUP_ROOT_ID=<标记内容>`。Linux/macOS 支持本机控制 socket；Windows 本版继续使用离线流程。
 
 ## 每次备份

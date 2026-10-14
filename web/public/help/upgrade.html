@@ -8,13 +8,13 @@
 <div class="search" role="search" hidden><label for="help-search">搜索全部帮助</label><div class="search-row"><input id="help-search" type="search" maxlength="120" placeholder="试试：恢复码、备份、项目权限" aria-controls="search-results" autocomplete="off"><button type="button" id="search-clear">清除</button></div><p class="search-hint">仅搜索通用手册，不会访问你的项目或发送输入。</p><section id="search-results" aria-label="搜索结果" hidden><p id="search-status" role="status" aria-live="polite"></p><ul id="search-list"></ul></section></div>
 <main id="content" tabindex="-1"><div class="page-meta"><span class="eyebrow">任务 06</span><span>文档核对 · 2026-10-13</span></div>
 <article><h1 id="升级并保留原实例">升级并保留原实例</h1>
-<p>目标：更换程序镜像，同时保留原资料和身份。前提：设备管理员已确认源版本、目标版本及兼容说明；当前实例健康，有经过核验的停机备份和独立主密钥副本。以下在 <strong>NAS 原来的项目</strong>操作，不建立替代的新实例。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#1-先记录原来的真实状态">1. 先记录原来的真实状态</a></li><li><a href="#2-停写停服务做保护点">2. 停写、停服务、做保护点</a></li><li><a href="#3-从-rc2-直接更新核心静态包与网关">3. 从 rc.2 直接更新核心、静态包与网关</a></li><li><a href="#4-检查后才恢复写入">4. 检查后才恢复写入</a></li><li><a href="#失败与回退">失败与回退</a></li></ul></details>
+<p>目标：更换程序镜像，同时保留原资料和身份。前提：设备管理员已确认源版本、目标版本及兼容说明；当前实例健康，有与源版本匹配、经过核验的备份和独立主密钥副本。以下在 <strong>NAS 原来的项目</strong>操作，不建立替代的新实例。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#1-先记录原来的真实状态">1. 先记录原来的真实状态</a></li><li><a href="#2-停写停服务做保护点">2. 停写、停服务、做保护点</a></li><li><a href="#3-从-rc2-直接更新核心静态包与网关">3. 从 rc.2 直接更新核心、静态包与网关</a></li><li><a href="#4-检查后才恢复写入">4. 检查后才恢复写入</a></li><li><a href="#失败与回退">失败与回退</a></li></ul></details>
 <h2 id="1-先记录原来的真实状态">1. 先记录原来的真实状态</h2>
 <p>在 NAS 项目界面导出当前 Compose 和有效环境变量，私下记录：</p>
 <ul><li>原项目名称和目录、core/gateway 容器 ID、镜像 image ID 与 OCI revision。</li><li>core 的 <code>/var/lib/lantai</code>、<code>/var/lib/lantai-secrets</code> 的实际卷名或宿主路径。</li><li>config、setup、Caddyfile、TLS 的实际挂载来源，以及原域名和 HTTPS 端口。</li><li><code>/api/v1/meta</code> 的 <code>instance_id</code>；一个可读资源的精确版本 ID 和文件 SHA-256。</li></ul>
 <p>用实际挂载判断，不能根据项目名称猜测卷名。镜像 tag 可以被重复使用，不能单独证明版本。已有实例此时 <code>/setup/</code> 应为 404。若已有异常、缺卷或出现设置页，停在这里先排查。</p>
 <h2 id="2-停写停服务做保护点">2. 停写、停服务、做保护点</h2>
-<ol><li>暂停上传、任务和客户端自动重试。</li><li>在原项目停止 gateway，然后优雅停止 core。选择“停止”，不选“删除项目及数据”。</li><li>按<a href="backup.html">离线备份</a>对原实际挂载执行 backup 和 backup-verify，并另存原主密钥。备份与核验都成功后才继续。</li><li>保留旧镜像和原项目配置。导出 Compose 或容器文件系统都不能代替资料与密钥备份。</li></ol>
+<ol><li>暂停上传、任务和客户端自动重试。</li><li>在原项目停止 gateway，然后优雅停止 core。选择“停止”，不选“删除项目及数据”。</li><li>旧 rc.4 按<a href="backup.html#旧-rc4-的离线流程">离线备份</a>对原实际挂载执行 backup 和 backup-verify，并另存原主密钥；若源版本已经包含并配置在线备份，可先完成同 core 的 backup-online 和独立校验，再进入本次停机升级窗口。备份与核验都成功后才继续。</li><li>保留旧镜像和原项目配置。导出 Compose 或容器文件系统都不能代替资料与密钥备份。</li></ol>
 <p>GUI 若不能确认优雅退出，应使用已有管理终端的 <code>docker stop --timeout -1 CONTAINER_ID</code>，等待正常退出；异常退出或一直不退出时保留现场，不直接升级。</p>
 <h2 id="3-从-rc2-直接更新核心静态包与网关">3. 从 rc.2 直接更新核心、静态包与网关</h2>
 <p>不要求先装 rc.3。旧的“只改核心镜像”流程不适用于统一网页包：</p>

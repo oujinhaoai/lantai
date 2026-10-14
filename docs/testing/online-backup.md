@@ -39,4 +39,10 @@ go test -race ./internal/application ./internal/operations ./cmd/lantai \
 
 仓库完整检查命令为 `scripts/check.sh`；包含格式、依赖、vet、staticcheck、生成物、Python SDK、发布工具、全包 race、Go 构建及 Web 构建。最终测试结果与精确提交由随任务交付的日志确认，不以本页代替 CI。
 
-Linux/NAS 的 bind mount 与 Compose 实机执行、NAS UID/GID、真实磁盘满/热拔盘/掉电及恢复演练仍需在批准的目标环境执行。本地权限测试验证私有目录/socket 模式及请求拒绝，没有以第二个实际系统 UID 做跨用户穿透测试。Windows 只保证离线命令保持可构建，未提供在线 socket 控制。未发布、未部署、未更改已有 NAS，也未对其签署验收完成。
+Linux containerd/nerdctl 的独立容器补验已实际覆盖 bind mount、UID 65532、只读根、tmpfs/socket、重启与独立空目录/新命名卷恢复。UID 65533 的 CLI 调用被拒绝；由于数据根本身也拒绝该用户读取，不将它单独解释为绕过数据根后的 socket 直连穿透验证。Docker Engine/Compose、NAS UID/GID、真实磁盘满/热拔盘/掉电和原卷升级/回退仍需在批准的目标环境执行。Windows 只保证离线命令保持可构建，未提供在线 socket 控制。未发布、未部署、未更改已有 NAS，也未对其签署验收完成。
+
+## 真实 Linux 容器补充验证
+
+可在已经批准、独立于原业务卷的 Linux 容器环境中验证部署约束：固定提交本地构建的 scratch 镜像、UID/GID 65532、只读根、`mode=1777` 的 `/tmp` tmpfs 与私有控制目录/socket，部署时加载一次备份 bind，随后仅用原 core 内的 CLI 触发。至少覆盖并发 409、维护期业务 503、已有请求排空、目标故障后恢复、进程重启后显式续传，以及停止源 core 后恢复到另一独立空目录/卷、重置合成管理员、对账完成和实际就绪。
+
+记录真实引擎与内核、镜像摘要、挂载来源、文件系统类型和 UID。containerd/nerdctl 在 Linux 上运行的结果只能标记为该引擎的容器验证，不能称作 Docker Engine/Compose 或 NAS 验收。所有账号、密钥和数据都必须为临时合成材料，旧密钥单独只读提供；恢复完成不能使源、恢复实例同时投入服务。没有可用引擎时如实报告阻塞，不用 macOS 进程测试替代。

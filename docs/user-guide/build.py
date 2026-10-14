@@ -23,7 +23,7 @@ TOPICS = [
     ("daily", "daily", "日常资源操作", "找项目、搜索、下载、入藏与续传。"),
     ("codex-mcp", "codex-mcp", "连接 Codex MCP", "本机配置、工作目录与连接检查。"),
     ("upgrade", "upgrade", "升级与保留数据", "保留实际卷身份，核对后恢复写入。"),
-    ("backup", "backup", "备份与恢复", "离线备份、独立密钥与恢复对账。"),
+    ("backup", "backup", "备份与恢复", "按版本选择在线或离线备份，密钥独立保管。"),
     ("troubleshooting", "troubleshooting", "故障与版本兼容", "按错误定位，核对版本和支持范围。"),
 ]
 
