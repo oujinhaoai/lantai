@@ -21,7 +21,7 @@ import (
 // /tmp is fixed on supported Unix systems so service and CLI cannot disagree
 // because their TMPDIR values differ, or exceed sockaddr_un path limits.
 func BackupSocketPath(id ids.ID) string {
-	return filepath.Join("/tmp", "lantai-control-"+strconv.Itoa(os.Getuid()), string(id)+".sock")
+	return filepath.Join("/tmp", "lantai-control-"+strconv.Itoa(os.Geteuid()), string(id)+".sock")
 }
 
 func (b *BackupControl) listen() (net.Listener, error) {
@@ -34,11 +34,11 @@ func (b *BackupControl) listen() (net.Listener, error) {
 		return nil, err
 	}
 	st, err := os.Lstat(dir)
-	if err != nil || !st.IsDir() || st.Mode().Perm() != 0700 {
+	if err != nil || !st.IsDir() || st.Mode().Perm() != 0700 || !backupOwner(st) {
 		return nil, errors.New("backup socket directory must be private (0700)")
 	}
 	if st, err = os.Lstat(path); err == nil {
-		if st.Mode()&os.ModeSocket == 0 {
+		if st.Mode()&os.ModeSocket == 0 || !backupOwner(st) {
 			return nil, errors.New("backup socket path occupied by non-socket")
 		}
 		// This App already owns the data-root lock, so no earlier core for the same
@@ -119,6 +119,18 @@ func (b *BackupControl) Handler() http.Handler {
 // same-user private socket belonging to the selected instance.
 func BackupClient(id ids.ID) *http.Client {
 	return &http.Client{Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-		return (&net.Dialer{}).DialContext(ctx, "unix", BackupSocketPath(id))
+		path := BackupSocketPath(id)
+		dir, err := os.Lstat(filepath.Dir(path))
+		if err != nil {
+			return nil, err
+		}
+		socket, err := os.Lstat(path)
+		if err != nil {
+			return nil, err
+		}
+		if !dir.IsDir() || dir.Mode().Perm() != 0700 || !backupOwner(dir) || socket.Mode()&os.ModeSocket == 0 || socket.Mode().Perm() != 0600 || !backupOwner(socket) {
+			return nil, errors.New("backup control socket permissions or owner are unsafe")
+		}
+		return (&net.Dialer{}).DialContext(ctx, "unix", path)
 	}}, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 }

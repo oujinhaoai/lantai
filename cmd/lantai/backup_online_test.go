@@ -101,4 +101,20 @@ func TestOnlineBackupCLIUsesRunningCoreAndPrivateSocket(t *testing.T) {
 	if resp.StatusCode != 403 {
 		t.Fatal("missing instance authority accepted", resp.StatusCode)
 	}
+	// The client also refuses a locally replaced or shared endpoint before any
+	// request is sent. Server-only permission checks cannot protect an idle core.
+	socketPath := application.BackupSocketPath(a.Instance.InstanceID())
+	if err = os.Chmod(socketPath, 0666); err != nil {
+		t.Fatal(err)
+	}
+	unsafeClient := application.BackupClient(a.Instance.InstanceID())
+	_, err = unsafeClient.Get("http://lantai-backup/backup/" + string(done.ID))
+	unsafeClient.CloseIdleConnections()
+	if restoreErr := os.Chmod(socketPath, 0600); restoreErr != nil {
+		t.Fatal(restoreErr)
+	}
+	if err == nil {
+		t.Fatal("client accepted a shared local endpoint")
+	}
+
 }

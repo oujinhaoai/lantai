@@ -13,6 +13,8 @@
 docker compose -f deploy/compose.yaml -f deploy/compose.backup.yaml up -d
 ```
 
+启用后，core 启动时也会核验备份根；根缺失、身份不符、不可写或低于空间余量会拒绝启动，应先修复挂载/权限/空间。运行中备份发生错误则在工作退出后恢复原业务状态。
+
 原生部署在 core 的服务环境设置 `LANTAI_BACKUP_ROOT=<备份目录绝对规范路径>` 和 `LANTAI_BACKUP_ROOT_ID=<标记内容>`。Linux/macOS 支持本机控制 socket；Windows 本版继续使用离线流程。
 
 ## 每次备份

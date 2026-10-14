@@ -4,7 +4,7 @@
 
 ## 权限和路由
 
-仅 Linux/macOS 启用。core 配置 `LANTAI_BACKUP_ROOT` 和 `LANTAI_BACKUP_ROOT_ID` 后，在固定的 `/tmp/lantai-control-<uid>/<instance_id>.sock` 监听。父目录权限必须为 `0700`，socket 为 `0600`；操作系统服务账户及主机管理员是运维授权边界。容器内用 `docker compose exec -T core lantai backup-online ...`，无需读出或签发凭据。拥有服务账户、数据根或 Docker 管理权限的人本来就能读取实例；此接口不能交给普通业务用户。
+仅 Linux/macOS 启用。core 配置 `LANTAI_BACKUP_ROOT` 和 `LANTAI_BACKUP_ROOT_ID` 后，在固定的 `/tmp/lantai-control-<uid>/<instance_id>.sock` 监听。父目录权限必须为 `0700`，socket 为 `0600`；服务端及 CLI 均核对目录/socket 的本机用户所有权和权限；操作系统服务账户及主机管理员是运维授权边界。容器内用 `docker compose exec -T core lantai backup-online ...`，无需读出或签发凭据。拥有服务账户、数据根或 Docker 管理权限的人本来就能读取实例；此接口不能交给普通业务用户。
 
 HTTP Host 必须为 `lantai-backup`，`X-Lantai-Instance` 必须匹配实例 ID，带任何 Origin 的请求拒绝。它们是防误路由/浏览器访问的补充，不能替代 socket 权限。API、传输、loopback 诊断 TCP 监听均不注册这些路由。Windows 保留离线命令，尚无在线控制传输。
 
