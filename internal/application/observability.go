@@ -324,7 +324,7 @@ func (a *App) observationCollectors(scheduler *transfer.Scheduler) []collector {
 }
 
 func (a *App) operationsHandler(scheduler *transfer.Scheduler) http.Handler {
-	return localOperationsHandler(a.Instance.Readiness, a.Ready, a.observationCollectors(scheduler))
+	return localOperationsHandler(a.Readiness, a.Ready, a.observationCollectors(scheduler))
 }
 func localOperationsHandler(readiness func() operations.Readiness, ready func() bool, collectors []collector) http.Handler {
 	mux := http.NewServeMux()

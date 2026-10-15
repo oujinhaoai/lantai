@@ -23,6 +23,8 @@ import tempfile
 import time
 
 from release_bundle import extract_verified_archive, sha256, validate_static, require_local_docker
+from release_upgrade import assert_retained_upgrade
+from release_backup import prepare_backup_command
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV = {k: v for k, v in os.environ.items() if not k.startswith(("LANTAI_", "COMPOSE_"))}
@@ -131,6 +133,8 @@ class Instance:
         (work / "compose.web.yaml").write_bytes((config_root / "compose.web.yaml").read_bytes())
         self.env = work / "compose.env"
         self.caddy, self.web = caddy, web
+        self.backup_root = None
+        self.initialized = False
         self.caddy_id = json.loads(run(["docker", "image", "inspect", caddy]))[0]["Id"]
         self.select(image)
         self.compose = ["docker", "compose", "--project-name", self.project, "--env-file",
@@ -144,17 +148,85 @@ class Instance:
                             f"LANTAI_WEB_DIR={self.web}\nLANTAI_SETUP_DIR={self.setup}\n"
                             f"LANTAI_CONFIG_FILE={self.config}\nLANTAI_TLS_DIR={self.tls}\n"
                             f"LANTAI_DOMAIN=localhost\nLANTAI_HTTPS_PORT={self.port}\n")
+        if self.backup_root is not None:
+            with self.env.open("a") as stream:
+                stream.write(f"LANTAI_BACKUP_DIR={self.backup_root}\nLANTAI_BACKUP_ROOT_ID={self.backup_root_id}\n")
         self.env.chmod(0o600)
 
     def change_caddy(self, tag):
         path = self.root / "compose.yaml"
         original = path.read_text()
         old = "image: " + self.caddy
-        if original.count(old) != 1:
+        if original.count(old) == 1:
+            path.write_text(original.replace(old, "image: " + tag, 1))
+        elif original.count("image: ${LANTAI_CADDY_IMAGE:") != 1:
             raise RuntimeError("expected original gateway image reference")
-        path.write_text(original.replace(old, "image: " + tag, 1))
         self.caddy = tag
         self.caddy_id = json.loads(run(["docker", "image", "inspect", tag]))[0]["Id"]
+
+    def enable_backup(self, deployment):
+        if self.backup_root is not None:
+            raise RuntimeError("backup mount must be configured only once")
+        self.backup_root = self.root / "backup"
+        self.backup_root.mkdir(mode=0o700)
+        self.backup_root_id = "synthetic-release-" + secrets.token_hex(8)
+        marker = self.backup_root / ".lantai-backup-root"
+        marker.write_text(self.backup_root_id + "\n")
+        marker.chmod(0o600)
+        # Only this newly-created synthetic directory is changed. No source data
+        # or original volume ownership is modified by the acceptance harness.
+        run(prepare_backup_command(self.backup_root, self.caddy))
+        overlay = self.root / "compose.backup.yaml"
+        overlay.write_bytes((deployment / "compose.backup.yaml").read_bytes())
+        self.compose += ["-f", str(overlay)]
+        # This exact bounded change is required by the non-root socket owner.
+        base = self.root / "compose.yaml"
+        base.write_text(base.read_text().replace("/tmp:rw,noexec,nosuid,nodev,size=64m",
+                        "/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m"))
+
+    def reject_missing_bind(self, service, variable):
+        missing = self.root / ("missing-" + service + "-" + variable.lower())
+        if missing.exists():
+            raise RuntimeError("missing-bind fixture already exists")
+        original = self.env.read_text()
+        lines = original.splitlines()
+        if sum(line.startswith(variable + "=") for line in lines) != 1:
+            raise RuntimeError("missing-bind variable is not configured")
+        self.env.write_text("\n".join(variable + "=" + str(missing) if line.startswith(variable + "=")
+                                      else line for line in lines) + "\n")
+        try:
+            denied = subprocess.run(self.compose + ["up", "-d", "--no-deps", service],
+                                    capture_output=True, text=True, env=ENV, timeout=60)
+        finally:
+            self.env.write_text(original)
+            self.env.chmod(0o600)
+        check("actual missing " + variable + " bind is rejected without creation",
+              denied.returncode != 0 and not missing.exists()
+              and str(missing) in denied.stderr and "does not exist" in denied.stderr)
+        return True
+
+    def backup_smoke(self, manifest):
+        cid = self.cid()
+        command = self.compose + ["exec", "-T", "core", "lantai", "backup-online", "-home", "/var/lib/lantai"]
+        job = json.loads(run(command + ["-wait=false", "-timeout-seconds", "120"]))
+        deadline = time.monotonic() + 125
+        while job["state"] in {"draining", "backing_up", "cancelling"} and time.monotonic() < deadline:
+            time.sleep(0.2)
+            job = json.loads(run(command + ["-status", job["id"]]))
+        check("same-core packaged backup completes", job["state"] == "complete" and bool(job.get("backup_id")))
+        check("backup did not restart or replace core", self.cid() == cid and inspect(cid)["State"]["Running"])
+        verified = json.loads(run(["docker", "run", "--rm", "--network", "none", "--read-only",
+            "--user", "65532:65532", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
+            "--mount", f"type=bind,source={self.backup_root},target=/backup,readonly",
+            manifest["core_image"]["tag"], "backup-verify", "-backup", "/backup/" + job["id"]]))
+        check("independent read-only backup verification retains original identity",
+              verified["state"] == "complete" and verified["instance_id"] == self.meta["instance_id"]
+              and verified["backup_id"] == job["backup_id"])
+        check("backup manifest excludes key and setup directories", all(
+            not any(part in {"secrets", "keys", "setup"} for part in item["path"].split("/"))
+            for item in verified["files"]))
+        self.ready()
+        return job["id"]
 
     def request(self, path, payload=None, credential=None, key=None):
         connection = http.client.HTTPSConnection("localhost", self.port, context=self.context, timeout=10)
@@ -202,6 +274,9 @@ class Instance:
         return str((struct.unpack(">I", value[offset:offset + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
 
     def initialize_and_seed(self, cli):
+        if self.initialized:
+            raise RuntimeError("refusing to reinitialize an existing test instance")
+        self.initialized = True
         self.wait("/setup/", 200)
         check("protected setup rejects wrong claim", self.request("/setup/begin", {}, "wrong")[0] == 401)
         claim = self.root / "claim.json"
@@ -398,6 +473,11 @@ def main():
     check("loaded gateway archive exact image", json.loads(run(["docker", "image", "inspect", new["caddy_image"]["tag"]]))[0]["Id"] == new["caddy_image"]["id"])
     run(["docker", "load", "-i", str(args.baseline / "caddy-2.11.4-linux-amd64-image.tar.gz")])
     check("loaded original gateway archive exact image", json.loads(run(["docker", "image", "inspect", old["caddy_image"]["tag"]]))[0]["Id"] == old["caddy_image"]["id"])
+    run(["python3", str(ROOT / "scripts/test-release-backup.py"), "--image", new["caddy_image"]["tag"],
+         "--out", str(args.out / "backup-preparation.json")])
+    preparation = json.loads((args.out / "backup-preparation.json").read_text())
+    check("real backup fixture handover and unsafe-directory checks", preparation["status"] == "passed")
+    RESULT["backup_preparation_passed"] = True
     work = Path(tempfile.mkdtemp(prefix="lantai-release-delivery-"))
     work.chmod(0o700)
     instances = []
@@ -416,12 +496,11 @@ def main():
         fresh = Instance(work / "fresh", deployment, web, new["caddy_image"]["tag"],
                          (deployment / "compose.yaml").read_text(), (deployment / "Caddyfile").read_bytes(), new["core_image"]["tag"])
         fresh.compose += ["-f", str(fresh.root / "compose.web.yaml")]
+        fresh.enable_backup(deployment)
         instances.append(fresh)
-        missing = fresh.root / "missing-static"
-        fresh.env.write_text(fresh.env.read_text().replace("LANTAI_WEB_DIR=" + str(web), "LANTAI_WEB_DIR=" + str(missing)))
-        denied = subprocess.run(fresh.compose + ["up", "-d", "--no-deps", "gateway"], capture_output=True, text=True, env=ENV)
-        check("actual Compose rejects missing static directory without creating it", denied.returncode != 0 and not missing.exists())
         fresh.select(new["core_image"]["tag"])
+        candidate_no_create = (fresh.reject_missing_bind("gateway", "LANTAI_WEB_DIR")
+                               and fresh.reject_missing_bind("core", "LANTAI_BACKUP_DIR"))
         run(fresh.compose + ["up", "-d"])
         fresh.initialize_and_seed(new_cli)
         fresh.retained(new_cli, new)
@@ -432,40 +511,53 @@ def main():
         fresh.reduced_session()
         run(fresh.compose + ["restart", "core"])
         fresh.retained(new_cli, new)
+        fresh.backup_smoke(new)
+        fresh.retained(new_cli, new)
         RESULT["fresh_install_passed"] = True
         fresh.stop()
 
-        RESULT["phase"] = "original rc.2 actual release baseline"
-        old_source = args.baseline / f"lantai-{old['version']}-source.tar.gz"
-        original_compose = read_member(old_source, "deploy/compose.yaml").decode()
-        original_caddy = read_member(old_source, "deploy/Caddyfile")
-        upgrade = Instance(work / "upgrade", deployment, web, old["caddy_image"]["tag"], original_compose, original_caddy, old["core_image"]["tag"])
+        RESULT["phase"] = "original release with packaged web baseline"
+        # A current baseline must contain its own verified web/config artifacts.
+        # Never silently substitute candidate files or assume an old root 404.
+        old_web, old_deployment = work / "old-web", work / "old-deploy"
+        for spec, target in ((old["web"], old_web), (old["deployment"], old_deployment)):
+            extract_verified_archive(args.baseline / spec["archive"], target, spec["archive_prefix"], spec["files"])
+        check("baseline static archive inventory exact", validate_static(old_web) == old["web"]["files"])
+        original_compose = (old_deployment / "compose.yaml").read_text()
+        # Exercise existing non-default logical volume identifiers as in a GUI
+        # deployment. The same identifiers must survive upgrade and rollback.
+        original_compose = original_compose.replace("lantai_data", "retained_data").replace("lantai_secrets", "retained_secrets")
+        original_caddy = (old_deployment / "Caddyfile").read_bytes()
+        upgrade = Instance(work / "upgrade", old_deployment, old_web, old["caddy_image"]["tag"], original_compose, original_caddy, old["core_image"]["tag"])
+        upgrade.compose += ["-f", str(upgrade.root / "compose.web.yaml")]
         instances.append(upgrade)
+        baseline_no_create = upgrade.reject_missing_bind("gateway", "LANTAI_WEB_DIR")
         run(upgrade.compose + ["up", "-d"])
         upgrade.initialize_and_seed(old_cli)
         upgrade.retained(old_cli, old)
         upgrade.ready()
-        check("old release has no static homepage", upgrade.request("/")[0] == 404)
+        upgrade.static(old["web"]["files"])
         mounts = upgrade.mounts()
         before_config = json.loads(run(upgrade.compose + ["config", "--format", "json"]))
+        original_files = {name: (upgrade.root / name).read_bytes() for name in
+                          ("compose.yaml", "compose.web.yaml", "compose.env", "Caddyfile")}
+        original_args = list(upgrade.compose)
         upgrade.stop()
         before = upgrade.snapshot("before")
 
-        RESULT["phase"] = "direct rc.2 to target retained-volume upgrade"
-        upgrade.select(new["core_image"]["tag"])
+        RESULT["phase"] = "direct current-baseline to target retained-volume upgrade"
         upgrade.change_caddy(new["caddy_image"]["tag"])
+        upgrade.web = web
+        upgrade.enable_backup(deployment)
         upgrade.select(new["core_image"]["tag"])
+        (upgrade.root / "compose.web.yaml").write_bytes((deployment / "compose.web.yaml").read_bytes())
         upgrade.caddy_file.write_bytes((deployment / "Caddyfile").read_bytes())
-        upgrade.compose += ["-f", str(upgrade.root / "compose.web.yaml")]
         after_config = json.loads(run(upgrade.compose + ["config", "--format", "json"]))
-        for service in ("core", "prepare", "gateway"):
-            before_config["services"][service]["image"] = after_config["services"][service]["image"]
-        added = [v for v in after_config["services"]["gateway"]["volumes"] if v["target"] == "/srv/lantai-web"]
-        check("resolved upgrade changes only images and static mount", len(added) == 1)
-        before_config["services"]["gateway"]["volumes"].extend(added)
-        before_config["services"]["gateway"]["volumes"].sort(key=lambda v: v["target"])
-        after_config["services"]["gateway"]["volumes"].sort(key=lambda v: v["target"])
-        check("resolved original project/networks/ports/volumes preserved", before_config == after_config)
+        assert_retained_upgrade(before_config, after_config, core_image=new["core_image"]["tag"],
+            caddy_image=new["caddy_image"]["tag"], web=web, backup=upgrade.backup_root, root_id=upgrade.backup_root_id,
+            no_create_verified=candidate_no_create and baseline_no_create)
+        RESULT["bind_no_create_passed"] = candidate_no_create and baseline_no_create
+        check("resolved original project/networks/ports/volumes and environment preserved")
         run(upgrade.compose + ["up", "-d"])
         run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
         upgrade.retained(new_cli, new)
@@ -475,6 +567,9 @@ def main():
         upgrade.static(new["web"]["files"])
         upgrade.browser(evidence, "direct-upgrade")
         upgrade.reduced_session()
+        upgrade.backup_smoke(new)
+        upgrade.retained(new_cli, new)
+        RESULT["backup_smoke_passed"] = True
         upgrade.stop()
         after = upgrade.snapshot("after")
         check("database schemas and original key files unchanged", before == after)
@@ -482,16 +577,20 @@ def main():
                       original_totp_login_passed=True, static_archive_served=True, volumes_preserved=True)
 
         RESULT["phase"] = "conditional same-pair program/static rollback"
-        upgrade.select(old["core_image"]["tag"])
-        upgrade.change_caddy(old["caddy_image"]["tag"])
-        upgrade.select(old["core_image"]["tag"])
-        upgrade.caddy_file.write_bytes(original_caddy)
-        upgrade.compose = upgrade.compose[:-2]
+        for name, contents in original_files.items():
+            (upgrade.root / name).write_bytes(contents)
+        upgrade.env.chmod(0o600)
+        upgrade.compose = original_args
+        upgrade.web, upgrade.caddy = old_web, old["caddy_image"]["tag"]
+        upgrade.caddy_id = old["caddy_image"]["id"]
+        check("rollback restores exact baseline resolved configuration",
+              json.loads(run(upgrade.compose + ["config", "--format", "json"])) == before_config)
         run(upgrade.compose + ["up", "-d"])
         run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
         upgrade.retained(old_cli, old)
         upgrade.ready()
-        check("rollback keeps original mounts and removes static exposure", upgrade.mounts() == mounts and upgrade.request("/")[0] == 404)
+        check("rollback keeps original mounts", upgrade.mounts() == mounts)
+        upgrade.static(old["web"]["files"])
         RESULT["rollback_passed"] = True
         for instance in instances:
             logs = run(instance.compose + ["logs", "--no-color"])

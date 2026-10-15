@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/application"
@@ -47,6 +48,12 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	if *ops != "" {
 		cfg.Listen.Operations = *ops
+	}
+	if root := os.Getenv("LANTAI_BACKUP_ROOT"); root != "" {
+		if _, err = a.EnableBackups(ctx, root, os.Getenv("LANTAI_BACKUP_ROOT_ID")); err != nil {
+			_ = a.Close(context.Background())
+			return reportStartup(stderr, "serve", err)
+		}
 	}
 	s, err := a.StartHTTP(ctx, cfg, application.WithAccessLog(stderr))
 	if err == nil {

@@ -6,9 +6,15 @@ on:
       - .github/workflows/release-artifacts.yml
       - scripts/build-release.py
       - scripts/release_bundle.py
+      - scripts/release_upgrade.py
+      - scripts/release_backup.py
+      - scripts/test-release-backup.py
+      - scripts/tests/test_release_backup.py
       - scripts/test-release-delivery.py
       - scripts/test-release-browser.cjs
       - scripts/tests/test_release_bundle.py
+      - scripts/tests/test_release_upgrade.py
+      - scripts/tests/test_delivery_bind_guard.py
       - scripts/tests/test_build_release.py
       - scripts/test-compose-first-start.py
       - scripts/tests/test_compose_first_start.py
@@ -26,17 +32,17 @@ on:
       baseline_run:
         description: Original release artifact run for the direct retained-volume upgrade
         required: true
-        default: '38130493256'
+        default: '38394530667'
         type: string
       baseline_artifact:
         description: Exact original release artifact name
         required: true
-        default: lantai-v0.1.0-rc.2-linux-amd64-676de7aa5777e6e71e10d68ef98331b87776b8b8
+        default: lantai-v0.1.0-rc.4-linux-amd64-d005b2ddc9911547365d7a5925cb59a8511efdbb
         type: string
       baseline_commit:
         description: Exact original release source commit
         required: true
-        default: 676de7aa5777e6e71e10d68ef98331b87776b8b8
+        default: d005b2ddc9911547365d7a5925cb59a8511efdbb
         type: string
 
 permissions:
@@ -114,8 +120,8 @@ jobs:
           npm exec --prefix release-source/web -- playwright install --with-deps chromium
       - name: Download original release artifacts (no production state)
         env:
-          BASE_RUN: ${{ inputs.baseline_run || '38130493256' }}
-          BASE_ARTIFACT: ${{ inputs.baseline_artifact || 'lantai-v0.1.0-rc.2-linux-amd64-676de7aa5777e6e71e10d68ef98331b87776b8b8' }}
+          BASE_RUN: ${{ inputs.baseline_run || '38394530667' }}
+          BASE_ARTIFACT: ${{ inputs.baseline_artifact || 'lantai-v0.1.0-rc.4-linux-amd64-d005b2ddc9911547365d7a5925cb59a8511efdbb' }}
           GH_TOKEN: ${{ github.token }}
         run: |
           gh run download "$BASE_RUN" --repo "$GITHUB_REPOSITORY" \
@@ -124,7 +130,7 @@ jobs:
         env:
           RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || inputs.commit }}
           RELEASE_VERSION: ${{ github.event_name == 'pull_request' && format('v0.0.0-pr.{0}', github.event.number) || inputs.version }}
-          BASE_COMMIT: ${{ inputs.baseline_commit || '676de7aa5777e6e71e10d68ef98331b87776b8b8' }}
+          BASE_COMMIT: ${{ inputs.baseline_commit || 'd005b2ddc9911547365d7a5925cb59a8511efdbb' }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_OUT: ${{ runner.temp }}/lantai-release-${{ github.run_id }}
         run: |
@@ -150,5 +156,6 @@ jobs:
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/failure.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/first-start-lifecycle.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-image-smoke.json
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/backup-preparation.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-browser-screenshots.tar.gz
           if-no-files-found: ignore

@@ -27,7 +27,7 @@ services:
     user: "65532:65532"
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m"]
     volumes:
       - ${LANTAI_DATA_DIR:-lantai_data}:/var/lib/lantai
       - ${LANTAI_SECRETS_DIR:-lantai_secrets}:/var/lib/lantai-secrets
@@ -52,7 +52,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${LANTAI_TLS_DIR:?set an external TLS directory}:/run/tls:ro
     read_only: true
-    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m"]
     security_opt: [no-new-privileges:true]
     networks: [edge, backend]
     stop_grace_period: 15s

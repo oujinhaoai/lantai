@@ -1,0 +1,14 @@
+# Optional, configured once when deploying a build containing backup-online.
+# The source must already exist on the intended external filesystem. Provision
+# its .lantai-backup-root marker and permissions before starting core.
+services:
+  core:
+    environment:
+      LANTAI_BACKUP_ROOT: /var/lib/lantai-backup
+      LANTAI_BACKUP_ROOT_ID: ${LANTAI_BACKUP_ROOT_ID:?set the provisioned backup volume identity}
+    volumes:
+      - type: bind
+        source: ${LANTAI_BACKUP_DIR:?set an existing private directory on the backup filesystem}
+        target: /var/lib/lantai-backup
+        bind:
+          create_host_path: false

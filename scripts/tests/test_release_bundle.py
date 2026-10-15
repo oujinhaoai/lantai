@@ -95,3 +95,27 @@ class StaticArchives(unittest.TestCase):
         (self.dist / "assets/index.js").write_text('const fictional = "-----BEGIN PRIVATE KEY-----";')
         with self.assertRaisesRegex(RuntimeError, "private-key material"):
             bundle.validate_static(self.dist)
+
+
+class DeploymentArchive(unittest.TestCase):
+    def test_actual_backup_overlay_and_instructions_are_hashed_and_shipped(self):
+        source = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            work, deliver = root / "work", root / "deliver"
+            work.mkdir()
+            deliver.mkdir()
+            result = bundle.build_deployment_bundle(source, work, deliver, "v0.1.0-rc.5",
+                                                     "a" * 40, 12345, "core-test", "caddy-test")
+            names = {entry["path"] for entry in result["files"]}
+            self.assertTrue({"compose.backup.yaml", "online-backup.md", "release-upgrade.md"} <= names)
+            self.assertFalse(result["backup_mount"]["create_host_path"])
+            extracted = root / "extracted"
+            bundle.extract_verified_archive(deliver / result["archive"], extracted, "deploy", result["files"])
+            self.assertEqual((extracted / "compose.backup.yaml").read_bytes(), (source / "deploy/compose.backup.yaml").read_bytes())
+            self.assertIn("# LANTAI_BACKUP_DIR=", (extracted / "env.example").read_text())
+            self.assertIn("(online-backup.md)", (extracted / "release-upgrade.md").read_text())
+            self.assertIn("blob/" + "a" * 40, (extracted / "online-backup.md").read_text())
+            with (extracted / "compose.backup.yaml").open("a") as stream:
+                stream.write("tampered")
+            self.assertNotEqual(bundle.inventory(extracted), result["files"])

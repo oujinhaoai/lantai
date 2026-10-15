@@ -73,8 +73,9 @@ type BackupOptions struct {
 	KeyID       ids.ID
 	// Check runs under the common exclusive barrier, before any snapshot. It
 	// is the application owner's deep domain integrity check.
-	Check      func(context.Context) error
-	Watermarks func(context.Context) (map[string]int64, error)
+	Check            func(context.Context) error
+	CheckDestination func(context.Context) error
+	Watermarks       func(context.Context) (map[string]int64, error)
 	// Fault is internal test-only injection after durable protocol boundaries.
 	fault func(string) error
 }
@@ -99,22 +100,23 @@ func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManife
 		if !opts.BackupID.Valid() {
 			return BackupManifest{}, errors.New("operations: invalid backup ID")
 		}
-		var rec backupRecord
-		if err := readBackupJSON(i.backupRecordPath(opts.BackupID), &rec); err != nil {
-			return BackupManifest{}, err
-		}
+		target := ""
 		if opts.Destination != "" {
-			abs, err := filepath.Abs(opts.Destination)
-			if err != nil || abs != rec.Destination {
-				return rec.Manifest, errors.New("operations: resume destination differs from the original backup")
+			target, err = filepath.Abs(opts.Destination)
+			if err != nil {
+				return BackupManifest{}, err
 			}
+		}
+		rec, err := i.readBoundBackupRecord(opts.BackupID, target)
+		if err != nil {
+			return rec.Manifest, err
 		}
 		if rec.Manifest.State == "capturing" {
 			if err := i.resumeCapture(ctx, &rec, opts); err != nil {
 				return rec.Manifest, err
 			}
 		}
-		return i.finishBackup(ctx, &rec, opts.fault)
+		return i.finishBackup(ctx, &rec, opts)
 	}
 	if !opts.KeyID.Valid() {
 		return BackupManifest{}, errors.New("operations: backup requires the separately recoverable master key ID")
@@ -143,7 +145,7 @@ func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManife
 	if err = i.captureBackup(ctx, &rec, opts); err != nil {
 		return rec.Manifest, err
 	}
-	return i.finishBackup(ctx, &rec, opts.fault)
+	return i.finishBackup(ctx, &rec, opts)
 }
 
 func ensureEmptyDirectory(dir string) error {
@@ -169,6 +171,11 @@ func ensureEmptyDirectory(dir string) error {
 // an upgrade must be able to back up the old schema before changing it. It never
 // opens that instance's gate or bypasses a recorded incomplete migration.
 func (i *Instance) captureWindow(ctx context.Context) (context.Context, func(), error) {
+	// The online coordinator already holds this instance's exclusive barrier
+	// through copy, verification and application acknowledgement.
+	if i.gate.RequireMaintenance(ctx) == nil {
+		return ctx, func() {}, nil
+	}
 	i.mu.Lock()
 	old := i.state
 	if i.marker.State != MarkerActive || i.marker.Migration != nil || i.marker.Restore != nil || old == StateClosed || old == StateStopping || old == StateMaintenance || old == StateRecovering {
@@ -201,6 +208,11 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 		return err
 	}
 	defer end()
+	if opts.CheckDestination != nil {
+		if err = opts.CheckDestination(c); err != nil {
+			return err
+		}
+	}
 	if opts.Check != nil {
 		if err = opts.Check(c); err != nil {
 			return err
@@ -317,6 +329,11 @@ func (i *Instance) captureBackup(ctx context.Context, rec *backupRecord, opts Ba
 			if d.IsDir() {
 				return nil
 			}
+			if opts.CheckDestination != nil {
+				if e = opts.CheckDestination(c); e != nil {
+					return e
+				}
+			}
 			f, e := copyBackupFile(c, src, p, dst, p, nil)
 			if e != nil {
 				return e
@@ -365,8 +382,14 @@ func verifyBackupDB(ctx context.Context, file string, name ownership.Database, i
 	return st, nil
 }
 
-func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault func(string) error) (BackupManifest, error) {
+func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, opts BackupOptions) (BackupManifest, error) {
 	m := &rec.Manifest
+	fault := opts.fault
+	if opts.CheckDestination != nil {
+		if err := opts.CheckDestination(ctx); err != nil {
+			return *m, err
+		}
+	}
 	if m.InstanceID != i.InstanceID() {
 		return *m, errors.New("operations: backup belongs to a different instance")
 	}
@@ -375,13 +398,25 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault fu
 	}
 	if m.State == "complete" {
 		v, err := VerifyBackup(ctx, rec.Destination)
-		return v, err
+		if err == nil {
+			err = validateBackupPoint(*m, v)
+		}
+		return *m, err
+	}
+	// Check even an incomplete destination before copying into it. Otherwise a
+	// substituted manifest with missing/invalid COMPLETE could be overwritten.
+	prior, err := readDestinationManifest(rec.Destination)
+	if err != nil {
+		return *m, err
+	}
+	if err = validateBackupPoint(*m, prior); err != nil {
+		return *m, err
 	}
 	// A durable complete marker may precede releasing the source pin after a
 	// crash. Verify it, then finish the same source record; never recapture.
 	if done, err := VerifyBackup(ctx, rec.Destination); err == nil {
-		if done.BackupID != m.BackupID {
-			return *m, errors.New("operations: destination contains another backup")
+		if err = validateBackupPoint(*m, done); err != nil {
+			return *m, err
 		}
 		*m = done
 		rec.PinReleasedAt = i.clock.Now()
@@ -399,6 +434,11 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault fu
 	}
 	defer dst.Close()
 	for _, f := range m.Blobs {
+		if opts.CheckDestination != nil {
+			if err := opts.CheckDestination(ctx); err != nil {
+				return *m, err
+			}
+		}
 		if got, e := hashBackupFile(ctx, dst, f.Stored); e == nil && got.SHA256 == f.SHA256 && got.Size == f.Size {
 			continue
 		}
@@ -413,6 +453,11 @@ func (i *Instance) finishBackup(ctx context.Context, rec *backupRecord, fault fu
 	}
 	if err = verifyBackupContents(ctx, rec.Destination, *m); err != nil {
 		return *m, err
+	}
+	if opts.CheckDestination != nil {
+		if err := opts.CheckDestination(ctx); err != nil {
+			return *m, err
+		}
 	}
 	m.State = "complete"
 	m.CompletedAt = i.clock.Now()
@@ -698,8 +743,7 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 		return err
 	}
 	if rec.RetiredDestination == "" {
-		var prior BackupManifest
-		err := readBackupJSON(filepath.Join(rec.Destination, "manifest.json"), &prior)
+		prior, err := readDestinationManifest(rec.Destination)
 		if err != nil {
 			return err
 		}
@@ -707,8 +751,12 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 			return errors.New("operations: interrupted capture destination changed")
 		}
 		if prior.State == "copying" || prior.State == "complete" {
+			if err = validatePublishedCapture(rec.Manifest, prior); err != nil {
+				return err
+			}
 			// Keep the source pin held until full verification and COMPLETE.
 			prior.State = "copying"
+			prior.CompletedAt = time.Time{}
 			rec.Manifest = prior
 			return writeBackupJSON(i.backupRecordPath(prior.BackupID), rec)
 		}
@@ -728,6 +776,9 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 		return errors.New("operations: invalid capture reset journal")
 	}
 	if _, err := os.Lstat(rec.RetiredDestination); errors.Is(err, fs.ErrNotExist) {
+		if err = validateResetCapture(rec.Destination, rec.Manifest); err != nil {
+			return err
+		}
 		if err = os.Rename(rec.Destination, rec.RetiredDestination); err != nil {
 			return err
 		}
@@ -737,10 +788,12 @@ func (i *Instance) resumeCapture(ctx context.Context, rec *backupRecord, opts Ba
 	} else if err != nil {
 		return err
 	}
+	if err := validateResetCapture(rec.RetiredDestination, rec.Manifest); err != nil {
+		return err
+	}
 	if err := ensureEmptyDirectory(rec.Destination); err != nil {
 		entries, e := os.ReadDir(rec.Destination)
-		var current BackupManifest
-		if e != nil || len(entries) != 1 || entries[0].Name() != "manifest.json" || readBackupJSON(filepath.Join(rec.Destination, "manifest.json"), &current) != nil || current.BackupID != rec.Manifest.BackupID || current.State != "capturing" {
+		if e != nil || len(entries) != 1 || entries[0].Name() != "manifest.json" || validateResetCapture(rec.Destination, rec.Manifest) != nil {
 			return err
 		}
 	}

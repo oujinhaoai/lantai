@@ -74,7 +74,7 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	}
 	for _, name := range []string{"core", "gateway"} {
 		mounts := c.Services[name].Tmpfs
-		if len(mounts) != 1 || mounts[0] != "/tmp:rw,noexec,nosuid,nodev,size=64m" {
+		if len(mounts) != 1 || mounts[0] != "/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m" {
 			t.Fatalf("%s tmpfs options must parse as one bounded private mount, got %v", name, mounts)
 		}
 	}

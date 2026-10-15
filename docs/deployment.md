@@ -1,5 +1,8 @@
 # 单网关部署与本机观测
 
+运行中互斥备份的可选一次性挂载与日常命令见[在线备份](online-backup.md)。使用 `compose.backup.yaml` 时不需要每次修改 Compose 或手工停启 core；该能力属于开发版本，不属于已发布 rc.4。
+
+
 M1 使用一个 `lantai serve` 核心进程，内部区分 JSON API、文件传输与本机运维监听。对外只有 HTTPS 网关；没有任务执行服务、MCP、网页、长轮询或自动 GC。以下模板供本地和隔离环境审查使用，不包含真实域名、证书、凭据或数据。目标机器的部署与故障恢复仍需单独验收。
 
 ```mermaid
@@ -23,6 +26,7 @@ flowchart LR
 | [config.native.yaml](../deploy/config.native.yaml) | 原生运行，三个监听均绑定数字 loopback |
 | [config.container.yaml](../deploy/config.container.yaml) | 容器私网 API/传输监听；运维仍仅容器内 loopback |
 | [compose.yaml](../deploy/compose.yaml) | 自动空卷准备、核心与网关；一次 up，仅网关发布端口 |
+| [compose.backup.yaml](../deploy/compose.backup.yaml) | 含 backup-online 的版本可选；部署时一次性挂载私有备份根，日常在原 core 触发 |
 | [Dockerfile](../deploy/Dockerfile) | Go 1.26.9 编译、无 shell 的非 root 核心镜像 |
 | [lantai.service](../deploy/lantai.service) | Linux systemd 核心服务模板，固定单进程、优雅停止 |
 
@@ -46,7 +50,7 @@ NAS 与容器：
 
 - 部分 NAS 系统把共享文件夹经厂商 FUSE 层映射进容器。2026-10 在一台极空间 NAS 的测试容器中实测（映射文件夹为 `zfuse`）：Lantai 的库在并发读写下出现 `SQLITE_CORRUPT` / `SQLITE_NOTADB` 并被持久写坏，有时运行中没有任何报错，只有完整性检查能发现；能力探针的低并发项照样全部通过。问题是间歇性的：同一位置在当天另外几次 10–15 分钟的并发实测中没有出现。这类映射文件夹不能放数据根或密钥目录；数据根放在上面时 Lantai 默认拒绝启动。
 - 同一台机器上，落在宿主本地 btrfs 上的 Docker 命名卷通过 15 分钟并发实测，并在其上完成 1 万资产 / 5 万版本的规模运行与空目录恢复。建议数据根与密钥目录各用一个命名卷，对应模板路径 `/var/lib/lantai` 与 `/var/lib/lantai-secrets`；映射的共享文件夹只放备份、导入导出与日志。在同一环境中，停机备份写到映射文件夹、校验后跨机器恢复已实测可用，备份副本的损坏由 `backup-verify` 的校验和发现。
-- 命名卷由 Docker 管理：删除卷（包括 `docker compose down -v`）或 Docker 存储损坏都会丢失数据。必须定期执行 `lantai backup`，用 `backup-verify` 校验后复制到另一台机器；密钥目录另行备份。
+- 命名卷由 Docker 管理：删除卷（包括 `docker compose down -v`）或 Docker 存储损坏都会丢失数据。包含新能力的版本应在部署时按[在线备份](online-backup.md)一次性挂载独立备份目录，日常在原 core 中执行 `backup-online`，完成后用 `backup-verify` 校验并复制到另一台机器；密钥目录另行保管。已发布 rc.4 仍只有停机、持有独占锁的 `backup`，不能把新命令追溯到旧镜像，也不能在活动 core 旁另起离线备份进程。
 - 模板 `compose.yaml` 默认将数据与密钥放在两个独立命名卷。旧环境文件若设置 `LANTAI_DATA_DIR` / `LANTAI_SECRETS_DIR`，其原有绝对路径优先用于 prepare 和 core，不会被默认卷覆盖。`prepare` 服务在每次项目启动时检查三个目录，只对空目录根设置 65532:65532 / 0700，绝不递归修改、删除或重新初始化已有数据。已有数据根允许服务所有且不对组/其他用户开放写入的旧权限；密钥与 setup 目录必须 0700。不符时停止，由部署者核对原卷与服务身份。升级必须保留同一 Compose 项目名、原命名卷或原路径，不能换成新的空卷，否则会看到另一个全新实例。
 
 ## 本地原生运行
@@ -84,7 +88,7 @@ caddy run --config deploy/Caddyfile --adapter caddyfile
 
 Compose 的变量来自仓库外的本地环境文件：`LANTAI_IMAGE`、`LANTAI_SETUP_DIR`、`LANTAI_CONFIG_FILE`、`LANTAI_TLS_DIR`、`LANTAI_DOMAIN`；可选 `LANTAI_HTTPS_PORT` 默认为 443。路径使用绝对路径，`LANTAI_TLS_DIR` 含受客户端信任的 `cert.pem` / `key.pem`，配置采用容器模板。`allowed_origins` 必须精确匹配外部 HTTPS 地址，包括非默认端口。
 
-`LANTAI_SETUP_DIR` 是独立的私有宿主目录，不能与数据、密钥或 TLS 目录复用，也不能放入同步/公开共享目录。它挂载到容器 `/var/lib/lantai-setup`；GUI 交付包通常使用项目旁的 `./setup`，不是数据命名卷中的 `db/`。文件界面能否读取其内容取决于 NAS 管理员的实际权限，不保证 GUI 可读。辅助容器需要 CHOWN、FOWNER 和 DAC_READ_SEARCH，只用来准备空目录根及检查现有目录，不访问网络。核心一直以 65532 身份运行且无 capabilities。
+`LANTAI_SETUP_DIR` 是独立的私有宿主目录，不能与数据、密钥或 TLS 目录复用，也不能放入同步/公开共享目录。它挂载到容器 `/var/lib/lantai-setup`；GUI 交付包通常使用项目旁的 `./setup`，不是数据命名卷中的 `db/`。文件界面能否读取其内容取决于 NAS 管理员的实际权限，不保证 GUI 可读。辅助容器需要 CHOWN、FOWNER 和 DAC_READ_SEARCH，只用来准备空目录根及检查现有目录，不访问网络。核心一直以 65532 身份运行且无 capabilities。其 `/tmp` tmpfs 显式使用 `mode=1777`，避免容器引擎重启后默认模式改变，使非 root 核心无法创建本机控制 socket。
 
 ```sh
 docker build -f deploy/Dockerfile -t lantai:local .
