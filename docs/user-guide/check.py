@@ -85,7 +85,9 @@ def main():
             md_links += 1
         for shell in re.findall(r"```sh\n(.*?)\n```", text, re.S):
             subprocess.run(["sh", "-n"], input=shell, text=True, check=True)
-            for line in shell.splitlines():
+            # Parse logical shell lines; continued docker compose examples are
+            # valid shell and must not fail on a trailing backslash.
+            for line in shell.replace("\\\n", " ").splitlines():
                 parts = shlex.split(line)
                 if not parts or parts[0] != "lantai":
                     continue
@@ -95,7 +97,7 @@ def main():
                 commands.add(tuple(command))
                 for part in parts[2:]:
                     if part.startswith("-"):
-                        assert part.lstrip("-") in flags, f"unknown CLI flag: {part}"
+                        assert part.lstrip("-").split("=", 1)[0] in flags, f"unknown CLI flag: {part}"
     if args.binary:
         for command in sorted(commands):
             result = subprocess.run([args.binary, *command, "--help"], capture_output=True, text=True, timeout=15)

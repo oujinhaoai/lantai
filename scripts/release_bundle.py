@@ -183,9 +183,16 @@ def build_web_bundle(source, deliver, version, commit, stamp, run):
 def build_deployment_bundle(source, work, deliver, version, commit, stamp, core_tag, caddy_tag):
     root = work / "deployment"
     root.mkdir()
-    for name in ("Caddyfile", "config.container.yaml", "compose.web.yaml",
+    for name in ("Caddyfile", "config.container.yaml", "compose.web.yaml", "compose.backup.yaml",
                  "release-install.md", "release-upgrade.md"):
         (root / name).write_bytes((source / "deploy" / name).read_bytes())
+    backup_doc = (source / "docs/online-backup.md").read_text()
+    backup_doc = backup_doc.replace("(contracts/backup-restore.md)",
+        f"(https://github.com/oujinhaoai/lantai/blob/{commit}/docs/contracts/backup-restore.md)")
+    (root / "online-backup.md").write_text(backup_doc)
+    for name in ("release-install.md", "release-upgrade.md"):
+        path = root / name
+        path.write_text(path.read_text().replace("../docs/online-backup.md", "online-backup.md"))
     compose = (source / "deploy/compose.yaml").read_text()
     if compose.count("image: caddy:2.11.4") != 1:
         raise RuntimeError("review changed Caddy image template")
@@ -197,11 +204,18 @@ def build_deployment_bundle(source, work, deliver, version, commit, stamp, core_
         "LANTAI_SETUP_DIR=/absolute/path/to/private/setup\n"
         "LANTAI_CONFIG_FILE=/absolute/path/to/config.container.yaml\n"
         "LANTAI_TLS_DIR=/absolute/path/to/existing/tls\n"
-        "LANTAI_DOMAIN=library.example\nLANTAI_HTTPS_PORT=443\n")
+        "LANTAI_DOMAIN=library.example\nLANTAI_HTTPS_PORT=443\n"
+        "# Optional: enable compose.backup.yaml once; provision the directory and marker first.\n"
+        "# LANTAI_BACKUP_DIR=/absolute/path/to/private/external/backups\n"
+        "# LANTAI_BACKUP_ROOT_ID=library-backup-volume-v1\n")
     files = inventory(root)
     archive = deliver / f"lantai-{version}-deployment.tar.gz"
     write_tree_archive(root, archive, "deploy", stamp, files)
     return {"source_commit": commit, "version": version, "archive": archive.name,
             "archive_sha256": sha256(archive), "archive_prefix": "deploy", "files": files,
             "web_mount": {"target": "/srv/lantai-web", "read_only": True,
-                          "create_host_path": False, "source_variable": "LANTAI_WEB_DIR"}}
+                          "create_host_path": False, "source_variable": "LANTAI_WEB_DIR"},
+            "backup_mount": {"overlay": "compose.backup.yaml", "target": "/var/lib/lantai-backup",
+                             "create_host_path": False, "source_variable": "LANTAI_BACKUP_DIR",
+                             "identity_variable": "LANTAI_BACKUP_ROOT_ID",
+                             "instructions": "online-backup.md"}}

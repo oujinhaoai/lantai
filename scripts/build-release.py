@@ -324,7 +324,8 @@ def main():
                 or delivery_result.get("caddy_image_id") != caddy["Id"]
                 or not all(delivery_result.get(x) for x in
                            ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
-                            "original_totp_login_passed", "static_archive_served", "volumes_preserved"))):
+                            "original_totp_login_passed", "static_archive_served", "volumes_preserved",
+                            "backup_smoke_passed", "rollback_passed"))):
             raise RuntimeError("actual delivery image/static/direct-upgrade smoke did not pass")
         (deliver / "delivery-image-smoke.txt").write_text(delivery_output + "\n")
         if (command(["git", "rev-parse", "HEAD"], cwd=source) != args.commit
