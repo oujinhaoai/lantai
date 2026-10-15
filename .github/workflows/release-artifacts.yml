@@ -14,6 +14,7 @@ on:
       - scripts/test-release-browser.cjs
       - scripts/tests/test_release_bundle.py
       - scripts/tests/test_release_upgrade.py
+      - scripts/tests/test_delivery_bind_guard.py
       - scripts/tests/test_build_release.py
       - scripts/test-compose-first-start.py
       - scripts/tests/test_compose_first_start.py

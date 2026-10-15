@@ -211,7 +211,7 @@ class BuildGuards(unittest.TestCase):
                       "core_image_id": "sha256:" + "c" * 64, "caddy_image_id": "sha256:" + "c" * 64,
                       **{k: True for k in ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
                                           "original_totp_login_passed", "static_archive_served", "volumes_preserved",
-                                          "backup_smoke_passed", "backup_preparation_passed", "rollback_passed")}}
+                                          "backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed", "rollback_passed")}}
             result.update(getattr(self, "delivery_override", {}))
             (out / "delivery-image-smoke.json").write_text(json.dumps(result))
             return "synthetic orchestration only; not a Docker test"
@@ -303,7 +303,7 @@ class BuildGuards(unittest.TestCase):
 
     def test_missing_backup_or_rollback_evidence_prevents_manifest(self):
         self.image_revision = SHA
-        for name in ("backup_smoke_passed", "backup_preparation_passed", "rollback_passed"):
+        for name in ("backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed", "rollback_passed"):
             with self.subTest(name=name):
                 self.delivery_override = {name: False}
                 with self.assertRaisesRegex(RuntimeError, "direct-upgrade smoke did not pass"):

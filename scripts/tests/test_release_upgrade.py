@@ -37,9 +37,9 @@ class RetainedConfig(unittest.TestCase):
         for name in ("core", "gateway"):
             self.after["services"][name]["tmpfs"] = ["/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m"]
 
-    def verify(self):
+    def verify(self, proof=False):
         upgrade.assert_retained_upgrade(self.before, self.after, core_image="new", caddy_image="new-caddy",
-                                        web="/new-web", backup="/private-backup", root_id="synthetic-volume")
+                                        web="/new-web", backup="/private-backup", root_id="synthetic-volume", no_create_verified=proof)
 
     def test_only_bounded_additions_preserve_existing_gui_identifiers(self):
         original = deepcopy(self.before)
@@ -75,3 +75,14 @@ class RetainedConfig(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(RuntimeError):
                 self.before["services"]["gateway"]["volumes"] = invalid
                 self.verify()
+
+    def test_omitted_false_needs_real_no_create_proof_and_true_still_fails(self):
+        del self.before["services"]["gateway"]["volumes"][0]["bind"]["create_host_path"]
+        del self.after["services"]["gateway"]["volumes"][0]["bind"]["create_host_path"]
+        del self.after["services"]["core"]["volumes"][-1]["bind"]["create_host_path"]
+        with self.assertRaisesRegex(RuntimeError, "behavior proof"):
+            self.verify()
+        self.verify(proof=True)
+        self.after["services"]["core"]["volumes"][-1]["bind"]["create_host_path"] = True
+        with self.assertRaisesRegex(RuntimeError, "protected"):
+            self.verify(proof=True)

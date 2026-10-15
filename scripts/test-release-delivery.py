@@ -184,6 +184,27 @@ class Instance:
         base.write_text(base.read_text().replace("/tmp:rw,noexec,nosuid,nodev,size=64m",
                         "/tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m"))
 
+    def reject_missing_bind(self, service, variable):
+        missing = self.root / ("missing-" + service + "-" + variable.lower())
+        if missing.exists():
+            raise RuntimeError("missing-bind fixture already exists")
+        original = self.env.read_text()
+        lines = original.splitlines()
+        if sum(line.startswith(variable + "=") for line in lines) != 1:
+            raise RuntimeError("missing-bind variable is not configured")
+        self.env.write_text("\n".join(variable + "=" + str(missing) if line.startswith(variable + "=")
+                                      else line for line in lines) + "\n")
+        try:
+            denied = subprocess.run(self.compose + ["up", "-d", "--no-deps", service],
+                                    capture_output=True, text=True, env=ENV, timeout=60)
+        finally:
+            self.env.write_text(original)
+            self.env.chmod(0o600)
+        check("actual missing " + variable + " bind is rejected without creation",
+              denied.returncode != 0 and not missing.exists()
+              and str(missing) in denied.stderr and "does not exist" in denied.stderr)
+        return True
+
     def backup_smoke(self, manifest):
         cid = self.cid()
         command = self.compose + ["exec", "-T", "core", "lantai", "backup-online", "-home", "/var/lib/lantai"]
@@ -477,11 +498,9 @@ def main():
         fresh.compose += ["-f", str(fresh.root / "compose.web.yaml")]
         fresh.enable_backup(deployment)
         instances.append(fresh)
-        missing = fresh.root / "missing-static"
-        fresh.env.write_text(fresh.env.read_text().replace("LANTAI_WEB_DIR=" + str(web), "LANTAI_WEB_DIR=" + str(missing)))
-        denied = subprocess.run(fresh.compose + ["up", "-d", "--no-deps", "gateway"], capture_output=True, text=True, env=ENV)
-        check("actual Compose rejects missing static directory without creating it", denied.returncode != 0 and not missing.exists())
         fresh.select(new["core_image"]["tag"])
+        candidate_no_create = (fresh.reject_missing_bind("gateway", "LANTAI_WEB_DIR")
+                               and fresh.reject_missing_bind("core", "LANTAI_BACKUP_DIR"))
         run(fresh.compose + ["up", "-d"])
         fresh.initialize_and_seed(new_cli)
         fresh.retained(new_cli, new)
@@ -512,6 +531,7 @@ def main():
         upgrade = Instance(work / "upgrade", old_deployment, old_web, old["caddy_image"]["tag"], original_compose, original_caddy, old["core_image"]["tag"])
         upgrade.compose += ["-f", str(upgrade.root / "compose.web.yaml")]
         instances.append(upgrade)
+        baseline_no_create = upgrade.reject_missing_bind("gateway", "LANTAI_WEB_DIR")
         run(upgrade.compose + ["up", "-d"])
         upgrade.initialize_and_seed(old_cli)
         upgrade.retained(old_cli, old)
@@ -534,7 +554,9 @@ def main():
         upgrade.caddy_file.write_bytes((deployment / "Caddyfile").read_bytes())
         after_config = json.loads(run(upgrade.compose + ["config", "--format", "json"]))
         assert_retained_upgrade(before_config, after_config, core_image=new["core_image"]["tag"],
-            caddy_image=new["caddy_image"]["tag"], web=web, backup=upgrade.backup_root, root_id=upgrade.backup_root_id)
+            caddy_image=new["caddy_image"]["tag"], web=web, backup=upgrade.backup_root, root_id=upgrade.backup_root_id,
+            no_create_verified=candidate_no_create and baseline_no_create)
+        RESULT["bind_no_create_passed"] = candidate_no_create and baseline_no_create
         check("resolved original project/networks/ports/volumes and environment preserved")
         run(upgrade.compose + ["up", "-d"])
         run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
