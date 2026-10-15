@@ -49,12 +49,10 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	if *ops != "" {
 		cfg.Listen.Operations = *ops
 	}
-	if root := os.Getenv("LANTAI_BACKUP_ROOT"); root != "" {
-		if _, err = a.EnableBackups(ctx, root, os.Getenv("LANTAI_BACKUP_ROOT_ID")); err != nil {
-			_ = a.Close(context.Background())
-			return reportStartup(stderr, "serve", err)
-		}
-	}
+	// Backup storage is optional. Keep the administrator-facing controller
+	// available to explain configuration errors without taking business service
+	// offline when a removable backup destination is absent.
+	a.ConfigureBackups(ctx, os.Getenv("LANTAI_BACKUP_ROOT"), os.Getenv("LANTAI_BACKUP_ROOT_ID"))
 	s, err := a.StartHTTP(ctx, cfg, application.WithAccessLog(stderr))
 	if err == nil {
 		_ = json.NewEncoder(stdout).Encode(map[string]any{"ready": true, "instance_id": a.Instance.InstanceID(), "listeners": s.Addresses})

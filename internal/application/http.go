@@ -74,7 +74,7 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	if err := validateAddress(cfg.Listen.Operations, true); err != nil {
 		return nil, err
 	}
-	h, err := httpapi.New(httpapi.Deps{Milestones: a.Identity, Rights: a.Rights, Ledger: a.Ledger, Reviews: a.Reviews, Lifecycle: a.Lifecycle, Discussions: a.Discussions, Evidence: a.Evidence, Collaboration: a.Collaboration, ContextCatalog: a.Catalog, Human: a.Identity, HumanTargets: a, Tasks: a.Tasks, Flows: a.Flows, Execution: a.Execution, Jobs: a.Jobs, Nodes: a.Nodes, Extensions: a.ExtensionManager, Identity: a.Identity, Catalog: a.Catalog, Storage: a.Storage, Query: a.Query, Operations: a}, httpapi.Config{InstanceID: a.Instance.InstanceID(), AllowedOrigins: cfg.HTTP.AllowedOrigins, MaxJSONBytes: cfg.HTTP.MaxJSONBytes, APITimeout: time.Duration(cfg.HTTP.APITimeoutSeconds) * time.Second})
+	h, err := httpapi.New(httpapi.Deps{Backups: a.BackupManagement(), Milestones: a.Identity, Rights: a.Rights, Ledger: a.Ledger, Reviews: a.Reviews, Lifecycle: a.Lifecycle, Discussions: a.Discussions, Evidence: a.Evidence, Collaboration: a.Collaboration, ContextCatalog: a.Catalog, Human: a.Identity, HumanTargets: a, Tasks: a.Tasks, Flows: a.Flows, Execution: a.Execution, Jobs: a.Jobs, Nodes: a.Nodes, Extensions: a.ExtensionManager, Identity: a.Identity, Catalog: a.Catalog, Storage: a.Storage, Query: a.Query, Operations: a}, httpapi.Config{InstanceID: a.Instance.InstanceID(), AllowedOrigins: cfg.HTTP.AllowedOrigins, MaxJSONBytes: cfg.HTTP.MaxJSONBytes, APITimeout: time.Duration(cfg.HTTP.APITimeoutSeconds) * time.Second})
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,15 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	if cfg.Listen.Merged {
 		surface = "merged"
 	}
-	api.Handler = logger.wrap(surface, a.business.wrap(readinessGuard(businessReady, api.Handler)))
+	businessHandler := a.business.wrap(readinessGuard(businessReady, api.Handler))
+	managementHandler := api.Handler
+	api.Handler = logger.wrap(surface, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if httpapi.BackupMaintenanceRequest(r) {
+			managementHandler.ServeHTTP(w, r)
+			return
+		}
+		businessHandler.ServeHTTP(w, r)
+	}))
 	r.servers = append(r.servers, api)
 	if !cfg.Listen.Merged {
 		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, logger.wrap("transfer", a.business.wrap(readinessGuard(businessReady, xfer)))))
@@ -113,18 +121,21 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	}
 	opsAddress := listeners[len(listeners)-1].Addr().String()
 	if a.backupControl != nil {
-		ln, e := a.backupControl.listen()
-		if e != nil {
-			for _, l := range listeners {
-				_ = l.Close()
+		overview, overviewErr := a.backupControl.Overview()
+		if overviewErr == nil && overview.Availability.Configured {
+			ln, e := a.backupControl.listen()
+			if e != nil {
+				// This optional local operator entry must not turn missing
+				// backup configuration into an application startup failure.
+				log.Print("optional backup control socket unavailable")
+			} else {
+				srv := httpapi.APIConfig("", a.backupControl.Handler())
+				srv.ErrorLog = log.New(io.Discard, "", 0)
+				srv.BaseContext = func(net.Listener) context.Context { return ctx }
+				listeners = append(listeners, ln)
+				r.servers = append(r.servers, srv)
 			}
-			return nil, e
 		}
-		srv := httpapi.APIConfig("", a.backupControl.Handler())
-		srv.ErrorLog = log.New(io.Discard, "", 0)
-		srv.BaseContext = func(net.Listener) context.Context { return ctx }
-		listeners = append(listeners, ln)
-		r.servers = append(r.servers, srv)
 	}
 	r.Addresses = Listeners{API: listeners[0].Addr().String(), Operations: opsAddress, Merged: cfg.Listen.Merged}
 	if cfg.Listen.Merged {

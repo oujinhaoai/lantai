@@ -5,6 +5,7 @@ package httpapi
 import (
 	"context"
 	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
+	"github.com/oujinhaoai/lantai/internal/backupmgmt"
 	"github.com/oujinhaoai/lantai/internal/extensions"
 	"github.com/oujinhaoai/lantai/internal/jobs"
 	"github.com/oujinhaoai/lantai/internal/ledger"
@@ -72,6 +73,7 @@ type OperationReader interface {
 }
 
 type Deps struct {
+	Backups        backupmgmt.Service
 	Milestones     *identity.Service
 	Rights         *provenance.Service
 	Ledger         *ledger.Service

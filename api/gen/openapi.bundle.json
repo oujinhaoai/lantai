@@ -264,6 +264,397 @@
         ],
         "type": "object"
       },
+      "BackupApproval": {
+        "additionalProperties": false,
+        "description": "identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.",
+        "properties": {
+          "drain_seconds": {
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "kind": {
+            "enum": [
+              "start",
+              "resume",
+              "schedule"
+            ],
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/BackupScheduleInput"
+          },
+          "timeout_seconds": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "BackupHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BackupJob"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "BackupJob": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "type": "integer"
+          },
+          "backup_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "capture_started": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "schedule_revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "schedule_timezone": {
+            "type": "string"
+          },
+          "scheduled_for": {
+            "format": "date",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "local",
+              "schedule"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "draining",
+              "backing_up",
+              "cancelling",
+              "complete",
+              "failed",
+              "cancelled",
+              "interrupted"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "BackupOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "check_deferred": {
+                "type": "boolean"
+              },
+              "checked_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "configured": {
+                "type": "boolean"
+              },
+              "error": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "configured",
+              "available"
+            ],
+            "type": "object"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_success": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recent_schedule_events": {
+            "items": {
+              "$ref": "#/components/schemas/BackupScheduleEvent"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/BackupSchedule"
+          }
+        },
+        "required": [
+          "availability",
+          "current",
+          "last_success",
+          "schedule",
+          "recent_schedule_events"
+        ],
+        "type": "object"
+      },
+      "BackupRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "drain_seconds": {
+            "default": 120,
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "timeout_seconds": {
+            "default": 7200,
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "grant_id"
+        ],
+        "type": "object"
+      },
+      "BackupSchedule": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_operation": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorized_by": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "disabled_reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "drain_seconds": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "time": {
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "timezone",
+          "time",
+          "revision",
+          "updated_at",
+          "next_run_at"
+        ],
+        "type": "object"
+      },
+      "BackupScheduleEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "enum": [
+              "started",
+              "skipped_busy",
+              "unavailable",
+              "missed",
+              "dst_missing",
+              "authorization_revoked",
+              "authorization_check_failed"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "timezone",
+          "state",
+          "at"
+        ],
+        "type": "object"
+      },
+      "BackupScheduleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "drain_seconds": {
+            "default": 120,
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "time": {
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "default": 7200,
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "timezone": {
+            "description": "IANA timezone name (UTC allowed, Local rejected); embedded tzdata.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "timezone",
+          "time",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "BackupScheduleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "drain_seconds": {
+            "default": 120,
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "time": {
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "default": 7200,
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_id",
+          "enabled",
+          "timezone",
+          "time",
+          "revision"
+        ],
+        "type": "object"
+      },
       "BlobGrant": {
         "additionalProperties": false,
         "properties": {
@@ -9771,10 +10162,13 @@
       },
       "SensitiveRequest": {
         "additionalProperties": false,
-        "description": "Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.",
+        "description": "Closed identity command JSON matches the selected core action. Backup actions accept BackupApproval only in challenges; submit the verified grant through the backup route, never identity/commands. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.",
         "properties": {
           "action": {
             "enum": [
+              "identity.backup_start",
+              "identity.backup_resume",
+              "identity.backup_schedule",
               "identity.register_principal",
               "identity.issue_credential",
               "identity.revoke_credential",
@@ -10506,6 +10900,315 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/backups": {
+      "get": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "operationId": "getBackupOverview",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupOverview"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "查看备份可用性、当前任务与计划",
+        "tags": [
+          "backups"
+        ]
+      },
+      "post": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。\n",
+        "operationId": "startBackup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupJob"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "经人类确认启动整馆备份",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/history": {
+      "get": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "operationId": "getBackupHistory",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupHistory"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "查看完整备份任务历史",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/schedule": {
+      "get": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "operationId": "getBackupSchedule",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupSchedule"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "查看每日计划及下一次时间",
+        "tags": [
+          "backups"
+        ]
+      },
+      "put": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。\n",
+        "operationId": "saveBackupSchedule",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupSchedule"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "经人类确认保存每日计划",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/{id}": {
+      "get": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "operationId": "getBackupJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupJob"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "查看备份任务状态",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/{id}/cancel": {
+      "post": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "operationId": "cancelBackup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupJob"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "请求取消；等待工作退出后恢复业务",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/{id}/resume": {
+      "post": {
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。\n",
+        "operationId": "resumeBackup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupJob"
+                }
+              }
+            },
+            "description": "成功（任务响应只有 complete 才表示备份完成）"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "经人类确认续传原备份任务",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
     "/api/v1/assets": {
       "get": {
         "operationId": "searchAssets",
@@ -15005,6 +15708,10 @@
     }
   ],
   "tags": [
+    {
+      "description": "人类系统管理员的整馆备份管理；与本机命令共享 core 协调服务。",
+      "name": "backups"
+    },
     {
       "description": "T09 扩展包静态导入、启用诊断、受限探测与本机命令投影；启停经人审授权",
       "name": "extensions"

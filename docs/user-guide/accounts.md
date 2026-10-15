@@ -14,6 +14,8 @@
 
 `viewer` 用于只读；`contributor` 可提交自己的资源；`owner` 管理项目。其余角色及完整规则见[权限登记表](../contracts/identity-actions.md)。不要给 Agent 人的 admin 会话、密码、TOTP 或恢复码。
 
+新增备份管理候选的网页提供显式“管理员登录（含备份管理权限）”。只在需要管理时勾选；默认浏览会话仍只申请 `self/read`。备份页面同时复核系统管理员角色和 `admin` scope，项目 owner 不等于整馆管理员。详见[备份管理](backup.md)。
+
 ## 1. 管理员登录并确认身份
 
 从发行包取得本机对应的 `lantai`，按[版本核对](troubleshooting.md)检查。创建私有工作目录；macOS/Linux 可先执行 `umask 077`，用编辑器创建 `credentials.json`，字段如下。占位文字必须替换，`code` 保持字符串以保留前导零。

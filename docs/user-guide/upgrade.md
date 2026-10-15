@@ -22,16 +22,16 @@
 
 GUI 若不能确认优雅退出，应使用已有管理终端的 `docker stop --timeout -1 CONTAINER_ID`，等待正常退出；异常退出或一直不退出时保留现场，不直接升级。
 
-## 3. 从当前 rc.4 更新核心、静态包与网关
+## 3. 从当前 rc.5 更新核心、静态包与网关
 
-本次候选包的默认基线是 rc.4 `d005b2d`。先核对 manifest 的 baseline_commit、direct_upgrade_passed、backup_smoke_passed 和 rollback_passed，不沿用其他版本对的结果：
+本次备份管理候选包的默认基线是正式 rc.5 `d27a06f`。先核对 manifest 的 baseline_commit、direct_upgrade_passed、backup_smoke_passed 和 rollback_passed，不沿用其他版本对的结果：
 
 1. 导入同一目标发行的已核验核心镜像，原 prepare/core 同时改为同一引用，保留 pull_policy never。
 2. 解压并核对 `*-web.tar.gz` 到版本独立目录，得到 index.html、assets 和 help；不挂源码根、资料或密钥卷。
-3. 保留原项目 Compose 和 `.env`。rc.4 已有 `/srv/lantai-web` 只读 bind，只将 LANTAI_WEB_DIR 更新到新静态目录；保留 read_only 和 create_host_path:false。GUI 中保留原项目名、全部逻辑卷键和实际卷来源，不用新装模板替换原项目或切空卷。
-4. rc.4 已有静态路由；对比后仅将发行 Caddyfile 的实际差异增量合入原文件；保留原域名/端口、bind、TLS、API/transfer 上游、日志脱敏与最终404。不新增公共端口、不开放9090或catch-all。
+3. 保留原项目 Compose 和 `.env`。rc.5 已有 `/srv/lantai-web` 只读 bind，只将 LANTAI_WEB_DIR 更新到新静态目录；保留 read_only 和 create_host_path:false。GUI 中保留原项目名、全部逻辑卷键和实际卷来源，不用新装模板替换原项目或切空卷。
+4. rc.5 已有静态路由；对比后仅将发行 Caddyfile 的实际差异增量合入原文件；保留原域名/端口、bind、TLS、API/transfer 上游、日志脱敏与最终404。不新增公共端口、不开放9090或catch-all。
 5. 保持原项目名/目录、实际数据/密钥卷、config/setup/TLS挂载、网络与原HTTPS端口。原管理员、口令、TOTP和恢复码不改；不 init 或签发/续期真实身份。
-6. 如启用在线备份，按[备份](backup.md)一次性加入外部私有目录、标记及原 core 的两项环境和一个 bind。既有 /tmp tmpfs 补 mode=1777，保留其他限制。之后每次直接在同一 core 执行 backup-online，无需再改配置或停启 core。
+6. 如启用在线备份，按[备份](backup.md)一次性加入外部私有目录、标记及原 core 的两项环境和一个 bind。既有 /tmp tmpfs 补 mode=1777，保留其他限制。之后通过网页“备份管理”立即备份或设置每日计划，无需 Docker CLI、维护容器、再改配置或停启 core。
 7. 在原项目按新镜像重建 core，并重建必要 gateway 使新配置生效；只重启旧 core 不更换镜像。原已核验Caddy2.11.4可沿用。
 
 完整交付说明见[原地升级模板](../../deploy/release-upgrade.md)。prepare 对已有内容只校验，不证明选中的是原实例。不要把未实施的卷绑定设计混入升级。
@@ -50,6 +50,10 @@ GUI 若不能确认优雅退出，应使用已有管理终端的 `docker stop --
 
 出现 setup 页、实例 ID 改变、卷身份不同：立即停 core/gateway，保留现场，不建立新管理员；恢复原挂载后再检查。别把误建的空卷继续当成原实例。
 
-rc.4 `d005b2d` → 目标候选版直接升级和条件反向回退，只以本次实际候选包的 delivery_smoke 证据为准；不能用历史版本对的测试代替。只有对应版本对的反向验证、无格式迁移及未做其他恢复/格式修改时，才停写停机恢复旧 core、旧 Caddyfile 和旧静态配置并完整核对。自动反向验证覆盖升级后的登录、读取、预览、下载和在线备份，没有覆盖任意新增业务写入后的回退。回退不撤销已接受写入，不推广任意旧版，不证明现场 NAS 已升级。
+rc.5 `d27a06f` → 目标候选版直接升级和条件反向回退，只以本次实际候选包的 delivery_smoke 证据为准；不能用历史版本对的测试代替。只有对应版本对的反向验证、无格式迁移及未做其他恢复/格式修改时，才停写停机恢复旧 core、旧 Caddyfile 和旧静态配置并完整核对。自动反向验证覆盖升级后的登录、读取、预览、下载和在线备份，没有覆盖任意新增业务写入后的回退。回退不撤销已接受写入，不推广任意旧版，不证明现场 NAS 已升级。
 
 若发生迁移、较新格式拒绝、损坏或密钥不配对，先停止，按兼容核验备份恢复流程处理。整馆恢复会重建认证身份，不等于保留原登录的普通镜像回退。
+
+仍运行 rc.4 时先核对对应的 rc.4→rc.5 包与升级说明，不用本包的 rc.5 升级结果替代源版本验证。
+
+新管理日志与旧在线控制器不向后兼容。已启用旧在线备份的 core 回退前必须额外核验；本包的反向测试只覆盖恢复原未启用控制器的配置。保留控制日志，不删除它来让旧程序启动。

@@ -108,7 +108,7 @@ class DeploymentArchive(unittest.TestCase):
             result = bundle.build_deployment_bundle(source, work, deliver, "v0.1.0-rc.5",
                                                      "a" * 40, 12345, "core-test", "caddy-test")
             names = {entry["path"] for entry in result["files"]}
-            self.assertTrue({"compose.backup.yaml", "online-backup.md", "release-upgrade.md"} <= names)
+            self.assertTrue({"compose.backup.yaml", "online-backup.md", "backup-management-api.md", "release-upgrade.md"} <= names)
             self.assertFalse(result["backup_mount"]["create_host_path"])
             extracted = root / "extracted"
             bundle.extract_verified_archive(deliver / result["archive"], extracted, "deploy", result["files"])
@@ -116,6 +116,8 @@ class DeploymentArchive(unittest.TestCase):
             self.assertIn("# LANTAI_BACKUP_DIR=", (extracted / "env.example").read_text())
             self.assertIn("(online-backup.md)", (extracted / "release-upgrade.md").read_text())
             self.assertIn("blob/" + "a" * 40, (extracted / "online-backup.md").read_text())
+            self.assertIn("(backup-management-api.md)", (extracted / "online-backup.md").read_text())
+            self.assertIn("blob/" + "a" * 40 + "/api/openapi.yaml", (extracted / "backup-management-api.md").read_text())
             with (extracted / "compose.backup.yaml").open("a") as stream:
                 stream.write("tampered")
             self.assertNotEqual(bundle.inventory(extracted), result["files"])

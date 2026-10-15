@@ -28,6 +28,7 @@ import {
 } from "./api";
 import "./style.css";
 import { FilePreview } from "./file-preview";
+import { BackupManagement, canManageBackups } from "./backup-management";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
@@ -105,6 +106,12 @@ function Icon({ kind, size = 20 }: { kind: string; size?: number }) {
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,
+    backup: (
+      <>
+        <path d="M4 6h16v14H4Z" />
+        <path d="M3 3h18v3H3Zm6 8h6m-3-2v6m-3-3 3 3 3-3" />
+      </>
+    ),
   };
   return (
     <svg
@@ -844,12 +851,17 @@ function Workspace({
     ["/", "home", "首页"],
     ["/projects", "folder", "我的项目"],
     ["/assets", "grid", "资源库"],
+    ...(canManageBackups(who)
+      ? [["/admin/backups", "backup", "备份管理"]]
+      : []),
   ];
   const section = pathname.startsWith("/projects")
     ? "/projects"
     : pathname.startsWith("/assets")
       ? "/assets"
-      : "/";
+      : pathname.startsWith("/admin/backups")
+        ? "/admin/backups"
+        : "/";
   return (
     <div className="app-shell">
       <a
@@ -924,7 +936,18 @@ function Workspace({
               此标签页未保存登录校验信息，可继续浏览。退出会话请返回原登录标签页，或先重新验证。
             </p>
           )}
-          {pathname === "/" ? (
+          {pathname === "/admin/backups" ? (
+            canManageBackups(who) ? (
+              <BackupManagement expire={expire} />
+            ) : (
+              <>
+                <Heading eyebrow="系统管理" title="备份管理" />
+                <p className="notice">
+                  备份管理需要管理员身份与管理范围的浏览器会话。请退出后选择管理员登录。
+                </p>
+              </>
+            )
+          ) : pathname === "/" ? (
             <Home who={who} expire={expire} />
           ) : pathname === "/projects" ? (
             <Projects expire={expire} />
@@ -977,6 +1000,7 @@ function Login({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [adminLogin, setAdminLogin] = useState(false);
   const inFlight = useRef(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -989,7 +1013,7 @@ function Login({
       password,
       code,
       channel: "browser",
-      scopes: ["self", "read"],
+      scopes: adminLogin ? ["self", "read", "admin"] : ["self", "read"],
     });
     setPassword("");
     setCode("");
@@ -1089,9 +1113,21 @@ function Login({
             {busy ? "正在验证…" : "登录并浏览"}
             <Icon kind="arrow" size={17} />
           </button>
+          <label className="admin-login-choice">
+            <input
+              type="checkbox"
+              checked={adminLogin}
+              onChange={(event) => setAdminLogin(event.target.checked)}
+              disabled={busy}
+            />
+            管理员登录（含备份管理权限）
+          </label>
           <p className="security-note">
             <Icon kind="lock" size={15} />
-            口令与动态码仅用于本次验证。浏览会话只申请读取权限。
+            口令与动态码仅用于本次验证。
+            {adminLogin
+              ? "本次申请管理范围，服务器仍会核验管理员身份。"
+              : "普通浏览会话只申请读取权限。"}
           </p>
           <p className="setup-help">
             首次安装？<a href="/setup/">打开受保护的设置页</a>

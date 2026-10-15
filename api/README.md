@@ -13,3 +13,5 @@ M1 handler 在 `internal/transport/httpapi`，已接会话、最小身份管理�
 M2 已接入任务/执行、审定、生命周期、讨论和权限过滤事件长轮询，见[实际接口](../docs/contracts/manual-execution.md)。扩展包治理使用固定核心路由 `/api/v1/extensions/packages|enablements|commands`（启停经 `/api/v1/human`），见[扩展包治理](../docs/contracts/extension-governance.md)；插件自定义的动态扩展路由尚未启用。后续扩展仅注册 `/api/v1/ext/<plugin-id>/` 内明确的方法与 schema，经核心统一认证、授权、配额与回执；不代理任意 URL，不开放运维入口。包治理归 [T09](../docs/tasks/T09-extension-platform.md)，通用 service 调用仍由所属领域保存副作用 intent/receipt，见[扩展设计](../docs/extensions.md)。
 
 本机运维专用接口：[备份控制](backup-control.md)，仅私有 Unix socket，不进入公开 REST/OpenAPI。
+
+管理员公共接口：[整馆备份管理](backup-management.md)，复用现有身份、CSRF 与 HumanGrant，和私有 socket 共用 core 协调器。

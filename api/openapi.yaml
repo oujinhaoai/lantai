@@ -17,6 +17,8 @@ security:
   - bearerSession: []
   - cookieSession: []
 tags:
+  - name: backups
+    description: 人类系统管理员的整馆备份管理；与本机命令共享 core 协调服务。
   - name: extensions
     description: T09 扩展包静态导入、启用诊断、受限探测与本机命令投影；启停经人审授权
   - name: operations
@@ -27,6 +29,198 @@ tags:
       中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位
       （交互/批量）排队准入。见 docs/contracts/storage.md。
 paths:
+  /api/v1/admin/backups:
+    get:
+      tags: [backups]
+      operationId: getBackupOverview
+      summary: 查看备份可用性、当前任务与计划
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupOverview'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [backups]
+      operationId: startBackup
+      summary: 经人类确认启动整馆备份
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRunRequest'
+      responses:
+        '202':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupJob'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/history:
+    get:
+      tags: [backups]
+      operationId: getBackupHistory
+      summary: 查看完整备份任务历史
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupHistory'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/schedule:
+    get:
+      tags: [backups]
+      operationId: getBackupSchedule
+      summary: 查看每日计划及下一次时间
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupSchedule'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [backups]
+      operationId: saveBackupSchedule
+      summary: 经人类确认保存每日计划
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupScheduleRequest'
+      responses:
+        '200':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupSchedule'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/{id}:
+    get:
+      tags: [backups]
+      operationId: getBackupJob
+      summary: 查看备份任务状态
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+      responses:
+        '200':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupJob'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/{id}/resume:
+    post:
+      tags: [backups]
+      operationId: resumeBackup
+      summary: 经人类确认续传原备份任务
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRunRequest'
+      responses:
+        '202':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupJob'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/{id}/cancel:
+    post:
+      tags: [backups]
+      operationId: cancelBackup
+      summary: 请求取消；等待工作退出后恢复业务
+      description: |
+        仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
+        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+      responses:
+        '202':
+          description: 成功（任务响应只有 complete 才表示备份完成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupJob'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/operations/{operation_id}:
     get:
       tags: [operations]
@@ -2763,6 +2957,153 @@ components:
         允许列表精确相同的 Origin（缺失即拒绝）并在 X-CSRF-Token 头中带与该会话相符的 CSRF
         令牌；同一请求不能同时带 Bearer 与会话 Cookie。
   schemas:
+    BackupRunRequest:
+      type: object
+      additionalProperties: false
+      required: [grant_id]
+      properties:
+        grant_id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        drain_seconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+          default: 120
+        timeout_seconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+          default: 7200
+    BackupScheduleInput:
+      type: object
+      additionalProperties: false
+      required: [enabled, timezone, time, revision]
+      properties:
+        enabled: {type: boolean}
+        timezone:
+          type: string
+          description: IANA timezone name (UTC allowed, Local rejected); embedded tzdata.
+        time: {type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'}
+        revision: {type: integer, format: int64, minimum: 0}
+        drain_seconds: {type: integer, minimum: 0, maximum: 3600, default: 120}
+        timeout_seconds: {type: integer, minimum: 0, maximum: 86400, default: 7200}
+    BackupScheduleRequest:
+      type: object
+      additionalProperties: false
+      required: [grant_id, enabled, timezone, time, revision]
+      properties:
+        grant_id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        enabled: {type: boolean}
+        timezone: {type: string}
+        time: {type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'}
+        revision: {type: integer, format: int64, minimum: 0}
+        drain_seconds: {type: integer, minimum: 0, maximum: 3600, default: 120}
+        timeout_seconds: {type: integer, minimum: 0, maximum: 86400, default: 7200}
+    BackupApproval:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      description: identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
+      properties:
+        kind: {type: string, enum: [start, resume, schedule]}
+        job_id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        drain_seconds: {type: integer, minimum: 0, maximum: 3600}
+        timeout_seconds: {type: integer, minimum: 0, maximum: 86400}
+        schedule:
+          $ref: '#/components/schemas/BackupScheduleInput'
+    BackupJob:
+      type: object
+      additionalProperties: false
+      required: [id, state, created_at, updated_at]
+      properties:
+        id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        backup_id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        capture_started: {type: boolean}
+        state: {type: string, enum: [draining, backing_up, cancelling, complete, failed, cancelled, interrupted]}
+        error: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        source: {type: string, enum: [manual, local, schedule]}
+        scheduled_for: {type: string, format: date}
+        schedule_timezone: {type: string}
+        schedule_revision: {type: integer, format: int64}
+        attempt: {type: integer}
+    BackupSchedule:
+      type: object
+      additionalProperties: false
+      required: [enabled, timezone, time, revision, updated_at, next_run_at]
+      properties:
+        authorized_by:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+        approval_operation: {type: string, readOnly: true}
+        disabled_reason: {type: string, readOnly: true}
+        enabled: {type: boolean}
+        timezone: {type: string}
+        time: {type: string}
+        revision: {type: integer, format: int64}
+        drain_seconds: {type: integer}
+        timeout_seconds: {type: integer}
+        updated_at: {type: string, format: date-time}
+        next_run_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    BackupScheduleEvent:
+      type: object
+      additionalProperties: false
+      required: [date, timezone, state, at]
+      properties:
+        date: {type: string, format: date}
+        timezone: {type: string}
+        state: {type: string, enum: [started, skipped_busy, unavailable, missed, dst_missing, authorization_revoked, authorization_check_failed]}
+        error: {type: string}
+        at: {type: string, format: date-time}
+        job_id:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+    BackupHistory:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupJob'
+    BackupOverview:
+      type: object
+      additionalProperties: false
+      required: [availability, current, last_success, schedule, recent_schedule_events]
+      properties:
+        availability:
+          type: object
+          additionalProperties: false
+          required: [configured, available]
+          properties:
+            configured: {type: boolean}
+            available: {type: boolean}
+            error: {type: string}
+            checked_at: {type: string, format: date-time}
+            check_deferred: {type: boolean}
+        current:
+          anyOf:
+            - $ref: '#/components/schemas/BackupJob'
+            - type: 'null'
+        last_success:
+          anyOf:
+            - $ref: '#/components/schemas/BackupJob'
+            - type: 'null'
+        schedule:
+          $ref: '#/components/schemas/BackupSchedule'
+        recent_schedule_events:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BackupScheduleEvent'
     Milestone:
       type: object
       additionalProperties: false
@@ -3645,10 +3986,13 @@ components:
       type: object
     SensitiveRequest:
       additionalProperties: false
-      description: Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
+      description: Closed identity command JSON matches the selected core action. Backup actions accept BackupApproval only in challenges; submit the verified grant through the backup route, never identity/commands. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
       properties:
         action:
           enum:
+            - identity.backup_start
+            - identity.backup_resume
+            - identity.backup_schedule
             - identity.register_principal
             - identity.issue_credential
             - identity.revoke_credential

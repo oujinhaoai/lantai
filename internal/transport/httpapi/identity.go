@@ -36,6 +36,8 @@ func (h *Handler) identityRoutes(m *http.ServeMux) {
 func parseSensitive(in SensitiveRequest) (identity.Command, error) {
 	var command identity.Command
 	switch in.Action {
+	case identity.ActBackupStart, identity.ActBackupResume, identity.ActBackupSchedule:
+		command = &identity.ApproveBackup{}
 	case identity.ActRegisterPrincipal:
 		command = &identity.RegisterPrincipal{}
 	case identity.ActIssueCredential:
@@ -57,6 +59,12 @@ func parseSensitive(in SensitiveRequest) (identity.Command, error) {
 	}
 	if c, ok := command.(*identity.SetProjectRole); ok && c.Grant != (in.Action == identity.ActGrantProjectRole) {
 		return nil, invalid("role grant flag must match the selected action")
+	}
+	if c, ok := command.(*identity.ApproveBackup); ok {
+		expected := map[authz.Action]string{identity.ActBackupStart: "start", identity.ActBackupResume: "resume", identity.ActBackupSchedule: "schedule"}[in.Action]
+		if c.Kind != expected {
+			return nil, invalid("backup kind must match the selected action")
+		}
 	}
 	return command, nil
 }
@@ -125,6 +133,9 @@ func (h *Handler) executeIdentity(w http.ResponseWriter, r *http.Request, who au
 	c, err := parseSensitive(in)
 	if err != nil {
 		return err
+	}
+	if _, ok := c.(*identity.ApproveBackup); ok {
+		return invalid("execute backup approvals through the corresponding admin backup endpoint")
 	}
 	out, err := h.deps.Identity.Execute(r.Context(), who, in.GrantID, k, c)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,47 +13,42 @@ import (
 	"sync"
 	"time"
 
+	"github.com/oujinhaoai/lantai/internal/backupmgmt"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/operations"
 	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
 )
 
-var ErrBackupBusy = errors.New("backup already active")
+var ErrBackupBusy = backupmgmt.ErrBusy
 
 const BackupRootMarker = ".lantai-backup-root"
 
-// BackupRequest contains no host path or credentials. The deployment chooses
-// one destination root; each run uses a generated child directory.
-type BackupRequest struct {
-	Resume         ids.ID `json:"resume,omitempty"`
-	DrainSeconds   int    `json:"drain_seconds,omitempty"`
-	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
-}
-
-type BackupJob struct {
-	ID             ids.ID    `json:"id"`
-	BackupID       ids.ID    `json:"backup_id,omitempty"`
-	CaptureStarted bool      `json:"capture_started,omitempty"`
-	State          string    `json:"state"`
-	Error          string    `json:"error,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
-}
+type BackupRequest = backupmgmt.Request
+type BackupJob = backupmgmt.Job
 
 // BackupControl is the single owner shared by local HTTP and CLI. Its mutex
 // serializes triggers; businessGate and Instance.Maintain provide exclusion
 // against actual foreground operations and background writers respectively.
 type BackupControl struct {
-	app          *App
-	root, rootID string
-	rootInfo     os.FileInfo
-	mu           sync.Mutex
-	jobs         map[ids.ID]BackupJob
-	active       ids.ID
-	cancel       context.CancelFunc
-	done         chan struct{}
-	closing      bool
-	ctx          context.Context
+	app              *App
+	root, rootID     string
+	rootInfo         os.FileInfo
+	mu               sync.Mutex
+	jobs             map[ids.ID]BackupJob
+	active           ids.ID
+	cancel           context.CancelFunc
+	done             chan struct{}
+	closing          bool
+	ctx              context.Context
+	receipts         map[ids.ID][]backupReceipt
+	management       backupManagementState
+	managementErr    error
+	lastAvailability backupmgmt.Availability
+	schedulerCancel  context.CancelFunc
+	schedulerDone    chan struct{}
+	now              func() time.Time
+	// Internal test-only fault injection, never an external configuration hook.
+	authorizeSchedule func(context.Context, ids.ID, func() error) error
 	// Internal fault injection, never a configurable external hook.
 	run func(context.Context, operations.BackupOptions) (operations.BackupManifest, error)
 }
@@ -64,11 +60,14 @@ func (a *App) EnableBackups(ctx context.Context, root, rootID string) (*BackupCo
 	if root == "" {
 		return nil, errors.New("backup root is required")
 	}
-	root, err := filepath.Abs(root)
-	if err != nil || rootID == "" || len(rootID) > 128 || strings.TrimSpace(rootID) != rootID {
+	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
+		return nil, errors.New("backup root must be a canonical absolute path")
+	}
+	var err error
+	if rootID == "" || len(rootID) > 128 || strings.TrimSpace(rootID) != rootID {
 		return nil, errors.New("invalid backup root identity")
 	}
-	b := &BackupControl{app: a, root: root, rootID: rootID, jobs: map[ids.ID]BackupJob{}, ctx: ctx, run: a.Backup}
+	b := &BackupControl{app: a, root: root, rootID: rootID, jobs: map[ids.ID]BackupJob{}, receipts: map[ids.ID][]backupReceipt{}, ctx: ctx, run: a.Backup, now: func() time.Time { return a.Instance.Clock().Now() }}
 	if err := b.preflight(); err != nil {
 		return nil, err
 	}
@@ -76,44 +75,14 @@ func (a *App) EnableBackups(ctx context.Context, root, rootID string) (*BackupCo
 	if err != nil {
 		return nil, err
 	}
-	entries, err := os.ReadDir(b.journalDir())
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := b.loadJobs(); err != nil {
 		return nil, err
 	}
-	for _, entry := range entries {
-		if handled, e := b.recoverJournalTemp(entry); handled || e != nil {
-			if e != nil {
-				return nil, e
-			}
-			continue
-		}
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			return nil, errors.New("invalid backup journal")
-		}
-		id := ids.ID(strings.TrimSuffix(entry.Name(), ".json"))
-		if !id.Valid() {
-			return nil, errors.New("invalid backup journal ID")
-		}
-		j, e := readBackupJob(filepath.Join(b.journalDir(), entry.Name()))
-		if e != nil {
-			return nil, e
-		}
-		if j.ID != id {
-			return nil, errors.New("invalid backup journal")
-		}
-		switch j.State {
-		case "draining", "backing_up", "cancelling":
-			j.State, j.Error, j.UpdatedAt = "interrupted", "process_interrupted", time.Now().UTC()
-			if e = b.save(j); e != nil {
-				return nil, e
-			}
-		case "complete", "failed", "cancelled", "interrupted":
-		default:
-			return nil, errors.New("invalid backup journal state")
-		}
-		b.jobs[id] = j
+	if err := b.loadManagement(); err != nil {
+		return nil, err
 	}
 	a.backupControl = b
+	b.startScheduler()
 	return b, nil
 }
 
@@ -121,7 +90,13 @@ func (b *BackupControl) journalDir() string {
 	return filepath.Join(b.app.Instance.Layout().Home, "backups", "online")
 }
 func (b *BackupControl) save(j BackupJob) error {
-	raw, err := json.Marshal(j)
+	if err := b.checkJournalDirs(true); err != nil {
+		return err
+	}
+	raw, err := json.Marshal(backupRecord{Job: j, Receipts: b.receipts[j.ID]})
+	if len(raw) > 64<<10 {
+		return errors.New("backup journal receipt capacity")
+	}
 	if err != nil {
 		return err
 	}
@@ -134,6 +109,9 @@ func (b *BackupControl) save(j BackupJob) error {
 // preflight never creates the root. A separately provisioned marker prevents a
 // missing mount from silently falling back to a newly created local directory.
 func (b *BackupControl) preflight() error {
+	if !filepath.IsAbs(b.root) || filepath.Clean(b.root) != b.root || !validBackupRootID(b.rootID) {
+		return errors.New("invalid backup root identity or absolute path")
+	}
 	resolved, err := filepath.EvalSymlinks(b.root)
 	if err != nil || resolved != b.root {
 		return errors.New("backup root must be an existing real directory without symlink aliases")
@@ -141,6 +119,9 @@ func (b *BackupControl) preflight() error {
 	st, err := os.Stat(b.root)
 	if err != nil || !st.IsDir() {
 		return errors.New("backup root is not a directory")
+	}
+	if err := fsutil.CheckPrivate(b.root); err != nil || !backupPrivateOwner(st) {
+		return errors.New("backup root permissions must be private and owned by service user")
 	}
 	if b.rootInfo != nil && !os.SameFile(b.rootInfo, st) {
 		return errors.New("backup root was replaced or remounted")
@@ -156,10 +137,13 @@ func (b *BackupControl) preflight() error {
 	}
 	marker := filepath.Join(b.root, BackupRootMarker)
 	st, err = os.Lstat(marker)
-	if err != nil || !st.Mode().IsRegular() {
+	if err != nil || !st.Mode().IsRegular() || !backupSingleLink(st) {
 		return errors.New("backup root identity marker missing or unsafe")
 	}
-	raw, err := os.ReadFile(marker)
+	if err := fsutil.CheckPrivate(marker); err != nil || !backupPrivateOwner(st) {
+		return errors.New("backup marker permissions must be private and owned by service user")
+	}
+	raw, err := readBackupRootMarker(marker)
 	if err != nil || len(raw) > 129 || strings.TrimSpace(string(raw)) != b.rootID {
 		return errors.New("backup root identity mismatch")
 	}
@@ -169,6 +153,9 @@ func (b *BackupControl) preflight() error {
 	}
 	if free < b.app.Instance.Config().MinFreeBytes {
 		return errors.New("backup destination has insufficient free space")
+	}
+	if b.rootInfo == nil {
+		b.rootInfo = stRoot(b.root)
 	}
 	probe, err := os.CreateTemp(b.root, ".lantai-probe-")
 	if err != nil {
@@ -182,12 +169,25 @@ func (b *BackupControl) preflight() error {
 	}
 	return errors.Join(err, probe.Close())
 }
+func stRoot(root string) os.FileInfo { st, _ := os.Stat(root); return st }
+
 func (b *BackupControl) checkDestination() error {
 	st, err := os.Stat(b.root)
 	if err != nil || !os.SameFile(b.rootInfo, st) {
 		return errors.New("backup root unavailable or replaced")
 	}
-	raw, err := os.ReadFile(filepath.Join(b.root, BackupRootMarker))
+	if err := fsutil.CheckPrivate(b.root); err != nil || !backupPrivateOwner(st) {
+		return errors.New("backup root permissions changed")
+	}
+	marker := filepath.Join(b.root, BackupRootMarker)
+	st, err = os.Lstat(marker)
+	if err != nil || !st.Mode().IsRegular() || !backupSingleLink(st) {
+		return errors.New("backup marker unsafe")
+	}
+	if err = fsutil.CheckPrivate(marker); err != nil || !backupPrivateOwner(st) {
+		return errors.New("backup marker permissions changed")
+	}
+	raw, err := readBackupRootMarker(marker)
 	if err != nil || strings.TrimSpace(string(raw)) != b.rootID {
 		return errors.New("backup root identity changed")
 	}
@@ -259,8 +259,18 @@ func overlaps(a, b string) bool {
 func (b *BackupControl) Start(req BackupRequest) (BackupJob, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	return b.startLocked(req, "", "", "")
+}
+
+func (b *BackupControl) startLocked(req BackupRequest, key, source, scheduledFor string) (BackupJob, error) {
+	if req.Resume != "" && !req.Resume.Valid() {
+		return BackupJob{}, backupmgmt.ErrInvalid
+	}
 	if b.closing || b.ctx.Err() != nil {
-		return BackupJob{}, errors.New("backup controller stopping")
+		return BackupJob{}, fmt.Errorf("%w: stopping", backupmgmt.ErrUnavailable)
+	}
+	if b.managementErr != nil {
+		return BackupJob{}, fmt.Errorf("%w: journal_invalid", backupmgmt.ErrUnavailable)
 	}
 	if b.active != "" {
 		return BackupJob{}, ErrBackupBusy
@@ -272,27 +282,41 @@ func (b *BackupControl) Start(req BackupRequest) (BackupJob, error) {
 		req.TimeoutSeconds = 7200
 	}
 	if req.DrainSeconds < 1 || req.DrainSeconds > 3600 || req.TimeoutSeconds < 1 || req.TimeoutSeconds > 86400 || req.DrainSeconds > req.TimeoutSeconds {
-		return BackupJob{}, errors.New("invalid backup timeout")
+		return BackupJob{}, backupmgmt.ErrInvalid
 	}
-	if err := b.preflight(); err != nil {
-		return BackupJob{}, err
+	if availability := b.availabilityLocked(); !availability.Available {
+		return BackupJob{}, fmt.Errorf("%w: %s", backupmgmt.ErrUnavailable, availability.Error)
 	}
 	var j BackupJob
 	if req.Resume != "" {
 		var ok bool
 		j, ok = b.jobs[req.Resume]
-		if !ok || j.State == "complete" {
-			return BackupJob{}, errors.New("backup is not resumable")
+		if !ok {
+			return BackupJob{}, backupmgmt.ErrNotFound
+		}
+		if j.State == "complete" {
+			return BackupJob{}, fmt.Errorf("%w: backup is not resumable", backupmgmt.ErrInvalid)
 		}
 	} else {
 		id, err := b.app.Instance.IDs().New()
 		if err != nil {
 			return BackupJob{}, err
 		}
-		j = BackupJob{ID: id, CreatedAt: time.Now().UTC()}
+		j = BackupJob{ID: id, CreatedAt: b.now(), Source: source, ScheduledFor: scheduledFor}
+		if source == "schedule" {
+			j.ScheduleTimezone = b.management.Schedule.Timezone
+			j.ScheduleRevision = b.management.Schedule.Revision
+		}
 	}
-	j.State, j.Error, j.UpdatedAt = "draining", "", time.Now().UTC()
+	j.State, j.Error, j.UpdatedAt = "draining", "", b.now()
+	j.Attempt++
+	oldReceipts := b.receipts[j.ID]
+	if key != "" {
+		b.receipts[j.ID] = append(append([]backupReceipt(nil), oldReceipts...), backupReceipt{Key: key, Hash: requestHash(req)})
+	}
 	if err := b.save(j); err != nil {
+		b.receipts[j.ID] = oldReceipts
+		b.managementErr = err
 		return BackupJob{}, err
 	}
 	c, cancel := context.WithTimeout(b.ctx, time.Duration(req.TimeoutSeconds)*time.Second)
@@ -320,8 +344,15 @@ func (b *BackupControl) Cancel(id ids.ID) (BackupJob, error) {
 		return j, fs.ErrNotExist
 	}
 	if b.active == id {
-		j.State, j.UpdatedAt = "cancelling", time.Now().UTC()
+		j.State, j.UpdatedAt = "cancelling", b.now()
 		if err := b.save(j); err != nil {
+			// A full/unwritable journal must not prevent cancellation. Keep
+			// admission closed until the worker actually exits; only the
+			// durable status is unavailable, not the cancellation signal.
+			j.Error = "journal_write_failed"
+			b.jobs[id] = j
+			b.managementErr = err
+			b.cancel()
 			return j, err
 		}
 		b.jobs[id] = j
@@ -333,6 +364,7 @@ func (b *BackupControl) Cancel(id ids.ID) (BackupJob, error) {
 func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequest) {
 	var err error
 	var m operations.BackupManifest
+	failureCode := "backup_failed"
 	// Finalization runs after all work and maintenance defers, including panic
 	// unwinding. Cancellation never releases an active copier's barrier early.
 	defer func() {
@@ -357,14 +389,15 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		case errors.Is(err, context.DeadlineExceeded):
 			j.State, j.Error = "failed", "timeout"
 		default:
-			j.State, j.Error = "failed", "backup_failed"
+			j.State, j.Error = "failed", failureCode
 		}
 		if m.BackupID != "" && j.BackupID == "" {
 			j.BackupID = m.BackupID
 		}
-		j.UpdatedAt = time.Now().UTC()
+		j.UpdatedAt = b.now()
 		if e := b.save(j); e != nil {
 			j.State, j.Error = "failed", "journal_write_failed"
+			b.managementErr = e
 		}
 		b.jobs[j.ID] = j
 		b.cancel()
@@ -404,15 +437,18 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 	}
 	c := maintenance.Context()
 	if err = b.preflight(); err != nil {
+		failureCode = availabilityCode(err)
 		return
 	}
 	if err = b.checkCapacity(c); err != nil {
+		failureCode = "capacity_check_failed"
 		return
 	}
 	target := filepath.Join(b.root, string(j.ID))
 	if st, e := os.Lstat(target); e == nil {
 		resolved, e := filepath.EvalSymlinks(target)
 		if e != nil || !st.IsDir() || resolved != target {
+			failureCode = "unsafe_backup_target"
 			err = errors.New("unsafe backup target")
 			return
 		}
@@ -424,6 +460,7 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		resolved, e := b.app.Instance.ResolveBackupID(c, j.BackupID, target)
 		if e != nil {
 			if !errors.Is(e, fs.ErrNotExist) || j.CaptureStarted {
+				failureCode = "resume_point_invalid"
 				err = e
 				return
 			}
@@ -432,7 +469,7 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		}
 	}
 	b.mu.Lock()
-	j.State, j.UpdatedAt = "backing_up", time.Now().UTC()
+	j.State, j.UpdatedAt = "backing_up", b.now()
 	j.CaptureStarted = true
 	err = b.save(j)
 	b.jobs[j.ID] = j
@@ -441,17 +478,31 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		return
 	}
 	m, err = b.run(c, operations.BackupOptions{Destination: target, BackupID: j.BackupID, CheckDestination: func(context.Context) error { return b.checkDestination() }})
+	if errors.Is(err, fs.ErrPermission) {
+		failureCode = "destination_permission_denied"
+	}
 }
 
 func (b *BackupControl) Close(ctx context.Context) error {
 	b.mu.Lock()
 	b.closing = true
+	if b.schedulerCancel != nil {
+		b.schedulerCancel()
+	}
+	schedulerDone := b.schedulerDone
 	done := b.done
 	if b.cancel != nil {
 		b.cancel()
 	}
 	active := b.active != ""
 	b.mu.Unlock()
+	if schedulerDone != nil {
+		select {
+		case <-schedulerDone:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	if active {
 		select {
 		case <-done:
@@ -460,4 +511,30 @@ func (b *BackupControl) Close(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func readBackupRootMarker(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !st.Mode().IsRegular() || st.Size() > 129 || !backupSingleLink(st) || !backupPrivateOwner(st) {
+		return nil, errors.New("unsafe backup marker")
+	}
+	if err = fsutil.CheckPrivate(path); err != nil {
+		return nil, err
+	}
+	raw, err := io.ReadAll(io.LimitReader(f, 130))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > 129 {
+		return nil, errors.New("backup marker exceeds size limit")
+	}
+	return raw, nil
 }

@@ -36,6 +36,9 @@ func TestOnlineBackupCLIUsesRunningCoreAndPrivateSocket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = os.Chmod(root, 0700); err != nil {
+		t.Fatal(err)
+	}
 	if err = os.WriteFile(filepath.Join(root, application.BackupRootMarker), []byte("test-volume\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
