@@ -7,11 +7,14 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/oujinhaoai/lantai/internal/application"
 	"github.com/oujinhaoai/lantai/internal/backupmgmt"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
@@ -171,6 +174,281 @@ func awaitBackup(t *testing.T, browser backupBrowser, id ids.ID) backupmgmt.Job 
 			t.Fatalf("backup completion deadline: %+v", job)
 		}
 		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// A 100 Continue response is sent only when the real application handler reads
+// the body: authentication and business admission have already succeeded. Keep
+// that body open to make draining deterministic, without replacing the copier,
+// manipulating its journal or acquiring a second instance lock.
+func holdBackupBusinessRequest(t *testing.T, browser backupBrowser) func() {
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	ready := make(chan struct{})
+	ctx = httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{Got100Continue: func() { close(ready) }})
+	reader, writer := io.Pipe()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, browser.base+"/api/v1/projects", reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Expect", "100-continue")
+	req.Header.Set("Origin", backupTestOrigin)
+	req.Header.Set(httpauth.CSRFHeader, browser.csrf)
+	req.Header.Set("Idempotency-Key", "held-business-request")
+	req.AddCookie(browser.cookie)
+	req.ContentLength = 2
+	done := make(chan error, 1)
+	go func() {
+		resp, err := http.DefaultClient.Do(req)
+		if err == nil {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+		}
+		done <- err
+	}()
+	released := false
+	release := func() {
+		t.Helper()
+		if released {
+			return
+		}
+		released = true
+		cancel()
+		_ = writer.CloseWithError(context.Canceled)
+		_ = reader.Close()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Error("held HTTP request did not exit after cancellation")
+		}
+	}
+	t.Cleanup(release)
+	select {
+	case <-ready:
+	case err := <-done:
+		t.Fatalf("business request exited before admitting its body: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("application did not admit held business request")
+	}
+	return release
+}
+
+func TestBackupManagementHTTPCancelResumeVerifiedRestore(t *testing.T) {
+	ctx := t.Context()
+	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleViewer, true)
+	principal, agentSession := e.agent("resume-backup@synthetic", identity.RoleContributor)
+	principal, err := e.id.GetPrincipal(ctx, e.login().Context, principal.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	credential := e.sudo(&identity.IssueCredential{PrincipalID: principal.ID, ExpectedRevision: principal.Revision, Scopes: []identity.Scope{identity.ScopeRead}})
+	content := bytes.Repeat([]byte("synthetic cancelled then resumed HTTP backup\n"), 1024)
+	version := e.ingest(agentSession.Context, "backup-resume/source", content, *rightsOwned())
+	oldGrant, err := e.storage.IssueReadGrant(ctx, storage.ReadRequest{Who: agentSession.Context, AssetID: version.AssetID, VersionID: version.VersionID, Path: "content.txt", Purpose: "archive_review"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := reopenApplication(t, e, storage.Config{MinFreeBytes: 1 << 20})
+	oldKey, err := masterkey.Load(a.Instance.Config().SecretsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	const rootID = "synthetic-http-resume-volume"
+	if err := os.Chmod(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, application.BackupRootMarker), []byte(rootID+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	a.ConfigureBackups(ctx, root, rootID)
+	servers := backupHTTPServers(t, a)
+	admin := backupLogin(t, e, "http://"+servers.Addresses.API, []identity.Scope{identity.ScopeAdmin, identity.ScopeRead})
+	start := identity.ApproveBackup{Kind: "start", DrainSeconds: 15, TimeoutSeconds: 60}
+	grant := backupApproval(t, e, admin, string(identity.ActBackupStart), start)
+	release := holdBackupBusinessRequest(t, admin)
+	var initial backupmgmt.Job
+	admin.must(http.MethodPost, "admin/backups", "cancel-before-capture", map[string]any{"grant_id": grant, "drain_seconds": 15, "timeout_seconds": 60}, &initial, http.StatusAccepted)
+	var draining backupmgmt.Job
+	admin.must(http.MethodGet, "admin/backups/"+string(initial.ID), "", nil, &draining, http.StatusOK)
+	if draining.State != "draining" || draining.CaptureStarted || a.Readiness().Ready {
+		t.Fatalf("in-flight request was not held by real HTTP admission: %+v", draining)
+	}
+	admin.must(http.MethodGet, "projects", "", nil, nil, http.StatusServiceUnavailable)
+	var cancelling backupmgmt.Job
+	admin.must(http.MethodPost, "admin/backups/"+string(initial.ID)+"/cancel", "", map[string]any{}, &cancelling, http.StatusAccepted)
+	if cancelling.ID != initial.ID || (cancelling.State != "cancelling" && cancelling.State != "cancelled") {
+		t.Fatalf("cancel acknowledged another task or invalid state: %+v", cancelling)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	var cancelled backupmgmt.Job
+	for {
+		admin.must(http.MethodGet, "admin/backups/"+string(initial.ID), "", nil, &cancelled, http.StatusOK)
+		if cancelled.State == "cancelled" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("cancel did not reach terminal state: %+v", cancelled)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	if cancelled.CaptureStarted || cancelled.Attempt != 1 || !a.Readiness().Ready {
+		t.Fatalf("cancelled drain changed capture identity or failed to restore admission: %+v", cancelled)
+	}
+	release()
+
+	resumePath := "admin/backups/" + string(initial.ID) + "/resume"
+	admin.must(http.MethodPost, resumePath, "resume-without-proof", map[string]any{}, nil, http.StatusForbidden)
+	resume := identity.ApproveBackup{Kind: "resume", JobID: initial.ID, DrainSeconds: 15, TimeoutSeconds: 60}
+	resumeGrant := backupApproval(t, e, admin, string(identity.ActBackupResume), resume)
+	if resumeGrant == grant {
+		t.Fatal("resume did not obtain a new bound HumanGrant")
+	}
+	body := map[string]any{"grant_id": resumeGrant, "drain_seconds": 15, "timeout_seconds": 60}
+	var resumed backupmgmt.Job
+	admin.must(http.MethodPost, resumePath, "resume-cancelled-backup", body, &resumed, http.StatusAccepted)
+	if resumed.ID != initial.ID || resumed.Attempt != 2 || !resumed.CreatedAt.Equal(initial.CreatedAt) {
+		t.Fatalf("resume replaced the persisted job identity: before=%+v after=%+v", initial, resumed)
+	}
+	complete := awaitBackup(t, admin, resumed.ID)
+	var replay backupmgmt.Job
+	admin.must(http.MethodPost, resumePath, "resume-cancelled-backup", body, &replay, http.StatusAccepted)
+	if replay.ID != complete.ID || replay.Attempt != 2 || replay.State != "complete" {
+		t.Fatalf("resume retry repeated work: %+v", replay)
+	}
+	var history struct {
+		Items []backupmgmt.Job `json:"items"`
+	}
+	admin.must(http.MethodGet, "admin/backups/history", "", nil, &history, http.StatusOK)
+	if len(history.Items) != 1 || history.Items[0].ID != complete.ID || !a.Readiness().Ready {
+		t.Fatalf("resumed history or readiness: %+v", history)
+	}
+	archive := filepath.Join(root, string(complete.ID))
+	manifest, err := operations.VerifyBackup(ctx, archive)
+	if err != nil || manifest.BackupID != complete.BackupID || manifest.State != "complete" {
+		t.Fatalf("resumed backup independent verification: %+v %v", manifest, err)
+	}
+	t.Log("real HTTP draining cancellation -> terminal cancelled -> new bound HumanGrant -> same job attempt 2 -> verified complete; same-key resume replay did not repeat work")
+	if err := servers.Shutdown(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, content)
+}
+
+func TestBackupManagementNotProjectedByRuntimeMCP(t *testing.T) {
+	bin := buildConsistencyCLI(t)
+	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	_, machine := e.agent("backup-mcp@synthetic", "")
+	admin := e.login()
+	a := reopenApplication(t, e)
+	// Even when the real core advertises backup_management, it must not become
+	// an MCP tool, prompt or resource for either an Agent or an admin session.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	const rootID = "synthetic-mcp-unprojected-volume"
+	if err := os.WriteFile(filepath.Join(root, application.BackupRootMarker), []byte(rootID+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	backups := a.ConfigureBackups(t.Context(), root, rootID)
+	overview, err := backups.Overview()
+	if err != nil || !overview.Availability.Available {
+		t.Fatalf("MCP test requires usable backup storage: %+v %v", overview, err)
+	}
+	servers := remoteServers(t, a, true)
+	origin := "http://" + servers.Addresses.API
+	meta := backupBrowser{t: t, base: origin}
+	status, raw, _ := meta.request(http.MethodGet, "meta", "", nil)
+	if status != http.StatusOK || !bytes.Contains(raw, []byte(`"backup_management"`)) {
+		t.Fatalf("MCP test core did not advertise backup capability: HTTP %d", status)
+	}
+	for _, session := range []struct {
+		name      string
+		token     string
+		principal ids.ID
+		session   ids.ID
+	}{{"agent", machine.Token, machine.Context.PrincipalID, machine.Context.SessionID}, {"administrator", admin.Token, admin.Context.PrincipalID, admin.Context.SessionID}} {
+		t.Run(session.name, func(t *testing.T) {
+			h := newConsistencyClient(t, bin, origin, session.token)
+			check := func(label string, value any) {
+				t.Helper()
+				raw, err := json.Marshal(value)
+				if err != nil {
+					t.Fatal(err)
+				}
+				lower := strings.ToLower(string(raw))
+				for _, forbidden := range []string{"backup", "admin/backups", "identity/challenges", "grant_id"} {
+					if strings.Contains(lower, forbidden) {
+						t.Fatalf("runtime MCP %s projected a privileged backup surface: %s", label, forbidden)
+					}
+				}
+			}
+			var names []string
+			for tool, err := range h.mcp.Tools(t.Context(), nil) {
+				if err != nil {
+					t.Fatal("runtime tools/list", err)
+				}
+				check("tools/list", tool)
+				names = append(names, tool.Name)
+			}
+			if len(names) == 0 {
+				t.Fatal("runtime MCP did not expose its ordinary tools")
+			}
+			for resource, err := range h.mcp.Resources(t.Context(), nil) {
+				if err != nil {
+					t.Fatal("runtime resources/list", err)
+				}
+				check("resources/list", resource)
+			}
+			for prompt, err := range h.mcp.Prompts(t.Context(), nil) {
+				if err != nil {
+					t.Fatal("runtime prompts/list", err)
+				}
+				check("prompts/list", prompt)
+			}
+			who, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: "whoami"})
+			if err != nil || who.IsError || who.StructuredContent == nil {
+				t.Fatalf("actual MCP authentication failed: %+v %v", who, err)
+			}
+			var identity struct {
+				Principal struct {
+					ID ids.ID `json:"principal_id"`
+				} `json:"principal"`
+				Session struct {
+					ID ids.ID `json:"session_id"`
+				} `json:"session"`
+			}
+			identityRaw, err := json.Marshal(who.StructuredContent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal(identityRaw, &identity); err != nil || identity.Principal.ID != session.principal || identity.Session.ID != session.session {
+				t.Fatalf("MCP lost the actual principal/session binding: %+v %v", identity, err)
+			}
+			for _, name := range []string{"backup_start", "backup_resume", "backup_cancel", "backup_schedule"} {
+				out, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: map[string]any{}})
+				if err == nil && out != nil && !out.IsError {
+					t.Fatalf("unlisted privileged MCP tool executed: %s", name)
+				}
+			}
+			history, err := backups.History()
+			if err != nil || len(history) != 0 {
+				t.Fatalf("rejected MCP calls created backup work: %+v %v", history, err)
+			}
+			t.Logf("actual stdio MCP negotiated %s; enumerated %d ordinary tools and no backup/approval tools, resources or prompts; privileged tool probes refused; tools=%v", h.mcp.InitializeResult().ProtocolVersion, len(names), names)
+		})
 	}
 }
 

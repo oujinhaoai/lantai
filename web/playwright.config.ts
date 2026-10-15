@@ -27,7 +27,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "cd .. && LANTAI_WEB_FIXTURE=1 go test -run ^TestWebBrowserFixture$ -count=1 -timeout=15m ./tests/integration",
+      "cd .. && LANTAI_WEB_FIXTURE=1 go test -tags=lantai_test_hooks -run ^TestWebBrowserFixture$ -count=1 -timeout=15m ./tests/integration",
     url: "https://localhost:4180/ready",
     ignoreHTTPSErrors: true,
     reuseExistingServer: process.env.LANTAI_WEB_REUSE === "1",

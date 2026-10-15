@@ -130,13 +130,16 @@ export const isSessionError = (e: unknown) =>
 export async function api<T>(
   path: string,
   options: RequestInit = {},
+  csrfOverride?: string | null,
 ): Promise<T> {
   // Only the fixed same-origin API can receive this tab's cookies/CSRF value.
   if (!path.startsWith("/api/v1/")) throw new Error("Invalid API path");
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
   if (options.method && !["GET", "HEAD"].includes(options.method)) {
-    if (csrf) headers.set("X-CSRF-Token", csrf.value);
+    const value = csrfOverride === undefined ? csrf?.value : csrfOverride;
+    if (value) headers.set("X-CSRF-Token", value);
+    else headers.delete("X-CSRF-Token");
   }
   let response: Response;
   try {
@@ -207,6 +210,7 @@ export function message(e: unknown) {
     SCHEMA_INVALID: "输入格式不正确，请检查时间、时区和其他设置。",
     BACKUP_TIMEOUT_INVALID: "排空等待上限不能大于整个任务超时。",
     MAINTENANCE: "备份维护中，业务操作暂时暂停。备份管理仍可查看和取消。",
+    MAINTENANCE_MODE: "当前无法执行此操作，请检查维护状态后重试。",
   };
   return messages[code] || "请求未完成，请检查输入或稍后重试。";
 }

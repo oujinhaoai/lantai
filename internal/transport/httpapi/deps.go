@@ -73,6 +73,7 @@ type OperationReader interface {
 }
 
 type Deps struct {
+	BackupScope    identity.BackupControlScopeReader
 	Backups        backupmgmt.Service
 	Milestones     *identity.Service
 	Rights         *provenance.Service

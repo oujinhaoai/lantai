@@ -3,6 +3,7 @@ import {
   expect,
   type Page,
   type APIRequestContext,
+  type BrowserContext,
   type TestInfo,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -198,14 +199,14 @@ test("real maintenance drains work and keeps cancellation available without a ch
     await page.getByRole("button", { name: "立即备份" }).click();
     await approve(page, request);
     await expect(page.getByRole("button", { name: "立即备份" })).toBeDisabled();
-    await expect(page.locator('.backup-current [role="status"]')).toHaveText(
+    await expect(page.locator(".backup-current .backup-state")).toHaveText(
       "等待在途操作完成",
     );
     await expect(page.getByRole("progressbar")).toHaveCount(0);
     expect((await context.request.get("/api/v1/whoami")).status()).toBe(200);
     expect((await context.request.get("/api/v1/projects")).status()).toBe(503);
     await page.reload();
-    await expect(page.locator('.backup-current [role="status"]')).toHaveText(
+    await expect(page.locator(".backup-current .backup-state")).toHaveText(
       "等待在途操作完成",
     );
     let challenges = 0;
@@ -401,7 +402,9 @@ test("pending backup reads abort on navigation without populating another page",
     predicate: (r) => r.url().endsWith("/api/v1/admin/backups"),
   });
   await openBackups(page);
-  await expect(page.getByRole("status")).toHaveText("正在读取备份状态…");
+  await expect(
+    page.getByText("正在读取备份状态…", { exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("navigation")
     .getByRole("link", { name: "首页", exact: true })
@@ -459,4 +462,333 @@ test("active directory status is a prior check and schedule authorization failur
   await page.getByText("最近 20 条计划执行记录", { exact: true }).click();
   await expect(page.getByText(/暂时无法核验计划授权/)).toBeVisible();
   await noOverflow(page);
+});
+
+test("BM-UI-03: every configured directory and disk failure stays actionable without a false success", async ({
+  page,
+  request,
+}) => {
+  await login(page, request);
+  let directoryError = "not_configured";
+  let jobError = "";
+  await page.route("**/api/v1/admin/backups**", async (route) => {
+    const value = {
+      ...dashboard(null),
+      availability: {
+        configured: directoryError !== "not_configured",
+        available: !directoryError,
+        error: directoryError,
+      },
+    };
+    await route.fulfill({
+      json: route.request().url().endsWith("/history")
+        ? {
+            items: jobError
+              ? [{ ...runningJob, state: "failed", error: jobError }]
+              : [],
+          }
+        : value,
+    });
+  });
+  await openBackups(page);
+  const directory = page.getByRole("region", { name: "备份目录", exact: true });
+  for (const [code, text] of [
+    ["not_configured", "尚未配置备份目录"],
+    ["invalid_root_identity", "目录或标识格式无效"],
+    ["root_identity_invalid", "标识不符或无法读取"],
+    ["root_overlaps_data", "数据或密钥目录重叠"],
+    ["root_replaced", "被替换或重新挂载"],
+    ["root_unavailable", "无法访问备份目录"],
+    ["root_permissions_unsafe", "权限不符合要求"],
+    ["insufficient_space", "备份空间不足"],
+    ["journal_invalid", "备份任务记录异常"],
+  ]) {
+    directoryError = code;
+    await page.getByRole("button", { name: "刷新状态" }).click();
+    await expect(directory).toContainText(text);
+    await expect(page.getByRole("button", { name: "立即备份" })).toBeDisabled();
+    await expect(page.getByText("尚无成功备份", { exact: true })).toBeVisible();
+  }
+  directoryError = "";
+  for (const [code, text] of [
+    ["timeout", "任务超时"],
+    ["backup_failed", "备份或验证失败"],
+    ["journal_write_failed", "任务记录写入失败"],
+    ["process_interrupted", "core 在任务完成前停止"],
+    ["capacity_check_failed", "备份空间检查失败"],
+    ["unsafe_backup_target", "任务目录不符合安全约束"],
+    ["resume_point_invalid", "原备份检查点不可用"],
+    ["destination_permission_denied", "备份目标拒绝写入"],
+  ]) {
+    jobError = code;
+    await page.getByRole("button", { name: "刷新状态" }).click();
+    await expect(page.locator(".backup-history")).toContainText(text);
+    await expect(
+      page.getByRole("button", { name: "续传此任务" }),
+    ).toBeEnabled();
+    await expect(page.getByText("尚无成功备份", { exact: true })).toBeVisible();
+  }
+  await noOverflow(page);
+});
+
+test("BM-UI-05: keyboard confirmation, cancellation, resume and persistent live announcements", async ({
+  page,
+  request,
+  context,
+}) => {
+  await login(page, request);
+  const navigation = page
+    .getByRole("navigation")
+    .getByRole("link", { name: "备份管理" });
+  await navigation.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "备份管理", exact: true }),
+  ).toBeFocused();
+  const progress = page.getByRole("status", { name: "备份进度", exact: true });
+  await expect(progress).toHaveAttribute("aria-live", "polite");
+  await expect(progress).toHaveAttribute("aria-atomic", "true");
+  const start = page.getByRole("button", { name: "立即备份" });
+  await expect(start).toBeEnabled();
+  await start.focus();
+  await page.keyboard.press("Enter");
+  const codeInput = page.getByLabel("确认操作的验证器动态码");
+  await expect(codeInput).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("button", { name: "验证并执行" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(codeInput).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(start).toBeFocused();
+  await control(request, "backup-hold");
+  let releaseVerification!: () => void;
+  let holdFirstVerification = true;
+  const verificationGate = new Promise<void>((resolve) => {
+    releaseVerification = resolve;
+  });
+  await page.route("**/api/v1/identity/challenges/*/verify", async (route) => {
+    if (holdFirstVerification) {
+      holdFirstVerification = false;
+      await verificationGate;
+    }
+    await route.continue();
+  });
+  try {
+    await page.keyboard.press("Enter");
+    await codeInput.fill((await control(request, "code")).code);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("dialog")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    releaseVerification();
+    await expect(
+      page.getByRole("heading", { name: "当前任务", exact: true }),
+    ).toBeFocused();
+    await expect(progress).toContainText("等待在途操作完成");
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "取消当前任务" }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(progress).toContainText("已取消");
+    await expect(
+      page.getByRole("status", { name: "备份操作结果", exact: true }),
+    ).toContainText("取消请求已受理");
+  } finally {
+    releaseVerification();
+    await control(request, "backup-release");
+    await expect
+      .poll(
+        async () =>
+          (await (await context.request.get("/api/v1/admin/backups")).json())
+            .current,
+        { timeout: 60000 },
+      )
+      .toBeNull();
+  }
+  const resume = page.getByRole("button", { name: "续传此任务" }).first();
+  await resume.focus();
+  await page.keyboard.press("Enter");
+  await expect(codeInput).toBeFocused();
+  await codeInput.fill((await control(request, "code")).code);
+  await page.keyboard.press("Enter");
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/v1/admin/backups/history")
+          ).json()
+        ).items[0].state,
+      { timeout: 60000 },
+    )
+    .toBe("complete");
+  await page.getByRole("button", { name: "刷新状态" }).click();
+  await expect(progress).toContainText("已完成并验证");
+  const toggle = page.getByLabel("开启每日备份");
+  await toggle.focus();
+  await page.keyboard.press("Space");
+  await expect(toggle).toBeChecked();
+  const save = page.getByRole("button", { name: "验证并保存计划" });
+  await save.focus();
+  await page.keyboard.press("Enter");
+  await expect(codeInput).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(save).toBeFocused();
+  await noOverflow(page);
+});
+
+async function expiredControlFlow(
+  page: Page,
+  request: APIRequestContext,
+  context: BrowserContext,
+  info: TestInfo,
+  phase: "copying" | "draining",
+) {
+  await login(page, request);
+  await openBackups(page);
+  await control(
+    request,
+    phase === "copying" ? "backup-copy-hold" : "backup-hold",
+  );
+  try {
+    await page.getByRole("button", { name: "立即备份" }).click();
+    await approve(page, request);
+    if (phase === "copying") {
+      await expect
+        .poll(
+          async () => (await control(request, "backup-copy-status")).holding,
+          { timeout: 60000 },
+        )
+        .toBe(true);
+    } else {
+      await expect(page.locator(".backup-current .backup-state")).toHaveText(
+        "等待在途操作完成",
+      );
+    }
+    const job = (
+      await (await context.request.get("/api/v1/admin/backups")).json()
+    ).current;
+    expect(job.state).toBe(phase === "copying" ? "backing_up" : "draining");
+    await control(request, "expire");
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "登录兰台", exact: true }),
+    ).toBeVisible();
+    expect((await context.request.get("/api/v1/whoami")).status()).toBe(401);
+    await page
+      .getByRole("link", { name: "备份期间重新验证管理员身份" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "备份维护身份验证", exact: true }),
+    ).toBeVisible();
+    const credentials = await control(request, "login");
+    await page
+      .getByLabel("维护管理账户", { exact: true })
+      .fill(credentials.name);
+    await page
+      .getByLabel("维护管理口令", { exact: true })
+      .fill(credentials.password);
+    await page
+      .getByLabel("维护验证器动态码", { exact: true })
+      .fill(credentials.code);
+    const issuing = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/v1/admin/backups/control-session") &&
+        r.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "验证并查看当前备份" }).click();
+    const response = await issuing;
+    expect(response.status()).toBe(201);
+    expect(response.request().headers()["x-csrf-token"]).toBeUndefined();
+    const restricted = await response.json();
+    expect(restricted.scope).toEqual({ job_id: job.id, attempt: job.attempt });
+    expect(restricted.capabilities.sort()).toEqual([
+      "backup.cancel",
+      "backup.read",
+    ]);
+    const cookie = (await context.cookies()).find(
+      (c) => c.name === "lantai_backup_control",
+    );
+    expect(cookie).toMatchObject({
+      secure: true,
+      httpOnly: true,
+      sameSite: "Strict",
+      path: "/api/v1/admin/backups",
+    });
+    await expect(
+      page.getByRole("heading", { name: "备份维护管理", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "立即备份" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "续传此任务" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("button", { name: "验证并保存计划" }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("navigation")).toHaveCount(0);
+    const stored = await page.evaluate(() =>
+      JSON.stringify({ ...sessionStorage, ...localStorage }),
+    );
+    expect(stored).not.toContain(restricted.csrf_token);
+    expect(stored).not.toContain(credentials.password);
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "备份维护管理", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".backup-current .backup-state")).toHaveText(
+      phase === "copying" ? "正在复制与验证" : "等待在途操作完成",
+    );
+    await shot(page, info, `maintenance-${phase}`);
+    const cancelling = page.waitForResponse((r) =>
+      r.url().endsWith(`/${job.id}/cancel`),
+    );
+    await page.getByRole("button", { name: "取消当前任务" }).click();
+    expect((await cancelling).status()).toBe(202);
+    if (phase === "copying") {
+      await expect(page.locator(".backup-current .backup-state")).toHaveText(
+        "正在安全取消",
+      );
+      expect((await control(request, "backup-copy-status")).holding).toBe(true);
+    }
+    expect((await context.request.get("/api/v1/whoami")).status()).toBe(401);
+  } finally {
+    await control(
+      request,
+      phase === "copying" ? "backup-copy-release" : "backup-release",
+    );
+  }
+  await expect(
+    page.getByRole("heading", { name: "备份维护身份验证", exact: true }),
+  ).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/任务已结束或授权已失效/)).toBeVisible();
+  await page.getByRole("button", { name: "返回普通登录" }).click();
+  await expect(
+    page.getByRole("heading", { name: "登录兰台", exact: true }),
+  ).toBeVisible();
+  expect((await context.request.get("/api/v1/whoami")).status()).toBe(401);
+  await noOverflow(page);
+  await login(page, request);
+  expect((await context.request.get("/api/v1/admin/backups")).status()).toBe(
+    200,
+  );
+}
+
+test("F1: expired ordinary session reauthenticates only for read and cancel during real copying", async ({
+  page,
+  request,
+  context,
+}, info) => {
+  await expiredControlFlow(page, request, context, info, "copying");
+});
+
+test("F1: expired ordinary session reauthenticates while draining without releasing the held work", async ({
+  page,
+  request,
+  context,
+}, info) => {
+  await expiredControlFlow(page, request, context, info, "draining");
 });

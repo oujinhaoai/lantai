@@ -17,7 +17,9 @@ import (
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/backupmgmt"
+	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/contract/ownership"
 	"github.com/oujinhaoai/lantai/internal/identity"
@@ -318,5 +320,261 @@ func TestBackupHTTPMaintenanceKeepsLiveAuthAndCancelWithoutIdentityWrites(t *tes
 	}
 	if s, r := backupHTTP(t, base, "GET", path, admin, false, nil); s != 401 || !strings.Contains(string(r), "TOKEN_REVOKED") {
 		t.Fatalf("revoked=%d %s", s, r)
+	}
+}
+
+func TestBackupHTTPExpiredAdminCanReauthenticateOnlyForCurrentControl(t *testing.T) {
+	a, clk, secret := openBackupHTTPApp(t)
+	root, e := filepath.EvalSymlinks(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = os.Chmod(root, 0700); e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(filepath.Join(root, BackupRootMarker), []byte("control-auth-test\n"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	b, e := a.EnableBackups(t.Context(), root, "control-auth-test")
+	if e != nil {
+		t.Fatal(e)
+	}
+	old, e := a.Identity.Login(t.Context(), identity.LoginRequest{Name: "ada", Password: "correct horse battery staple", Code: totptest.Fresh(t, clk, secret), Channel: identity.ChannelBrowser, Scopes: []identity.Scope{identity.ScopeSelf, identity.ScopeRead, identity.ScopeAdmin}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	cfg := a.Instance.Config()
+	cfg.Listen.API = "127.0.0.1:0"
+	cfg.Listen.Operations = "127.0.0.1:0"
+	cfg.Listen.Merged = true
+	cfg.HTTP.AllowedOrigins = []string{"https://lantai.test"}
+	server, e := a.StartHTTP(t.Context(), cfg, WithAccessLog(io.Discard))
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() {
+		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = server.Shutdown(c)
+	})
+	base := "http://" + server.Addresses.API
+	entered, finish := make(chan struct{}), make(chan struct{})
+	b.run = func(ctx context.Context, _ operations.BackupOptions) (operations.BackupManifest, error) {
+		close(entered)
+		<-finish
+		return operations.BackupManifest{}, ctx.Err()
+	}
+	defer func() {
+		select {
+		case <-finish:
+		default:
+			close(finish)
+		}
+	}()
+	job, e := b.Start(BackupRequest{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	<-entered
+	for _, db := range []ownership.Database{ownership.Main, ownership.Runtime} {
+		a.Instance.DB(db).SetMaxOpenConns(1)
+		if _, e = a.Instance.DB(db).ExecContext(t.Context(), "PRAGMA query_only=ON"); e != nil {
+			t.Fatal(e)
+		}
+	}
+	defer func() {
+		for _, db := range []ownership.Database{ownership.Main, ownership.Runtime} {
+			_, _ = a.Instance.DB(db).ExecContext(context.Background(), "PRAGMA query_only=OFF")
+		}
+	}()
+	clk.Advance(13 * time.Hour)
+	if status, _ := backupHTTP(t, base, "GET", "/api/v1/admin/backups", old, false, nil); status != 401 {
+		t.Fatal("old session did not expire", status)
+	}
+	call := func(method, path, token, csrf string, body any, origin bool) (int, []byte, []*http.Cookie) {
+		t.Helper()
+		var buf bytes.Buffer
+		if body != nil {
+			if e := json.NewEncoder(&buf).Encode(body); e != nil {
+				t.Fatal(e)
+			}
+		}
+		req, e := http.NewRequestWithContext(t.Context(), method, base+path, &buf)
+		if e != nil {
+			t.Fatal(e)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(&http.Cookie{Name: httpauth.CookieName, Value: old.Token})
+		if token != "" {
+			req.AddCookie(&http.Cookie{Name: "lantai_backup_control", Value: token})
+		}
+		if origin {
+			req.Header.Set("Origin", "https://lantai.test")
+		}
+		if csrf != "" {
+			req.Header.Set(httpauth.CSRFHeader, csrf)
+		}
+		res, e := http.DefaultClient.Do(req)
+		if e != nil {
+			t.Fatal(e)
+		}
+		defer res.Body.Close()
+		raw, e := io.ReadAll(res.Body)
+		if e != nil {
+			t.Fatal(e)
+		}
+		return res.StatusCode, raw, res.Cookies()
+	}
+	route := "/api/v1/admin/backups/control-session"
+	body := map[string]any{"name": "ada", "password": "correct horse battery staple", "code": totptest.Fresh(t, clk, secret)}
+	if status, _, _ := call("POST", route, "", "", body, false); status != 403 {
+		t.Fatal("missing origin accepted", status)
+	}
+	status, raw, cookies := call("POST", route, "", "", body, true)
+	if status != 201 {
+		t.Fatalf("control login %d %s", status, raw)
+	}
+	var session identity.BackupControlSession
+	if e = json.Unmarshal(raw, &session); e != nil {
+		t.Fatal(e)
+	}
+	if len(cookies) != 1 || cookies[0].Path != "/api/v1/admin/backups" || !cookies[0].Secure || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteStrictMode {
+		t.Fatalf("unsafe cookie %+v", cookies)
+	}
+	token := cookies[0].Value
+	for _, path := range []string{route, "/api/v1/admin/backups", "/api/v1/admin/backups/history", "/api/v1/admin/backups/schedule", "/api/v1/admin/backups/" + string(job.ID)} {
+		if status, r, _ := call("GET", path, token, "", nil, false); status != 200 {
+			t.Fatalf("control read %s %d %s", path, status, r)
+		}
+	}
+	if status, _, _ := call("GET", "/api/v1/whoami", token, "", nil, false); status != 401 {
+		t.Fatal("control token became regular session", status)
+	}
+	if status, _, _ := call("POST", "/api/v1/admin/backups", token, session.CSRFToken, map[string]any{}, true); status != 503 {
+		t.Fatal("control token started backup", status)
+	}
+	cancelPath := "/api/v1/admin/backups/" + string(job.ID) + "/cancel"
+	if status, _, _ := call("POST", "/api/v1/admin/backups/"+string(ids.New())+"/cancel", token, session.CSRFToken, map[string]any{}, true); status != 403 {
+		t.Fatal("control session cancelled another job", status)
+	}
+
+	if status, _, _ := call("POST", cancelPath, token, "wrong", map[string]any{}, true); status != 403 {
+		t.Fatal("invalid csrf accepted", status)
+	}
+	if status, _, _ := call("DELETE", route, token, session.CSRFToken, nil, true); status != 204 {
+		t.Fatal("control logout", status)
+	}
+	if status, _, _ := call("GET", route, token, "", nil, false); status != 401 {
+		t.Fatal("logged out control accepted", status)
+	}
+	body["code"] = totptest.Fresh(t, clk, secret)
+	status, raw, cookies = call("POST", route, "", "", body, true)
+	if status != 201 {
+		t.Fatalf("second login %d %s", status, raw)
+	}
+	_ = json.Unmarshal(raw, &session)
+	token = cookies[0].Value
+	clk.Advance(11 * time.Minute)
+	if status, _, _ := call("GET", route, token, "", nil, false); status != 401 {
+		t.Fatal("control token failed expiry", status)
+	}
+	body["code"] = totptest.Fresh(t, clk, secret)
+	status, raw, cookies = call("POST", route, "", "", body, true)
+	if status != 201 {
+		t.Fatalf("third login %d %s", status, raw)
+	}
+	_ = json.Unmarshal(raw, &session)
+	token = cookies[0].Value
+	if status, r, _ := call("POST", cancelPath, token, session.CSRFToken, map[string]any{}, true); status != 202 {
+		t.Fatalf("fresh control cancellation %d %s", status, r)
+	}
+	if a.Readiness().Ready {
+		t.Fatal("cancel released active copier")
+	}
+	close(finish)
+	waitBackup(t, b, string(job.ID))
+	if status, _, _ := call("GET", route, token, "", nil, false); status != 401 {
+		t.Fatal("terminal backup did not revoke control", status)
+	}
+	for _, db := range []ownership.Database{ownership.Main, ownership.Runtime} {
+		_, _ = a.Instance.DB(db).ExecContext(t.Context(), "PRAGMA query_only=OFF")
+	}
+	_, e = a.Identity.Login(t.Context(), identity.LoginRequest{Name: "ada", Password: "correct horse battery staple", Code: body["code"].(string), Channel: identity.ChannelBrowser})
+	if errcode.CodeOf(e) != errcode.TOTPReplay {
+		t.Fatal("maintenance code reused in ordinary login", e)
+	}
+	normalBody := map[string]any{"name": "ada", "password": "correct horse battery staple", "code": totptest.Fresh(t, clk, secret), "channel": "browser", "scopes": []string{"self", "read", "admin"}}
+	status, raw, cookies = call("POST", "/api/v1/sessions/login", "", "", normalBody, true)
+	if status != 201 {
+		t.Fatalf("ordinary re-login %d %s", status, raw)
+	}
+	cleared := false
+	for _, c := range cookies {
+		if c.Name == "lantai_backup_control" && c.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Fatal("ordinary login did not clear obsolete control cookie")
+	}
+
+}
+
+func TestBackupHTTPControlLoginSupportsCancellingBeforeBarrier(t *testing.T) {
+	a, clk, secret := openBackupHTTPApp(t)
+	b := testBackupControl(t, a)
+	cfg := a.Instance.Config()
+	cfg.Listen = operations.ListenConfig{API: "127.0.0.1:0", Operations: "127.0.0.1:0", Merged: true}
+	cfg.HTTP.AllowedOrigins = []string{"https://lantai.test"}
+	server, e := a.StartHTTP(t.Context(), cfg, WithAccessLog(io.Discard))
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
+	_, held, e := a.Instance.Gate().Acquire(t.Context(), commands.Request{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer held.Release()
+	job, e := b.Start(BackupRequest{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		open, reason := a.Instance.Gate().State()
+		if !open && reason == "backup" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("never began draining instance barrier")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	// Model cancellation delivery delayed by the scheduler while retaining the
+	// real Cancel state transition and the real in-flight shared barrier holder.
+	b.mu.Lock()
+	originalCancel := b.cancel
+	b.cancel = func() {}
+	b.mu.Unlock()
+	if _, e = b.Cancel(job.ID); e != nil {
+		t.Fatal(e)
+	}
+	defer func() { b.mu.Lock(); b.cancel = originalCancel; b.mu.Unlock(); originalCancel() }()
+	status, raw := backupHTTP(t, "http://"+server.Addresses.API, "POST", "/api/v1/admin/backups/control-session", identity.IssuedSession{CSRFToken: "unused"}, true, map[string]any{"name": "ada", "password": "correct horse battery staple", "code": totptest.Fresh(t, clk, secret)})
+	if status != 201 {
+		t.Fatalf("cancelling drain reauthentication unavailable: %d %s", status, raw)
+	}
+	if scope, ok := a.BackupControlScope(); !ok || scope.JobID != job.ID {
+		t.Fatalf("missing active drain scope: %+v", scope)
+	}
+	if a.Readiness().Ready {
+		t.Fatal("reauthentication opened business admission")
+	}
+	if _, e = b.Cancel(job.ID); e != nil {
+		t.Fatal(e)
+	}
+	if a.Readiness().Ready {
+		t.Fatal("cancellation opened business before in-flight writer exited")
 	}
 }

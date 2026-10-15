@@ -182,3 +182,5 @@ go test -count=1 -run '^TestAuditWindowsOccupiedManifestRecovery$' ./internal/ev
 ```
 
 反例持有无删除共享句柄，核对释放后替换、持续失败时旧文件/水位保留、临时文件清理与同事实重试恢复。重试不改变仅创建一次文件的排他语义。
+
+网页真实复制与会话过期测试使用 `lantai_test_hooks` 构建标签。该标签只给测试夹具安装真实 manifest copying 阶段的 latch；普通发行构建不包含此方法或任何外部故障注入入口。Playwright 的临时后端由测试配置自动使用此标签。

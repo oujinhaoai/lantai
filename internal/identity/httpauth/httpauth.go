@@ -140,6 +140,10 @@ func (g *Guard) Authenticate(r *http.Request) (Caller, error) {
 	}
 }
 
+// CheckBrowserOrigin exposes the existing exact-origin/Fetch-Site check for a
+// separate, restricted browser authentication endpoint. It grants no identity.
+func (g *Guard) CheckBrowserOrigin(r *http.Request) error { return g.checkOrigin(r) }
+
 // checkOrigin 要求携带 Cookie 的写请求来自允许列表中的精确来源。
 func (g *Guard) checkOrigin(r *http.Request) error {
 	origin := r.Header.Get("Origin")

@@ -476,7 +476,7 @@ func (b *BackupControl) saveManagementLocked() error {
 	if err = os.MkdirAll(filepath.Dir(b.managementFile()), 0700); err != nil {
 		return err
 	}
-	return fsutil.WriteFileAtomic(b.managementFile(), raw, 0600)
+	return b.writeControlRecord(b.managementFile(), raw)
 }
 func normalizeSchedule(s backupmgmt.Schedule) (backupmgmt.Schedule, error) {
 	if s.Timezone == "" || s.Timezone == "Local" || strings.Contains(s.Timezone, "..") {
@@ -759,6 +759,7 @@ func (b *BackupControl) runScheduleLocked(now time.Time, restarting bool) {
 				event.State, event.Error = "unavailable", "backup_start_failed"
 			} else {
 				event.State, event.JobID = "started", j.ID
+				b.reachTestBoundary("schedule.job_recorded", j)
 			}
 		}
 		b.management.Events = append(b.management.Events, event)
@@ -767,8 +768,11 @@ func (b *BackupControl) runScheduleLocked(now time.Time, restarting bool) {
 	// slot is recorded once, and next_run_at is strictly in the future.
 	at, _, _ := b.nextOccurrenceLocked(s, now)
 	b.management.Schedule.NextRunAt = &at
+	b.reachTestBoundary("schedule.slot.before_record", BackupJob{})
 	if err := b.saveManagementLocked(); err != nil {
 		b.managementErr = err
+	} else {
+		b.reachTestBoundary("schedule.slot.after_record", BackupJob{})
 	}
 }
 

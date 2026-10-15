@@ -150,6 +150,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request, _ authz.Context)
 	res := SessionResponse{Token: out.Token, CSRFToken: out.CSRFToken, Session: out.Session}
 	if in.Channel == identity.ChannelBrowser {
 		http.SetCookie(w, httpauth.SessionCookie(out.Token, out.Session.ExpiresAt))
+		if h.deps.BackupScope != nil {
+			c := controlCookie("", time.Unix(0, 0))
+			c.MaxAge = -1
+			http.SetCookie(w, c)
+		}
 		res.Token = ""
 	}
 	return respond(w, 201, res)
@@ -182,6 +187,11 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, who authz.Conte
 	}
 	if _, err := r.Cookie(httpauth.CookieName); err == nil {
 		http.SetCookie(w, httpauth.ClearCookie())
+	}
+	if h.deps.BackupScope != nil {
+		c := controlCookie("", time.Unix(0, 0))
+		c.MaxAge = -1
+		http.SetCookie(w, c)
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil

@@ -228,6 +228,37 @@
   gap: 12px;
   margin-top: 5px;
 }
+.maintenance-access {
+  max-width: 620px;
+  margin: 6vh auto;
+  padding: 28px;
+}
+.maintenance-access .login-form {
+  max-width: none;
+}
+.maintenance-access h1 {
+  font-size: 27px;
+}
+.maintenance-shell {
+  max-width: 1200px;
+  margin: auto;
+  padding: 28px;
+}
+.maintenance-shell main {
+  margin: 0;
+  padding: 24px 0;
+  max-width: none;
+}
+.maintenance-access-header {
+  display: grid;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+.maintenance-access-header button {
+  justify-self: start;
+}
 @media (max-width: 760px) {
   .backup-heading {
     align-items: flex-start;

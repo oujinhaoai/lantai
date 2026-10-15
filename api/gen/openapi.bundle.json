@@ -298,6 +298,104 @@
         ],
         "type": "object"
       },
+      "BackupControlLogin": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "name": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "name",
+          "password",
+          "code"
+        ],
+        "type": "object"
+      },
+      "BackupControlSession": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "items": {
+              "enum": [
+                "backup.read",
+                "backup.cancel"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "csrf_token": {
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "principal": {
+            "additionalProperties": false,
+            "properties": {
+              "display_name": {
+                "type": "string"
+              },
+              "id": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "display_name"
+            ],
+            "type": "object"
+          },
+          "scope": {
+            "additionalProperties": false,
+            "properties": {
+              "attempt": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "job_id": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "required": [
+              "job_id",
+              "attempt"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "principal",
+          "expires_at",
+          "csrf_token",
+          "scope",
+          "capabilities"
+        ],
+        "type": "object"
+      },
       "BackupHistory": {
         "additionalProperties": false,
         "properties": {
@@ -10875,6 +10973,12 @@
       }
     },
     "securitySchemes": {
+      "backupControlCookie": {
+        "description": "独立受限控制 Cookie，仅指定的备份 GET、取消与控制会话端点接受。普通会话过期后须以新鲜口令/TOTP取得；不延长原凭据。\n固定十分钟，不自动续期；绑定当前 job/attempt 和进程，终态/重启/撤权失效。取消和退出须严格 Origin 与自己的 X-CSRF-Token。\n",
+        "in": "cookie",
+        "name": "lantai_backup_control",
+        "type": "apiKey"
+      },
       "bearerSession": {
         "description": "会话令牌 lts_…（由长期凭据换取或由人登录得到，限定范围与有效期）。长期凭据 ltk_…\n只能换会话，不能直接调用业务接口；浏览器会话令牌只能经 Cookie 使用。Bearer 请求\n不做 CSRF 检查，但仍须通过正常授权。见 docs/contracts/identity.md。\n",
         "scheme": "bearer",
@@ -10902,7 +11006,7 @@
   "paths": {
     "/api/v1/admin/backups": {
       "get": {
-        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。\n",
         "operationId": "getBackupOverview",
         "parameters": [
           {
@@ -10924,6 +11028,17 @@
             "$ref": "#/components/responses/Error"
           }
         },
+        "security": [
+          {
+            "bearerSession": []
+          },
+          {
+            "cookieSession": []
+          },
+          {
+            "backupControlCookie": []
+          }
+        ],
         "summary": "查看备份可用性、当前任务与计划",
         "tags": [
           "backups"
@@ -10971,9 +11086,133 @@
         ]
       }
     },
+    "/api/v1/admin/backups/control-session": {
+      "delete": {
+        "description": "以独立 CSRF 验证注销并清 Cookie；不注销或升级普通业务会话。终态或过期控制会话仍可用原 CSRF 退出。",
+        "operationId": "deleteBackupControlSession",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "控制会话已退出"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "backupControlCookie": []
+          }
+        ],
+        "summary": "退出备份控制会话",
+        "tags": [
+          "backups"
+        ]
+      },
+      "get": {
+        "description": "刷新页面时再次核验当前主体、角色、因子、代际和活动备份；不自动续期。",
+        "operationId": "getBackupControlSession",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupControlSession"
+                }
+              }
+            },
+            "description": "当前受限控制会话"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "backupControlCookie": []
+          }
+        ],
+        "summary": "核验并读取当前备份控制会话",
+        "tags": [
+          "backups"
+        ]
+      },
+      "post": {
+        "description": "仅在任务已持久受理且业务准入关闭时开放，涵盖排空、复制与取消中。以新鲜口令和动态码验证当前活跃人类系统管理员，使用原有密码验证和持久限速、防重放高水位。\n不续期旧会话，不写五个业务数据库，不产生普通会话或 HumanGrant。返回固定十分钟、仅当前 job/attempt 的 Cookie 和独立 CSRF。\nCookie 只可查询备份、取消和退出；备份退出维护、重启、撤权或到期立即失效。开始、续传、修改计划及其他业务均不接受该凭据。\n",
+        "operationId": "createBackupControlSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "description": "必须与允许列表精确匹配；跨站请求拒绝。",
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupControlLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupControlSession"
+                }
+              }
+            },
+            "description": "仅设置 HttpOnly/Secure/SameSite=Strict 的 lantai_backup_control Cookie；路径 /api/v1/admin/backups。",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "在备份维护期重新验证管理员身份",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
     "/api/v1/admin/backups/history": {
       "get": {
-        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。\n",
         "operationId": "getBackupHistory",
         "parameters": [
           {
@@ -10995,6 +11234,17 @@
             "$ref": "#/components/responses/Error"
           }
         },
+        "security": [
+          {
+            "bearerSession": []
+          },
+          {
+            "cookieSession": []
+          },
+          {
+            "backupControlCookie": []
+          }
+        ],
         "summary": "查看完整备份任务历史",
         "tags": [
           "backups"
@@ -11003,7 +11253,7 @@
     },
     "/api/v1/admin/backups/schedule": {
       "get": {
-        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。\n",
         "operationId": "getBackupSchedule",
         "parameters": [
           {
@@ -11025,6 +11275,17 @@
             "$ref": "#/components/responses/Error"
           }
         },
+        "security": [
+          {
+            "bearerSession": []
+          },
+          {
+            "cookieSession": []
+          },
+          {
+            "backupControlCookie": []
+          }
+        ],
         "summary": "查看每日计划及下一次时间",
         "tags": [
           "backups"
@@ -11074,7 +11335,7 @@
     },
     "/api/v1/admin/backups/{id}": {
       "get": {
-        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。\n",
         "operationId": "getBackupJob",
         "parameters": [
           {
@@ -11104,6 +11365,17 @@
             "$ref": "#/components/responses/Error"
           }
         },
+        "security": [
+          {
+            "bearerSession": []
+          },
+          {
+            "cookieSession": []
+          },
+          {
+            "backupControlCookie": []
+          }
+        ],
         "summary": "查看备份任务状态",
         "tags": [
           "backups"
@@ -11112,7 +11384,7 @@
     },
     "/api/v1/admin/backups/{id}/cancel": {
       "post": {
-        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。\n",
+        "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。\n",
         "operationId": "cancelBackup",
         "parameters": [
           {
@@ -11152,6 +11424,17 @@
             "$ref": "#/components/responses/Error"
           }
         },
+        "security": [
+          {
+            "bearerSession": []
+          },
+          {
+            "cookieSession": []
+          },
+          {
+            "backupControlCookie": []
+          }
+        ],
         "summary": "请求取消；等待工作退出后恢复业务",
         "tags": [
           "backups"

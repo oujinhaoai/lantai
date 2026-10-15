@@ -99,7 +99,7 @@ func Open(ctx context.Context, opts operations.Options, dir string) (_ *Session,
 	if err != nil {
 		return nil, err
 	}
-	svc, err := identity.New(identity.Deps{Main: i.DB(ownership.Main), Runtime: i.DB(ownership.Runtime), Gate: i.Gate(), Epochs: i, Clock: i.Clock(), IDs: i.IDs(), Key: k, InstanceID: i.InstanceID(), InstanceName: i.Marker().Name}, identity.Config{})
+	svc, err := identity.New(identity.Deps{AuthStateDir: filepath.Join(i.Layout().Home, "backups", "control-auth"), Main: i.DB(ownership.Main), Runtime: i.DB(ownership.Runtime), Gate: i.Gate(), Epochs: i, Clock: i.Clock(), IDs: i.IDs(), Key: k, InstanceID: i.InstanceID(), InstanceName: i.Marker().Name}, identity.Config{})
 	if err != nil {
 		return nil, err
 	}

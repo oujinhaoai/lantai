@@ -77,6 +77,10 @@ interface Pending extends Intent {
   key: string;
   grantID?: string;
 }
+export type BackupTransport = <T>(
+  path: string,
+  options?: RequestInit,
+) => Promise<T>;
 const root = "/api/v1/admin/backups";
 const activeStates = new Set(["draining", "backing_up", "cancelling"]);
 const resumableStates = new Set(["failed", "cancelled", "interrupted"]);
@@ -208,9 +212,12 @@ function JobFacts({ job }: { job: Job }) {
 
 export function BackupManagement({
   expire,
+  maintenanceRequest,
 }: {
   expire: (error: unknown) => void;
+  maintenanceRequest?: BackupTransport;
 }) {
+  const restricted = !!maintenanceRequest;
   const [overview, setOverview] = useState<Overview>();
   const [history, setHistory] = useState<Job[]>([]);
   const [error, setError] = useState<unknown>();
@@ -233,6 +240,7 @@ export function BackupManagement({
   });
   const [dirty, setDirty] = useState(false);
   const [shown, setShown] = useState(10);
+  const [trackedJob, setTrackedJob] = useState<Job>();
   const alive = useRef(true);
   const revoked = useRef(false);
   const controllers = useRef(new Set<AbortController>());
@@ -241,6 +249,10 @@ export function BackupManagement({
   const [draftRevision, setDraftRevision] = useState(0);
   const dialog = useRef<HTMLDialogElement>(null);
   const proofInput = useRef<HTMLInputElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  const confirmationOpener = useRef<HTMLElement | null>(null);
+  const currentHeading = useRef<HTMLHeadingElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     alive.current = true;
@@ -256,18 +268,25 @@ export function BackupManagement({
       const controller = new AbortController();
       controllers.current.add(controller);
       try {
-        return await api<T>(path, { ...options, signal: controller.signal });
+        return await (maintenanceRequest || api)<T>(path, {
+          ...options,
+          signal: controller.signal,
+        });
       } finally {
         controllers.current.delete(controller);
       }
     },
-    [],
+    [maintenanceRequest],
   );
   const fail = useCallback(
     (failure: unknown) => {
       if (!alive.current) return;
       if (isSessionError(failure)) expire(failure);
       else if (failure instanceof APIError && failure.status === 403) {
+        if (restricted) {
+          expire(failure);
+          return;
+        }
         revoked.current = true;
         for (const controller of controllers.current) controller.abort();
         setDenied(true);
@@ -277,7 +296,7 @@ export function BackupManagement({
         setCode("");
       }
     },
-    [expire],
+    [expire, restricted],
   );
 
   useEffect(() => {
@@ -290,6 +309,7 @@ export function BackupManagement({
         const value = await request<Overview>(root);
         if (stopped || revoked.current) return;
         setOverview(value);
+        if (value.current) setTrackedJob(value.current);
         setError(undefined);
         setUpdated(new Date().toISOString());
         failures = 0;
@@ -354,6 +374,29 @@ export function BackupManagement({
       proofInput.current?.focus();
     }
   }, [pending]);
+  useEffect(() => {
+    if (proofError && !busy) {
+      (proofInput.current || confirmButton.current)?.focus();
+    }
+  }, [proofError, busy]);
+  useEffect(() => {
+    if (pending && busy) dialog.current?.focus();
+  }, [pending, busy]);
+
+  const dismissConfirmation = (completed = false) => {
+    dialog.current?.close();
+    setPending(undefined);
+    setCode("");
+    setProofError(undefined);
+    requestAnimationFrame(() => {
+      const opener = confirmationOpener.current;
+      if (!completed && opener?.isConnected && !opener.matches(":disabled")) {
+        opener.focus();
+      } else {
+        currentHeading.current?.focus();
+      }
+    });
+  };
 
   const reload = () => setRefresh((n) => n + 1);
   const lock = () => {
@@ -368,6 +411,10 @@ export function BackupManagement({
   };
   const prepare = async (intent: Intent) => {
     if (!lock()) return;
+    confirmationOpener.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     setActionError(undefined);
     setNotice("");
     try {
@@ -479,7 +526,7 @@ export function BackupManagement({
         body: JSON.stringify({ ...submitted.body, grant_id: grantID }),
       });
       if (alive.current) {
-        setPending(undefined);
+        dismissConfirmation(true);
         if (submitted.action === "identity.backup_schedule") {
           dirtyRef.current = false;
           setDirty(false);
@@ -516,14 +563,28 @@ export function BackupManagement({
     setDirty(false);
   };
   const closeConfirmation = () => {
-    setPending(undefined);
-    setCode("");
-    setProofError(undefined);
+    dismissConfirmation();
     reload();
   };
   const current = overview?.current;
   const active = !!current && activeStates.has(current.state);
-  const mutable = hasCSRF() && !busy && !active;
+  const mutable = !restricted && hasCSRF() && !busy && !active;
+  const announcedJob =
+    current ||
+    history.find(
+      (job) =>
+        job.id === trackedJob?.id &&
+        job.attempt === trackedJob.attempt &&
+        new Date(job.updated_at).getTime() >=
+          new Date(trackedJob.updated_at).getTime(),
+    );
+  const progressAnnouncement = announcedJob
+    ? `备份任务 ${announcedJob.id}：${stateNames[announcedJob.state] || announcedJob.state}。${announcedJob.error ? errorText(announcedJob.error) : ""}`
+    : trackedJob
+      ? `正在读取备份任务 ${trackedJob.id} 的最终结果。`
+      : overview
+        ? "暂无正在执行的备份。"
+        : "正在读取备份状态。";
 
   if (denied)
     return (
@@ -536,6 +597,15 @@ export function BackupManagement({
     );
   return (
     <div className="backup-page">
+      <p
+        className="sr-only"
+        role="status"
+        aria-label="备份进度"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {progressAnnouncement}
+      </p>
       <header className="page-heading backup-heading">
         <div>
           <p className="eyebrow">系统管理 / BACKUPS</p>
@@ -546,18 +616,22 @@ export function BackupManagement({
           刷新状态
         </button>
       </header>
-      {!hasCSRF() && (
+      {!restricted && !hasCSRF() && (
         <p className="notice">
           此标签页缺少操作校验信息。可查看状态；执行操作请回到原管理员登录标签页，或重新登录。
         </p>
       )}
       {error ? <ErrorNotice error={error} /> : null}
       {actionError ? <ErrorNotice error={actionError} /> : null}
-      {notice && (
-        <p className="notice" role="status">
-          {notice}
-        </p>
-      )}
+      <p
+        className={notice ? "notice" : "sr-only"}
+        role="status"
+        aria-label="备份操作结果"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {notice}
+      </p>
       {!overview && !error && (
         <p className="loading" role="status">
           正在读取备份状态…
@@ -625,18 +699,38 @@ export function BackupManagement({
             aria-labelledby="backup-current-title"
           >
             <div className="backup-section-head">
-              <h2 id="backup-current-title">当前任务</h2>
-              <button
-                className="primary"
-                onClick={() => void start()}
-                disabled={!mutable || !overview.availability.available}
+              <h2
+                id="backup-current-title"
+                ref={currentHeading}
+                tabIndex={-1}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Tab" &&
+                    !event.shiftKey &&
+                    active &&
+                    cancelButton.current &&
+                    !cancelButton.current.disabled
+                  ) {
+                    event.preventDefault();
+                    cancelButton.current.focus();
+                  }
+                }}
               >
-                立即备份
-              </button>
+                当前任务
+              </h2>
+              {!restricted && (
+                <button
+                  className="primary"
+                  onClick={() => void start()}
+                  disabled={!mutable || !overview.availability.available}
+                >
+                  立即备份
+                </button>
+              )}
             </div>
             {current ? (
               <>
-                <p className="backup-state" role="status">
+                <p className="backup-state">
                   {stateNames[current.state] || current.state}
                 </p>
                 {active && (
@@ -652,10 +746,13 @@ export function BackupManagement({
                 <JobFacts job={current} />
                 {active && (
                   <button
+                    ref={cancelButton}
                     className="secondary"
                     onClick={() => void cancel(current)}
                     disabled={
-                      !hasCSRF() || busy || current.state === "cancelling"
+                      (!restricted && !hasCSRF()) ||
+                      busy ||
+                      current.state === "cancelling"
                     }
                   >
                     {current.state === "cancelling"
@@ -663,15 +760,17 @@ export function BackupManagement({
                       : "取消当前任务"}
                   </button>
                 )}
-                {!active && resumableStates.has(current.state) && (
-                  <button
-                    className="secondary"
-                    onClick={() => void resume(current)}
-                    disabled={!mutable || !overview.availability.available}
-                  >
-                    续传此任务
-                  </button>
-                )}
+                {!restricted &&
+                  !active &&
+                  resumableStates.has(current.state) && (
+                    <button
+                      className="secondary"
+                      onClick={() => void resume(current)}
+                      disabled={!mutable || !overview.availability.available}
+                    >
+                      续传此任务
+                    </button>
+                  )}
               </>
             ) : (
               <p className="backup-empty">
@@ -708,117 +807,125 @@ export function BackupManagement({
                 {errorText(overview.schedule.disabled_reason)}
               </p>
             )}
-            <form className="backup-schedule-form" onSubmit={save}>
-              {dirty && draftRevision !== overview.schedule.revision && (
-                <p className="notice" role="status">
-                  计划已在其他位置更新。当前草稿保留原修订号，请重置为已保存设置后重新编辑。
+            {restricted ? (
+              <p className="notice">
+                维护身份仅能查看状态和取消当前任务。每日计划：
+                {overview.schedule.time}（{overview.schedule.timezone}
+                ）。开始新备份、续传或修改计划，请在维护结束后重新正常登录。
+              </p>
+            ) : (
+              <form className="backup-schedule-form" onSubmit={save}>
+                {dirty && draftRevision !== overview.schedule.revision && (
+                  <p className="notice" role="status">
+                    计划已在其他位置更新。当前草稿保留原修订号，请重置为已保存设置后重新编辑。
+                  </p>
+                )}
+                <label className="backup-check">
+                  <input
+                    type="checkbox"
+                    checked={draft.enabled}
+                    onChange={(e) =>
+                      changeDraft({ ...draft, enabled: e.target.checked })
+                    }
+                    disabled={!mutable}
+                  />
+                  开启每日备份
+                </label>
+                <div className="backup-form-row">
+                  <label>
+                    每日时间
+                    <input
+                      type="time"
+                      required
+                      value={draft.time}
+                      onChange={(e) =>
+                        changeDraft({ ...draft, time: e.target.value })
+                      }
+                      disabled={!mutable}
+                    />
+                  </label>
+                  <label>
+                    IANA 时区
+                    <input
+                      required
+                      maxLength={100}
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      list="backup-timezones"
+                      placeholder="例如 Asia/Shanghai"
+                      value={draft.timezone}
+                      onChange={(e) =>
+                        changeDraft({ ...draft, timezone: e.target.value })
+                      }
+                      disabled={!mutable}
+                    />
+                  </label>
+                </div>
+                <div className="backup-form-row backup-timeouts">
+                  <label>
+                    排空等待上限（秒）
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="3600"
+                      step="1"
+                      value={draft.drain}
+                      onChange={(e) =>
+                        changeDraft({ ...draft, drain: e.target.value })
+                      }
+                      disabled={!mutable}
+                    />
+                  </label>
+                  <label>
+                    整个任务超时（秒）
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="86400"
+                      step="1"
+                      value={draft.timeout}
+                      onChange={(e) =>
+                        changeDraft({ ...draft, timeout: e.target.value })
+                      }
+                      disabled={!mutable}
+                    />
+                  </label>
+                </div>
+                <datalist id="backup-timezones">
+                  <option value="Asia/Shanghai" />
+                  <option value="Etc/UTC" />
+                  <option value="America/New_York" />
+                  <option value="Europe/London" />
+                </datalist>
+                <p className="subtle">
+                  时间按所选时区计算，不跟随当前浏览器时区。计划由 core
+                  保存并执行，无需保持登录或打开此页。
                 </p>
-              )}
-              <label className="backup-check">
-                <input
-                  type="checkbox"
-                  checked={draft.enabled}
-                  onChange={(e) =>
-                    changeDraft({ ...draft, enabled: e.target.checked })
-                  }
-                  disabled={!mutable}
-                />
-                开启每日备份
-              </label>
-              <div className="backup-form-row">
-                <label>
-                  每日时间
-                  <input
-                    type="time"
-                    required
-                    value={draft.time}
-                    onChange={(e) =>
-                      changeDraft({ ...draft, time: e.target.value })
-                    }
-                    disabled={!mutable}
-                  />
-                </label>
-                <label>
-                  IANA 时区
-                  <input
-                    required
-                    maxLength={100}
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    list="backup-timezones"
-                    placeholder="例如 Asia/Shanghai"
-                    value={draft.timezone}
-                    onChange={(e) =>
-                      changeDraft({ ...draft, timezone: e.target.value })
-                    }
-                    disabled={!mutable}
-                  />
-                </label>
-              </div>
-              <div className="backup-form-row backup-timeouts">
-                <label>
-                  排空等待上限（秒）
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    max="3600"
-                    step="1"
-                    value={draft.drain}
-                    onChange={(e) =>
-                      changeDraft({ ...draft, drain: e.target.value })
-                    }
-                    disabled={!mutable}
-                  />
-                </label>
-                <label>
-                  整个任务超时（秒）
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    max="86400"
-                    step="1"
-                    value={draft.timeout}
-                    onChange={(e) =>
-                      changeDraft({ ...draft, timeout: e.target.value })
-                    }
-                    disabled={!mutable}
-                  />
-                </label>
-              </div>
-              <datalist id="backup-timezones">
-                <option value="Asia/Shanghai" />
-                <option value="Etc/UTC" />
-                <option value="America/New_York" />
-                <option value="Europe/London" />
-              </datalist>
-              <p className="subtle">
-                时间按所选时区计算，不跟随当前浏览器时区。计划由 core
-                保存并执行，无需保持登录或打开此页。
-              </p>
-              <p className="subtle">
-                任务超时包含排空时间。超时或取消后仍会等待实际工作安全退出，再恢复业务。
-              </p>
-              <button
-                className="secondary"
-                type="submit"
-                disabled={!mutable || !dirty}
-              >
-                验证并保存计划
-              </button>
-              {dirty && (
+                <p className="subtle">
+                  任务超时包含排空时间。超时或取消后仍会等待实际工作安全退出，再恢复业务。
+                </p>
                 <button
-                  className="text-button"
-                  type="button"
-                  onClick={resetDraft}
-                  disabled={busy}
+                  className="secondary"
+                  type="submit"
+                  disabled={!mutable || !dirty}
                 >
-                  重置为已保存设置
+                  验证并保存计划
                 </button>
-              )}
-              {active && <p className="subtle">当前任务结束后可修改计划。</p>}
-            </form>
+                {dirty && (
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={resetDraft}
+                    disabled={busy}
+                  >
+                    重置为已保存设置
+                  </button>
+                )}
+                {active && <p className="subtle">当前任务结束后可修改计划。</p>}
+              </form>
+            )}
             <details className="backup-policy">
               <summary>错过、夏令时与重启如何处理</summary>
               <p>
@@ -879,7 +986,7 @@ export function BackupManagement({
                     <summary>任务详情</summary>
                     <JobFacts job={job} />
                   </details>
-                  {resumableStates.has(job.state) && (
+                  {!restricted && resumableStates.has(job.state) && (
                     <button
                       className="secondary"
                       onClick={() => void resume(job)}
@@ -905,11 +1012,32 @@ export function BackupManagement({
       {pending && (
         <dialog
           ref={dialog}
+          tabIndex={-1}
           className="backup-dialog"
           aria-labelledby="backup-confirm-title"
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const controls = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>(
+                "input:not(:disabled), button:not(:disabled)",
+              ),
+            );
+            const first = controls[0];
+            const last = controls.at(-1);
+            if (!first) {
+              event.preventDefault();
+              event.currentTarget.focus();
+            } else if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
           onCancel={(event) => {
-            if (busy) event.preventDefault();
-            else closeConfirmation();
+            event.preventDefault();
+            if (!busy) closeConfirmation();
           }}
         >
           <form onSubmit={(event) => void submitProof(event)}>
@@ -959,7 +1087,12 @@ export function BackupManagement({
               >
                 关闭确认
               </button>
-              <button className="primary" type="submit" disabled={busy}>
+              <button
+                ref={confirmButton}
+                className="primary"
+                type="submit"
+                disabled={busy}
+              >
                 {busy
                   ? "正在提交…"
                   : pending.grantID

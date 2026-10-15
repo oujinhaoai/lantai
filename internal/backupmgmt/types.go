@@ -17,6 +17,7 @@ var (
 	ErrInvalid             = errors.New("invalid backup request")
 	ErrRevisionConflict    = errors.New("backup schedule revision conflict")
 	ErrNotFound            = fs.ErrNotExist
+	ErrScopeStale          = errors.New("backup control scope no longer matches the active attempt")
 )
 
 type Request struct {

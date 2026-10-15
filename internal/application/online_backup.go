@@ -44,9 +44,15 @@ type BackupControl struct {
 	management       backupManagementState
 	managementErr    error
 	lastAvailability backupmgmt.Availability
+	controlAuthOpen  bool
 	schedulerCancel  context.CancelFunc
 	schedulerDone    chan struct{}
 	now              func() time.Time
+	// Internal test-only boundary synchronization. There is no environment,
+	// configuration, HTTP or CLI path that can install this hook.
+	testBoundary func(string, BackupJob)
+	// Optional observer scoped to this controller, only assigned by package tests.
+	atomicWriteObserver func(string, fsutil.AtomicWriteStage) error
 	// Internal test-only fault injection, never an external configuration hook.
 	authorizeSchedule func(context.Context, ids.ID, func() error) error
 	// Internal fault injection, never a configurable external hook.
@@ -103,7 +109,7 @@ func (b *BackupControl) save(j BackupJob) error {
 	if err = os.MkdirAll(b.journalDir(), 0700); err != nil {
 		return err
 	}
-	return fsutil.WriteFileAtomic(filepath.Join(b.journalDir(), string(j.ID)+".json"), raw, 0600)
+	return b.writeControlRecord(filepath.Join(b.journalDir(), string(j.ID)+".json"), raw)
 }
 
 // preflight never creates the root. A separately provisioned marker prevents a
@@ -314,15 +320,18 @@ func (b *BackupControl) startLocked(req BackupRequest, key, source, scheduledFor
 	if key != "" {
 		b.receipts[j.ID] = append(append([]backupReceipt(nil), oldReceipts...), backupReceipt{Key: key, Hash: requestHash(req)})
 	}
+	b.reachTestBoundary("job.accept.before_record", j)
 	if err := b.save(j); err != nil {
 		b.receipts[j.ID] = oldReceipts
 		b.managementErr = err
 		return BackupJob{}, err
 	}
+	b.reachTestBoundary("job.accept.after_record", j)
 	c, cancel := context.WithTimeout(b.ctx, time.Duration(req.TimeoutSeconds)*time.Second)
 	b.jobs[j.ID], b.active, b.cancel, b.done = j, j.ID, cancel, make(chan struct{})
 	// Close admission before acknowledging the trigger, eliminating a new-request race.
 	b.app.business.close()
+	b.controlAuthOpen = true
 	go b.execute(c, j, req)
 	return j, nil
 }
@@ -339,6 +348,23 @@ func (b *BackupControl) Status(id ids.ID) (BackupJob, error) {
 func (b *BackupControl) Cancel(id ids.ID) (BackupJob, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	return b.cancelLocked(id)
+}
+
+// CancelScoped is the maintenance-only authority boundary. Reading a scope
+// and cancelling are one atomic decision, so an old token cannot cross into a
+// resumed attempt of the same job while authentication finishes.
+func (b *BackupControl) CancelScoped(id ids.ID, attempt int) (BackupJob, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	j, ok := b.jobs[id]
+	if !ok || b.active != id || j.Attempt != attempt || !b.controlAuthOpen {
+		return j, backupmgmt.ErrScopeStale
+	}
+	return b.cancelLocked(id)
+}
+
+func (b *BackupControl) cancelLocked(id ids.ID) (BackupJob, error) {
 	j, ok := b.jobs[id]
 	if !ok {
 		return j, fs.ErrNotExist
@@ -356,6 +382,7 @@ func (b *BackupControl) Cancel(id ids.ID) (BackupJob, error) {
 			return j, err
 		}
 		b.jobs[id] = j
+		b.reachTestBoundary("job.cancelling", j)
 		b.cancel()
 	}
 	return j, nil
@@ -364,9 +391,10 @@ func (b *BackupControl) Cancel(id ids.ID) (BackupJob, error) {
 func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequest) {
 	var err error
 	var m operations.BackupManifest
+	var maintenance *operations.Maintenance
 	failureCode := "backup_failed"
-	// Finalization runs after all work and maintenance defers, including panic
-	// unwinding. Cancellation never releases an active copier's barrier early.
+	// Finalization owns the exit fence for every path, including panic and
+	// a drain that never acquired maintenance. It runs only after work exits.
 	defer func() {
 		if recover() != nil {
 			err = errors.New("backup panic")
@@ -375,6 +403,17 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		// the worker's result, even on a failed or otherwise valid backup.
 		if m.BackupID != "" && j.BackupID != "" && m.BackupID != j.BackupID {
 			err = errors.New("backup result differs from the original job")
+		}
+		// Every exit, including early drain failure, must close the control
+		// scope and finish the proof ledger before ordinary writes reopen.
+		// Never wait for proof while holding b.mu: proof readers take b.mu.
+		b.mu.Lock()
+		b.controlAuthOpen = false
+		b.mu.Unlock()
+		releaseProof := b.app.Identity.DrainBackupControl()
+		defer releaseProof()
+		if maintenance != nil {
+			maintenance.End()
 		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
@@ -395,9 +434,12 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 			j.BackupID = m.BackupID
 		}
 		j.UpdatedAt = b.now()
+		b.reachTestBoundary("job.final.before_record", j)
 		if e := b.save(j); e != nil {
 			j.State, j.Error = "failed", "journal_write_failed"
 			b.managementErr = e
+		} else {
+			b.reachTestBoundary("job.final.after_record", j)
 		}
 		b.jobs[j.ID] = j
 		b.cancel()
@@ -412,6 +454,7 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 	defer cancel()
 	timer := time.AfterFunc(time.Duration(req.DrainSeconds)*time.Second, cancel)
 	defer timer.Stop()
+	b.reachTestBoundary("job.draining", j)
 	if err = b.app.business.wait(drain); err != nil {
 		if ctx.Err() != nil {
 			err = ctx.Err()
@@ -420,7 +463,6 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		}
 		return
 	}
-	var maintenance *operations.Maintenance
 	maintenance, err = b.app.Instance.Maintain(drain, "backup")
 	if err != nil {
 		if ctx.Err() != nil {
@@ -430,7 +472,6 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		}
 		return
 	}
-	defer maintenance.End()
 	if !timer.Stop() || drain.Err() != nil {
 		err = context.DeadlineExceeded
 		return
@@ -471,13 +512,20 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 	b.mu.Lock()
 	j.State, j.UpdatedAt = "backing_up", b.now()
 	j.CaptureStarted = true
+	b.reachTestBoundary("job.backing.before_record", j)
 	err = b.save(j)
 	b.jobs[j.ID] = j
 	b.mu.Unlock()
 	if err != nil {
 		return
 	}
+	b.reachTestBoundary("job.backing_up", j)
 	m, err = b.run(c, operations.BackupOptions{Destination: target, BackupID: j.BackupID, CheckDestination: func(context.Context) error { return b.checkDestination() }})
+	if err == nil {
+		completed := j
+		completed.BackupID = m.BackupID
+		b.reachTestBoundary("job.worker.completed", completed)
+	}
 	if errors.Is(err, fs.ErrPermission) {
 		failureCode = "destination_permission_denied"
 	}
@@ -537,4 +585,17 @@ func readBackupRootMarker(path string) ([]byte, error) {
 		return nil, errors.New("backup marker exceeds size limit")
 	}
 	return raw, nil
+}
+
+func (b *BackupControl) reachTestBoundary(name string, j BackupJob) {
+	if b.testBoundary != nil {
+		b.testBoundary(name, j)
+	}
+}
+
+func (b *BackupControl) writeControlRecord(path string, raw []byte) error {
+	if b.atomicWriteObserver == nil {
+		return fsutil.WriteFileAtomic(path, raw, 0600)
+	}
+	return fsutil.WriteFileAtomicWithObserver(path, raw, 0600, func(stage fsutil.AtomicWriteStage) error { return b.atomicWriteObserver(path, stage) })
 }

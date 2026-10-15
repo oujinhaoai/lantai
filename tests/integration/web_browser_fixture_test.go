@@ -161,6 +161,35 @@ func TestWebBrowserFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.ConfigureBackups(t.Context(), backupRoot, "browser-fixture")
+	var copyMu sync.Mutex
+	var copyRelease chan struct{}
+	copyWaiting := false
+	releaseCopy := func() {
+		copyMu.Lock()
+		defer copyMu.Unlock()
+		if copyRelease != nil {
+			close(copyRelease)
+			copyRelease = nil
+		}
+		copyWaiting = false
+	}
+	t.Cleanup(releaseCopy)
+	if err := installFixtureCopyHook(a, func(context.Context) {
+		copyMu.Lock()
+		wait := copyRelease
+		copyWaiting = wait != nil
+		copyMu.Unlock()
+		if wait != nil {
+			// Cancellation must not pretend an outstanding copy has exited.
+			// Only this test's explicit release lets the real worker continue.
+			<-wait
+		}
+		copyMu.Lock()
+		copyWaiting = false
+		copyMu.Unlock()
+	}); err != nil {
+		t.Fatal(err)
+	}
 	cfg := a.Instance.Config()
 	cfg.Listen = operations.ListenConfig{API: "127.0.0.1:0", Transfer: "127.0.0.1:0", Operations: "127.0.0.1:0", Merged: true}
 	cfg.HTTP.AllowedOrigins = []string{origin}
@@ -224,6 +253,21 @@ func TestWebBrowserFixture(t *testing.T) {
 				backupHold.Release()
 				backupHold = nil
 			}
+			w.WriteHeader(http.StatusNoContent)
+		case "/__fixture/backup-copy-hold":
+			copyMu.Lock()
+			if copyRelease == nil {
+				copyRelease = make(chan struct{})
+			}
+			copyMu.Unlock()
+			w.WriteHeader(http.StatusNoContent)
+		case "/__fixture/backup-copy-status":
+			copyMu.Lock()
+			waiting := copyWaiting
+			copyMu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]bool{"holding": waiting})
+		case "/__fixture/backup-copy-release":
+			releaseCopy()
 			w.WriteHeader(http.StatusNoContent)
 		case "/__fixture/expire":
 			e.clk.Advance(13 * time.Hour)

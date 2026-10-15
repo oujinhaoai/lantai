@@ -32,6 +32,24 @@ func (e BackupApprovalKind) Valid() bool {
 	}
 }
 
+// Defines values for BackupControlSessionCapabilities.
+const (
+	BackupControlSessionCapabilitiesBackupCancel BackupControlSessionCapabilities = "backup.cancel"
+	BackupControlSessionCapabilitiesBackupRead   BackupControlSessionCapabilities = "backup.read"
+)
+
+// Valid indicates whether the value is a known member of the BackupControlSessionCapabilities enum.
+func (e BackupControlSessionCapabilities) Valid() bool {
+	switch e {
+	case BackupControlSessionCapabilitiesBackupCancel:
+		return true
+	case BackupControlSessionCapabilitiesBackupRead:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BackupJobSource.
 const (
 	BackupJobSourceLocal    BackupJobSource = "local"
@@ -1714,6 +1732,36 @@ type BackupApproval struct {
 
 // BackupApprovalKind defines model for BackupApproval.Kind.
 type BackupApprovalKind string
+
+// BackupControlLogin defines model for BackupControlLogin.
+type BackupControlLogin struct {
+	Code     *string `json:"code,omitempty"`
+	Name     string  `json:"name"`
+	Password *string `json:"password,omitempty"`
+}
+
+// BackupControlSession defines model for BackupControlSession.
+type BackupControlSession struct {
+	Capabilities []BackupControlSessionCapabilities `json:"capabilities"`
+	CsrfToken    string                             `json:"csrf_token"`
+	ExpiresAt    time.Time                          `json:"expires_at"`
+	Principal    struct {
+		DisplayName string `json:"display_name"`
+
+		// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		Id   Ulid   `json:"id"`
+		Name string `json:"name"`
+	} `json:"principal"`
+	Scope struct {
+		Attempt int `json:"attempt"`
+
+		// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		JobId Ulid `json:"job_id"`
+	} `json:"scope"`
+}
+
+// BackupControlSessionCapabilities defines model for BackupControlSession.Capabilities.
+type BackupControlSessionCapabilities string
 
 // BackupHistory defines model for BackupHistory.
 type BackupHistory struct {
@@ -5746,6 +5794,21 @@ type StartBackupParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// DeleteBackupControlSessionParams defines parameters for DeleteBackupControlSession.
+type DeleteBackupControlSessionParams struct {
+	Origin     string `json:"Origin"`
+	XCSRFToken string `json:"X-CSRF-Token"`
+}
+
+// CreateBackupControlSessionParams defines parameters for CreateBackupControlSession.
+type CreateBackupControlSessionParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// Origin 必须与允许列表精确匹配；跨站请求拒绝。
+	Origin string `json:"Origin"`
+}
+
 // GetBackupHistoryParams defines parameters for GetBackupHistory.
 type GetBackupHistoryParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
@@ -6461,6 +6524,9 @@ type PutUploadPartParams struct {
 
 // StartBackupJSONRequestBody defines body for StartBackup for application/json ContentType.
 type StartBackupJSONRequestBody = BackupRunRequest
+
+// CreateBackupControlSessionJSONRequestBody defines body for CreateBackupControlSession for application/json ContentType.
+type CreateBackupControlSessionJSONRequestBody = BackupControlLogin
 
 // SaveBackupScheduleJSONRequestBody defines body for SaveBackupSchedule for application/json ContentType.
 type SaveBackupScheduleJSONRequestBody = BackupScheduleRequest

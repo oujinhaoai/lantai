@@ -421,6 +421,15 @@ func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 				p = p[:start] + string(ids.New()) + p[end+1:]
 			}
 			w := call(f.h.API(), strings.ToUpper(method), p, "", nil)
+			// Reauthentication and local-cookie logout have no ordinary
+			// session prerequisite, but must reject missing browser Origin.
+			// Keep this exception exact; all other guarded routes remain 401.
+			if path == "/api/v1/admin/backups/control-session" && (method == "post" || method == "delete") {
+				if w.Code != 403 || !strings.Contains(w.Body.String(), "origin_missing") {
+					t.Errorf("%s %s lacks exact origin guard: %d %s", method, path, w.Code, w.Body.String())
+				}
+				continue
+			}
 			if w.Code != 401 {
 				t.Errorf("%s %s lacks guarded handler: %d %s", method, path, w.Code, w.Body.String())
 			}

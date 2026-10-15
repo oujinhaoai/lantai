@@ -13,7 +13,28 @@ import (
 // path：读者要么看到旧内容，要么看到完整的新内容，不会看到写了一半的文件。
 // 临时文件与目标在同一目录；失败时删除临时文件。Windows 不支持刷新目录，
 // 改名的断电持久性按平台能力，不在此宣称。
-func WriteFileAtomic(path string, data []byte, perm fs.FileMode) (err error) {
+func WriteFileAtomic(path string, data []byte, perm fs.FileMode) error {
+	return WriteFileAtomicWithObserver(path, data, perm, nil)
+}
+
+// AtomicWriteStage names call boundaries, not physical-durability guarantees.
+type AtomicWriteStage string
+
+const (
+	AtomicFileSync      AtomicWriteStage = "file_sync"
+	AtomicAfterFileSync AtomicWriteStage = "after_file_sync"
+	AtomicDirectorySync AtomicWriteStage = "directory_sync"
+)
+
+// AtomicWriteObserver is scoped to a single invocation. A non-nil error at
+// file_sync or directory_sync substitutes a call-level failure at that point.
+// after_file_sync runs only after the real file Sync succeeded, before close
+// and rename. Tests can stop a process there; production callers pass nil.
+type AtomicWriteObserver func(AtomicWriteStage) error
+
+// WriteFileAtomicWithObserver uses the same protocol as WriteFileAtomic. It
+// provides no global registration, environment option or external endpoint.
+func WriteFileAtomicWithObserver(path string, data []byte, perm fs.FileMode, observe AtomicWriteObserver) (err error) {
 	dir, base := filepath.Split(path)
 	if dir == "" {
 		dir = "."
@@ -35,14 +56,30 @@ func WriteFileAtomic(path string, data []byte, perm fs.FileMode) (err error) {
 	if _, err = tmp.Write(data); err != nil {
 		return fmt.Errorf("fsutil: write temp file: %w", err)
 	}
-	if err = tmp.Sync(); err != nil {
+	if observe != nil {
+		err = observe(AtomicFileSync)
+	}
+	if err == nil {
+		err = tmp.Sync()
+	}
+	if err != nil {
 		return fmt.Errorf("fsutil: sync temp file: %w", err)
+	}
+	if observe != nil {
+		if err = observe(AtomicAfterFileSync); err != nil {
+			return fmt.Errorf("fsutil: after temp sync: %w", err)
+		}
 	}
 	if err = tmp.Close(); err != nil {
 		return fmt.Errorf("fsutil: close temp file: %w", err)
 	}
 	if err = replaceAtomicFile(tmpName, path); err != nil {
 		return fmt.Errorf("fsutil: replace %s: %w", path, err)
+	}
+	if observe != nil {
+		if err = observe(AtomicDirectorySync); err != nil {
+			return fmt.Errorf("fsutil: sync dir %s: %w", dir, err)
+		}
 	}
 	return SyncDir(dir)
 }

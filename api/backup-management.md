@@ -8,7 +8,21 @@
 
 `GET /api/v1/admin/backups` 返回可用性、当前任务、上次成功、计划与最近 20 次计划事件；`GET /history` 返回完整任务历史；`GET /{id}` 返回单任务。`GET /schedule` 返回当前计划及修订号。缺少备份盘仍能查询配置错误，返回的错误简码不包含主机路径或密钥。
 
-维护期只额外放行上述精确 GET、`GET /api/v1/whoami` 和 `POST /api/v1/admin/backups/{id}/cancel`。这些路由仍进行实时会话、代际、撤权和角色核查；不续期、不创建身份写事务。取消请求体为 `{}`，不要求创建新的 HumanGrant。开始、续传、计划写入、登录、挑战签发及其他业务 API 都不能借此穿过维护屏障。
+维护期只额外放行上述精确 GET、`GET /api/v1/whoami` 和 `POST /api/v1/admin/backups/{id}/cancel`。这些路由仍进行实时会话、代际、撤权和角色核查；不续期、不创建身份写事务。新增的维护控制会话路由只在严格限定的控制面工作，见下节。取消请求体为 `{}`，不要求创建新的 HumanGrant。开始、续传、计划写入、登录、挑战签发及其他业务 API 都不能借此穿过维护屏障。
+
+## 维护期间重新认证
+
+普通管理员会话在复制过程中到期时，网页提供“备份维护身份验证”。管理员重新输入自己的名称、口令和动态码，经 `POST /api/v1/admin/backups/control-session` 取得独立的短期控制身份。普通 `/sessions/login` 继续遵守业务屏障；过期会话不会被续期或当作身份依据。
+
+此入口只在任务已持久受理且新业务准入关闭时受理，覆盖 `draining`、`backing_up`、`cancelling`。控制认证成功不代表已经排空，复制仍须等待完整一致性屏障，取消仍须等待实际工作退出。它使用既有 Argon2 口令校验，重新核对当前活跃人类、系统管理员角色、口令版本、因子、认证与恢复代际；错误口令/动态码按主体、来源及全局上限限速。成功消费的动态码与普通登录、挑战共用持久防重放高水位，跨维护结束、重启和新任务也不能重用。
+
+响应只通过 `Set-Cookie` 设置 `lantai_backup_control`，具备 Secure、HttpOnly、SameSite=Strict、路径 `/api/v1/admin/backups`；JSON 不返回 token。响应包括 `principal`、`expires_at`、独立 `csrf_token`、`scope: {job_id, attempt}` 和只含 `backup.read`/`backup.cancel` 的 `capabilities`。有效期固定十分钟，不自动续期；当前任务离开维护、attempt 改变、进程重启、主体/因子/代际失效都会使其失效。
+
+`GET /control-session` 供刷新后核验和重新获取独立 CSRF；`DELETE /control-session` 要求精确 Origin 与该身份的 CSRF，退出时清 Cookie。上述路径均以 `/api/v1/admin/backups` 为前缀。这个 Cookie 仅可读取备份概览、历史、计划、当前任务，以及取消所绑定的当前任务；不能读取普通业务、换普通会话、创建 HumanGrant、开始/续传或修改计划。普通 Cookie 与它可以共存，备份读取/取消显式选择受限身份，不能把受限身份转换成普通 `authz.Context`。
+
+重新认证只读五个业务数据库。身份模块把限速预占和 TOTP 高水位以私有原子写保存在 `backups/control-auth/state.json`，成功持久化后才签发内存令牌。文件带实例/密钥绑定和完整性保护，不含口令、动态码、种子或原始令牌；目录链、所有者、链接和替换均检查。该身份安全账本由普通新鲜认证共同遵守，损坏或写入失败时拒绝新证明并返回 `STORAGE_UNAVAILABLE`（`authentication_safety_ledger_unavailable`），不得删除它绕过防重放。已有有效会话仍经实时权限检查；它与可选备份任务日志的故障降级分开处理。
+
+普通业务的恢复仍须等待复制与验证工作实际退出；结束流程先关闭新控制身份准入并排空正在完成的发证段，再释放一致性保护。控制身份失效后，网页返回普通登录，不自动获得业务权限。
 
 ## 人类确认与持久幂等
 

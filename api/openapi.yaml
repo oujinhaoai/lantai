@@ -29,14 +29,90 @@ tags:
       中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位
       （交互/批量）排队准入。见 docs/contracts/storage.md。
 paths:
+  /api/v1/admin/backups/control-session:
+    post:
+      tags: [backups]
+      operationId: createBackupControlSession
+      summary: 在备份维护期重新验证管理员身份
+      description: |
+        仅在任务已持久受理且业务准入关闭时开放，涵盖排空、复制与取消中。以新鲜口令和动态码验证当前活跃人类系统管理员，使用原有密码验证和持久限速、防重放高水位。
+        不续期旧会话，不写五个业务数据库，不产生普通会话或 HumanGrant。返回固定十分钟、仅当前 job/attempt 的 Cookie 和独立 CSRF。
+        Cookie 只可查询备份、取消和退出；备份退出维护、重启、撤权或到期立即失效。开始、续传、修改计划及其他业务均不接受该凭据。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - in: header
+          name: Origin
+          required: true
+          schema: {type: string}
+          description: 必须与允许列表精确匹配；跨站请求拒绝。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupControlLogin'
+      responses:
+        '201':
+          description: 仅设置 HttpOnly/Secure/SameSite=Strict 的 lantai_backup_control Cookie；路径 /api/v1/admin/backups。
+          headers:
+            Set-Cookie:
+              schema: {type: string}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupControlSession'
+        default:
+          $ref: '#/components/responses/Error'
+    get:
+      tags: [backups]
+      operationId: getBackupControlSession
+      summary: 核验并读取当前备份控制会话
+      description: 刷新页面时再次核验当前主体、角色、因子、代际和活动备份；不自动续期。
+      security:
+        - backupControlCookie: []
+      responses:
+        '200':
+          description: 当前受限控制会话
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupControlSession'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [backups]
+      operationId: deleteBackupControlSession
+      summary: 退出备份控制会话
+      description: 以独立 CSRF 验证注销并清 Cookie；不注销或升级普通业务会话。终态或过期控制会话仍可用原 CSRF 退出。
+      security:
+        - backupControlCookie: []
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema: {type: string}
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema: {type: string}
+      responses:
+        '204':
+          description: 控制会话已退出
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/admin/backups:
     get:
       tags: [backups]
       operationId: getBackupOverview
+      security:
+        - bearerSession: []
+        - cookieSession: []
+        - backupControlCookie: []
       summary: 查看备份可用性、当前任务与计划
       description: |
         仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
-        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+        维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
@@ -77,10 +153,14 @@ paths:
     get:
       tags: [backups]
       operationId: getBackupHistory
+      security:
+        - bearerSession: []
+        - cookieSession: []
+        - backupControlCookie: []
       summary: 查看完整备份任务历史
       description: |
         仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
-        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+        维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
@@ -96,10 +176,14 @@ paths:
     get:
       tags: [backups]
       operationId: getBackupSchedule
+      security:
+        - bearerSession: []
+        - cookieSession: []
+        - backupControlCookie: []
       summary: 查看每日计划及下一次时间
       description: |
         仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
-        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+        维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
@@ -140,10 +224,14 @@ paths:
     get:
       tags: [backups]
       operationId: getBackupJob
+      security:
+        - bearerSession: []
+        - cookieSession: []
+        - backupControlCookie: []
       summary: 查看备份任务状态
       description: |
         仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
-        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+        维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
         - in: path
@@ -195,10 +283,14 @@ paths:
     post:
       tags: [backups]
       operationId: cancelBackup
+      security:
+        - bearerSession: []
+        - cookieSession: []
+        - backupControlCookie: []
       summary: 请求取消；等待工作退出后恢复业务
       description: |
         仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。
-        维护期仍可读取状态及取消；只读认证实时核验会话、撤权和角色，不续期、不写身份库。
+        维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
         - in: path
@@ -2956,7 +3048,52 @@ components:
         网页的 HttpOnly/Secure/SameSite=Strict 会话。GET/HEAD/OPTIONS 以外的请求必须带与
         允许列表精确相同的 Origin（缺失即拒绝）并在 X-CSRF-Token 头中带与该会话相符的 CSRF
         令牌；同一请求不能同时带 Bearer 与会话 Cookie。
+    backupControlCookie:
+      type: apiKey
+      in: cookie
+      name: lantai_backup_control
+      description: |
+        独立受限控制 Cookie，仅指定的备份 GET、取消与控制会话端点接受。普通会话过期后须以新鲜口令/TOTP取得；不延长原凭据。
+        固定十分钟，不自动续期；绑定当前 job/attempt 和进程，终态/重启/撤权失效。取消和退出须严格 Origin 与自己的 X-CSRF-Token。
   schemas:
+    BackupControlLogin:
+      type: object
+      additionalProperties: false
+      required: [name, password, code]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 32}
+        password: {type: string, minLength: 1, maxLength: 4096, writeOnly: true}
+        code: {type: string, minLength: 1, maxLength: 64, writeOnly: true}
+    BackupControlSession:
+      type: object
+      additionalProperties: false
+      required: [principal, expires_at, csrf_token, scope, capabilities]
+      properties:
+        principal:
+          type: object
+          additionalProperties: false
+          required: [id, name, display_name]
+          properties:
+            id:
+              $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+            name: {type: string}
+            display_name: {type: string}
+        expires_at: {type: string, format: date-time}
+        csrf_token: {type: string}
+        scope:
+          type: object
+          additionalProperties: false
+          required: [job_id, attempt]
+          properties:
+            job_id:
+              $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
+            attempt: {type: integer, minimum: 1}
+        capabilities:
+          type: array
+          minItems: 2
+          maxItems: 2
+          uniqueItems: true
+          items: {type: string, enum: [backup.read, backup.cancel]}
     BackupRunRequest:
       type: object
       additionalProperties: false

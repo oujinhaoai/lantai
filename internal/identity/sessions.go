@@ -596,6 +596,9 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (IssuedSession, e
 	if err != nil {
 		return IssuedSession{}, err
 	}
+	if s.controlTestHook != nil {
+		s.controlTestHook("ordinary_before_hash")
+	}
 	p, rec, ok, err := s.verifyPassword(ctx, req.Name, req.Password)
 	if err != nil {
 		return IssuedSession{}, err
@@ -620,6 +623,10 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (IssuedSession, e
 		return IssuedSession{}, errcode.New(errcode.AuthRequired, "the authenticator must be set up before signing in").
 			WithDetails(errcode.Detail{Reason: "factor_setup_required"})
 	}
+	if err := s.lockProof(ctx); err != nil {
+		return IssuedSession{}, err
+	}
+	defer s.unlockProof()
 	err = inTx(ctx, s.main, func(tx *sql.Tx) error {
 		cur, err := loadPassword(ctx, tx, p.ID)
 		if err != nil || string(cur.Hash) != string(rec.Hash) {

@@ -246,6 +246,10 @@ func (s *Service) VerifyChallenge(ctx context.Context, who authz.Context, challe
 	}
 	source = normalizeSource(source)
 	var g Grant
+	if err := s.lockProof(ctx); err != nil {
+		return Grant{}, err
+	}
+	defer s.unlockProof()
 	err = inTxKeep(ctx, s.main, func(tx *sql.Tx) error {
 		c, err := loadChallenge(ctx, tx, challengeID)
 		if errors.Is(err, errNotFound) || (err == nil && c.HumanID != v.principal.ID) {

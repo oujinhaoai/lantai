@@ -132,7 +132,7 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.Identity, err = identity.New(identity.Deps{Main: i.DB(ownership.Main), Runtime: i.DB(ownership.Runtime), Gate: i.Gate(), Epochs: i, Clock: i.Clock(), IDs: i.IDs(), Key: k, InstanceID: i.InstanceID(), InstanceName: i.Marker().Name}, opts.Identity)
+	a.Identity, err = identity.New(identity.Deps{AuthStateDir: filepath.Join(i.Layout().Home, "backups", "control-auth"), Main: i.DB(ownership.Main), Runtime: i.DB(ownership.Runtime), Gate: i.Gate(), Epochs: i, Clock: i.Clock(), IDs: i.IDs(), Key: k, InstanceID: i.InstanceID(), InstanceName: i.Marker().Name}, opts.Identity)
 	if err != nil {
 		return nil, err
 	}

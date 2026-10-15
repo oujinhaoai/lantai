@@ -29,6 +29,7 @@ import {
 import "./style.css";
 import { FilePreview } from "./file-preview";
 import { BackupManagement, canManageBackups } from "./backup-management";
+import { BackupMaintenanceAccess } from "./backup-maintenance-access";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
@@ -1135,6 +1136,12 @@ function Login({
               设置完成后入口永久关闭。成员设置与验证器恢复请使用现有受保护流程。
             </small>
           </p>
+          <p className="setup-help">
+            <a href={href("/admin/backups/control")}>
+              备份期间重新验证管理员身份
+            </a>
+            <small>仅查看当前备份或取消任务，不恢复普通业务权限。</small>
+          </p>
           {helpAvailable && (
             <a className="help-link" href="/help/">
               使用帮助
@@ -1146,17 +1153,25 @@ function Login({
   );
 }
 function App() {
+  const route = useRoute();
+  const controlMode = route.split("?")[0] === "/admin/backups/control";
   const [who, setWho] = useState<Identity | null>(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
   const [bootError, setBootError] = useState<unknown>();
   const [attempt, setAttempt] = useState(0);
+  const skipOrdinaryProbe = useRef(false);
   const expire = useCallback<Expire>((error) => {
     clearCSRF();
     setWho(null);
     setNotice(error ? message(error) : "已安全退出当前会话。");
   }, []);
   useEffect(() => {
+    if (controlMode) return;
+    if (skipOrdinaryProbe.current) {
+      skipOrdinaryProbe.current = false;
+      return;
+    }
     const controller = new AbortController();
     api<Identity>("/api/v1/whoami", { signal: controller.signal })
       .then((identity) => {
@@ -1174,11 +1189,11 @@ function App() {
         if (!controller.signal.aborted) setBooting(false);
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, controlMode]);
   // Recheck current authorization after returning from another app/tab. No
   // background login, session issuance, renewal, or durable response cache.
   useEffect(() => {
-    if (!who) return;
+    if (!who || controlMode) return;
     const controller = new AbortController();
     const verify = () => {
       if (document.visibilityState !== "visible") return;
@@ -1208,7 +1223,21 @@ function App() {
       removeEventListener("focus", verify);
       clearTimeout(timer);
     };
-  }, [who, expire]);
+  }, [who, expire, controlMode]);
+  if (controlMode)
+    return (
+      <BackupMaintenanceAccess
+        onExit={() => {
+          skipOrdinaryProbe.current = true;
+          clearCSRF();
+          setWho(null);
+          setBooting(false);
+          setBootError(undefined);
+          setNotice("请重新登录以使用普通业务。维护身份不会升级为普通会话。");
+          location.hash = "/";
+        }}
+      />
+    );
   if (booting) return <Loading />;
   if (bootError)
     return (
