@@ -24,6 +24,7 @@ import time
 
 from release_bundle import extract_verified_archive, sha256, validate_static, require_local_docker
 from release_upgrade import assert_retained_upgrade
+from release_backup import prepare_backup_command
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV = {k: v for k, v in os.environ.items() if not k.startswith(("LANTAI_", "COMPOSE_"))}
@@ -174,11 +175,7 @@ class Instance:
         marker.chmod(0o600)
         # Only this newly-created synthetic directory is changed. No source data
         # or original volume ownership is modified by the acceptance harness.
-        run(["docker", "run", "--rm", "--network", "none", "--read-only", "--user", "0:0",
-             "--cap-drop", "ALL", "--cap-add", "CHOWN", "--cap-add", "FOWNER",
-             "--mount", f"type=bind,source={self.backup_root},target=/backup",
-             "--entrypoint", "/bin/sh", self.caddy, "-ec",
-             "chown 65532:65532 /backup /backup/.lantai-backup-root"])
+        run(prepare_backup_command(self.backup_root, self.caddy))
         overlay = self.root / "compose.backup.yaml"
         overlay.write_bytes((deployment / "compose.backup.yaml").read_bytes())
         self.compose += ["-f", str(overlay)]
@@ -455,6 +452,11 @@ def main():
     check("loaded gateway archive exact image", json.loads(run(["docker", "image", "inspect", new["caddy_image"]["tag"]]))[0]["Id"] == new["caddy_image"]["id"])
     run(["docker", "load", "-i", str(args.baseline / "caddy-2.11.4-linux-amd64-image.tar.gz")])
     check("loaded original gateway archive exact image", json.loads(run(["docker", "image", "inspect", old["caddy_image"]["tag"]]))[0]["Id"] == old["caddy_image"]["id"])
+    run(["python3", str(ROOT / "scripts/test-release-backup.py"), "--image", new["caddy_image"]["tag"],
+         "--out", str(args.out / "backup-preparation.json")])
+    preparation = json.loads((args.out / "backup-preparation.json").read_text())
+    check("real backup fixture handover and unsafe-directory checks", preparation["status"] == "passed")
+    RESULT["backup_preparation_passed"] = True
     work = Path(tempfile.mkdtemp(prefix="lantai-release-delivery-"))
     work.chmod(0o700)
     instances = []

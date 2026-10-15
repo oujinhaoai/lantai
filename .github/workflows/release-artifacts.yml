@@ -7,6 +7,9 @@ on:
       - scripts/build-release.py
       - scripts/release_bundle.py
       - scripts/release_upgrade.py
+      - scripts/release_backup.py
+      - scripts/test-release-backup.py
+      - scripts/tests/test_release_backup.py
       - scripts/test-release-delivery.py
       - scripts/test-release-browser.cjs
       - scripts/tests/test_release_bundle.py
@@ -152,5 +155,6 @@ jobs:
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/failure.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/first-start-lifecycle.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-image-smoke.json
+            ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/backup-preparation.json
             ${{ runner.temp }}/lantai-release-${{ github.run_id }}/deliverables/delivery-browser-screenshots.tar.gz
           if-no-files-found: ignore

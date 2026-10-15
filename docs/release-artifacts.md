@@ -68,3 +68,5 @@ PR 的发行工具回归也构建实际镜像和静态包，版本为 v0.0.0-pr.
 发行 manifest 只有上述验收成功后才生成，绑定静态包/config包的版本、source_commit、逐文件hash与实际运行核心/Caddy image ID。失败/skip不能当成功。代码/静态包/真实 NAS 仍需分别归因；条件反向回退只按本次实际测试版本对及未迁移状态认定。用户从[新装](../deploy/release-install.md)或[原地升级](../deploy/release-upgrade.md)选择正确入口，已有实例不能拿新装 Compose/.env 覆盖原项目。
 
 升级比较只允许精确镜像引用、既有静态目录来源、备份根两项环境和一个 bind、以及 /tmp 的 mode=1777 修补；项目、卷定义与来源、TLS、端口、其他环境和安全限制改变即失败。新装与升级后均通过同一运行 core 执行 backup-online，另用仅挂备份目录、无网络、只读且非 root 的目标镜像运行 backup-verify；不向核验容器挂密钥。回退恢复原 rc.4 的完整配置和原网页目录，不能移除旧网页挂载或重新初始化。缺 backup_smoke_passed 或 rollback_passed 的结果不生成成功 manifest。
+
+备份目录交接先以本机检查和容器内复验拒绝非0700目录、非0600标记、符号链接、硬链接和额外条目；辅助容器仅挂新建的合成备份目录，使用CHOWN与DAC_READ_SEARCH（不保留FOWNER），再由无能力的UID65532读取标记并创建文件。真实容器回归保留旧命令失败、仅交换顺序不足以及异常目录不改属主的证据；backup_preparation_passed缺失时也不能生成成功manifest。该辅助流程仅用于验收夹具，不是对现有数据或磁盘递归修改权限的部署工具。
