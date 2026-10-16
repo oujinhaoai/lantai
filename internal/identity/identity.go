@@ -116,8 +116,10 @@ func (c Config) withDefaults() Config {
 
 // Deps 是身份模块依赖的实例资源，由组装方（operations 实例）提供。
 type Deps struct {
-	Main    *sql.DB
-	Runtime *sql.DB
+	// AuthStateDir stores only durable maintenance-auth anti-replay/rate state.
+	AuthStateDir string
+	Main         *sql.DB
+	Runtime      *sql.DB
 	// Gate 是实例写入口：全部写入经它进入，维护与停止期间被拒。
 	Gate *commands.Gate
 	// Epochs 提供实例当前的 recovery_epoch。
@@ -133,19 +135,24 @@ type Deps struct {
 
 // Service 是身份模块的应用服务。
 type Service struct {
-	main, runtime *sql.DB
-	gate          *commands.Gate
-	epochs        authz.EpochSource
-	clock         clock.Clock
-	ids           *ids.Generator
-	key           *masterkey.Key
-	instance      ids.ID
-	issuer        string
-	cfg           Config
-	hasher        *password.Hasher
-	mainStore     *commands.Store
-	rtStore       *commands.Store
-	csrfKey       []byte
+	proofMu          chan struct{}
+	controlLedger    *controlAuthLedger
+	controlInitFault func(string) error
+	controlTestHook  func(string)
+	control          *backupControlSessions
+	main, runtime    *sql.DB
+	gate             *commands.Gate
+	epochs           authz.EpochSource
+	clock            clock.Clock
+	ids              *ids.Generator
+	key              *masterkey.Key
+	instance         ids.ID
+	issuer           string
+	cfg              Config
+	hasher           *password.Hasher
+	mainStore        *commands.Store
+	rtStore          *commands.Store
+	csrfKey          []byte
 }
 
 var (
@@ -190,11 +197,14 @@ func New(d Deps, cfg Config) (*Service, error) {
 	if issuer == "" {
 		issuer = "lantai"
 	}
-	return &Service{
-		main: d.Main, runtime: d.Runtime, gate: d.Gate, epochs: d.Epochs, clock: d.Clock, ids: d.IDs,
+	s := &Service{
+		proofMu: make(chan struct{}, 1), main: d.Main, runtime: d.Runtime, gate: d.Gate, epochs: d.Epochs, clock: d.Clock, ids: d.IDs,
 		key: d.Key, instance: d.InstanceID, issuer: issuer, cfg: cfg, hasher: h,
 		mainStore: ms, rtStore: rs, csrfKey: csrf,
-	}, nil
+	}
+	s.initControlAuth(d.AuthStateDir)
+	s.initControlSessions()
+	return s, nil
 }
 
 // Config 返回生效的参数。

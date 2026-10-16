@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -111,46 +112,72 @@ func (b *BackupControl) recoverJournalTemp(entry fs.DirEntry) (bool, error) {
 	return true, errors.Join(fsutil.SyncDir(quarantine), fsutil.SyncDir(b.journalDir()))
 }
 
-func readBackupJob(file string) (BackupJob, error) {
+func readBackupRecord(file string) (BackupJob, []backupReceipt, error) {
 	var j BackupJob
 	st, err := os.Lstat(file)
 	if err != nil {
-		return j, err
+		return j, nil, err
 	}
 	if !st.Mode().IsRegular() {
-		return j, errors.New("unsafe backup journal file")
+		return j, nil, errors.New("unsafe backup journal file")
 	}
 	if err = fsutil.CheckPrivate(file); err != nil {
-		return j, err
+		return j, nil, err
 	}
 	if (runtime.GOOS == "linux" || runtime.GOOS == "darwin") && !backupOwner(st) {
-		return j, errors.New("backup journal has a foreign owner")
+		return j, nil, errors.New("backup journal has a foreign owner")
 	}
 	f, err := os.Open(file)
 	if err != nil {
-		return j, err
+		return j, nil, err
 	}
 	defer f.Close()
 	raw, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
 	if err != nil {
-		return j, err
+		return j, nil, err
 	}
 	if len(raw) > 64<<10 {
-		return j, errors.New("backup journal exceeds size limit")
+		return j, nil, errors.New("backup journal exceeds size limit")
 	}
 	if _, err = canonjson.Decode(raw); err != nil {
-		return j, err
+		return j, nil, err
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
-	if err = d.Decode(&j); err != nil {
-		return j, err
+	var record backupRecord
+	if err = d.Decode(&record); err != nil {
+		return j, nil, err
 	}
 	if err = d.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return j, errors.New("trailing backup journal data")
+		return j, nil, errors.New("trailing backup journal data")
+	}
+	j = record.Job
+	if err := validateReceipts(record.Receipts); err != nil {
+		return j, nil, err
+	}
+	if j.Attempt < 0 {
+		return j, nil, errors.New("invalid backup job attempt")
+	}
+	switch j.Source {
+	case "", "manual", "local":
+		if j.ScheduledFor != "" || j.ScheduleTimezone != "" {
+			return j, nil, errors.New("invalid backup schedule origin")
+		}
+	case "schedule":
+		if j.ScheduleRevision < 1 {
+			return j, nil, errors.New("invalid backup schedule revision")
+		}
+		if _, err := time.Parse("2006-01-02", j.ScheduledFor); err != nil {
+			return j, nil, err
+		}
+		if _, err := time.LoadLocation(j.ScheduleTimezone); err != nil {
+			return j, nil, err
+		}
+	default:
+		return j, nil, errors.New("invalid backup job origin")
 	}
 	if !j.ID.Valid() || j.BackupID != "" && !j.BackupID.Valid() || j.CreatedAt.IsZero() || j.UpdatedAt.IsZero() {
-		return j, errors.New("invalid backup journal identity")
+		return j, nil, errors.New("invalid backup journal identity")
 	}
-	return j, nil
+	return j, record.Receipts, nil
 }

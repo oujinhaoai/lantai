@@ -5,10 +5,13 @@ package integration
 // read. Never expose its loopback listener or use it as a deployment server.
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,12 +20,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oujinhaoai/lantai/internal/application"
 	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
+	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/operations"
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
-	"github.com/oujinhaoai/lantai/internal/transport/httpapi"
 )
 
 func TestWebBrowserFixture(t *testing.T) {
@@ -145,17 +150,78 @@ func TestWebBrowserFixture(t *testing.T) {
 	// verification/replay protection. Test expiry advances this same clock.
 	e.clk.Set(time.Now().Add(time.Minute))
 	a := reopenApplication(t, e)
-	h, err := httpapi.New(httpapi.Deps{Identity: a.Identity, Catalog: a.Catalog, Storage: a.Storage, Query: a.Query, Operations: a}, httpapi.Config{InstanceID: a.Instance.InstanceID(), AllowedOrigins: []string{origin}})
+	backupRoot, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = os.Chmod(backupRoot, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(backupRoot, application.BackupRootMarker), []byte("browser-fixture\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	a.ConfigureBackups(t.Context(), backupRoot, "browser-fixture")
+	var copyMu sync.Mutex
+	var copyRelease chan struct{}
+	copyWaiting := false
+	releaseCopy := func() {
+		copyMu.Lock()
+		defer copyMu.Unlock()
+		if copyRelease != nil {
+			close(copyRelease)
+			copyRelease = nil
+		}
+		copyWaiting = false
+	}
+	t.Cleanup(releaseCopy)
+	if err := installFixtureCopyHook(a, func(context.Context) {
+		copyMu.Lock()
+		wait := copyRelease
+		copyWaiting = wait != nil
+		copyMu.Unlock()
+		if wait != nil {
+			// Cancellation must not pretend an outstanding copy has exited.
+			// Only this test's explicit release lets the real worker continue.
+			<-wait
+		}
+		copyMu.Lock()
+		copyWaiting = false
+		copyMu.Unlock()
+	}); err != nil {
+		t.Fatal(err)
+	}
+	cfg := a.Instance.Config()
+	cfg.Listen = operations.ListenConfig{API: "127.0.0.1:0", Transfer: "127.0.0.1:0", Operations: "127.0.0.1:0", Merged: true}
+	cfg.HTTP.AllowedOrigins = []string{origin}
+	servers, err := a.StartHTTP(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = servers.Shutdown(ctx)
+	})
+	upstream, err := url.Parse("http://" + servers.Addresses.API)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(upstream)
 	var control sync.Mutex
+	var backupHold *commands.Held
+	t.Cleanup(func() {
+		control.Lock()
+		defer control.Unlock()
+		if backupHold != nil {
+			backupHold.Release()
+		}
+	})
 	mediaEnabled := false
 	stop := make(chan struct{})
 	var stopped sync.Once
 	mux := http.NewServeMux()
-	mux.Handle("/api/", h.API())
-	mux.Handle("/xfer/", h.Transfer(a.Storage, e.sched))
+	mux.Handle("/api/", proxy)
+	mux.Handle("/xfer/", proxy)
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.HandleFunc("/__fixture/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.Header.Get("X-Lantai-Fixture") != "1" {
@@ -169,6 +235,40 @@ func TestWebBrowserFixture(t *testing.T) {
 		switch r.URL.Path {
 		case "/__fixture/login":
 			_ = json.NewEncoder(w).Encode(map[string]string{"name": "ada", "password": adminPassword, "code": e.fresh(), "project": string(e.project.ProjectID)})
+		case "/__fixture/code":
+			_ = json.NewEncoder(w).Encode(map[string]string{"code": e.fresh()})
+		case "/__fixture/backup-hold":
+			// Hold the same shared barrier as a real in-flight background write.
+			// Backup must drain this lease; no fake backup result is injected.
+			if backupHold == nil {
+				_, backupHold, err = a.Instance.Gate().Acquire(r.Context(), commands.Request{})
+				if err != nil {
+					http.Error(w, "fixture cannot acquire write lease", http.StatusConflict)
+					return
+				}
+			}
+			w.WriteHeader(http.StatusNoContent)
+		case "/__fixture/backup-release":
+			if backupHold != nil {
+				backupHold.Release()
+				backupHold = nil
+			}
+			w.WriteHeader(http.StatusNoContent)
+		case "/__fixture/backup-copy-hold":
+			copyMu.Lock()
+			if copyRelease == nil {
+				copyRelease = make(chan struct{})
+			}
+			copyMu.Unlock()
+			w.WriteHeader(http.StatusNoContent)
+		case "/__fixture/backup-copy-status":
+			copyMu.Lock()
+			waiting := copyWaiting
+			copyMu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]bool{"holding": waiting})
+		case "/__fixture/backup-copy-release":
+			releaseCopy()
+			w.WriteHeader(http.StatusNoContent)
 		case "/__fixture/expire":
 			e.clk.Advance(13 * time.Hour)
 			w.WriteHeader(http.StatusNoContent)

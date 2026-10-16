@@ -79,7 +79,15 @@ func (s *Service) checkFactorTx(ctx context.Context, tx *sql.Tx, principal ids.I
 	if err != nil {
 		return totp.Invalid, err
 	}
-	res, counter := totp.Verify(secret, code, s.now(), f.LastCounter)
+	overlay, err := s.controlCounter(f.ID)
+	if err != nil {
+		return totp.Invalid, err
+	}
+	last := f.LastCounter
+	if overlay > last {
+		last = overlay
+	}
+	res, counter := totp.Verify(secret, code, s.now(), last)
 	if res != totp.Accepted {
 		return res, nil
 	}

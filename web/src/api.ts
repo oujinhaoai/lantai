@@ -6,10 +6,12 @@ export interface Session {
   session_kind: string;
   expires_at: string;
   scopes: string[];
+  delegated_by?: string;
 }
 export interface Identity {
-  principal: { name: string; display_name?: string };
+  principal: { name: string; display_name?: string; kind?: string };
   session: Session;
+  system_roles?: string[];
   project_roles?: Record<string, string[]>;
 }
 export interface Project {
@@ -78,6 +80,7 @@ export class APIError extends Error {
     public code: string,
     public status: number,
     public requestID?: string,
+    public reason?: string,
   ) {
     super(code);
   }
@@ -127,13 +130,16 @@ export const isSessionError = (e: unknown) =>
 export async function api<T>(
   path: string,
   options: RequestInit = {},
+  csrfOverride?: string | null,
 ): Promise<T> {
   // Only the fixed same-origin API can receive this tab's cookies/CSRF value.
   if (!path.startsWith("/api/v1/")) throw new Error("Invalid API path");
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
   if (options.method && !["GET", "HEAD"].includes(options.method)) {
-    if (csrf) headers.set("X-CSRF-Token", csrf.value);
+    const value = csrfOverride === undefined ? csrf?.value : csrfOverride;
+    if (value) headers.set("X-CSRF-Token", value);
+    else headers.delete("X-CSRF-Token");
   }
   let response: Response;
   try {
@@ -153,6 +159,9 @@ export async function api<T>(
       body.error?.code || "SERVER_ERROR",
       response.status,
       response.headers.get("X-Request-Id") || undefined,
+      typeof body.error?.details?.[0]?.reason === "string"
+        ? body.error.details[0].reason
+        : undefined,
     );
   }
   if (response.status === 204) return undefined as T;
@@ -191,6 +200,17 @@ export function message(e: unknown) {
     NETWORK_ERROR: "无法连接服务，请检查网络后重试。",
     SERVER_ERROR: "服务暂时不可用，请稍后重试。",
     INVALID_RESPONSE: "服务返回了无法识别的内容，请稍后重试。",
+    HUMAN_PROOF_REQUIRED: "此操作需要重新验证，请关闭确认框后重新发起。",
+    HUMAN_GRANT_MISMATCH: "验证内容与操作不一致，请重新发起操作。",
+    HUMAN_GRANT_EXPIRED: "此次操作验证已过期，请重新发起。",
+    INVALID_STATE_TRANSITION: "当前状态不允许此操作，请刷新查看最新任务。",
+    PRECONDITION_FAILED: "设置已被其他管理员更新，请刷新后重试。",
+    IDEMPOTENCY_CONFLICT: "请求内容发生变化，请刷新并重新确认操作。",
+    STORAGE_UNAVAILABLE: "备份存储暂不可用，请检查目录配置和权限后重试。",
+    SCHEMA_INVALID: "输入格式不正确，请检查时间、时区和其他设置。",
+    BACKUP_TIMEOUT_INVALID: "排空等待上限不能大于整个任务超时。",
+    MAINTENANCE: "备份维护中，业务操作暂时暂停。备份管理仍可查看和取消。",
+    MAINTENANCE_MODE: "当前无法执行此操作，请检查维护状态后重试。",
   };
   return messages[code] || "请求未完成，请检查输入或稍后重试。";
 }

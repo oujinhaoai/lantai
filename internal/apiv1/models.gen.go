@@ -8,7 +8,134 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for BackupApprovalKind.
+const (
+	BackupApprovalKindResume   BackupApprovalKind = "resume"
+	BackupApprovalKindSchedule BackupApprovalKind = "schedule"
+	BackupApprovalKindStart    BackupApprovalKind = "start"
+)
+
+// Valid indicates whether the value is a known member of the BackupApprovalKind enum.
+func (e BackupApprovalKind) Valid() bool {
+	switch e {
+	case BackupApprovalKindResume:
+		return true
+	case BackupApprovalKindSchedule:
+		return true
+	case BackupApprovalKindStart:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupControlSessionCapabilities.
+const (
+	BackupControlSessionCapabilitiesBackupCancel BackupControlSessionCapabilities = "backup.cancel"
+	BackupControlSessionCapabilitiesBackupRead   BackupControlSessionCapabilities = "backup.read"
+)
+
+// Valid indicates whether the value is a known member of the BackupControlSessionCapabilities enum.
+func (e BackupControlSessionCapabilities) Valid() bool {
+	switch e {
+	case BackupControlSessionCapabilitiesBackupCancel:
+		return true
+	case BackupControlSessionCapabilitiesBackupRead:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupJobSource.
+const (
+	BackupJobSourceLocal    BackupJobSource = "local"
+	BackupJobSourceManual   BackupJobSource = "manual"
+	BackupJobSourceSchedule BackupJobSource = "schedule"
+)
+
+// Valid indicates whether the value is a known member of the BackupJobSource enum.
+func (e BackupJobSource) Valid() bool {
+	switch e {
+	case BackupJobSourceLocal:
+		return true
+	case BackupJobSourceManual:
+		return true
+	case BackupJobSourceSchedule:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupJobState.
+const (
+	BackupJobStateBackingUp   BackupJobState = "backing_up"
+	BackupJobStateCancelled   BackupJobState = "cancelled"
+	BackupJobStateCancelling  BackupJobState = "cancelling"
+	BackupJobStateComplete    BackupJobState = "complete"
+	BackupJobStateDraining    BackupJobState = "draining"
+	BackupJobStateFailed      BackupJobState = "failed"
+	BackupJobStateInterrupted BackupJobState = "interrupted"
+)
+
+// Valid indicates whether the value is a known member of the BackupJobState enum.
+func (e BackupJobState) Valid() bool {
+	switch e {
+	case BackupJobStateBackingUp:
+		return true
+	case BackupJobStateCancelled:
+		return true
+	case BackupJobStateCancelling:
+		return true
+	case BackupJobStateComplete:
+		return true
+	case BackupJobStateDraining:
+		return true
+	case BackupJobStateFailed:
+		return true
+	case BackupJobStateInterrupted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupScheduleEventState.
+const (
+	BackupScheduleEventStateAuthorizationCheckFailed BackupScheduleEventState = "authorization_check_failed"
+	BackupScheduleEventStateAuthorizationRevoked     BackupScheduleEventState = "authorization_revoked"
+	BackupScheduleEventStateDstMissing               BackupScheduleEventState = "dst_missing"
+	BackupScheduleEventStateMissed                   BackupScheduleEventState = "missed"
+	BackupScheduleEventStateSkippedBusy              BackupScheduleEventState = "skipped_busy"
+	BackupScheduleEventStateStarted                  BackupScheduleEventState = "started"
+	BackupScheduleEventStateUnavailable              BackupScheduleEventState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the BackupScheduleEventState enum.
+func (e BackupScheduleEventState) Valid() bool {
+	switch e {
+	case BackupScheduleEventStateAuthorizationCheckFailed:
+		return true
+	case BackupScheduleEventStateAuthorizationRevoked:
+		return true
+	case BackupScheduleEventStateDstMissing:
+		return true
+	case BackupScheduleEventStateMissed:
+		return true
+	case BackupScheduleEventStateSkippedBusy:
+		return true
+	case BackupScheduleEventStateStarted:
+		return true
+	case BackupScheduleEventStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for BlobStatusPageItemsStatus.
 const (
@@ -1248,6 +1375,9 @@ func (e RecoveryAction) Valid() bool {
 
 // Defines values for SensitiveRequestAction.
 const (
+	SensitiveRequestActionIdentityBackupResume      SensitiveRequestAction = "identity.backup_resume"
+	SensitiveRequestActionIdentityBackupSchedule    SensitiveRequestAction = "identity.backup_schedule"
+	SensitiveRequestActionIdentityBackupStart       SensitiveRequestAction = "identity.backup_start"
 	SensitiveRequestActionIdentityGrantProjectRole  SensitiveRequestAction = "identity.grant_project_role"
 	SensitiveRequestActionIdentityIssueCredential   SensitiveRequestAction = "identity.issue_credential"
 	SensitiveRequestActionIdentityRegisterPrincipal SensitiveRequestAction = "identity.register_principal"
@@ -1258,6 +1388,12 @@ const (
 // Valid indicates whether the value is a known member of the SensitiveRequestAction enum.
 func (e SensitiveRequestAction) Valid() bool {
 	switch e {
+	case SensitiveRequestActionIdentityBackupResume:
+		return true
+	case SensitiveRequestActionIdentityBackupSchedule:
+		return true
+	case SensitiveRequestActionIdentityBackupStart:
+		return true
 	case SensitiveRequestActionIdentityGrantProjectRole:
 		return true
 	case SensitiveRequestActionIdentityIssueCredential:
@@ -1581,6 +1717,162 @@ type AssetView struct {
 
 	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	ProjectId Ulid `json:"project_id"`
+}
+
+// BackupApproval identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
+type BackupApproval struct {
+	DrainSeconds *int `json:"drain_seconds,omitempty"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId          *Ulid                `json:"job_id,omitempty"`
+	Kind           BackupApprovalKind   `json:"kind"`
+	Schedule       *BackupScheduleInput `json:"schedule,omitempty"`
+	TimeoutSeconds *int                 `json:"timeout_seconds,omitempty"`
+}
+
+// BackupApprovalKind defines model for BackupApproval.Kind.
+type BackupApprovalKind string
+
+// BackupControlLogin defines model for BackupControlLogin.
+type BackupControlLogin struct {
+	Code     *string `json:"code,omitempty"`
+	Name     string  `json:"name"`
+	Password *string `json:"password,omitempty"`
+}
+
+// BackupControlSession defines model for BackupControlSession.
+type BackupControlSession struct {
+	Capabilities []BackupControlSessionCapabilities `json:"capabilities"`
+	CsrfToken    string                             `json:"csrf_token"`
+	ExpiresAt    time.Time                          `json:"expires_at"`
+	Principal    struct {
+		DisplayName string `json:"display_name"`
+
+		// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		Id   Ulid   `json:"id"`
+		Name string `json:"name"`
+	} `json:"principal"`
+	Scope struct {
+		Attempt int `json:"attempt"`
+
+		// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		JobId Ulid `json:"job_id"`
+	} `json:"scope"`
+}
+
+// BackupControlSessionCapabilities defines model for BackupControlSession.Capabilities.
+type BackupControlSessionCapabilities string
+
+// BackupHistory defines model for BackupHistory.
+type BackupHistory struct {
+	Items []BackupJob `json:"items"`
+}
+
+// BackupJob defines model for BackupJob.
+type BackupJob struct {
+	Attempt *int `json:"attempt,omitempty"`
+
+	// BackupId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BackupId       *Ulid     `json:"backup_id,omitempty"`
+	CaptureStarted *bool     `json:"capture_started,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	Error          *string   `json:"error,omitempty"`
+
+	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Id               Ulid                `json:"id"`
+	ScheduleRevision *int64              `json:"schedule_revision,omitempty"`
+	ScheduleTimezone *string             `json:"schedule_timezone,omitempty"`
+	ScheduledFor     *openapi_types.Date `json:"scheduled_for,omitempty"`
+	Source           *BackupJobSource    `json:"source,omitempty"`
+	State            BackupJobState      `json:"state"`
+	UpdatedAt        time.Time           `json:"updated_at"`
+}
+
+// BackupJobSource defines model for BackupJob.Source.
+type BackupJobSource string
+
+// BackupJobState defines model for BackupJob.State.
+type BackupJobState string
+
+// BackupOverview defines model for BackupOverview.
+type BackupOverview struct {
+	Availability struct {
+		Available     bool       `json:"available"`
+		CheckDeferred *bool      `json:"check_deferred,omitempty"`
+		CheckedAt     *time.Time `json:"checked_at,omitempty"`
+		Configured    bool       `json:"configured"`
+		Error         *string    `json:"error,omitempty"`
+	} `json:"availability"`
+	Current              *BackupJob            `json:"current"`
+	LastSuccess          *BackupJob            `json:"last_success"`
+	RecentScheduleEvents []BackupScheduleEvent `json:"recent_schedule_events"`
+	Schedule             BackupSchedule        `json:"schedule"`
+}
+
+// BackupRunRequest defines model for BackupRunRequest.
+type BackupRunRequest struct {
+	DrainSeconds *int `json:"drain_seconds,omitempty"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId        Ulid `json:"grant_id"`
+	TimeoutSeconds *int `json:"timeout_seconds,omitempty"`
+}
+
+// BackupSchedule defines model for BackupSchedule.
+type BackupSchedule struct {
+	ApprovalOperation *string `json:"approval_operation,omitempty"`
+
+	// AuthorizedBy 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AuthorizedBy   *Ulid      `json:"authorized_by,omitempty"`
+	DisabledReason *string    `json:"disabled_reason,omitempty"`
+	DrainSeconds   *int       `json:"drain_seconds,omitempty"`
+	Enabled        bool       `json:"enabled"`
+	NextRunAt      *time.Time `json:"next_run_at"`
+	Revision       int64      `json:"revision"`
+	Time           string     `json:"time"`
+	TimeoutSeconds *int       `json:"timeout_seconds,omitempty"`
+	Timezone       string     `json:"timezone"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// BackupScheduleEvent defines model for BackupScheduleEvent.
+type BackupScheduleEvent struct {
+	At    time.Time          `json:"at"`
+	Date  openapi_types.Date `json:"date"`
+	Error *string            `json:"error,omitempty"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId    *Ulid                    `json:"job_id,omitempty"`
+	State    BackupScheduleEventState `json:"state"`
+	Timezone string                   `json:"timezone"`
+}
+
+// BackupScheduleEventState defines model for BackupScheduleEvent.State.
+type BackupScheduleEventState string
+
+// BackupScheduleInput defines model for BackupScheduleInput.
+type BackupScheduleInput struct {
+	DrainSeconds   *int   `json:"drain_seconds,omitempty"`
+	Enabled        bool   `json:"enabled"`
+	Revision       int64  `json:"revision"`
+	Time           string `json:"time"`
+	TimeoutSeconds *int   `json:"timeout_seconds,omitempty"`
+
+	// Timezone IANA timezone name (UTC allowed, Local rejected); embedded tzdata.
+	Timezone string `json:"timezone"`
+}
+
+// BackupScheduleRequest defines model for BackupScheduleRequest.
+type BackupScheduleRequest struct {
+	DrainSeconds *int `json:"drain_seconds,omitempty"`
+	Enabled      bool `json:"enabled"`
+
+	// GrantId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	GrantId        Ulid   `json:"grant_id"`
+	Revision       int64  `json:"revision"`
+	Time           string `json:"time"`
+	TimeoutSeconds *int   `json:"timeout_seconds,omitempty"`
+	Timezone       string `json:"timezone"`
 }
 
 // BlobGrant defines model for BlobGrant.
@@ -5160,7 +5452,7 @@ type RelativePath = string
 // Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
 type Revision = int
 
-// SensitiveRequest Closed identity command JSON matches the selected core action. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
+// SensitiveRequest Closed identity command JSON matches the selected core action. Backup actions accept BackupApproval only in challenges; submit the verified grant through the backup route, never identity/commands. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
 type SensitiveRequest struct {
 	Action  SensitiveRequestAction `json:"action"`
 	Command map[string]interface{} `json:"command"`
@@ -5485,6 +5777,81 @@ type Accepted = OperationStatusAccepted
 
 // Error 所有 HTTP、CLI JSON 与 adapter 协议共用的错误信封。code 必须在 error-codes.json 中登记，且 retryable、recovery_action 与登记一致。
 type Error = ErrorEnvelope
+
+// GetBackupOverviewParams defines parameters for GetBackupOverview.
+type GetBackupOverviewParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// StartBackupParams defines parameters for StartBackup.
+type StartBackupParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// DeleteBackupControlSessionParams defines parameters for DeleteBackupControlSession.
+type DeleteBackupControlSessionParams struct {
+	Origin     string `json:"Origin"`
+	XCSRFToken string `json:"X-CSRF-Token"`
+}
+
+// CreateBackupControlSessionParams defines parameters for CreateBackupControlSession.
+type CreateBackupControlSessionParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// Origin 必须与允许列表精确匹配；跨站请求拒绝。
+	Origin string `json:"Origin"`
+}
+
+// GetBackupHistoryParams defines parameters for GetBackupHistory.
+type GetBackupHistoryParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetBackupScheduleParams defines parameters for GetBackupSchedule.
+type GetBackupScheduleParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// SaveBackupScheduleParams defines parameters for SaveBackupSchedule.
+type SaveBackupScheduleParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetBackupJobParams defines parameters for GetBackupJob.
+type GetBackupJobParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// CancelBackupParams defines parameters for CancelBackup.
+type CancelBackupParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ResumeBackupParams defines parameters for ResumeBackup.
+type ResumeBackupParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
 
 // SearchAssetsParams defines parameters for SearchAssets.
 type SearchAssetsParams struct {
@@ -6154,6 +6521,21 @@ type PutUploadPartParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// StartBackupJSONRequestBody defines body for StartBackup for application/json ContentType.
+type StartBackupJSONRequestBody = BackupRunRequest
+
+// CreateBackupControlSessionJSONRequestBody defines body for CreateBackupControlSession for application/json ContentType.
+type CreateBackupControlSessionJSONRequestBody = BackupControlLogin
+
+// SaveBackupScheduleJSONRequestBody defines body for SaveBackupSchedule for application/json ContentType.
+type SaveBackupScheduleJSONRequestBody = BackupScheduleRequest
+
+// CancelBackupJSONRequestBody defines body for CancelBackup for application/json ContentType.
+type CancelBackupJSONRequestBody = EmptyRequest
+
+// ResumeBackupJSONRequestBody defines body for ResumeBackup for application/json ContentType.
+type ResumeBackupJSONRequestBody = BackupRunRequest
 
 // PatchAssetMetadataJSONRequestBody defines body for PatchAssetMetadata for application/json ContentType.
 type PatchAssetMetadataJSONRequestBody = AssetPatch

@@ -47,8 +47,20 @@ var (
 // RATE_LIMITED。新建挑战不会重置主体计数。
 func (s *Service) checkRate(ctx context.Context, q commands.DBTX, principal ids.ID, source string, bucket []string) error {
 	now := s.now()
+	if l := s.controlLedger; l != nil {
+		if e := l.problem(); e != nil {
+			return e
+		}
+		if clock.Millis(now) < l.state.Load().ObservedAt {
+			return controlAuthUnavailable()
+		}
+	}
 	since := clock.Millis(now.Add(-s.cfg.FailureWindow))
 	kinds := "'" + strings.Join(bucket, "', '") + "'"
+	pn, po, sn, so, err := s.controlFailures(principal, source, since, bucket)
+	if err != nil {
+		return err
+	}
 	check := func(col, val string) error {
 		if val == "" {
 			return nil
@@ -58,6 +70,15 @@ func (s *Service) checkRate(ctx context.Context, q commands.DBTX, principal ids.
 		if err := q.QueryRowContext(ctx, `SELECT count(*), min(at) FROM identity_auth_failures WHERE `+col+` = ? AND at > ?
 			AND kind IN (`+kinds+`)`, val, since).Scan(&n, &oldest); err != nil {
 			return err
+		}
+		extra, old := pn, po
+		if col == "source" {
+			extra, old = sn, so
+		}
+		n += extra
+		if old > 0 && (!oldest.Valid || old < oldest.Int64) {
+			oldest.Int64 = old
+			oldest.Valid = true
 		}
 		if n < s.cfg.FailureLimit {
 			return nil
@@ -97,6 +118,10 @@ func (s *Service) reserveAttempt(ctx context.Context, principal ids.ID, source, 
 	}
 	defer release()
 	var seq int64
+	if err := s.lockProof(lctx); err != nil {
+		return 0, err
+	}
+	defer s.unlockProof()
 	err = inTx(lctx, s.main, func(tx *sql.Tx) error {
 		if err := s.checkRate(lctx, tx, principal, source, bucketSignIn); err != nil {
 			return err

@@ -368,8 +368,11 @@ func TestIndependentReviewDestinationPermissions(t *testing.T) {
 	if err := os.Chmod(b.root, 0777); err != nil {
 		t.Fatal(err)
 	}
-	if err := b.preflight(); err != nil {
-		t.Fatal(err)
+	if err := b.preflight(); err == nil {
+		t.Fatal("shared destination root accepted")
 	}
-	t.Log("unwritable root rejected; documented private-root requirement is not enforced (0777 accepted)")
+	if !a.Ready() {
+		t.Fatal("shared root preflight changed business readiness")
+	}
+	t.Log("unwritable and shared roots rejected without changing business readiness")
 }

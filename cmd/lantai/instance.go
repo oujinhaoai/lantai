@@ -50,7 +50,7 @@ func reportStartup(stderr io.Writer, cmd string, err error) int {
 }
 
 func newIdentity(inst *operations.Instance, key *masterkey.Key) (*identity.Service, error) {
-	return identity.New(identity.Deps{
+	return identity.New(identity.Deps{AuthStateDir: filepath.Join(inst.Layout().Home, "backups", "control-auth"),
 		Main: inst.DB(ownership.Main), Runtime: inst.DB(ownership.Runtime), Gate: inst.Gate(), Epochs: inst,
 		Clock: inst.Clock(), IDs: inst.IDs(), Key: key, InstanceID: inst.InstanceID(), InstanceName: inst.Marker().Name,
 	}, identity.Config{})

@@ -189,7 +189,13 @@ def build_deployment_bundle(source, work, deliver, version, commit, stamp, core_
     backup_doc = (source / "docs/online-backup.md").read_text()
     backup_doc = backup_doc.replace("(contracts/backup-restore.md)",
         f"(https://github.com/oujinhaoai/lantai/blob/{commit}/docs/contracts/backup-restore.md)")
+    backup_doc = backup_doc.replace("(../api/backup-management.md)", "(backup-management-api.md)")
     (root / "online-backup.md").write_text(backup_doc)
+    management_doc = (source / "api/backup-management.md").read_text()
+    management_doc = management_doc.replace("(openapi.yaml)",
+        f"(https://github.com/oujinhaoai/lantai/blob/{commit}/api/openapi.yaml)")
+    management_doc = management_doc.replace("(../docs/online-backup.md)", "(online-backup.md)")
+    (root / "backup-management-api.md").write_text(management_doc)
     for name in ("release-install.md", "release-upgrade.md"):
         path = root / name
         path.write_text(path.read_text().replace("../docs/online-backup.md", "online-backup.md"))

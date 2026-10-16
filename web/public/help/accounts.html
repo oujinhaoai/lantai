@@ -12,6 +12,7 @@
 <h2 id="前提身份会话项目角色缺一不可">前提：身份、会话、项目角色缺一不可</h2>
 <div class="table-scroll" role="region" aria-label="对照表，可横向滚动" tabindex="0"><table><thead><tr><th scope="col">身份或权限</th><th scope="col">用途</th></tr></thead><tbody><tr><td>人类管理员</td><td>密码 + 当前 TOTP 登录，登记身份、分配角色、核对敏感操作</td></tr><tr><td>Agent</td><td>管理员登记，例如合成名 <code>codex@workstation</code>；用长期凭据换短期会话</td></tr><tr><td>项目角色</td><td>决定在某项目可读、可写或管理；系统 admin 不自动拥有每个项目</td></tr><tr><td>会话 scope</td><td>决定本次会话能使用哪些能力；有角色仍可能缺 scope</td></tr><tr><td>HumanGrant</td><td>人本人审核特定动作、目标和修订后，用新动态码取得的短时授权；登录不等于批准</td></tr></tbody></table></div>
 <p><code>viewer</code> 用于只读；<code>contributor</code> 可提交自己的资源；<code>owner</code> 管理项目。其余角色及完整规则见<a href="https://github.com/oujinhaoai/lantai/blob/main/docs/contracts/identity-actions.md">权限登记表</a>。不要给 Agent 人的 admin 会话、密码、TOTP 或恢复码。</p>
+<p>新增备份管理候选的网页提供显式“管理员登录（含备份管理权限）”。只在需要管理时勾选；默认浏览会话仍只申请 <code>self/read</code>。备份页面同时复核系统管理员角色和 <code>admin</code> scope，项目 owner 不等于整馆管理员。详见<a href="backup.html">备份管理</a>。</p>
 <h2 id="1-管理员登录并确认身份">1. 管理员登录并确认身份</h2>
 <p>从发行包取得本机对应的 <code>lantai</code>，按<a href="troubleshooting.html">版本核对</a>检查。创建私有工作目录；macOS/Linux 可先执行 <code>umask 077</code>，用编辑器创建 <code>credentials.json</code>，字段如下。占位文字必须替换，<code>code</code> 保持字符串以保留前导零。</p>
 <pre tabindex="0" aria-label="json 示例"><code>{&quot;name&quot;:&quot;ada&quot;,&quot;password&quot;:&quot;替换为自己的密码&quot;,&quot;code&quot;:&quot;当前六位码&quot;}</code></pre>

@@ -134,12 +134,16 @@ func (h *Handler) middleware(next http.Handler, api bool) http.Handler {
 			return
 		}
 		cookies := 0
+		controlCookies := 0
 		for _, cookie := range r.Cookies() {
+			if cookie.Name == backupControlCookie {
+				controlCookies++
+			}
 			if cookie.Name == httpauth.CookieName {
 				cookies++
 			}
 		}
-		if len(r.Header.Values("Authorization")) > 1 || len(r.Header.Values("Origin")) > 1 || len(r.Header.Values(httpauth.CSRFHeader)) > 1 || cookies > 1 {
+		if len(r.Header.Values("Authorization")) > 1 || len(r.Header.Values("Origin")) > 1 || len(r.Header.Values(httpauth.CSRFHeader)) > 1 || cookies > 1 || controlCookies > 1 {
 			writeError(w, r, errcode.New(errcode.Forbidden, "ambiguous authentication headers"))
 			return
 		}

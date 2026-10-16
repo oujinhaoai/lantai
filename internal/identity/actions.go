@@ -45,6 +45,15 @@ type ActionSpec struct {
 
 var allProjectRoles = AllRoles
 
+// Instance backup management uses the same live admin and interactive-session rules.
+const (
+	ActBackupRead     authz.Action = "identity.backup_read"
+	ActBackupCancel   authz.Action = "identity.backup_cancel"
+	ActBackupStart    authz.Action = "identity.backup_start"
+	ActBackupResume   authz.Action = "identity.backup_resume"
+	ActBackupSchedule authz.Action = "identity.backup_schedule"
+)
+
 // 身份与安全动作。
 const (
 	ActWhoAmI              authz.Action = "identity.whoami"
@@ -183,6 +192,11 @@ var actionList = []ActionSpec{
 	{Action: ActProbeExtension, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
 	{Action: ActReadExtensions, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
 	{Action: ActListExtensionCLIs, Scope: ScopeSelf},
+	{Action: ActBackupRead, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActBackupCancel, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true},
+	{Action: ActBackupStart, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
+	{Action: ActBackupResume, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
+	{Action: ActBackupSchedule, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActWhoAmI, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActEndSession, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActNarrowSession, Scope: ScopeSelf},

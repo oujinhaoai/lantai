@@ -34,6 +34,8 @@ class BuildGuards(unittest.TestCase):
             (self.source / "deploy" / name).write_text("synthetic public deployment template\n")
         (self.source / "docs").mkdir()
         (self.source / "docs/online-backup.md").write_text("See (contracts/backup-restore.md)\n")
+        (self.source / "api").mkdir()
+        (self.source / "api/backup-management.md").write_text("See (openapi.yaml) and (../docs/online-backup.md)\n")
         (self.source / "deploy/compose.yaml").write_text("services:\n  gateway:\n    image: caddy:2.11.4\n")
         (self.source / "web").mkdir()
         (self.source / "web/package-lock.json").write_text("{}\n")

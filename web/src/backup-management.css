@@ -1,0 +1,300 @@
+.backup-page {
+  display: grid;
+  gap: 22px;
+  max-width: 1120px;
+}
+.backup-page .page-heading,
+.backup-page .notice,
+.backup-page .error {
+  margin: 0;
+}
+.backup-heading,
+.backup-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.backup-heading > div {
+  min-width: 0;
+}
+.backup-heading > div > p:last-child {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 12px;
+}
+.backup-heading button,
+.backup-section-head button {
+  flex-shrink: 0;
+}
+.backup-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.backup-page .panel {
+  padding: 24px;
+}
+.backup-state {
+  font-size: 21px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+}
+.backup-status > p:not(.backup-state),
+.backup-current > p:not(.backup-state),
+.backup-history p,
+.backup-next {
+  font-size: 13px;
+}
+.backup-status code {
+  display: block;
+  margin-top: 12px;
+}
+.backup-state.success {
+  color: #285b42;
+}
+.backup-state.warning,
+.backup-job-error {
+  color: #854727;
+}
+.backup-page .backup-facts {
+  grid-template-columns: 90px minmax(0, 1fr);
+  margin: 20px 0;
+  gap: 10px 14px;
+}
+.backup-facts dt,
+.backup-facts dd {
+  overflow-wrap: anywhere;
+}
+.backup-next {
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+}
+.backup-schedule-form {
+  display: grid;
+  gap: 16px;
+}
+.backup-schedule-form label,
+.backup-dialog label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-width: 0;
+}
+.backup-page .backup-check,
+.login-form > .admin-login-choice {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.backup-check input,
+.admin-login-choice input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+.backup-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  gap: 16px;
+  max-width: 620px;
+}
+.backup-form-row input {
+  width: 100%;
+  min-width: 0;
+}
+.backup-timeouts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.backup-schedule-form > button {
+  justify-self: start;
+}
+.backup-schedule-form .subtle {
+  margin: 0;
+}
+.backup-policy {
+  padding-top: 17px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.backup-page summary {
+  cursor: pointer;
+  padding: 7px 0;
+  min-height: 36px;
+  overflow-wrap: anywhere;
+}
+.backup-page summary:focus-visible {
+  outline: 2px solid #6aa88a;
+  outline-offset: 3px;
+}
+.backup-policy p {
+  margin-top: 10px;
+  color: var(--muted);
+}
+.backup-history,
+.backup-events,
+.backup-targets {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0 0;
+}
+.backup-history > li {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.backup-history > li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.backup-history .backup-section-head {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.backup-history .backup-section-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.backup-history p {
+  margin: 8px 0;
+}
+.backup-history code {
+  overflow-wrap: anywhere;
+}
+.backup-empty {
+  color: var(--muted);
+  margin-top: 24px;
+}
+.backup-events > li {
+  display: grid;
+  gap: 5px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.backup-dialog {
+  width: min(580px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: inherit;
+  overflow: auto;
+}
+.backup-dialog::backdrop {
+  background: #14231f91;
+}
+.backup-dialog form {
+  display: grid;
+  gap: 16px;
+}
+.backup-dialog h2 {
+  font-size: 22px;
+}
+.backup-dialog p {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.backup-dialog .subtle,
+.backup-dialog .error {
+  margin: 0;
+}
+.backup-server-summary {
+  white-space: pre-wrap;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f5f8f0;
+}
+.backup-targets {
+  margin: 0;
+}
+.backup-targets li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.backup-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 5px;
+}
+.maintenance-access {
+  max-width: 620px;
+  margin: 6vh auto;
+  padding: 28px;
+}
+.maintenance-access .login-form {
+  max-width: none;
+}
+.maintenance-access h1 {
+  font-size: 27px;
+}
+.maintenance-shell {
+  max-width: 1200px;
+  margin: auto;
+  padding: 28px;
+}
+.maintenance-shell main {
+  margin: 0;
+  padding: 24px 0;
+  max-width: none;
+}
+.maintenance-access-header {
+  display: grid;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+.maintenance-access-header button {
+  justify-self: start;
+}
+@media (max-width: 760px) {
+  .backup-heading {
+    align-items: flex-start;
+  }
+  .backup-heading > button {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+  .backup-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .backup-page .panel {
+    padding: 20px;
+  }
+  .backup-state {
+    font-size: 19px;
+  }
+  .backup-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .backup-history .backup-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .backup-dialog {
+    padding: 22px;
+  }
+  .backup-page button,
+  .backup-dialog button {
+    min-height: 44px;
+  }
+  nav {
+    flex-wrap: wrap;
+  }
+  nav a {
+    min-width: 75px;
+  }
+}

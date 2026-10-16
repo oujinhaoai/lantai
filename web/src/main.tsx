@@ -28,6 +28,8 @@ import {
 } from "./api";
 import "./style.css";
 import { FilePreview } from "./file-preview";
+import { BackupManagement, canManageBackups } from "./backup-management";
+import { BackupMaintenanceAccess } from "./backup-maintenance-access";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
@@ -105,6 +107,12 @@ function Icon({ kind, size = 20 }: { kind: string; size?: number }) {
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,
+    backup: (
+      <>
+        <path d="M4 6h16v14H4Z" />
+        <path d="M3 3h18v3H3Zm6 8h6m-3-2v6m-3-3 3 3 3-3" />
+      </>
+    ),
   };
   return (
     <svg
@@ -844,12 +852,17 @@ function Workspace({
     ["/", "home", "首页"],
     ["/projects", "folder", "我的项目"],
     ["/assets", "grid", "资源库"],
+    ...(canManageBackups(who)
+      ? [["/admin/backups", "backup", "备份管理"]]
+      : []),
   ];
   const section = pathname.startsWith("/projects")
     ? "/projects"
     : pathname.startsWith("/assets")
       ? "/assets"
-      : "/";
+      : pathname.startsWith("/admin/backups")
+        ? "/admin/backups"
+        : "/";
   return (
     <div className="app-shell">
       <a
@@ -924,7 +937,18 @@ function Workspace({
               此标签页未保存登录校验信息，可继续浏览。退出会话请返回原登录标签页，或先重新验证。
             </p>
           )}
-          {pathname === "/" ? (
+          {pathname === "/admin/backups" ? (
+            canManageBackups(who) ? (
+              <BackupManagement expire={expire} />
+            ) : (
+              <>
+                <Heading eyebrow="系统管理" title="备份管理" />
+                <p className="notice">
+                  备份管理需要管理员身份与管理范围的浏览器会话。请退出后选择管理员登录。
+                </p>
+              </>
+            )
+          ) : pathname === "/" ? (
             <Home who={who} expire={expire} />
           ) : pathname === "/projects" ? (
             <Projects expire={expire} />
@@ -977,6 +1001,7 @@ function Login({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [adminLogin, setAdminLogin] = useState(false);
   const inFlight = useRef(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -989,7 +1014,7 @@ function Login({
       password,
       code,
       channel: "browser",
-      scopes: ["self", "read"],
+      scopes: adminLogin ? ["self", "read", "admin"] : ["self", "read"],
     });
     setPassword("");
     setCode("");
@@ -1089,15 +1114,33 @@ function Login({
             {busy ? "正在验证…" : "登录并浏览"}
             <Icon kind="arrow" size={17} />
           </button>
+          <label className="admin-login-choice">
+            <input
+              type="checkbox"
+              checked={adminLogin}
+              onChange={(event) => setAdminLogin(event.target.checked)}
+              disabled={busy}
+            />
+            管理员登录（含备份管理权限）
+          </label>
           <p className="security-note">
             <Icon kind="lock" size={15} />
-            口令与动态码仅用于本次验证。浏览会话只申请读取权限。
+            口令与动态码仅用于本次验证。
+            {adminLogin
+              ? "本次申请管理范围，服务器仍会核验管理员身份。"
+              : "普通浏览会话只申请读取权限。"}
           </p>
           <p className="setup-help">
             首次安装？<a href="/setup/">打开受保护的设置页</a>
             <small>
               设置完成后入口永久关闭。成员设置与验证器恢复请使用现有受保护流程。
             </small>
+          </p>
+          <p className="setup-help">
+            <a href={href("/admin/backups/control")}>
+              备份期间重新验证管理员身份
+            </a>
+            <small>仅查看当前备份或取消任务，不恢复普通业务权限。</small>
           </p>
           {helpAvailable && (
             <a className="help-link" href="/help/">
@@ -1110,17 +1153,25 @@ function Login({
   );
 }
 function App() {
+  const route = useRoute();
+  const controlMode = route.split("?")[0] === "/admin/backups/control";
   const [who, setWho] = useState<Identity | null>(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
   const [bootError, setBootError] = useState<unknown>();
   const [attempt, setAttempt] = useState(0);
+  const skipOrdinaryProbe = useRef(false);
   const expire = useCallback<Expire>((error) => {
     clearCSRF();
     setWho(null);
     setNotice(error ? message(error) : "已安全退出当前会话。");
   }, []);
   useEffect(() => {
+    if (controlMode) return;
+    if (skipOrdinaryProbe.current) {
+      skipOrdinaryProbe.current = false;
+      return;
+    }
     const controller = new AbortController();
     api<Identity>("/api/v1/whoami", { signal: controller.signal })
       .then((identity) => {
@@ -1138,11 +1189,11 @@ function App() {
         if (!controller.signal.aborted) setBooting(false);
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, controlMode]);
   // Recheck current authorization after returning from another app/tab. No
   // background login, session issuance, renewal, or durable response cache.
   useEffect(() => {
-    if (!who) return;
+    if (!who || controlMode) return;
     const controller = new AbortController();
     const verify = () => {
       if (document.visibilityState !== "visible") return;
@@ -1172,7 +1223,21 @@ function App() {
       removeEventListener("focus", verify);
       clearTimeout(timer);
     };
-  }, [who, expire]);
+  }, [who, expire, controlMode]);
+  if (controlMode)
+    return (
+      <BackupMaintenanceAccess
+        onExit={() => {
+          skipOrdinaryProbe.current = true;
+          clearCSRF();
+          setWho(null);
+          setBooting(false);
+          setBootError(undefined);
+          setNotice("请重新登录以使用普通业务。维护身份不会升级为普通会话。");
+          location.hash = "/";
+        }}
+      />
+    );
   if (booting) return <Loading />;
   if (bootError)
     return (

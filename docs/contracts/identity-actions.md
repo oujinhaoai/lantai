@@ -34,6 +34,11 @@
 | `extensions.list_commands` | 实例 | `self` | 本人 |  |
 | `extensions.probe` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `extensions.read` | 实例 | `admin` | 系统 admin | 仅人本人 |
+| `identity.backup_cancel` | 实例 | `admin` | 系统 admin | 仅人本人 |
+| `identity.backup_read` | 实例 | `admin` | 系统 admin | 仅人本人 |
+| `identity.backup_resume` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
+| `identity.backup_schedule` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
+| `identity.backup_start` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.disable_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.enable_principal` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.end_session` | 实例 | `self` | 本人 | 恢复会话可用 |

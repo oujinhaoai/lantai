@@ -23,6 +23,7 @@ import (
 
 func (h *Handler) routes(m *http.ServeMux) {
 	h.identityRoutes(m)
+	h.backupRoutes(m)
 	h.executionRoutes(m)
 	h.collaborationRoutes(m)
 	h.extensionRoutes(m)
@@ -54,6 +55,9 @@ func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) 
 	stage := "M1"
 	capabilities := []string{"sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "search", "operation_status"}
 	unsupported := []string{"managed_runner", "third_party_web_ui", "resident_extension_services", "automatic_triggers", "federation"}
+	if h.deps.Backups != nil {
+		capabilities = append(capabilities, "backup_management")
+	}
 	if h.deps.Tasks != nil {
 		stage = "M2"
 		capabilities = append(capabilities, "tasks")
@@ -146,6 +150,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request, _ authz.Context)
 	res := SessionResponse{Token: out.Token, CSRFToken: out.CSRFToken, Session: out.Session}
 	if in.Channel == identity.ChannelBrowser {
 		http.SetCookie(w, httpauth.SessionCookie(out.Token, out.Session.ExpiresAt))
+		if h.deps.BackupScope != nil {
+			c := controlCookie("", time.Unix(0, 0))
+			c.MaxAge = -1
+			http.SetCookie(w, c)
+		}
 		res.Token = ""
 	}
 	return respond(w, 201, res)
@@ -178,6 +187,11 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request, who authz.Conte
 	}
 	if _, err := r.Cookie(httpauth.CookieName); err == nil {
 		http.SetCookie(w, httpauth.ClearCookie())
+	}
+	if h.deps.BackupScope != nil {
+		c := controlCookie("", time.Unix(0, 0))
+		c.MaxAge = -1
+		http.SetCookie(w, c)
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
