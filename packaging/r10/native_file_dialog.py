@@ -55,6 +55,7 @@ def tap(name):
     key=code(name);assert key;event(key,True);event(key,False);x.XFlush(d)
 if cancel:tap('Escape');time.sleep(.1);tap('Escape');sys.exit(0)
 control=code('Control_L');event(control,True);tap('l');event(control,False);x.XFlush(d);time.sleep(.2)
+event(control,True);tap('a');event(control,False);x.XFlush(d);time.sleep(.1)
 names={'/':'slash','.':'period','-':'minus','_':'underscore'}
 for char in str(path):
     symbol=x.XStringToKeysym(names.get(char,char).encode());key=x.XKeysymToKeycode(d,symbol);assert key
