@@ -8,7 +8,7 @@ async function trustLocalTestCA(context,caFile){
  const page=await context.newPage();await page.goto('chrome://sandbox');const sandbox=await page.locator('body').innerText();
  if(!/PID namespaces\s+Yes/.test(sandbox)||!/Seccomp-BPF sandbox\s+Yes/.test(sandbox))throw Error('Actual browser sandbox proof failed');
  await page.goto('chrome://certificate-manager/localcerts/usercerts');
- const trusted=page.locator('certificate-subpage#userCertsSection certificate-list').filter({hasText:/Trusted Certificates/i});
+ const trusted=page.locator('certificate-subpage#userCertsSection certificate-list').filter({has:page.getByRole('heading',{name:'Trusted Certificates',exact:true})});
  await trusted.waitFor({state:'visible'});if(await trusted.count()!==1)throw Error('Native user trusted-certificate list unavailable');
  const chooser=page.waitForEvent('filechooser');await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
  await (await chooser).setFiles(caFile);
