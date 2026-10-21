@@ -23,8 +23,16 @@ async function trustLocalTestCA(context,caFile){
  await page.waitForTimeout(300);proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
  proof.native_dialog=JSON.parse(cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']}).toString());
- await page.waitForTimeout(500);proof.user_trusted_list=await trusted.evaluate(e=>e.shadowRoot.textContent.slice(-2000));
- proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
+ await page.waitForTimeout(1500);proof.user_trusted_list=await trusted.evaluate(e=>e.shadowRoot.textContent.slice(-2000));
+ proof.native_ui_dialogs=await page.getByRole('dialog').allTextContents();
+ proof.visible_native_text=await page.evaluate(()=>{
+  const out=[];function visit(n){if(out.join(' ').length>7000)return;
+   if(n.nodeType===3){const s=n.textContent.trim();if(s)out.push(s);return}
+   if(n.nodeType===1){if(['STYLE','SCRIPT','SVG','PATH'].includes(n.tagName))return;const css=getComputedStyle(n);if(css.display==='none'||css.visibility==='hidden')return;if(n.shadowRoot)visit(n.shadowRoot)}
+   for(const child of n.childNodes||[])visit(child)
+  }visit(document.body);return out.join(' ').slice(0,7000)
+ });
+ proof.user_certificate_entries=await trusted.locator('certificate-entry').evaluateAll(nodes=>nodes.map(e=>({hash:e.shadowRoot?.querySelector('#certhash')?.value,text:e.shadowRoot?.textContent.slice(-500)})));
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
  const name=cert.subject.split('\n').find(s=>s.startsWith('CN='))?.slice(3);if(!name)throw Error('Synthetic CA common name required');
  const entry=trusted.getByText(name,{exact:true});await entry.waitFor({state:'attached'});
