@@ -22,6 +22,7 @@ def main():
         d.RESULT['phase']='actual new image and static archive initialization'
         d.run(instance.compose+['up','-d']);instance.initialize_and_seed(cli);instance.retained(cli,m);instance.ready();instance.tls_negative();instance.static(m['web']['files'])
         d.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE']='/opt/google/chrome/chrome';d.ENV['CANDIDATE_BROWSER_PROOF']=str(work/'native-browser-proof.json')
+        d.ENV['CANDIDATE_SYNTHETIC_CA']=str(instance.tls/'cert.pem')
         original=d.run
         def run(argv,**kwargs):
             if len(argv)>1 and Path(argv[1]).name=='test-release-browser.cjs':argv=[argv[0],str(ROOT/'packaging/r10/browser_adapter.cjs'),*argv[2:]]

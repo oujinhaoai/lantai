@@ -26,14 +26,20 @@ jobs:
       - name: Verify unchanged product bytes
         working-directory: source
         run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/browser-source-proof.json"
+      - name: Prepare private portal test libraries
+        run: |
+          if ! /usr/bin/python3 -c 'import dbus; from gi.repository import GLib'; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y python3-dbus python3-gi
+          fi
       - name: Probe native certificate selection and strict synthetic HTTPS
-        run: xvfb-run -a -s "-screen 0 1920x1200x24" node source/packaging/r10/probe_native_ca.cjs "$RUNNER_TEMP/NATIVE-CA-PROBE.json"
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" dbus-run-session -- node source/packaging/r10/probe_native_ca.cjs "$RUNNER_TEMP/NATIVE-CA-PROBE.json"
       - name: Download the exact paired candidate
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
       - name: Run the original artifact browser assertions with native profile CA support
-        run: xvfb-run -a -s "-screen 0 1920x1200x24" python3 source/packaging/r10/test_browser.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-browser-evidence"
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" dbus-run-session -- python3 source/packaging/r10/test_browser.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-browser-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

@@ -11,7 +11,7 @@ EXTRAS = {'.github/workflows/candidate-r10.yml', 'packaging/r10/FROZEN-SOURCE.js
           'packaging/r10/test_migration.py', '.github/workflows/r10-browser.yml',
           'packaging/r10/probe_browser.cjs', 'packaging/r10/browser_adapter.cjs',
           'packaging/r10/test_browser.py', 'packaging/r10/native_file_dialog.py',
-          'packaging/r10/probe_native_ca.cjs'}
+          'packaging/r10/probe_native_ca.cjs', 'packaging/r10/ca_file_portal.py'}
 
 def verify():
     frozen = json.loads((ROOT/'packaging/r10/FROZEN-SOURCE.json').read_text())

@@ -4,7 +4,17 @@ const fs=require('fs'),path=require('path'),{X509Certificate}=require('crypto'),
 const root=path.resolve(__dirname,'../..');
 const {chromium}=require(path.join(root,'web/node_modules/@playwright/test'));
 const launch=chromium.launchPersistentContext.bind(chromium);
-chromium.launchPersistentContext=(profile,options)=>launch(profile,{...options,headless:false});
+let portal;
+chromium.launchPersistentContext=async(profile,options)=>{
+ const ca=process.env.CANDIDATE_SYNTHETIC_CA;if(!ca)throw Error('Explicit synthetic CA path required');
+ const ready=process.env.CANDIDATE_BROWSER_PROOF+'.ready',report=process.env.CANDIDATE_BROWSER_PROOF+'.portal';
+ portal=cp.spawn('/usr/bin/python3',[path.join(__dirname,'ca_file_portal.py'),ca,ready,report],{stdio:['ignore','pipe','pipe']});
+ let errors='';portal.stderr.on('data',b=>{errors=(errors+b).slice(-3000)});
+ const deadline=Date.now()+5000;while(!fs.existsSync(ready)&&Date.now()<deadline&&portal.exitCode===null)await new Promise(r=>setTimeout(r,50));
+ if(!fs.existsSync(ready)){portal.kill();throw Error('Private FileChooser provider unavailable: '+errors)}
+ try{const context=await launch(profile,{...options,headless:false});context.on('close',()=>portal.kill());return context}
+ catch(e){portal.kill();throw e}
+};
 async function trustLocalTestCA(context,caFile){
  const cert=new X509Certificate(fs.readFileSync(caFile));
  if(!cert.ca||!cert.checkIssued(cert)||!cert.verify(cert.publicKey))throw Error('Explicit self-signed synthetic CA required');
@@ -22,7 +32,7 @@ async function trustLocalTestCA(context,caFile){
  await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
  await page.waitForTimeout(300);proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
- proof.native_dialog=JSON.parse(cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']}).toString());
+ proof.file_chooser=JSON.parse(fs.readFileSync(process.env.CANDIDATE_BROWSER_PROOF+'.portal'));
  await page.waitForTimeout(1500);proof.user_trusted_list=await trusted.evaluate(e=>e.shadowRoot.textContent.slice(-2000));
  proof.native_ui_dialogs=await page.getByRole('dialog').allTextContents();
  proof.visible_native_text=await page.evaluate(()=>{
@@ -40,7 +50,7 @@ async function trustLocalTestCA(context,caFile){
  await entry.waitFor({state:'visible'});
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify({browser_version:context.browser().version(),
   sandbox_report:sandbox,native_profile_CA_imported:true,CA_fingerprint256:cert.fingerprint256,
-  actual_headless:headless,host_trust_store_changed:false,host_policy_changed:false,ignoreHTTPSErrors:false,chromiumSandbox:true})+'\n');
+  actual_headless:headless,file_chooser:JSON.parse(fs.readFileSync(process.env.CANDIDATE_BROWSER_PROOF+'.portal')),host_trust_store_changed:false,host_policy_changed:false,ignoreHTTPSErrors:false,chromiumSandbox:true})+'\n');
  await page.close();
 }
 const helper=path.join(root,'scripts/browser-profile-trust.cjs');

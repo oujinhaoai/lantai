@@ -6,6 +6,7 @@ const {trustLocalTestCA}=require('./browser_adapter.cjs');
  const ca=path.join(work,'cert.pem'),key=path.join(work,'key.pem');
  cp.execFileSync('openssl',['req','-x509','-newkey','ec','-pkeyopt','ec_paramgen_curve:P-256','-nodes','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1','-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,digitalSignature,keyCertSign,cRLSign','-keyout',key,'-out',ca],{stdio:'pipe'});fs.chmodSync(key,0o600);
  process.env.CANDIDATE_BROWSER_PROOF=path.join(work,'native-proof.json');
+ process.env.CANDIDATE_SYNTHETIC_CA=ca;
  let context,server;const result={status:'running',host_policy_changed:false,host_trust_store_changed:false,private_profile_only:true};
  try{
   const profile=path.join(work,'profile');fs.mkdirSync(profile,{mode:0o700});
