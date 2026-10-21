@@ -49,5 +49,6 @@ jobs:
             ${{ runner.temp }}/browser-source-proof.json
             ${{ runner.temp }}/NATIVE-CA-PROBE.json
             ${{ runner.temp }}/r10-browser-evidence/BROWSER-ACCEPTANCE.json
+            ${{ runner.temp }}/r10-browser-evidence/exact-r10-artifact-*.png
           if-no-files-found: error
           retention-days: 30

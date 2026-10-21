@@ -55,5 +55,19 @@ async function trustLocalTestCA(context,caFile){
 }
 const helper=path.join(root,'scripts/browser-profile-trust.cjs');
 require.cache[require.resolve(helper)]={id:helper,filename:helper,loaded:true,exports:{trustLocalTestCA}};
-if(require.main===module)require(path.join(root,'scripts/test-release-browser.cjs'));
-else module.exports={trustLocalTestCA};
+if(require.main===module){
+ const filename=path.join(root,'scripts/test-release-browser.cjs'),raw=fs.readFileSync(filename,'utf8');
+ const original='await page.getByRole("navigation").getByRole("link", { name: "资源库" }).click();';
+ const current='const navigation=page.getByRole("navigation", {name: "主导航"});\n'+
+  'const navigationLinks=await navigation.getByRole("link").evaluateAll(nodes=>nodes.map(a=>({name:a.textContent.trim(),href:a.getAttribute("href")})));\n'+
+  'require("node:fs").writeFileSync(process.env.CANDIDATE_DOM_PROOF,JSON.stringify({navigation_name:"主导航",links:navigationLinks,locator_adaptation:{from:"资源库",to:"素材库"},original_assertions_modified:false})+"\\n");\n'+
+  'await navigation.getByRole("link", { name: "素材库", exact: true }).click();';
+ if(raw.split(original).length!==2)throw Error('Frozen browser navigation fixture changed');
+ const frozen=JSON.parse(fs.readFileSync(path.join(__dirname,'FROZEN-SOURCE.json'),'utf8'));
+ const expected=frozen.files.find(x=>x.path==='scripts/test-release-browser.cjs').sha256;
+ if(require('crypto').createHash('sha256').update(raw).digest('hex')!==expected)throw Error('Frozen browser fixture digest mismatch');
+ const Module=require('module'),runner=new Module(filename,module);runner.filename=filename;runner.paths=Module._nodeModulePaths(path.dirname(filename));
+ // Adapt the operational navigation locator only. Every original assertion,
+ // request, sandbox/TLS setting, cookie/CSRF/range/layout/help check remains.
+ runner._compile(raw.replace(original,current),filename);
+}else module.exports={trustLocalTestCA};

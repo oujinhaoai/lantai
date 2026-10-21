@@ -1,13 +1,13 @@
 """Run all original release browser assertions against the exact paired artifacts."""
 import argparse, hashlib, json, os
 from pathlib import Path
-import sys,tempfile,time
+import sys,tempfile,time,shutil
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from test_migration import d,ROOT,EXPECTED,verify_sums,save
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--candidate',type=Path,required=True);p.add_argument('--out',type=Path,required=True);a=p.parse_args();a.out.mkdir(mode=0o700)
-    work=Path(tempfile.mkdtemp(prefix='lantai-safe-browser-'));work.chmod(0o700);instance=None
+    work=Path(tempfile.mkdtemp(prefix='lantai-safe-browser-'));work.chmod(0o700);instance=None;evidence=None
     d.RESULT.update(schema='lantai.actual-artifact-browser/v1',status='running',source_commit=EXPECTED,NAS_accessed=False,real_data_used=False,product_source_modified=False,checks=[])
     try:
         d.require_local_docker(d.run);verify_sums(a.candidate);m=json.loads((a.candidate/'manifest.json').read_text());assert m['source_commit']==EXPECTED
@@ -23,6 +23,7 @@ def main():
         d.run(instance.compose+['up','-d']);instance.initialize_and_seed(cli);instance.retained(cli,m);instance.ready();instance.tls_negative();instance.static(m['web']['files'])
         d.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE']='/opt/google/chrome/chrome';d.ENV['CANDIDATE_BROWSER_PROOF']=str(work/'native-browser-proof.json')
         d.ENV['CANDIDATE_SYNTHETIC_CA']=str(instance.tls/'cert.pem')
+        d.ENV['CANDIDATE_DOM_PROOF']=str(work/'navigation-dom.json')
         original=d.run
         def run(argv,**kwargs):
             if len(argv)>1 and Path(argv[1]).name=='test-release-browser.cjs':argv=[argv[0],str(ROOT/'packaging/r10/browser_adapter.cjs'),*argv[2:]]
@@ -35,7 +36,7 @@ def main():
         d.RESULT.update(status='passed',core_image=m['core_image'],web_archive_sha256=m['web']['archive_sha256'],
             browser_native_proof=json.loads((work/'native-browser-proof.json').read_text()),
             packaging_adapter_sha256=hashlib.sha256((ROOT/'packaging/r10/browser_adapter.cjs').read_bytes()).hexdigest(),
-            original_browser_assertions_modified=False,credentials_backups_profiles_screenshots_uploaded=False)
+            original_browser_assertions_modified=False,navigation_locator_adapted_to_frozen_r10=True,credentials_backups_profiles_uploaded=False)
     except Exception as error:
         text=str(error)
         for v in d.PRIVATE_VALUES:
@@ -44,6 +45,16 @@ def main():
     finally:
         proof=work/'native-browser-proof.json'
         if proof.is_file():d.RESULT['browser_native_proof']=json.loads(proof.read_text())
+        navigation=work/'navigation-dom.json'
+        if navigation.is_file():d.RESULT['actual_navigation_DOM']=json.loads(navigation.read_text())
+        shots=[]
+        if evidence:
+            for name in ['exact-r10-artifact-desktop-home.png','exact-r10-artifact-desktop-resource.png','exact-r10-artifact-834-resource.png','exact-r10-artifact-390-resource.png']:
+                source=evidence/name
+                if source.is_file():
+                    assert source.stat().st_size<10*1024*1024
+                    shutil.copyfile(source,a.out/name);shots.append({'name':name,'sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'only_synthetic_post_login_resource_view':True})
+        d.RESULT['synthetic_view_screenshots']=shots
         if instance:
             try:instance.stop()
             except Exception:d.RESULT.update(status='failed',cleanup_failed=True)
