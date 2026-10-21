@@ -10,10 +10,18 @@ async function trustLocalTestCA(context,caFile){
  if(!cert.ca||!cert.checkIssued(cert)||!cert.verify(cert.publicKey))throw Error('Explicit self-signed synthetic CA required');
  const page=await context.newPage();await page.goto('chrome://sandbox');const sandbox=await page.locator('body').innerText();
  if(!/PID namespaces\s+Yes/.test(sandbox)||!/Seccomp-BPF sandbox\s+Yes/.test(sandbox))throw Error('Actual browser sandbox proof failed');
+ let headless;
+ try{const cdp=await context.browser().newBrowserCDPSession();const command=await cdp.send('Browser.getBrowserCommandLine');headless=command.arguments.some(x=>x.startsWith('--headless'))}
+ catch{headless=(await page.evaluate(()=>navigator.userAgent)).includes('HeadlessChrome')}
+ const proof={browser_version:context.browser().version(),sandbox_report:sandbox,
+   actual_headless:headless,native_profile_CA_imported:false,host_trust_store_changed:false,host_policy_changed:false};
+ fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
  await page.goto('chrome://certificate-manager/localcerts/usercerts');
  const trusted=page.locator('certificate-subpage#userCertsSection certificate-list').filter({has:page.getByRole('heading',{name:'Trusted Certificates',exact:true})});
  await trusted.waitFor({state:'visible'});if(await trusted.count()!==1)throw Error('Native user trusted-certificate list unavailable');
  await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
+ await page.waitForTimeout(300);proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
+ fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
  cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']});
  const name=cert.subject.split('\n').find(s=>s.startsWith('CN='))?.slice(3);if(!name)throw Error('Synthetic CA common name required');
  const entry=trusted.getByText(name,{exact:true});await entry.waitFor({state:'attached'});
@@ -21,7 +29,7 @@ async function trustLocalTestCA(context,caFile){
  await entry.waitFor({state:'visible'});
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify({browser_version:context.browser().version(),
   sandbox_report:sandbox,native_profile_CA_imported:true,CA_fingerprint256:cert.fingerprint256,
-  host_trust_store_changed:false,host_policy_changed:false,ignoreHTTPSErrors:false,chromiumSandbox:true})+'\n');
+  actual_headless:headless,host_trust_store_changed:false,host_policy_changed:false,ignoreHTTPSErrors:false,chromiumSandbox:true})+'\n');
  await page.close();
 }
 const helper=path.join(root,'scripts/browser-profile-trust.cjs');

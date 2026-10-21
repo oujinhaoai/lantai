@@ -41,6 +41,8 @@ def main():
             if v:text=text.replace(v,'[REDACTED]')
         d.RESULT.update(status='failed',error=type(error).__name__+': '+text)
     finally:
+        proof=work/'native-browser-proof.json'
+        if proof.is_file():d.RESULT['browser_native_proof']=json.loads(proof.read_text())
         if instance:
             try:instance.stop()
             except Exception:d.RESULT.update(status='failed',cleanup_failed=True)
