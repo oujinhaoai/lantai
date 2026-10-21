@@ -8,6 +8,8 @@ claim, TOTP, lifecycle, log-privacy, and release-delivery checks stay unchanged.
 import hashlib
 import importlib.util
 import json
+import os
+from copy import deepcopy
 from pathlib import Path
 import subprocess
 import sys
@@ -53,6 +55,84 @@ def argument(name):
 
 def delivery():
     module = load_script('frozen_delivery_smoke', 'test-release-delivery.py')
+    manifest = json.loads(Path(argument('--manifest')).read_text())
+    candidate_tag = manifest['core_image']['tag']
+    # Use the runner's preinstalled full browser under its existing OS policy.
+    # Do not install/setuid/chown anything or relax AppArmor/userns restrictions.
+    system_browser = Path('/opt/google/chrome/chrome')
+    if system_browser.is_file():
+        info = system_browser.stat()
+        assert info.st_uid == 0 and info.st_mode & 0o022 == 0 and os.access(system_browser, os.X_OK)
+        helper = system_browser.with_name('chrome-sandbox')
+        helper_info = helper.stat() if helper.is_file() else None
+        if helper_info:
+            assert helper_info.st_uid == 0 and helper_info.st_mode & 0o022 == 0
+        module.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE'] = str(system_browser)
+        module.RESULT['browser_executable'] = {'path': str(system_browser), 'owner_uid':info.st_uid,
+            'mode': oct(info.st_mode & 0o7777), 'sha256': hashlib.sha256(system_browser.read_bytes()).hexdigest(),
+            'version': subprocess.check_output([str(system_browser),'--version'], text=True).strip(),
+            'sandbox_helper_owner_uid': helper_info.st_uid if helper_info else None,
+            'sandbox_helper_mode': oct(helper_info.st_mode & 0o7777) if helper_info else None,
+            'sandbox_enabled':True,'strict_TLS':True,'host_policy_changed':False}
+    original_select = module.Instance.select
+    def select(instance, image):
+        if image == candidate_tag:
+            path = instance.root/'compose.yaml'
+            text = path.read_text()
+            old = 'command: [start, --home, /var/lib/lantai, --setup-dir, /var/lib/lantai-setup]'
+            new = old[:-1]+', --config-template, /etc/lantai/config.template.yaml]'
+            legacy = ':/var/lib/lantai/config.yaml:ro'
+            if legacy in text:
+                assert text.count(old)==1 and text.count(legacy)==1
+                path.write_text(text.replace(old,new).replace(legacy,':/etc/lantai/config.template.yaml:ro'))
+                module.RESULT['legacy_config_template_upgrade']={'applied':True,
+                    'host_config_source_retained':True,'data_secrets_setup_volumes_retained':True,
+                    'read_only_template_target':'/etc/lantai/config.template.yaml',
+                    'only_command_addition':['--config-template','/etc/lantai/config.template.yaml']}
+        return original_select(instance,image)
+    module.Instance.select = select
+    original_guard = module.assert_retained_upgrade
+    def guard(before, after, **kwargs):
+        normalized = deepcopy(after)
+        old_core = before['services']['core']
+        new_core = normalized['services']['core']
+        old_mount = next(x for x in old_core['volumes'] if x['target']=='/var/lib/lantai/config.yaml')
+        new_mount = next(x for x in new_core['volumes'] if x['target']=='/etc/lantai/config.template.yaml')
+        assert old_mount['read_only'] and new_mount['read_only']
+        expected = dict(old_mount, target='/etc/lantai/config.template.yaml')
+        assert new_mount == expected
+        assert new_core['command']==old_core['command']+['--config-template','/etc/lantai/config.template.yaml']
+        new_mount['target']=old_mount['target']
+        new_core['command']=old_core['command']
+        return original_guard(before,normalized,**kwargs)
+    module.assert_retained_upgrade = guard
+    original_mounts = module.Instance.mounts
+    def mounts(instance):
+        result = original_mounts(instance)
+        if '/var/lib/lantai/config.yaml' not in result:
+            bound = [x for x in module.inspect(instance.cid())['Mounts'] if x['Destination']=='/etc/lantai/config.template.yaml']
+            assert len(bound)==1 and not bound[0]['RW']
+            item=bound[0]
+            result['/var/lib/lantai/config.yaml']={'type':item['Type'],'source':item.get('Name',item['Source'])}
+        return result
+    module.Instance.mounts = mounts
+    original_wait = module.Instance.wait
+    def wait(instance,path,status):
+        try:
+            return original_wait(instance,path,status)
+        except Exception:
+            # Synthetic core logs only, bounded and redacted before export.
+            log=subprocess.run(instance.compose+['logs','--no-color','--tail','30','core'],
+                capture_output=True,text=True,env=module.ENV).stdout
+            for value in module.PRIVATE_VALUES:
+                if value:log=log.replace(value,'[REDACTED]')
+            module.RESULT['failed_wait']={'path':path,'expected_status':status,'core_log_redacted':log[-5000:]}
+            try:
+                module.RESULT['failed_wait']['last_http_status']=instance.request(path)[0]
+            except Exception as probe_error:
+                module.RESULT['failed_wait']['request_error_type']=type(probe_error).__name__
+            raise
+    module.Instance.wait = wait
     original = module.Instance.browser
     failures = []
     def browser(instance, evidence, label):
@@ -77,6 +157,11 @@ def delivery():
                 message = message.replace(value, '[REDACTED]')
         module.RESULT.update(status='failed', error=type(error).__name__+': '+message,
             browser_failures=failures, nonbrowser_checks_status='failed')
+        for failure in failures:
+            key='fresh_install_passed' if failure['label']=='fresh' else 'direct_upgrade_passed'
+            if module.RESULT.get(key):
+                module.RESULT[key.replace('_passed','_nonbrowser_checks_completed')]=True
+            module.RESULT[key]=False
         out.write_text(json.dumps(module.RESULT, ensure_ascii=False, indent=2)+'\n')
         print('DELIVERY_FAILURE_SUMMARY '+json.dumps(module.RESULT, ensure_ascii=False), flush=True)
         raise SystemExit(1)
