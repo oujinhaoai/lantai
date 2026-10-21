@@ -154,6 +154,9 @@ def main():
             'revocations_reconciled':True,'deletions_reconciled':True,'open_operations_reconciled':True,'evidence_digest':hashlib.sha256(proof).hexdigest(),'note':'synthetic isolated rollback evidence'}
         review_path=work/'review.json';save(review_path,review);review_path.chmod(0o644)
         complete_worker=worker(prepare_cid,old['core_image']['tag'],extra+['--mount',f'type=bind,source={proof_path},target=/evidence.txt,readonly','--mount',f'type=bind,source={review_path},target=/review.json,readonly'])
+        denied=raw(complete_worker+['restore-complete','-home','/var/lib/lantai','-review','/review.json','-evidence','/evidence.txt'])
+        d.check('untyped recovery evidence digest rejected',denied.returncode!=0 and 'evidence_digest' in denied.stderr)
+        review['evidence_digest']='sha256:'+review['evidence_digest'];save(review_path,review)
         d.run(complete_worker+['restore-complete','-home','/var/lib/lantai','-review','/review.json','-evidence','/evidence.txt'])
         status,report=doctor(recovery_worker);d.check('verified old-format recovery completes',status==0 and report['compatible'] and runtime(report)==14)
         d.run(restored.compose+['up','-d']);restored.wait('/api/v1/meta',200);restored.ready();restored.tls_negative()
