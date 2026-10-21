@@ -1,0 +1,48 @@
+name: r10-gui-final-seal
+on:
+  push:
+    branches: [candidate/r10-final-seal-20261021]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  seal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact frozen product source
+        working-directory: source
+        run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/distribution-source-proof.json"
+      - name: Download immutable installation and completed independent evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
+          gh run download 39538298792 --repo "$GITHUB_REPOSITORY" --name r10-isolated-migration-c414d2a2aaace05ee87c5eac8900990c81a06f74 --dir "$RUNNER_TEMP/migration"
+          gh run download 39541828961 --repo "$GITHUB_REPOSITORY" --name r10-safe-browser-diagnostic-399b7f773a807659781a2425ef46e558fc4c8e81 --dir "$RUNNER_TEMP/browser"
+      - name: Probe the exact native amd64 image internal network namespace
+        run: python3 source/packaging/r10/check_isolation.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/isolation"
+      - name: Validate the GUI reference configuration
+        run: docker compose --project-name r10-sealed-config-check -f source/packaging/r10/compose.gui.migrate.r1.yaml config --no-interpolate --quiet
+      - name: Seal unchanged image and Web bytes with guarded GUI configuration and evidence
+        run: python3 source/packaging/r10/seal_gui_bundle.py --candidate "$RUNNER_TEMP/candidate" --migration "$RUNNER_TEMP/migration" --browser "$RUNNER_TEMP/browser" --isolation "$RUNNER_TEMP/isolation" --proof "$RUNNER_TEMP/distribution-source-proof.json" --out "$RUNNER_TEMP/sealed"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lantai-r10-gui-migration-r1-${{ github.sha }}
+          path: ${{ runner.temp }}/sealed/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: failure()
+        with:
+          name: r10-final-seal-diagnostic-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/isolation/ISOLATION-RESULT.json
+            ${{ runner.temp }}/distribution-source-proof.json
+          if-no-files-found: error
+          retention-days: 7
