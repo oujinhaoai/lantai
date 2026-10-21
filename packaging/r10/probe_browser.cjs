@@ -13,10 +13,13 @@ const {chromium}=require('../../web/node_modules/@playwright/test');
   const page=await context.newPage();await page.goto('chrome://sandbox');result.sandbox_report=await page.locator('body').innerText();
   if(!/PID namespaces\s+Yes/.test(result.sandbox_report)||!/Seccomp-BPF sandbox\s+Yes/.test(result.sandbox_report))throw Error('Actual namespace/seccomp sandbox unavailable');
   result.pages=[];
-  for(const url of ['chrome://certificate-manager/localcerts','chrome://certificate-manager/','chrome://settings/certificates']){
+  for(const url of ['chrome://certificate-manager/localcerts']){
    const item={requested_url:url};
    try{
-    await page.goto(url);await page.waitForTimeout(2500);item.url=page.url();item.title=await page.title();
+    await page.goto(url);await page.waitForTimeout(1500);
+    await page.locator('local-certs-section #userCertsInstalledLinkRow').click();
+    await page.waitForTimeout(1000);item.url=page.url();item.title=await page.title();
+    item.certificate_lists=await page.locator('certificate-list').evaluateAll(list=>list.map(e=>({id:e.id,visible:!!e.getClientRects().length,text:e.shadowRoot?.textContent.replace(/\s+/g,' ').slice(-1600)})));
     item.frames=page.frames().map(x=>x.url());
     item.tree=await page.evaluate(()=>{
      const out=[];function visit(n,depth){if(depth>24||out.length>500)return;
@@ -25,7 +28,7 @@ const {chromium}=require('../../web/node_modules/@playwright/test');
        out.push({depth,tag:n.tagName,id:n.id||undefined,role:n.getAttribute('role')||undefined,aria:n.getAttribute('aria-label')||undefined,text:text||undefined,shadow:n.shadowRoot?.mode});
        if(n.shadowRoot)visit(n.shadowRoot,depth+1);
       }for(const child of n.children||[])visit(child,depth+1);
-     }visit(document.body,0);return out;
+     }const visible=[...document.querySelector('certificate-manager').shadowRoot.querySelectorAll('certificate-subpage')].filter(e=>e.getClientRects().length);for(const subpage of visible)visit(subpage,0);return out;
     });
     const client=await context.newCDPSession(page);const doc=await client.send('DOM.getDocument',{depth:-1,pierce:true});
     const tags={};function walk(n){tags[n.nodeName]=(tags[n.nodeName]||0)+1;for(const c of n.children||[])walk(c);for(const c of n.shadowRoots||[])walk(c);if(n.contentDocument)walk(n.contentDocument)}walk(doc.root);item.CDP_tag_counts=tags;
