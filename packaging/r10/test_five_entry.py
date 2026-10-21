@@ -34,6 +34,11 @@ def main():
         for private in d.PRIVATE_VALUES:
             if private:value=value.replace(private,'[REDACTED]')
         d.RESULT.update(status='failed',error=type(error).__name__+': '+value)
+        try:
+            diagnostic=json.loads(d.RESULT.get('command_stderr_redacted',''))
+            d.RESULT['completed_business_checks']=diagnostic.get('completed_checks',[])
+            d.RESULT['safe_DOM']=diagnostic.get('safe_DOM')
+        except ValueError:pass
     finally:
         proof=work/'native-proof.json'
         if proof.is_file():d.RESULT['browser_native_proof']=json.loads(proof.read_text())
