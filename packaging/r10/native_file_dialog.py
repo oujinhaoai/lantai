@@ -41,16 +41,19 @@ def find(w,depth=0):
     for child in values:
         result=find(child,depth+1)
         if result:return result
-target=None;deadline=time.monotonic()+15
+cancel='--cancel' in sys.argv
+target=None;deadline=time.monotonic()+(1 if cancel else 15)
 while target is None and time.monotonic()<deadline:
     target=find(root)
     if target is None:time.sleep(.1)
+if target is None and cancel:sys.exit(0)
 assert target,'Native certificate Open dialog unavailable; private display titles: '+json.dumps(sorted(titles)[:12])
 time.sleep(.5);x.XRaiseWindow(d,target[0]);x.XSetInputFocus(d,target[0],2,0);x.XFlush(d);time.sleep(.2)
 def code(name):return x.XKeysymToKeycode(d,x.XStringToKeysym(name.encode()))
-def event(key,down):xt.XTestFakeKeyEvent(d,key,int(down),0)
+def event(key,down):assert xt.XTestFakeKeyEvent(d,key,int(down),0),'Private display XTEST input unavailable'
 def tap(name):
     key=code(name);assert key;event(key,True);event(key,False);x.XFlush(d)
+if cancel:tap('Escape');time.sleep(.1);tap('Escape');sys.exit(0)
 control=code('Control_L');event(control,True);tap('l');event(control,False);x.XFlush(d);time.sleep(.2)
 names={'/':'slash','.':'period','-':'minus','_':'underscore'}
 for char in str(path):
@@ -60,4 +63,5 @@ for char in str(path):
     event(key,True);event(key,False)
     if shift:event(code('Shift_L'),False)
     x.XFlush(d);time.sleep(.01)
-tap('Return');print(json.dumps({'native_dialog':target[1],'public_synthetic_certificate_selected':True,'private_display':True}))
+tap('Return');time.sleep(.7);titles.clear();remaining=find(root)
+print(json.dumps({'native_dialog':target[1],'public_synthetic_certificate_selected':True,'private_display':True,'open_dialog_remaining':bool(remaining),'private_window_titles':sorted(titles)[:12]}))

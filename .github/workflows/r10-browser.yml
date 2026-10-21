@@ -26,6 +26,8 @@ jobs:
       - name: Verify unchanged product bytes
         working-directory: source
         run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/browser-source-proof.json"
+      - name: Probe native certificate selection and strict synthetic HTTPS
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" node source/packaging/r10/probe_native_ca.cjs "$RUNNER_TEMP/NATIVE-CA-PROBE.json"
       - name: Download the exact paired candidate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,6 +41,7 @@ jobs:
           path: |
             ${{ runner.temp }}/BROWSER-DIAGNOSTIC.json
             ${{ runner.temp }}/browser-source-proof.json
+            ${{ runner.temp }}/NATIVE-CA-PROBE.json
             ${{ runner.temp }}/r10-browser-evidence/BROWSER-ACCEPTANCE.json
           if-no-files-found: error
           retention-days: 30

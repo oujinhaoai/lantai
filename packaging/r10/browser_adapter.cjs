@@ -22,7 +22,10 @@ async function trustLocalTestCA(context,caFile){
  await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
  await page.waitForTimeout(300);proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
  fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
- cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']});
+ proof.native_dialog=JSON.parse(cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']}).toString());
+ await page.waitForTimeout(500);proof.user_trusted_list=await trusted.evaluate(e=>e.shadowRoot.textContent.slice(-2000));
+ proof.native_ui_dialogs=await page.locator('cr-dialog:visible, cr-toast:visible').allTextContents();
+ fs.writeFileSync(process.env.CANDIDATE_BROWSER_PROOF,JSON.stringify(proof)+'\n');
  const name=cert.subject.split('\n').find(s=>s.startsWith('CN='))?.slice(3);if(!name)throw Error('Synthetic CA common name required');
  const entry=trusted.getByText(name,{exact:true});await entry.waitFor({state:'attached'});
  if(!await entry.isVisible())await trusted.getByRole('button',{name:'Show Trusted Certificates',exact:true}).click();
@@ -34,4 +37,5 @@ async function trustLocalTestCA(context,caFile){
 }
 const helper=path.join(root,'scripts/browser-profile-trust.cjs');
 require.cache[require.resolve(helper)]={id:helper,filename:helper,loaded:true,exports:{trustLocalTestCA}};
-require(path.join(root,'scripts/test-release-browser.cjs'));
+if(require.main===module)require(path.join(root,'scripts/test-release-browser.cjs'));
+else module.exports={trustLocalTestCA};
