@@ -85,7 +85,7 @@ def main():
         new_cli.chmod(0o700)
         source=d.Instance(work/'source',old_deploy,old_web,old['caddy_image']['tag'],
             (old_deploy/'compose.yaml').read_text(),(old_deploy/'Caddyfile').read_bytes(),old['core_image']['tag'])
-        source.compose+=['-f',str(source.root/'compose.web.yaml')];source.enable_backup(old_deploy);instances.append(source)
+        source.compose+=['-f',str(source.root/'compose.web.yaml')];source.enable_backup(old_deploy);source.select(old['core_image']['tag']);instances.append(source)
         d.RESULT['phase']='initialize actual old release and capture verified backup'
         d.run(source.compose+['up','-d']);source.initialize_and_seed(old_cli);source.retained(old_cli,old);source.ready();source.tls_negative()
         job=source.backup_smoke(old);source.stop();source_cid=source.cid()
@@ -179,7 +179,7 @@ def main():
             except Exception:d.RESULT.update(cleanup_failed=True,status='failed')
         d.RESULT['test_secrets_databases_keys_backups_uploaded']=False
         save(a.out/'MIGRATION-RESULT.json',d.RESULT)
-    print(json.dumps({'status':d.RESULT['status'],'checks':len(d.RESULT['checks']),'error':d.RESULT.get('error'),'report':'MIGRATION-RESULT.json'}),flush=True)
+    print('MIGRATION_RESULT '+json.dumps(d.RESULT,ensure_ascii=False),flush=True)
     return 0 if d.RESULT['status']=='passed' else 1
 
 if __name__=='__main__':sys.exit(main())
