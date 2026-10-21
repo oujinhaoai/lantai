@@ -1,12 +1,14 @@
 """Additional business UI smoke against immutable exact image/Web artifacts."""
-import argparse,json,sys,tempfile
+import argparse,hashlib,json,sys,tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from test_migration import d,ROOT,EXPECTED,verify_sums,save
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--candidate',type=Path,required=True);ap.add_argument('--out',type=Path,required=True);a=ap.parse_args();a.out.mkdir(mode=0o700)
-    work=Path(tempfile.mkdtemp(prefix='lantai-five-entry-'));work.chmod(0o700);instance=None
+    # Reuse the pinned safe-browser test namespace accepted by the certificate
+    # picker. The picker's path guard remains unchanged.
+    work=Path(tempfile.mkdtemp(prefix='lantai-safe-browser-five-entry-'));work.chmod(0o700);instance=None
     d.RESULT.update(schema='lantai.actual-five-entry-browser/v1',status='running',source_commit=EXPECTED,NAS_accessed=False,real_data_used=False,product_source_modified=False,checks=[])
     try:
         d.require_local_docker(d.run);verify_sums(a.candidate);m=json.loads((a.candidate/'manifest.json').read_text());assert m['source_commit']==EXPECTED
@@ -22,7 +24,7 @@ def main():
         d.run(instance.compose+['up','-d']);instance.initialize_and_seed(cli);instance.ready()
         d.ENV['CANDIDATE_BROWSER_PROOF']=str(work/'native-proof.json');d.ENV['CANDIDATE_SYNTHETIC_CA']=str(instance.tls/'cert.pem')
         private_downloads=work/'private-downloads';private_downloads.mkdir(mode=0o700)
-        payload={'origin':instance.origin,'ca_file':str(instance.tls/'cert.pem'),'browser_profile':str(work/'private-profile'),'name':instance.name,'password':instance.password,'factor_hex':instance.factor.hex(),'receipt':instance.receipt,'principal_id':instance.who['principal']['principal_id'],'private_downloads':str(private_downloads)}
+        payload={'origin':instance.origin,'ca_file':str(instance.tls/'cert.pem'),'browser_profile':str(work/'private-profile'),'name':instance.name,'password':instance.password,'factor_hex':instance.factor.hex(),'receipt':instance.receipt,'principal_id':instance.who['principal']['principal_id'],'private_downloads':str(private_downloads),'source_bytes_sha256':hashlib.sha256(instance.content).hexdigest()}
         d.RESULT['phase']='additional five actual browser business flows'
         response=json.loads(d.run(['node',str(ROOT/'packaging/r10/five_entry_browser.cjs')],stdin=json.dumps(payload)))
         assert response['passed'] and response['same_principal'] and response['cookie_protected'] and response['all_five_entries_business_smoke']
