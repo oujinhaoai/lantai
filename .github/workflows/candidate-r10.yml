@@ -47,7 +47,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 source/scripts/build-release.py --source source --commit "$GITHUB_SHA" --version v0.1.0-r10-candidate --out "$RUNNER_TEMP/r10-release" --upgrade-from-dir "$RUNNER_TEMP/lantai-upgrade-baseline" --upgrade-from-commit d27a06fe0af55e205a19e8f95f0764167e217741
+          python3 source/packaging/r10/build_candidate.py --source source --commit "$GITHUB_SHA" --version v0.1.0-r10-candidate --out "$RUNNER_TEMP/r10-release" --upgrade-from-dir "$RUNNER_TEMP/lantai-upgrade-baseline" --upgrade-from-commit d27a06fe0af55e205a19e8f95f0764167e217741
       - name: Stage only credential-free installation artifacts and GUI guidance
         run: |
           python3 source/packaging/r10/stage_artifact.py --build "$RUNNER_TEMP/r10-release/deliverables" --proof "$RUNNER_TEMP/r10-source-proof.json" --out "$RUNNER_TEMP/r10-candidate-artifact"
