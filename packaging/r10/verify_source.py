@@ -8,7 +8,8 @@ EXTRAS = {'.github/workflows/candidate-r10.yml', 'packaging/r10/FROZEN-SOURCE.js
           'packaging/r10/verify_source.py', 'packaging/r10/stage_artifact.py',
           'packaging/r10/compose.gui.template.yaml', 'packaging/r10/GUI-UPGRADE.md',
           'packaging/r10/build_candidate.py', '.github/workflows/r10-migration.yml',
-          'packaging/r10/test_migration.py'}
+          'packaging/r10/test_migration.py', '.github/workflows/r10-browser.yml',
+          'packaging/r10/probe_browser.cjs'}
 
 def verify():
     frozen = json.loads((ROOT/'packaging/r10/FROZEN-SOURCE.json').read_text())

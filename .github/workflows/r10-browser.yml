@@ -1,0 +1,31 @@
+name: r10-safe-browser-diagnostic
+on:
+  push:
+    branches: [candidate/r10-browser-20261021]
+permissions:
+  contents: read
+jobs:
+  native-ca-manager:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/web/package-lock.json
+      - name: Install only locked test client dependencies
+        run: npm ci --prefix source/web
+      - name: Inspect existing sandbox and disposable profile native certificate UI
+        run: node source/packaging/r10/probe_browser.cjs "$RUNNER_TEMP/BROWSER-DIAGNOSTIC.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: r10-safe-browser-diagnostic-${{ github.sha }}
+          path: ${{ runner.temp }}/BROWSER-DIAGNOSTIC.json
+          if-no-files-found: error
+          retention-days: 30
