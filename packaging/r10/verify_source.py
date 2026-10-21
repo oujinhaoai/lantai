@@ -13,7 +13,7 @@ EXTRAS = {'.github/workflows/candidate-r10.yml', 'packaging/r10/FROZEN-SOURCE.js
           'packaging/r10/test_browser.py', 'packaging/r10/native_file_dialog.py',
           'packaging/r10/probe_native_ca.cjs', 'packaging/r10/ca_file_portal.py',
           'packaging/r10/five_entry_browser.cjs','packaging/r10/test_five_entry.py',
-          '.github/workflows/r10-five-entry.yml'}
+          '.github/workflows/r10-five-entry.yml','packaging/r10/compose.gui.migrate.r1.yaml','packaging/r10/GUI-MIGRATION-r1.md','packaging/r10/FINAL-HANDOFF.json','packaging/r10/ACCEPTANCE-REPORT.md','packaging/r10/FINAL-COVERAGE-MATRIX.md'}
 
 def verify():
     frozen = json.loads((ROOT/'packaging/r10/FROZEN-SOURCE.json').read_text())

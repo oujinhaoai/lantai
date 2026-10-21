@@ -1,0 +1,417 @@
+{
+  "schema": "lantai.final-github-handoff/v1",
+  "status": "installation_sealed_and_five_scoped_business_flows_passed; deeper_boundaries_unverified",
+  "product": {
+    "frozen_tree_sha256": "dbca6589325d6e043f9c85b914912683ba3f99a0d9fa0d4f2d55ef85a5c6d09c",
+    "files": 1557,
+    "modified": false,
+    "image_web_build_commit": "3ad86ea10830676d5ef5d72286a02fd0d9d01c65",
+    "image_tag": "lantai:v0.1.0-r10-candidate-3ad86ea10830",
+    "image_id": "sha256:38d2114be464e0ba333f2bf4b0a3e88cfbd41bed5b474728e2513df644034945",
+    "web_archive_sha256": "0c21322ab7506562dc0dc32e53c63b51aef6fd48184a93127ca9f3fd40707dfd"
+  },
+  "distribution": {
+    "branch": "candidate/r10-final-seal-20261021",
+    "commit": "8de6b0f572d84ec2523765ec5ea5247a599e8505",
+    "run": 39542828167,
+    "artifact_id": 12320610312,
+    "zip_bytes": 39580861,
+    "zip_sha256": "ec041ae08b308e2307c9bbdbfd2411141b00db8ef786aa6586ae013ae64be84e",
+    "status": "passed",
+    "manifest_sha256": "fbd22e77e0aaece8e0d44e7c624d50a71807d5a78117bf17eb7563dd484affe8"
+  },
+  "download": {
+    "url": "https://github.com/oujinhaoai/lantai/actions/runs/39542828167/artifacts/12320610312",
+    "expires_at": "2026-11-20T04:14:31Z"
+  },
+  "files": [
+    {
+      "path": "FROZEN-SOURCE-PROOF.json",
+      "bytes": 795,
+      "sha256": "2a8be7058dd7e340a1319590e74740c8b6b5777357962c3331dcd9a425a956d0"
+    },
+    {
+      "path": "GUI-MIGRATION-r1.md",
+      "bytes": 3595,
+      "sha256": "2544ee0811ba498d5cdd4988d8ea7cc372619f1b181d2f8f6243085e655ebba2"
+    },
+    {
+      "path": "LICENSE-LANTAI.txt",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "SHA256SUMS",
+      "bytes": 1999,
+      "sha256": "64856b6c615aa47fb97f7f64aa9b9636e5b9cb4e8f28c8085d54ca4053959a4f"
+    },
+    {
+      "path": "backup-preparation.json",
+      "bytes": 1563,
+      "sha256": "8e8d63a82e4c0274fb973860dab3a2ce5a2f4acb14e50a8e4808ddd5997dc896"
+    },
+    {
+      "path": "caddy-2.11.4-linux-amd64-image.tar.gz",
+      "bytes": 23262355,
+      "sha256": "013bcde94d486c19df0f45fc4fb3dc4456d90bce75b20ceb66f3325e330922bf"
+    },
+    {
+      "path": "compose.r10.gui.migrate.r1.yaml",
+      "bytes": 4944,
+      "sha256": "4238b67dfc41c0e29b5cd03706815ace21ccb06d1da6651cafd147dd6f24c472"
+    },
+    {
+      "path": "evidence/ACTUAL-BROWSER.json",
+      "bytes": 8937,
+      "sha256": "7d9eb1792d1447799f1390d39c62e35147023da72172657c7be488592b638096"
+    },
+    {
+      "path": "evidence/DISTRIBUTION-SOURCE-PROOF.json",
+      "bytes": 1085,
+      "sha256": "191872d64b33380af80cb7702b9da3bd8bbad07d57b0834fe0d276fe08f7ccc1"
+    },
+    {
+      "path": "evidence/INITIAL-ACCEPTANCE-FAILED.json",
+      "bytes": 18507,
+      "sha256": "cd85dbc9fb39365e9358108f23428607a304afd908242efc7c58c2bf70c82baa"
+    },
+    {
+      "path": "evidence/INITIAL-INSTALL-PRIVACY-CHECK.json",
+      "bytes": 88274,
+      "sha256": "bbb40d972609a2f6118c33aa54e98226ca724074d4fdfcd2b9b7c734d956ec2b"
+    },
+    {
+      "path": "evidence/ISOLATION.json",
+      "bytes": 2169,
+      "sha256": "e3b7b451e9c252d9567d048cd0e86f60847db3dd3d76658f487f8ab4adc2ac52"
+    },
+    {
+      "path": "evidence/NATIVE-CA-PROBE.json",
+      "bytes": 1177,
+      "sha256": "a5232525df18b96832ace57f32ddec536a4659c140b4ccbc11186c0480a6ecb5"
+    },
+    {
+      "path": "evidence/RC6-MIGRATION-RESTORE.json",
+      "bytes": 12533,
+      "sha256": "76e2c793908094a121cc9119ba8c61dff7e591e43b0d4cbde2ccc25fa1b1f771"
+    },
+    {
+      "path": "first-start-image-smoke.txt",
+      "bytes": 501,
+      "sha256": "3d17b1922bb36d79c84d411ad2d226a87a11f2e578dc145c197443e27208c811"
+    },
+    {
+      "path": "first-start-lifecycle.json",
+      "bytes": 47853,
+      "sha256": "715cd838e01471dbc33f1c0d2690ab2bbb1304166a98c8853c00bae691108f3c"
+    },
+    {
+      "path": "gateway-smoke.txt",
+      "bytes": 137,
+      "sha256": "56f82ca7a89fcba646e782905b6259e2f47a206ec5d26f4988b05edc17a50acd"
+    },
+    {
+      "path": "image-version.json",
+      "bytes": 2673,
+      "sha256": "c45b80fde71dd6ac4ba0ecaa32c46c5e43f1f2c98c453d256a9023a1767304e6"
+    },
+    {
+      "path": "lantai-v0.1.0-r10-candidate-linux-amd64-image.tar.gz",
+      "bytes": 16008206,
+      "sha256": "e7419264f50b9b7932cae59dbc5dec8962d17c38b1e203fa083a776b2436db23"
+    },
+    {
+      "path": "lantai-v0.1.0-r10-candidate-web.tar.gz",
+      "bytes": 353630,
+      "sha256": "0c21322ab7506562dc0dc32e53c63b51aef6fd48184a93127ca9f3fd40707dfd"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 12867,
+      "sha256": "fbd22e77e0aaece8e0d44e7c624d50a71807d5a78117bf17eb7563dd484affe8"
+    },
+    {
+      "path": "web-build.txt",
+      "bytes": 1169,
+      "sha256": "657ca6c02cdd3739f8eb47f0ca93300451f6722fb4f3c5122a5b6d7f35c05b27"
+    }
+  ],
+  "migration": {
+    "branch": "candidate/r10-migration-20261021",
+    "commit": "c414d2a2aaace05ee87c5eac8900990c81a06f74",
+    "run": 39538298792,
+    "baseline": "4406320354e2241ca996a16ae97abb5dff4f477e",
+    "prior_rc5_forward_passed": true,
+    "prior_rc5_recovery_completed_but_startup_fixture_overlayed_wrong_config": true,
+    "status": "passed",
+    "checks": 111,
+    "artifact_id": 12318104345,
+    "artifact_sha256": "ce45565b717e50c9acdec1ce683dbb57b2db8778cd5526770582725e04603196",
+    "independent_schema14_restore_passed": true,
+    "GUI_only_old_version_recovery_verified": false
+  },
+  "browser": {
+    "branch": "candidate/r10-browser-20261021",
+    "commit": "399b7f773a807659781a2425ef46e558fc4c8e81",
+    "run": 39541828961,
+    "safe_path": "/opt/google/chrome/chrome",
+    "actual_namespace_seccomp_passed": true,
+    "native_CA_path": "chrome://certificate-manager/localcerts/usercerts",
+    "adapter_exact_heading": "Trusted Certificates",
+    "status": "passed",
+    "checks": 51,
+    "original_assertions_modified": false,
+    "operational_navigation_locator": "主导航/素材库",
+    "private_profile_CA_file_selection": "documented FileChooser protocol in isolated D-Bus test session",
+    "host_policy_or_trust_store_changed": false,
+    "artifact_id": 12319623468,
+    "artifact_sha256": "58f663f434b6cd8fcd4516bc46da457257e42afc804223d0d8577fbbeed82b7a",
+    "actual_five_entry_browser_version": "155.0.8059.84",
+    "certificate_selection_fixture": "packaging/r10/ca_file_portal.py"
+  },
+  "isolation": {
+    "schema": "lantai.exact-image-isolation/v1",
+    "status": "passed",
+    "source_commit": "3ad86ea10830676d5ef5d72286a02fd0d9d01c65",
+    "NAS_accessed": false,
+    "real_data_used": false,
+    "checks": [
+      {
+        "name": "loaded core archive exact image and source",
+        "passed": true
+      },
+      {
+        "name": "protected setup rejects wrong claim",
+        "passed": true
+      },
+      {
+        "name": "protected synthetic administrator enrollment",
+        "passed": true
+      },
+      {
+        "name": "original TOTP confirmed without relaxing validation",
+        "passed": true
+      },
+      {
+        "name": "setup closes permanently",
+        "passed": true
+      },
+      {
+        "name": "original synthetic CLI login",
+        "passed": true
+      },
+      {
+        "name": "normal project membership read",
+        "passed": true
+      },
+      {
+        "name": "normal project-owner HumanGrant challenge",
+        "passed": true
+      },
+      {
+        "name": "normal project-owner TOTP proof",
+        "passed": true
+      },
+      {
+        "name": "normal synthetic project role assignment",
+        "passed": true
+      },
+      {
+        "name": "baseline actual core accepts synthetic resource",
+        "passed": true
+      },
+      {
+        "name": "actual core loopback health and readiness",
+        "passed": true
+      },
+      {
+        "name": "core exits gracefully",
+        "passed": true
+      }
+    ],
+    "core_image": {
+      "tag": "lantai:v0.1.0-r10-candidate-3ad86ea10830",
+      "id": "sha256:38d2114be464e0ba333f2bf4b0a3e88cfbd41bed5b474728e2513df644034945"
+    },
+    "host_architecture": "x86_64",
+    "docker_server": "28.0.4",
+    "compose": "2.38.2",
+    "core_internal_network": true,
+    "core_published_ports": false,
+    "core_read_only_root": true,
+    "core_user": "65532:65532",
+    "core_cap_drop": [
+      "ALL"
+    ],
+    "initialized_runtime_ready": true,
+    "verified_TLS_metadata_HTTP_status": 200,
+    "positive_control": {
+      "connected": true,
+      "body_sha256": "9d58441082b278e91f3cb5108178eaceb2afd128bfa03d8274aaf82392cafb2c"
+    },
+    "core_namespace_external_bridge_probe": {
+      "connected": false,
+      "exit_code": 1
+    },
+    "external_Internet_or_NAS_contacted": false,
+    "initialized_runtime_graceful_stop": true
+  },
+  "five_entry": {
+    "branch": "candidate/r10-five-entry-20261021",
+    "commit": "b877354be6f0d92c1022b0d3c87fe39bb4ab1cd4",
+    "run": 39544283683,
+    "status": "passed",
+    "artifact_id": 12321031686,
+    "artifact_bytes": 3348,
+    "artifact_sha256": "sha256:23475361e88f840c44823646cdf078fb1746212aedc6aa17525c9a5ec2eb202d",
+    "reported_business_checks": 9,
+    "bootstrap_checks": 13,
+    "real_business_paths": 5,
+    "deep_device_M1_07_all_features_claimed": false,
+    "download_url": "https://github.com/oujinhaoai/lantai/actions/runs/39544283683/artifacts/12321031686",
+    "business_result": {
+      "passed": true,
+      "business_failures": [],
+      "same_principal": true,
+      "cookie_protected": true,
+      "checks": [
+        {
+          "name": "all five navigation entries are visible only after explicit management login",
+          "passed": true
+        },
+        {
+          "name": "asset metadata and structured profile persist; current rights are read from core",
+          "passed": true,
+          "profile_fields": 8,
+          "rights_mutation_exercised": false
+        },
+        {
+          "name": "actual migration selection DOM observed",
+          "passed": true,
+          "selects": [
+            {
+              "label": "目标项目请选择授权项目发行合成资料库 · release-check",
+              "options": [
+                "请选择授权项目",
+                "发行合成资料库 · release-check"
+              ]
+            },
+            {
+              "label": "分类未知，明确选择后入藏最终资料明确需要保留的中间资料",
+              "options": [
+                "未知，明确选择后入藏",
+                "最终资料",
+                "明确需要保留的中间资料"
+              ]
+            },
+            {
+              "label": "素材类型图像视频音频文档配置／工作流模型动作／轨迹场景工程制作成果受控扩展包",
+              "options": [
+                "图像",
+                "视频",
+                "音频",
+                "文档",
+                "配置／工作流",
+                "模型",
+                "动作／轨迹",
+                "场景工程",
+                "制作成果",
+                "受控扩展包"
+              ]
+            },
+            {
+              "label": "用途限制restricted · 受限reference · 仅参考production · 具有相应生产权利",
+              "options": [
+                "restricted · 受限",
+                "reference · 仅参考",
+                "production · 具有相应生产权利"
+              ]
+            },
+            {
+              "label": "敏感级别normalpersonal（仍需正式权限）",
+              "options": [
+                "normal",
+                "personal（仍需正式权限）"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "migration browser copies one selected file, commits with frozen state, verifies full SHA, and retains complete one-row ledger",
+          "passed": true,
+          "overall_batch_ready_claimed": false,
+          "M1_07_reference_or_device_actions_exercised": false
+        },
+        {
+          "name": "workset downloaded TAR bytes and committed fixed record verified",
+          "passed": true,
+          "saved_asset_id": "01M5EBM6ZEYAABEC9RH0SZQH26"
+        },
+        {
+          "name": "workset browser fixes an exact version, verifies downloaded TAR, saves and reopens config record",
+          "passed": true,
+          "list_discovery_passed": true,
+          "new_version_return_exercised": false
+        },
+        {
+          "name": "system browser creates project and queries explicit ACL; admin gains no automatic asset membership",
+          "passed": true
+        },
+        {
+          "name": "backup browser obtains fresh bound HumanGrant and creates verified complete package",
+          "passed": true,
+          "GUI_restore_exercised": false,
+          "package_uploaded": false
+        },
+        {
+          "name": "no application pageerror during all five real business entry flows",
+          "passed": true
+        }
+      ],
+      "all_five_entries_exercised": true,
+      "all_five_entries_business_smoke": true,
+      "application_requests_mocked": false,
+      "product_source_modified": false,
+      "credentials_profiles_downloads_backup_packages_uploaded": false
+    }
+  },
+  "GUI_config": {
+    "commit": "0e0191e2e6ecc96bb0ccc3510c15038ccb12f3b5",
+    "branch": "candidate/r10-gui-config-20261021",
+    "public_compose_sha256": "4238b67dfc41c0e29b5cd03706815ace21ccb06d1da6651cafd147dd6f24c472"
+  },
+  "NAS_accessed": false,
+  "real_data_used": false,
+  "same_volume_old_image_downgrade_supported": false,
+  "NAS_GUI_only_old_version_recovery_verified": false,
+  "main_merged": false,
+  "formal_release": false,
+  "registry_published": false,
+  "old_failure_records_retained": true,
+  "supported_download_reference": {
+    "transport": "supported GitHub native workflow artifact download",
+    "succeeded": true,
+    "library_prepare_called": false,
+    "private_file_id_publicly_disclosed": false
+  },
+  "configuration_validation": "Compose v2.38.2 render passed; guarded migration service semantics executed on synthetic rc6 volumes; NAS GUI/private paths not accessed",
+  "remaining_boundaries": [
+    "Web to real worker eight actions not exercised in this browser run",
+    "M1-07 reference copy/rollback/full batch ready positive browser chain unverified",
+    "all three management records complete-package restore and browser reopen not exercised together on this exact image",
+    "workset new-version return and all rights mutation browser branches unverified",
+    "NAS GUI-only old-version recover-admin/restore-complete/config adoption unverified",
+    "same-volume old-image downgrade unsupported",
+    "real DCC editing/production devices/1GiB opt-in unexecuted",
+    "pre-enrollment SIGTERM exit0 not verified; initialized runtime graceful stop passed"
+  ],
+  "receipt_parent_commit": "b877354be6f0d92c1022b0d3c87fe39bb4ab1cd4",
+  "historical_failed_runs": [
+    39535413064,
+    39542667020,
+    39543121747,
+    39543315525,
+    39543484342,
+    39543829443
+  ]
+}
