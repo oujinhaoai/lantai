@@ -1,7 +1,10 @@
 // Packaging-only adaptation for Chrome155's native user certificate subpage.
 // The original artifact browser assertions, sandbox and TLS policy are unchanged.
-const fs=require('fs'),path=require('path'),{X509Certificate}=require('crypto');
+const fs=require('fs'),path=require('path'),{X509Certificate}=require('crypto'),cp=require('child_process');
 const root=path.resolve(__dirname,'../..');
+const {chromium}=require(path.join(root,'web/node_modules/@playwright/test'));
+const launch=chromium.launchPersistentContext.bind(chromium);
+chromium.launchPersistentContext=(profile,options)=>launch(profile,{...options,headless:false});
 async function trustLocalTestCA(context,caFile){
  const cert=new X509Certificate(fs.readFileSync(caFile));
  if(!cert.ca||!cert.checkIssued(cert)||!cert.verify(cert.publicKey))throw Error('Explicit self-signed synthetic CA required');
@@ -10,8 +13,8 @@ async function trustLocalTestCA(context,caFile){
  await page.goto('chrome://certificate-manager/localcerts/usercerts');
  const trusted=page.locator('certificate-subpage#userCertsSection certificate-list').filter({has:page.getByRole('heading',{name:'Trusted Certificates',exact:true})});
  await trusted.waitFor({state:'visible'});if(await trusted.count()!==1)throw Error('Native user trusted-certificate list unavailable');
- const chooser=page.waitForEvent('filechooser');await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
- await (await chooser).setFiles(caFile);
+ await trusted.getByRole('button',{name:'Import to Trusted Certificates',exact:true}).click();
+ cp.execFileSync('python3',[path.join(__dirname,'native_file_dialog.py'),caFile],{timeout:20000,stdio:['ignore','pipe','pipe']});
  const name=cert.subject.split('\n').find(s=>s.startsWith('CN='))?.slice(3);if(!name)throw Error('Synthetic CA common name required');
  const entry=trusted.getByText(name,{exact:true});await entry.waitFor({state:'attached'});
  if(!await entry.isVisible())await trusted.getByRole('button',{name:'Show Trusted Certificates',exact:true}).click();

@@ -31,7 +31,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
       - name: Run the original artifact browser assertions with native profile CA support
-        run: python3 source/packaging/r10/test_browser.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-browser-evidence"
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" python3 source/packaging/r10/test_browser.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-browser-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
