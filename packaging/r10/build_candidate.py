@@ -83,10 +83,12 @@ def browser_preflight():
 const fs=require('fs'),os=require('os'),path=require('path');
 const {chromium}=require('./web/node_modules/@playwright/test');
 (async()=>{const profile=fs.mkdtempSync(path.join(os.tmpdir(),'r10-browser-preflight-'));fs.chmodSync(profile,0o700);
-let c;try{c=await chromium.launchPersistentContext(profile,{executablePath:'/opt/google/chrome/chrome',chromiumSandbox:true,ignoreHTTPSErrors:false});
+let c,state={passed:false};try{c=await chromium.launchPersistentContext(profile,{executablePath:'/opt/google/chrome/chrome',chromiumSandbox:true,ignoreHTTPSErrors:false});
 const p=await c.newPage();await p.goto('chrome://sandbox');const report=await p.locator('body').innerText();
 if(!/PID namespaces\s+Yes/i.test(report)||!/Seccomp-BPF sandbox\s+Yes/i.test(report))throw new Error('Chromium namespace/seccomp sandbox proof unavailable');
-await p.goto('chrome://certificate-manager/localcerts');await p.locator('certificate-list-v2').filter({hasText:/Trusted certificates/i}).waitFor({state:'visible',timeout:15000});
+state={passed:false,version:c.browser().version(),sandbox_verified:true,sandbox_report:report};
+await p.goto('chrome://certificate-manager/localcerts');state.native_CA_manager_text=(await p.locator('body').innerText()).slice(0,3000);
+try{await p.locator('certificate-list-v2').filter({hasText:/Trusted certificates/i}).waitFor({state:'visible',timeout:15000})}catch(e){state.error_type=e.name;state.message=e.message;console.log(JSON.stringify(state));return}
 console.log(JSON.stringify({passed:true,version:c.browser().version(),sandbox_report:report,native_profile_CA_manager_available:true}));
 }finally{if(c)await c.close();fs.rmSync(profile,{recursive:true,force:true});}})().catch(e=>{console.log(JSON.stringify({passed:false,error_type:e.name,message:e.message}));process.exitCode=1});
 '''
@@ -98,8 +100,10 @@ console.log(JSON.stringify({passed:true,version:c.browser().version(),sandbox_re
                 return
             try:item['probe']=json.loads(probe.stdout.strip().splitlines()[-1])
             except (ValueError,IndexError):item['probe']={'passed':False,'error_type':'BrowserPreflightProtocolError'}
+            if item['probe'].get('sandbox_verified'):
+                result.update(sandbox_status='passed',selected_executable=str(path),native_profile_CA_manager_status='failed')
             if probe.returncode==0 and item['probe'].get('passed'):
-                result.update(status='passed',selected_executable=str(path))
+                result.update(status='passed',sandbox_status='passed',native_profile_CA_manager_status='passed',selected_executable=str(path))
     Path(argument('--out')).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print('BROWSER_PREFLIGHT '+json.dumps(result,ensure_ascii=False),flush=True)
 
@@ -110,7 +114,7 @@ def delivery():
     proof=Path(os.environ['RUNNER_TEMP'])/'r10-browser-preflight.json'
     browser=json.loads(proof.read_text())
     module.RESULT['browser_preflight']=browser
-    if browser['status']=='passed':
+    if browser.get('sandbox_status')=='passed':
         assert browser['selected_executable']=='/opt/google/chrome/chrome'
         module.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE']=browser['selected_executable']
     original_select = module.Instance.select
@@ -244,23 +248,22 @@ def build():
         # intentionally public, synthetic smoke report on an unsuccessful gate.
         print('DELIVERY_FAILURE_SUMMARY '+json.dumps(result, ensure_ascii=False), flush=True)
         (output/'delivery-failure-summary.json').write_text(json.dumps(result, ensure_ascii=False, indent=2)+'\n')
-        if (str(error) != 'actual delivery image/static/direct-upgrade smoke did not pass'
-                or result.get('nonbrowser_checks_status') != 'passed'
-                or not result.get('browser_failures')):
+        if (result.get('status')!='failed' or not (output/'build-work/candidate-manifest.json').is_file()):
             raise
         candidate = json.loads((output/'build-work/candidate-manifest.json').read_text())
         lifecycle = json.loads((output/'deliverables/first-start-lifecycle.json').read_text())
         assert lifecycle['status']=='passed'
         assert lifecycle['core_image_id']==candidate['core_image']['id']
         assert lifecycle['caddy_image_id']==candidate['caddy_image']['id']
+        assert result['source_commit']==argument('--commit') and result['core_image_id']==candidate['core_image']['id']
         candidate.update(schema='lantai.release-artifacts/v1',
-            status='built-with-browser-acceptance-failure', source_commit=argument('--commit'),
+            status='built-with-acceptance-failure', source_commit=argument('--commit'),
             go_version=original(['go','version']), delivery_smoke=result,
             first_start_smoke={'status':'passed','core_image_id':lifecycle['core_image_id'],
                 'caddy_image_id':lifecycle['caddy_image_id'],'scope':'synthetic first start; not NAS acceptance'})
         (output/'deliverables/manifest.json').write_text(json.dumps(candidate, ensure_ascii=False, indent=2)+'\n')
-        (output/'deliverables/delivery-image-smoke.txt').write_text('Browser acceptance failed; non-browser checks completed. See delivery-image-smoke.json.\n')
-        print('BUILT_WITH_BROWSER_ACCEPTANCE_FAILURE: downloadable candidate must not be reported as fully accepted', flush=True)
+        (output/'deliverables/delivery-image-smoke.txt').write_text('Acceptance failed. See delivery-image-smoke.json for separate browser, upgrade, cleanup and successful checks. Do not treat this package as an approved in-place upgrade.\n')
+        print('BUILT_WITH_ACCEPTANCE_FAILURE: downloadable candidate must not be reported as fully accepted or safe to upgrade', flush=True)
     proof=Path(os.environ['RUNNER_TEMP'])/'r10-browser-preflight.json'
     shutil.copyfile(proof,Path(argument('--out'))/'deliverables/browser-sandbox-preflight.json')
 

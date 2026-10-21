@@ -1,6 +1,6 @@
 # r10 候选：极空间 GUI 配置
 
-仅用原项目界面导入本地镜像、编辑 Compose、停止与重建，不要求 NAS shell。镜像尚未发布注册表，不能拉取。配套镜像为 __CORE_IMAGE__；实际 image ID、源码提交和 Web 完整摘要见 manifest.json，不能沿用旧云构建的 image ID。先核对 manifest 的 fully_accepted：若为 false，本包只保留已构建候选与独立检查证据，浏览器验收失败，不能当作完整验收通过；详情见 delivery-image-smoke.json 与 Actions 终态。
+仅用原项目界面导入本地镜像、编辑 Compose、停止与重建，不要求 NAS shell。镜像尚未发布注册表，不能拉取。配套镜像为 __CORE_IMAGE__；实际 image ID、源码提交和 Web 完整摘要见 manifest.json，不能沿用旧云构建的 image ID。先核对 manifest 的 fully_accepted：若为 false，本包只保留已构建候选与实际检查证据，存在未通过项，不能认定完整验收通过或可原卷升级；浏览器、升级、清理及已通过检查分别见 delivery-image-smoke.json 与 Actions 终态。
 
 先在原网页完成并核验完整备份，保存原 Compose/env、旧核心镜像及旧 web。暂停写入，在原项目界面停止 core/gateway。通过现有镜像导入界面导入本批核心镜像归档；若界面只支持 TAR，可先在普通电脑解压 gzip 得到 TAR。用文件管理界面保存旧 web，再将同批 Web 包里的完整 web 目录放到原位置。原 Caddyfile、配置文件、setup、TLS 和备份不覆盖。
 
