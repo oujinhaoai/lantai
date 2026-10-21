@@ -17,13 +17,17 @@ def main():
         d.load_image(a.candidate,m);d.run(['docker','load','-i',str(a.candidate/'caddy-2.11.4-linux-amd64-image.tar.gz')])
         result.update(core_image=m['core_image'],host_architecture=platform.machine(),docker_server=d.run(['docker','version','--format','{{.Server.Version}}']),compose=d.run(['docker','compose','version','--short']))
         web=work/'web';d.extract_verified_archive(a.candidate/m['web']['archive'],web,m['web']['archive_prefix'],m['web']['files'])
+        cli=work/'lantai';image_container=d.run(['docker','create',m['core_image']['tag']])
+        try:d.run(['docker','cp',image_container+':/usr/local/bin/lantai',str(cli)])
+        finally:d.run(['docker','rm',image_container])
+        cli.chmod(0o700)
         deploy=ROOT/'deploy';instance=d.Instance(work/'instance',deploy,web,m['caddy_image']['tag'],(deploy/'compose.yaml').read_text(),(deploy/'Caddyfile').read_bytes(),m['core_image']['tag'])
-        instance.compose+=['-f',str(instance.root/'compose.web.yaml')];d.run(instance.compose+['up','-d']);instance.wait('/setup/',200)
+        instance.compose+=['-f',str(instance.root/'compose.web.yaml')];d.run(instance.compose+['up','-d']);instance.initialize_and_seed(cli);instance.ready()
         cid=instance.cid();info=d.inspect(cid);networks=list(info['NetworkSettings']['Networks']);assert len(networks)==1
         network=json.loads(d.run(['docker','network','inspect',networks[0]]))[0]
         assert info['Image']==m['core_image']['id'] and network['Internal'] is True and not info['HostConfig']['PortBindings']
         assert info['HostConfig']['ReadonlyRootfs'] and info['Config']['User']=='65532:65532' and 'ALL' in info['HostConfig']['CapDrop']
-        result.update(core_internal_network=True,core_published_ports=False,core_read_only_root=True,core_user='65532:65532',core_cap_drop=['ALL'],verified_TLS_bootstrap_HTTP_status=200)
+        result.update(core_internal_network=True,core_published_ports=False,core_read_only_root=True,core_user='65532:65532',core_cap_drop=['ALL'],initialized_runtime_ready=True,verified_TLS_metadata_HTTP_status=200)
         bridge=json.loads(d.run(['docker','network','inspect','bridge']))[0];gateway=bridge['IPAM']['Config'][0]['Gateway'];assert ipaddress.ip_address(gateway).is_private
         server=http.server.ThreadingHTTPServer((gateway,0),Handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://{gateway}:{server.server_port}/synthetic'
         def probe(mode):
@@ -37,8 +41,9 @@ def main():
     finally:
         if server:server.shutdown();server.server_close()
         if instance:
-            try:instance.stop()
-            except Exception:result.update(status='failed',cleanup_failed=True)
+            try:instance.stop();result['initialized_runtime_graceful_stop']=True
+            except Exception as error:result.update(status='failed',cleanup_failed=True,cleanup_error=type(error).__name__+': '+str(error),failed_command=d.RESULT.get('failed_command'))
+        result['checks']=d.RESULT['checks']
         save(a.out/'ISOLATION-RESULT.json',result)
     print('ISOLATION_RESULT '+json.dumps(result),flush=True);return 0 if result['status']=='passed' else 1
 if __name__=='__main__':sys.exit(main())
