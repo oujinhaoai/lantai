@@ -57,6 +57,13 @@ jobs:
           path: ${{ runner.temp }}/r10-candidate-artifact/
           if-no-files-found: error
           retention-days: 30
+      - name: Require complete browser acceptance after preserving the candidate
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          result=json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'r10-candidate-artifact/manifest.json').read_text())
+          assert result['fully_accepted'], 'Browser acceptance failed; downloadable artifact is explicitly marked incomplete.'
+          PY
       - name: Preserve a credential-free failure marker
         if: failure()
         env:
@@ -64,7 +71,12 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, pathlib
-          pathlib.Path(os.environ['RUNNER_TEMP'], 'r10-build-failed.json').write_text(json.dumps({'status':'failed','source_commit':os.environ['CANDIDATE_SHA'],'no_runtime_state_or_screenshots_attached':True})+'\n')
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])
+          pathlib.Path(root, 'r10-build-failed.json').write_text(json.dumps({'status':'failed','source_commit':os.environ['CANDIDATE_SHA'],'no_runtime_state_or_screenshots_attached':True})+'\n')
+          summary=root/'r10-release/delivery-failure-summary.json'
+          if summary.is_file():
+              value=json.loads(summary.read_text())
+              print('DELIVERY_FAILURE_SUMMARY '+json.dumps(value, ensure_ascii=False))
           PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: failure()

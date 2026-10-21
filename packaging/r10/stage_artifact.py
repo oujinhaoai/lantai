@@ -11,7 +11,10 @@ def main():
     m=json.loads((a.build/'manifest.json').read_text());proof=json.loads(a.proof.read_text())
     assert m['source_commit']==proof['source_commit']
     assert proof['canonical_frozen_tree_sha256']=='dbca6589325d6e043f9c85b914912683ba3f99a0d9fa0d4f2d55ef85a5c6d09c'
-    assert m['delivery_smoke']['status']=='passed' and m['first_start_smoke']['status']=='passed'
+    browser_failed=m.get('status')=='built-with-browser-acceptance-failure'
+    assert (m['delivery_smoke']['status']=='passed' or
+            browser_failed and m['delivery_smoke'].get('nonbrowser_checks_status')=='passed' and m['delivery_smoke'].get('browser_failures'))
+    assert m['first_start_smoke']['status']=='passed'
     a.out.mkdir(mode=0o700)
     selected=[f"lantai-{m['version']}-linux-amd64-image.tar.gz",'caddy-2.11.4-linux-amd64-image.tar.gz',m['web']['archive']]
     for n in selected:
@@ -61,6 +64,11 @@ def main():
     save(a.out/'INSTALL-PRIVACY-CHECK.json',{'status':'passed','files_checked':len(scanned),'findings':findings,'source_tests_and_test_runtime_excluded':True,'test_keys_sessions_backup_packages_screenshots_uploaded':False,'files':scanned})
     records=[{'name':p.name,'size_bytes':p.stat().st_size,'sha256':digest(p)} for p in sorted(a.out.iterdir())]
     result={'schema':'lantai.r10-github-candidate/v1','status':'candidate-built-and-synthetic-smoke-passed','source_commit':m['source_commit'],'frozen_source':proof,'version':m['version'],'core_image':m['core_image'],'caddy_image':m['caddy_image'],'web':m['web'],'files':records,'delivery_smoke':m['delivery_smoke'],'first_start_smoke':m['first_start_smoke'],'original_cloud_image_id':'sha256:7e147ab1daf21b29090f46425c1e7feba0868e86af5afc21a0efdfd68f078dfe','new_build_image_id_must_be_used':True,'toolchain':m['go_version'],'baseline_commit':m['delivery_smoke']['baseline_commit'],'actual_user_rc6_upgrade_or_rollback_verified':False,'NAS_deployed':False,'DCC_editing_executed':False,'formal_release':False,'container_registry_published':False}
+    if browser_failed:
+        result['status']='candidate-built-browser-acceptance-failed'
+        result['fully_accepted']=False
+    else:
+        result['fully_accepted']=True
     result['source_url']='https://github.com/oujinhaoai/lantai/tree/'+m['source_commit']
     save(a.out/'manifest.json',result)
     (a.out/'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in sorted(a.out.iterdir()) if p.name!='SHA256SUMS'))
