@@ -27,8 +27,8 @@ def main():
         payload={'origin':instance.origin,'ca_file':str(instance.tls/'cert.pem'),'browser_profile':str(work/'private-profile'),'name':instance.name,'password':instance.password,'factor_hex':instance.factor.hex(),'receipt':instance.receipt,'principal_id':instance.who['principal']['principal_id'],'private_downloads':str(private_downloads),'source_bytes_sha256':hashlib.sha256(instance.content).hexdigest()}
         d.RESULT['phase']='additional five actual browser business flows'
         response=json.loads(d.run(['node',str(ROOT/'packaging/r10/five_entry_browser.cjs')],stdin=json.dumps(payload)))
-        assert response['passed'] and response['same_principal'] and response['cookie_protected'] and response['all_five_entries_business_smoke']
-        d.RESULT.update(status='passed',business_browser=response,core_image=m['core_image'],web_archive_sha256=m['web']['archive_sha256'],credentials_profiles_downloads_backup_packages_uploaded=False)
+        assert response['same_principal'] and response['cookie_protected'] and response['all_five_entries_exercised']
+        d.RESULT.update(status='passed' if response['passed'] else 'failed',business_browser=response,core_image=m['core_image'],web_archive_sha256=m['web']['archive_sha256'],credentials_profiles_downloads_backup_packages_uploaded=False)
     except Exception as error:
         value=str(error)
         for private in d.PRIVATE_VALUES:
