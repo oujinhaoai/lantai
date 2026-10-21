@@ -3,8 +3,10 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const {trustLocalTestCA}=require('./browser_adapter.cjs');
 const {chromium,expect}=require('../../web/node_modules/@playwright/test');
 let phase='native private profile and certificate import';
+const privateValues=[];
 (async()=>{
  const input=JSON.parse(fs.readFileSync(0,'utf8'));fs.mkdirSync(input.browser_profile,{mode:0o700});
+ privateValues.push(input.password,input.factor_hex);
  const context=await chromium.launchPersistentContext(input.browser_profile,{executablePath:'/opt/google/chrome/chrome',chromiumSandbox:true,ignoreHTTPSErrors:false,locale:'en-US',args:['--lang=en-US'],viewport:{width:1440,height:1050}});
  const checks=[];const passed=(name,details={})=>checks.push({name,passed:true,...details});
  let lastStep=Math.floor(Date.now()/30000);
@@ -31,6 +33,7 @@ let phase='native private profile and certificate import';
   phase='migration selected file browser upload commit verification and ledger';await nav.getByRole('link',{name:'迁移中心',exact:true}).click();await page.getByLabel('目标项目',{exact:true}).selectOption(projectID);
   await page.getByLabel('选择明确文件',{exact:true}).setInputFiles({name:'five-entry.txt',mimeType:'text/plain',buffer:Buffer.from('synthetic five entry source\n')});
   await page.getByLabel('稳定分组 key',{exact:true}).fill('five-entry');await page.getByLabel('分类',{exact:true}).selectOption('final');await page.getByLabel('新资产路径名',{exact:true}).fill('synthetic-five-entry-import');await page.getByLabel('新资产标题',{exact:true}).fill('Synthetic five entry import');await page.getByLabel('用途限制',{exact:true}).selectOption('reference');await page.getByLabel('许可证／明确自定义条款').fill('LicenseRef-Synthetic-Test');
+  await page.getByText('来源清单与分组选择（1 项）',{exact:true}).click();await page.getByLabel('选择 five-entry.txt',{exact:true}).check();
   await page.getByRole('button',{name:'把所选 1 个文件加入明确分组',exact:true}).click();await page.getByLabel('我已审阅分组、rights、排除／未知、工作输入和容量未知项；保留源文件及其备份责任，只执行复制入藏').check();await page.getByRole('button',{name:'冻结明确计划并生成原操作状态（尚不写入）',exact:true}).click();
   const stateDownload=page.waitForEvent('download');await page.getByRole('button',{name:'下载最新原状态与计划',exact:true}).click();const state=await stateDownload;await state.saveAs(path.join(input.private_downloads,'migration-original.json'));expect(await state.failure()).toBeNull();await page.getByLabel('我已实际保存原状态；断线和补著录只用原键').check();
   await page.getByRole('button',{name:'按原计划／原键执行或续办',exact:true}).click();await expect(page.getByText('各项历史固定版本回执已保存，尚不表示当前远端核验、工程续做或灾备验收通过。请导出最新状态并继续验证。',{exact:true})).toBeVisible({timeout:60000});
@@ -49,4 +52,4 @@ let phase='native private profile and certificate import';
   expect(errors).toEqual([]);passed('no application pageerror during all five real business entry flows');
   process.stdout.write(JSON.stringify({passed:true,same_principal:true,cookie_protected:(await context.cookies()).some(c=>c.name==='lantai_session'&&c.secure&&c.httpOnly&&c.sameSite==='Strict'),checks,all_five_entries_business_smoke:true,application_requests_mocked:false,product_source_modified:false,credentials_profiles_downloads_backup_packages_uploaded:false}));
  }finally{await context.close()}
-})().catch(e=>{process.stderr.write(JSON.stringify({phase,error_type:e.name})+'\n');process.exitCode=1});
+})().catch(e=>{let message=String(e.message||e).slice(0,5000);for(const value of privateValues)if(value)message=message.split(value).join('[REDACTED]');process.stderr.write(JSON.stringify({phase,error_type:e.name,message})+'\n');process.exitCode=1});
