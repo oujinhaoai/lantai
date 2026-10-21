@@ -13,6 +13,8 @@ from copy import deepcopy
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import shutil
 
 ROOT = Path(__file__).resolve().parents[2]
 HARNESS = 'scripts/test-compose-first-start.py'
@@ -53,27 +55,64 @@ def load_script(name, filename):
 def argument(name):
     return sys.argv[sys.argv.index(name)+1]
 
+def browser_preflight():
+    path=Path('/opt/google/chrome/chrome')
+    result={'schema':'lantai.safe-browser-preflight/v1','status':'failed','host_policy_changed':False,
+        'sandbox_required':True,'strict_TLS_required':True,'candidates':[]}
+    if path.is_file():
+        info=path.stat()
+        item={'path':str(path),'owner_uid':info.st_uid,'mode':oct(info.st_mode & 0o7777),
+            'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+        package=subprocess.run(['dpkg-query','-S',str(path)],text=True,capture_output=True)
+        item['installed_package']=package.stdout.strip()
+        inventory=Path('/var/lib/dpkg/info/google-chrome-stable.md5sums')
+        checksum=None
+        if inventory.is_file() and inventory.stat().st_uid==0 and inventory.stat().st_mode & 0o022==0:
+            for line in inventory.read_text().splitlines():
+                fields=line.split()
+                if len(fields)==2 and fields[1]=='opt/google/chrome/chrome':checksum=fields[0]
+        item['installed_package_integrity_verified']=(package.returncode==0 and
+            package.stdout.startswith('google-chrome-stable: ') and checksum is not None and
+            hashlib.md5(path.read_bytes()).hexdigest()==checksum)
+        result['candidates'].append(item)
+        if item['installed_package_integrity_verified']:
+            # Browser ownership is not a sandbox guarantee. Verify the installed
+            # package bytes, then ask Chromium for actual namespace/seccomp state.
+            # Never edit the binary/helper or any host security policy.
+            code=r'''
+const fs=require('fs'),os=require('os'),path=require('path');
+const {chromium}=require('./web/node_modules/@playwright/test');
+(async()=>{const profile=fs.mkdtempSync(path.join(os.tmpdir(),'r10-browser-preflight-'));fs.chmodSync(profile,0o700);
+let c;try{c=await chromium.launchPersistentContext(profile,{executablePath:'/opt/google/chrome/chrome',chromiumSandbox:true,ignoreHTTPSErrors:false});
+const p=await c.newPage();await p.goto('chrome://sandbox');const report=await p.locator('body').innerText();
+if(!/PID namespaces\s+Yes/i.test(report)||!/Seccomp-BPF sandbox\s+Yes/i.test(report))throw new Error('Chromium namespace/seccomp sandbox proof unavailable');
+await p.goto('chrome://certificate-manager/localcerts');await p.locator('certificate-list-v2').filter({hasText:/Trusted certificates/i}).waitFor({state:'visible',timeout:15000});
+console.log(JSON.stringify({passed:true,version:c.browser().version(),sandbox_report:report,native_profile_CA_manager_available:true}));
+}finally{if(c)await c.close();fs.rmSync(profile,{recursive:true,force:true});}})().catch(e=>{console.log(JSON.stringify({passed:false,error_type:e.name,message:e.message}));process.exitCode=1});
+'''
+            try:probe=subprocess.run(['node','-e',code],cwd=ROOT,text=True,capture_output=True,timeout=90)
+            except subprocess.TimeoutExpired:
+                item['probe']={'passed':False,'error_type':'BrowserPreflightTimeout'}
+                Path(argument('--out')).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+                print('BROWSER_PREFLIGHT '+json.dumps(result,ensure_ascii=False),flush=True)
+                return
+            try:item['probe']=json.loads(probe.stdout.strip().splitlines()[-1])
+            except (ValueError,IndexError):item['probe']={'passed':False,'error_type':'BrowserPreflightProtocolError'}
+            if probe.returncode==0 and item['probe'].get('passed'):
+                result.update(status='passed',selected_executable=str(path))
+    Path(argument('--out')).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+    print('BROWSER_PREFLIGHT '+json.dumps(result,ensure_ascii=False),flush=True)
+
 def delivery():
     module = load_script('frozen_delivery_smoke', 'test-release-delivery.py')
     manifest = json.loads(Path(argument('--manifest')).read_text())
     candidate_tag = manifest['core_image']['tag']
-    # Use the runner's preinstalled full browser under its existing OS policy.
-    # Do not install/setuid/chown anything or relax AppArmor/userns restrictions.
-    system_browser = Path('/opt/google/chrome/chrome')
-    if system_browser.is_file():
-        info = system_browser.stat()
-        assert info.st_uid == 0 and info.st_mode & 0o022 == 0 and os.access(system_browser, os.X_OK)
-        helper = system_browser.with_name('chrome-sandbox')
-        helper_info = helper.stat() if helper.is_file() else None
-        if helper_info:
-            assert helper_info.st_uid == 0 and helper_info.st_mode & 0o022 == 0
-        module.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE'] = str(system_browser)
-        module.RESULT['browser_executable'] = {'path': str(system_browser), 'owner_uid':info.st_uid,
-            'mode': oct(info.st_mode & 0o7777), 'sha256': hashlib.sha256(system_browser.read_bytes()).hexdigest(),
-            'version': subprocess.check_output([str(system_browser),'--version'], text=True).strip(),
-            'sandbox_helper_owner_uid': helper_info.st_uid if helper_info else None,
-            'sandbox_helper_mode': oct(helper_info.st_mode & 0o7777) if helper_info else None,
-            'sandbox_enabled':True,'strict_TLS':True,'host_policy_changed':False}
+    proof=Path(os.environ['RUNNER_TEMP'])/'r10-browser-preflight.json'
+    browser=json.loads(proof.read_text())
+    module.RESULT['browser_preflight']=browser
+    if browser['status']=='passed':
+        assert browser['selected_executable']=='/opt/google/chrome/chrome'
+        module.ENV['LANTAI_WEB_CHROMIUM_EXECUTABLE']=browser['selected_executable']
     original_select = module.Instance.select
     def select(instance, image):
         if image == candidate_tag:
@@ -192,6 +231,9 @@ def build():
             argv = [argv[0], str(source/'packaging/r10/build_candidate.py'), '--delivery', *argv[2:]]
         return original(argv, **kwargs)
     module.command = command
+    # This candidate deliverable targets Linux amd64. Keep the existing builder
+    # and every related acceptance check; do not cross-build unused platforms.
+    module.PLATFORMS=[('linux','amd64')]
     try:
         module.main()
     except Exception as error:
@@ -219,6 +261,8 @@ def build():
         (output/'deliverables/manifest.json').write_text(json.dumps(candidate, ensure_ascii=False, indent=2)+'\n')
         (output/'deliverables/delivery-image-smoke.txt').write_text('Browser acceptance failed; non-browser checks completed. See delivery-image-smoke.json.\n')
         print('BUILT_WITH_BROWSER_ACCEPTANCE_FAILURE: downloadable candidate must not be reported as fully accepted', flush=True)
+    proof=Path(os.environ['RUNNER_TEMP'])/'r10-browser-preflight.json'
+    shutil.copyfile(proof,Path(argument('--out'))/'deliverables/browser-sandbox-preflight.json')
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--first-start':
@@ -227,5 +271,8 @@ if __name__ == '__main__':
     elif len(sys.argv) > 1 and sys.argv[1] == '--delivery':
         del sys.argv[1]
         delivery()
+    elif len(sys.argv) > 1 and sys.argv[1] == '--browser-preflight':
+        del sys.argv[1]
+        browser_preflight()
     else:
         build()

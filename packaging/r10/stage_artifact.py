@@ -20,7 +20,7 @@ def main():
     for n in selected:
         assert '/' not in n and (a.build/n).is_file()
         shutil.copyfile(a.build/n,a.out/n)
-    for n in ['image-version.json','first-start-lifecycle.json','first-start-image-smoke.txt','delivery-image-smoke.json','delivery-image-smoke.txt','backup-preparation.json','gateway-smoke.txt','web-build.txt']:
+    for n in ['image-version.json','first-start-lifecycle.json','first-start-image-smoke.txt','delivery-image-smoke.json','delivery-image-smoke.txt','backup-preparation.json','gateway-smoke.txt','web-build.txt','browser-sandbox-preflight.json']:
         assert (a.build/n).is_file(),n
         shutil.copyfile(a.build/n,a.out/n)
     shutil.copyfile(a.proof,a.out/'FROZEN-SOURCE-PROOF.json')

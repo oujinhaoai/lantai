@@ -38,6 +38,8 @@ jobs:
         run: |
           npm ci --prefix source/web
           npm exec --prefix source/web -- playwright install --with-deps chromium
+      - name: Probe the preinstalled browser sandbox and native profile CA manager
+        run: python3 source/packaging/r10/build_candidate.py --browser-preflight --out "$RUNNER_TEMP/r10-browser-preflight.json"
       - name: Download existing non-production baseline artifact
         env:
           GH_TOKEN: ${{ github.token }}
