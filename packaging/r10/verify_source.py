@@ -7,7 +7,8 @@ EXPECTED = 'dbca6589325d6e043f9c85b914912683ba3f99a0d9fa0d4f2d55ef85a5c6d09c'
 EXTRAS = {'.github/workflows/candidate-r10.yml', 'packaging/r10/FROZEN-SOURCE.json',
           'packaging/r10/verify_source.py', 'packaging/r10/stage_artifact.py',
           'packaging/r10/compose.gui.template.yaml', 'packaging/r10/GUI-UPGRADE.md',
-          'packaging/r10/build_candidate.py'}
+          'packaging/r10/build_candidate.py', '.github/workflows/r10-migration.yml',
+          'packaging/r10/test_migration.py'}
 
 def verify():
     frozen = json.loads((ROOT/'packaging/r10/FROZEN-SOURCE.json').read_text())
