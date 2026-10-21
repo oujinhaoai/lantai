@@ -4,6 +4,7 @@ on:
     branches: [candidate/r10-browser-20261021]
 permissions:
   contents: read
+  actions: read
 jobs:
   native-ca-manager:
     runs-on: ubuntu-latest
@@ -22,10 +23,22 @@ jobs:
         run: npm ci --prefix source/web
       - name: Inspect existing sandbox and disposable profile native certificate UI
         run: node source/packaging/r10/probe_browser.cjs "$RUNNER_TEMP/BROWSER-DIAGNOSTIC.json"
+      - name: Verify unchanged product bytes
+        working-directory: source
+        run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/browser-source-proof.json"
+      - name: Download the exact paired candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
+      - name: Run the original artifact browser assertions with native profile CA support
+        run: python3 source/packaging/r10/test_browser.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-browser-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: r10-safe-browser-diagnostic-${{ github.sha }}
-          path: ${{ runner.temp }}/BROWSER-DIAGNOSTIC.json
+          path: |
+            ${{ runner.temp }}/BROWSER-DIAGNOSTIC.json
+            ${{ runner.temp }}/browser-source-proof.json
+            ${{ runner.temp }}/r10-browser-evidence/BROWSER-ACCEPTANCE.json
           if-no-files-found: error
           retention-days: 30
