@@ -722,6 +722,8 @@ function Workspace({
     (who.session.scopes.includes("admin") ||
       who.session.scopes.includes("organize"));
   const nav = [
+    ["/", "home", "首页"],
+    ["/projects", "folder", "我的项目"],
     ["/assets", "grid", "素材库"],
     ["/migrations", "refresh", "迁移中心"],
     ["/worksets", "folder", "工程工作集"],
@@ -729,8 +731,6 @@ function Workspace({
       ? [["/admin/backups", "backup", "备份与恢复"]]
       : []),
     ...(canManageSystem ? [["/admin/system", "lock", "系统管理"]] : []),
-    ["/", "home", "首页"],
-    ["/projects", "folder", "我的项目"],
   ];
   const section = pathname.startsWith("/projects")
     ? "/projects"

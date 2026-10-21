@@ -1,0 +1,60 @@
+name: r11-web-navigation-and-manual
+on:
+  push:
+    branches: [candidate/r11-web-help-20261021]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  web-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/web/package-lock.json
+      - name: Verify new Web revision and unchanged frozen r10 backend
+        run: python3 source/packaging/r11/verify_web_source.py --out "$RUNNER_TEMP/source-proof.json"
+      - name: Build only Web with existing release bundler, help checks and Web tests
+        id: build
+        run: python3 source/packaging/r11/build_web.py --out "$RUNNER_TEMP/web-build"
+      - name: Download existing immutable r10 artifacts for compatibility and rollback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/r10-baseline"
+      - name: Prepare private certificate selection test libraries
+        run: |
+          if ! /usr/bin/python3 -c 'import dbus; from gi.repository import GLib'; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y python3-dbus python3-gi
+          fi
+      - name: Real browser navigation, no-JS manual, unchanged core compatibility and Web rollback
+        id: browser
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" dbus-run-session -- python3 source/packaging/r11/test_web.py --baseline "$RUNNER_TEMP/r10-baseline" --web-build "$RUNNER_TEMP/web-build" --out "$RUNNER_TEMP/web-evidence"
+      - name: Stage only static archives and a truthful scoped validation receipt
+        if: always() && steps.build.outcome == 'success'
+        run: python3 source/packaging/r11/seal_web.py --build "$RUNNER_TEMP/web-build" --baseline "$RUNNER_TEMP/r10-baseline" --proof "$RUNNER_TEMP/source-proof.json" --evidence "$RUNNER_TEMP/web-evidence" --out "$RUNNER_TEMP/delivery"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always() && steps.build.outcome == 'success'
+        with:
+          name: lantai-r11-web-help-${{ github.sha }}
+          path: ${{ runner.temp }}/delivery/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: r11-web-help-evidence-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/source-proof.json
+            ${{ runner.temp }}/web-evidence/WEB-BROWSER-RESULT.json
+            ${{ runner.temp }}/web-evidence/r11-*.png
+          if-no-files-found: error
+          retention-days: 30

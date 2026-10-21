@@ -1,61 +1,30 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="description" content="按版本选择在线或离线备份，密钥独立保管。"><title>备份与恢复 · Lantai 帮助</title><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="stylesheet" href="help.css"><script src="search-data.js" defer></script><script src="help.js" defer></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="description" content="网页完整备份、独立恢复验证及旧版纯 GUI 缺口。"><title>备份与恢复 · Lantai 帮助</title><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="stylesheet" href="help.css"><script src="search-data.js" defer></script><script src="help.js" defer></script></head>
 <body><a class="skip" href="#content">跳到正文</a>
-<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">兰</span><span>LANTAI <small>使用帮助</small></span></a><div class="topbar-actions"><span class="edition">简体中文 · rc.5 候选</span><a class="app-back" href="/"><span aria-hidden="true">←</span> 返回兰台</a></div></header>
-<div class="layout"><aside class="sidebar"><p class="eyebrow">用户手册</p><nav aria-label="手册目录"><a href="index.html"><span class="nav-number">00</span>从这里开始</a><a href="install.html"><span class="nav-number">01</span>在 NAS 安装</a><a href="setup.html"><span class="nav-number">02</span>首次设置</a><a href="accounts.html"><span class="nav-number">03</span>账户与权限</a><a href="admin.html"><span class="nav-number">04</span>管理工作台</a><a href="daily.html"><span class="nav-number">05</span>日常资源操作</a><a href="codex-mcp.html"><span class="nav-number">06</span>连接 Codex MCP</a><a href="upgrade.html"><span class="nav-number">07</span>升级与保留数据</a><a aria-current="page" href="backup.html"><span class="nav-number">08</span>备份与恢复</a><a href="troubleshooting.html"><span class="nav-number">09</span>故障与版本兼容</a></nav><p class="sidebar-note">从操作位置到成功标志。<br>一步一步，完成手头的事。</p><a class="source" href="https://github.com/oujinhaoai/lantai/tree/main">查看主分支文档 ↗</a></aside>
-<div class="body-column"><details class="mobile-nav"><summary>手册目录 · 备份与恢复</summary><nav aria-label="移动端手册目录"><a href="index.html"><span class="nav-number">00</span>从这里开始</a><a href="install.html"><span class="nav-number">01</span>在 NAS 安装</a><a href="setup.html"><span class="nav-number">02</span>首次设置</a><a href="accounts.html"><span class="nav-number">03</span>账户与权限</a><a href="admin.html"><span class="nav-number">04</span>管理工作台</a><a href="daily.html"><span class="nav-number">05</span>日常资源操作</a><a href="codex-mcp.html"><span class="nav-number">06</span>连接 Codex MCP</a><a href="upgrade.html"><span class="nav-number">07</span>升级与保留数据</a><a aria-current="page" href="backup.html"><span class="nav-number">08</span>备份与恢复</a><a href="troubleshooting.html"><span class="nav-number">09</span>故障与版本兼容</a></nav></details>
+<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">兰</span><span>LANTAI <small>使用帮助</small></span></a><div class="topbar-actions"><span class="edition">r11 Web 候选 · 兼容 r10 核心</span><a class="manual-check" href="acceptance.html">人工验收</a><a class="app-back" href="/"><span aria-hidden="true">←</span> 返回兰台</a></div></header>
+<div class="layout"><aside class="sidebar"><p class="eyebrow">用户手册</p><nav aria-label="手册目录"><a href="index.html"><span class="nav-number">00</span>从这里开始</a><a href="acceptance.html"><span class="nav-number">01</span>人工验收步骤</a><a href="install.html"><span class="nav-number">02</span>在 NAS 安装</a><a href="setup.html"><span class="nav-number">03</span>首次设置</a><a href="accounts.html"><span class="nav-number">04</span>创建项目与权限</a><a href="admin.html"><span class="nav-number">05</span>管理工作台</a><a href="daily.html"><span class="nav-number">06</span>日常素材操作</a><a href="codex-mcp.html"><span class="nav-number">07</span>连接 Codex MCP</a><a href="upgrade.html"><span class="nav-number">08</span>更新网页与版本边界</a><a aria-current="page" href="backup.html"><span class="nav-number">09</span>备份与恢复</a><a href="troubleshooting.html"><span class="nav-number">10</span>故障与版本兼容</a></nav><p class="sidebar-note">从操作位置到成功标志。<br>一步一步，完成手头的事。</p><a class="source" href="https://github.com/oujinhaoai/lantai/tree/candidate/r11-web-help-20261021">查看候选文档 ↗</a></aside>
+<div class="body-column"><details class="mobile-nav"><summary>手册目录 · 备份与恢复</summary><nav aria-label="移动端手册目录"><a href="index.html"><span class="nav-number">00</span>从这里开始</a><a href="acceptance.html"><span class="nav-number">01</span>人工验收步骤</a><a href="install.html"><span class="nav-number">02</span>在 NAS 安装</a><a href="setup.html"><span class="nav-number">03</span>首次设置</a><a href="accounts.html"><span class="nav-number">04</span>创建项目与权限</a><a href="admin.html"><span class="nav-number">05</span>管理工作台</a><a href="daily.html"><span class="nav-number">06</span>日常素材操作</a><a href="codex-mcp.html"><span class="nav-number">07</span>连接 Codex MCP</a><a href="upgrade.html"><span class="nav-number">08</span>更新网页与版本边界</a><a aria-current="page" href="backup.html"><span class="nav-number">09</span>备份与恢复</a><a href="troubleshooting.html"><span class="nav-number">10</span>故障与版本兼容</a></nav></details>
 <div class="search" role="search" hidden><label for="help-search">搜索全部帮助</label><div class="search-row"><input id="help-search" type="search" maxlength="120" placeholder="试试：恢复码、备份、项目权限" aria-controls="search-results" autocomplete="off"><button type="button" id="search-clear">清除</button></div><p class="search-hint">仅搜索通用手册，不会访问你的项目或发送输入。</p><section id="search-results" aria-label="搜索结果" hidden><p id="search-status" role="status" aria-live="polite"></p><ul id="search-list"></ul></section></div>
-<main id="content" tabindex="-1"><div class="page-meta"><span class="eyebrow">任务 08</span><span>文档核对 · 2026-10-13</span></div>
+<main id="content" tabindex="-1"><div class="page-meta"><span class="eyebrow">任务 09</span><span>文档核对 · 2026-10-21</span></div>
 <article><h1 id="备份与恢复">备份与恢复</h1>
-<p>目标：建立经过验证的完整保护点，并在独立空目录恢复。日常备份由交互式系统管理员在网页操作；部署与整馆恢复由设备管理员在服务主机处理。普通成员与 Agent 没有整馆备份权限。所有目录、镜像和版本必须先核对。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#先确认版本">先确认版本</a></li><li><a href="#1-部署时一次性配置备份目录">1. 部署时一次性配置备份目录</a></li><li><a href="#2-在网页立即备份或设置每日计划">2. 在网页立即备份或设置每日计划</a></li><li><a href="#可选已有本机终端">可选：已有本机终端</a></li><li><a href="#3-本机查询取消和失败恢复">3. 本机查询、取消和失败恢复</a></li><li><a href="#旧-rc4-的离线流程">旧 rc.4 的离线流程</a></li><li><a href="#4-只用完整包恢复到新目标">4. 只用完整包恢复到新目标</a></li></ul></details>
-<h2 id="先确认版本">先确认版本</h2>
-<p><strong>完整自包含恢复包是本次开发新增能力，不属于已发布 rc.6 或更早版本。已发布 rc.4 没有 `backup-online`。</strong> 只有确认镜像实际包含该命令，并完成获准的升级后，才使用下面的在线流程。仍运行 rc.4 时使用本文后面的离线流程；不能把在线命令发给旧镜像。</p>
-<p>备份包含四个权威库、清单、原件和约定可变文件，<code>index.db</code> 可重建。本版成功备份同时生成一个 <code>.lantai</code> 完整恢复包，已经包含所需恢复材料。无需另存主密钥、另设恢复密码或访问原 NAS。<strong>持包者可以读取和恢复整馆数据，必须按敏感资料保管。</strong> 较早版本的数据快照没有此能力，恢复旧快照仍需要其原密钥。</p>
-<h2 id="1-部署时一次性配置备份目录">1. 部署时一次性配置备份目录</h2>
-<p>选择不与数据、密钥根重叠的外部目录，先确认目标盘确实挂载。服务账户应持有该目录，模式为 <code>0700</code> 或经过核验的等效私有 ACL。创建服务账户持有、0600、单一硬链接的普通文件 <code>.lantai-backup-root</code>，内容是事先选定的稳定标识加换行，例如 <code>library-backup-volume-v1</code>；它用于发现误挂载，不是密码或硬件身份证明。缺盘时不要在空挂载点重新创建标记。</p>
-<p>在原私有环境文件增加 <code>LANTAI_BACKUP_DIR</code> 和 <code>LANTAI_BACKUP_ROOT_ID</code>。加载候选包中的 <code>compose.backup.yaml</code>；GUI 只有一个 Compose 文件时，把它一次性合入原 core，保留原有所有数据、密钥、网络、端口与安全设置：</p>
-<pre tabindex="0" aria-label="yaml 示例"><code>services:
-  core:
-    environment:
-      LANTAI_BACKUP_ROOT: /var/lib/lantai-backup
-      LANTAI_BACKUP_ROOT_ID: ${LANTAI_BACKUP_ROOT_ID:?set the provisioned backup volume identity}
-    volumes:
-      - type: bind
-        source: ${LANTAI_BACKUP_DIR:?set an existing private directory on the backup filesystem}
-        target: /var/lib/lantai-backup
-        bind:
-          create_host_path: false</code></pre>
-<p>首次加挂载在获准的部署/升级窗口重建 core。核心仍以 <code>65532:65532</code>、只读根运行，<code>/tmp</code> tmpfs 明确使用 <code>mode=1777</code>，其内部控制目录为 <code>0700</code>、socket 为 <code>0600</code>。此后正常备份不再改 Compose，不建独立维护服务，也不手工停启 core。标记缺失、不符、不可写或空间不足会拒绝启用备份。</p>
-<h2 id="2-在网页立即备份或设置每日计划">2. 在网页立即备份或设置每日计划</h2>
-<p>以人类系统管理员账户登录，明确选择管理权限，再打开“备份管理”。先查看备份目录是否可用，再点击“立即备份”；核对服务器生成的整馆暂停说明，输入当前验证码确认。页面持续显示阶段、上次成功、历史及错误。新任务完成后显示完整包大小、SHA256 和“下载完整恢复包”；点击后再确认一次敏感操作，浏览器直接下载文件。旧快照明确标为缺少独立恢复材料。</p>
-<p>每日计划填写 IANA 时区（例如 <code>Asia/Shanghai</code>）和当地时间，完成同样的敏感操作确认后保存。页面显示下一次运行时间。计划存入原数据卷，重启后保留，不需要容器命令、维护容器或再次编辑 Compose。</p>
-<p>每天最多自动执行一次：遇到手动备份仍在运行会跳过并记录；重启错过的时间不补跑；夏令时回拨只执行第一次，跳过的本地时间会记录为未执行。状态页列出原因。目录缺失只会停用备份并显示原因，不会让正常业务因可选备份配置失败而无法启动。</p>
-<p>备份会暂停全部业务读写；管理员可以刷新状态或取消。取消中仍在维护，必须等实际工作退出。失败、取消或重启中断的原任务，修复原因后点击“续传”并重新确认。普通会话到期后，选择“备份维护身份验证”，重新输入管理员账户、口令和动态码，即可查看或取消当前备份。这个临时身份最多有效十分钟，只绑定当前任务；不显示普通业务，也不能开始、续传或改计划。到期可重新验证，备份结束或 core 重启后失效；返回业务时重新正常登录。</p>
-<h2 id="可选已有本机终端">可选：已有本机终端</h2>
-<p>在原 Compose 项目和相同文件集合内执行；单文件 GUI 合并后使用原项目提供的 core 命令终端：</p>
-<pre tabindex="0" aria-label="sh 示例"><code>docker compose -f deploy/compose.yaml -f deploy/compose.backup.yaml exec -T core \
-  lantai backup-online -home /var/lib/lantai</code></pre>
-<p>如果原项目另有 web 覆盖文件，继续保留它。原生 Linux/macOS 部署由 core 相同系统用户执行 <code>lantai backup-online -home /path/to/data</code>。</p>
-<p>core 会先拒绝新业务读写、排空已有请求与后台写入，然后保持互斥到副本校验结束。任务回执为 <code>complete</code> 才是成功；CLI 断开不会取消任务。目标目录使用回执中的在线任务 ID，可独立执行 <code>lantai backup-verify -backup /path/to/backups/ONLINE_JOB_ID/recovery.lantai</code>。已完成副本应复制到另一介质，并在最终介质再次核验。</p>
-<h2 id="3-本机查询取消和失败恢复">3. 本机查询、取消和失败恢复</h2>
-<p>以下参数附加到同一个 <code>backup-online</code> 命令，在原 core 中执行；在线任务 ID 与底层 backup_id 不同，不能混用。</p>
-<pre tabindex="0" aria-label="sh 示例"><code>lantai backup-online -home /var/lib/lantai -status ONLINE_JOB_ID
-lantai backup-online -home /var/lib/lantai -cancel ONLINE_JOB_ID
-lantai backup-online -home /var/lib/lantai -resume ONLINE_JOB_ID</code></pre>
-<p>并发备份会拒绝，不能排队绕过锁。取消等待实际工作退出，<code>cancelling</code> 不代表写入已经恢复。失败或取消保留原记录和部分副本；先修复挂载、权限或容量，再显式续传。重启会把旧执行态标记为 <code>interrupted</code>，不会自动继续或假定成功。</p>
-<p>续传必须匹配原任务、实例、密钥 ID、代际、捕获时间、数据库矩阵、水位及完整文件清单。另一份即使完整且可验证的备份也不能替换目标；找回原副本后可重试。不要删除源 pin、伪造 COMPLETE、拼接目录或绕过实例锁。彻底放弃旧 pin 仍用受控停机后的离线取消，这不是正常在线备份的必需步骤。</p>
-<h2 id="旧-rc4-的离线流程">旧 rc.4 的离线流程</h2>
-<p>rc.4 必须先暂停业务并优雅停止原 core，在服务主机用同版本程序、原服务用户和原卷挂载执行：</p>
-<pre tabindex="0" aria-label="sh 示例"><code>lantai backup -home /path/to/data -destination /path/to/private/backups/snapshot-001
-lantai backup-verify -backup /path/to/private/backups/snapshot-001</code></pre>
-<p>目标是新空目录。保持服务停止直到备份与验证结束；<code>INSTANCE_LOCKED</code> 时查持锁者，不删锁文件。离线 <code>-status</code>、<code>-resume BACKUP_ID</code>、<code>-cancel BACKUP_ID</code> 都仍要求实例锁。这个旧流程不能在活动 core 旁执行，也不能用它推导 rc.4 已经支持在线备份。详细边界见<a href="https://github.com/oujinhaoai/lantai/blob/main/docs/contracts/backup-restore.md">共同备份与恢复协议</a>。</p>
-<h2 id="4-只用完整包恢复到新目标">4. 只用完整包恢复到新目标</h2>
-<ol><li>在兼容版本的新设备或空数据卷打开 <code>/setup/</code>，用新设备安装引导码认领设备。这个短期码保护新设备，既不是原服务器的密钥，也不是需要另行长期保存的恢复密码。</li><li>选择“从完整备份恢复”，上传下载得到的 <code>.lantai</code> 文件。页面核验大小、摘要、文件清单及兼容性，展示原实例、捕获时间和包标识。确认来源可信、当前目标为空后开始。</li><li>恢复期间普通服务保持关闭。可以安全取消；等待工作退出后可继续同一包。进程重启也保留恢复任务，不将半份数据当成可用实例。</li><li>从原管理员列表选择账号，设置新的登录口令、验证器和登录恢复码。旧密码、TOTP、恢复码、机器凭据、会话及人类授权均失效；主体、角色和业务历史保留。运行主密钥自动更新。</li><li>页面执行领域、文件和查询索引检查。核对已知的捕获后变更，确认原实例已经停止写入，并明确接受此备份为恢复点，最后点“完成恢复并启动”。原设备上无法观察到的后续撤权、删除或外部副作用会保留为未知，不会伪报已对账。</li><li>用新管理员登录，确认 readiness、原资源版本和下载摘要。恢复后原备份计划及机器授权不会自动复活，需要按实际需求重新授权。</li></ol>
-<p>整个流程不要求原 NAS、额外 <code>master.key</code>、独立恢复口令或手写 <code>review.json</code>。损坏、缺失文件、不兼容版本、非空目标、未完成管理员确认或领域检查失败时保持关闭；不删除锁、伪造完成标记或重建空实例来绕过。</p>
-<p>本机维护也可验证及导入同一包：</p>
-<pre tabindex="0" aria-label="sh 示例"><code>lantai backup-verify -backup /path/to/backup.lantai
-lantai restore -home /path/to/empty-recovery -backup /path/to/backup.lantai</code></pre>
-<p>后者仅导入并保持恢复门禁。命令恢复的后续本机管理员/对账流程见<a href="https://github.com/oujinhaoai/lantai/blob/main/docs/contracts/backup-restore.md">恢复协议</a>；普通用户优先使用完整向导。旧 rc.6 及更早数据快照不等于 <code>.lantai</code> 包，只有原密钥仍在时才可走旧 <code>-key-dir</code> 恢复流程。</p></article>
-<nav class="pagination" aria-label="上一篇与下一篇"><a href="upgrade.html">← 升级与保留数据</a><a href="troubleshooting.html">故障与版本兼容 →</a></nav>
-<footer>rc.5 候选文档，尚未发布；精确源码以制品 manifest 为准。文档版本不代表当前服务器版本。<br>所有示例均为合成数据。帮助页无需登录。</footer></main></div></div></body></html>
+<p>目标：在获准窗口通过网页生成并核验完整保护点，分别记录备份和独立恢复。完整包具有敏感恢复能力，必须私密保管；不要把包本体、私钥、恢复材料或临时下载授权放进公开验收记录。普通成员与 Agent 没有整馆备份权限。</p><details class="toc"><summary>本页目录</summary><ul><li><a href="#网页备份前提">网页备份前提</a></li><li><a href="#立即备份与实际下载">立即备份与实际下载</a></li><li><a href="#计划取消与续传">计划、取消与续传</a></li><li><a href="#独立恢复的人工验收">独立恢复的人工验收</a></li><li><a href="#恢复验收的边界">恢复验收的边界</a></li><li><a href="#记录与停止条件">记录与停止条件</a></li></ul></details>
+<h2 id="网页备份前提">网页备份前提</h2>
+<p>本人以管理员账户登录，明确勾选“管理员登录（含备份管理权限）”。设备管理员已经为原 core 配置受保护的外部备份目录、目录身份与权限；普通用户不需要编辑 Compose 或运行容器命令。目录不可用时先联系设备管理员，不改服务卷或创建替代实例。</p>
+<p>路径为侧栏“备份与恢复”→“备份管理”。备份会排空请求并暂停全部正常业务读写，先协调测试窗口；仅使用专用合成实例不能推定获准暂停真实业务。</p>
+<h2 id="立即备份与实际下载">立即备份与实际下载</h2>
+<ol><li>读取“备份目录”，确认“可用”；核对当前任务与上次成功记录，不能把上次成功当成本次成功。</li><li>点“立即备份”，核对服务器的暂停说明与全部目标。在“确认操作的验证器动态码”输入新的当前码，点“验证并执行”。动态码只留在当前确认框。</li><li>等当前任务终态为“已完成并验证”，核对“完整恢复包已生成并验证”、捕获时间、大小与 SHA-256。</li><li>需要下载时点“下载完整恢复包”，完成该下载动作的独立确认。实际保存后核对文件大小与完整摘要；下载点击、链接签发或浏览器任务出现不代表完整字节已保存。</li><li>私有记录分别保存“任务标识”job.id 和“备份标识”backup_id。它们不同；升级迁移所需的 NAS 目录是原备份 bind 宿主来源目录加完成任务的 job.id，该目录直接含 manifest.json。不要填 backup_id、裸 ID 或电脑上的下载路径来替代 NAS 输出目录。</li></ol>
+<p>成功标准是本次任务完成且包校验通过；下载验收另看实际字节。恢复未执行时必须填“未测”，不能由备份成功自动勾选。</p>
+<h2 id="计划取消与续传">计划、取消与续传</h2>
+<p>“每日计划”按实际填写 IANA 时区、当地时间、排空等待上限和任务超时，再“验证并保存计划”；保存须新鲜敏感动作确认。只在获得计划运行授权时启用，不因手册示例开启真实实例的定时任务。</p>
+<p>失败、取消或重启中断时保留原任务和部分副本，修复原因后点“续传此任务”并重新确认。取消请求受理后仍须等实际退出，cancelling 不表示已恢复正常写入。不要换一份包续传原任务，不删除 pin、锁或伪造 COMPLETE。</p>
+<p>普通会话到期时，页面若进入“备份维护身份验证”，用本人原账户、口令与新动态码重新验证。此临时身份仅查询/取消当前任务，不开始新备份、不修改计划；备份结束或 core 重启后返回正常登录。</p>
+<h2 id="独立恢复的人工验收">独立恢复的人工验收</h2>
+<p>r10 候选实现了新空目标上的完整包安装/恢复向导；它不是已经完成 NAS 恢复的证明，也不是旧 rc.6 的能力。恢复会改变目标环境，必须由获准的设备管理员单独安排兼容版本、隔离空目标与恢复用例，不在源实例或真实业务卷上试点。</p>
+<p>在该受控用例中，管理员核对空目标后从受保护的 <code>/setup/</code> 选择“从完整备份恢复”，上传可信完整包，核对实例/捕获点/清单，设置新的管理员因素，完成领域/文件检查及明确恢复点接受后，再检查重开、固定版本字节和重启。未实际完成的步骤保持未测/阻塞，不能把上传成功当作恢复接受。具体向导能力见<a href="setup.html">首次设置</a>；普通验收人员不据此自行操作真实卷。</p>
+<h2 id="恢复验收的边界">恢复验收的边界</h2>
+<ul><li><strong>备份生成不等于恢复。</strong> 必须有独立目标上的管理员因素确认、恢复接受、历史版本/文件摘要重读与重启证据；选定范围不代表全馆或真实 DCC 续做。</li><li>schema14→15 后，旧核心不能同卷换旧镜像降级。保留升级源卷和已核验的旧保护点，不能清空数据或伪造版本记录。</li><li>已验证的旧 rc.6 格式独立卷恢复涉及 recover-admin、新因素、绑定证据的 restore-complete 和恢复目标自己的配置。<strong>NAS 纯 GUI 旧版恢复尚未验证，相关操作入口仍有缺口。</strong> 本轮 Web 更新未新增这些能力，不提供一个声称可直接完成旧版纯 GUI 回退的按钮顺序。</li><li>新格式完整包与旧数据快照不同。不能把旧快照改后缀充当包，不能用旧宿主配置覆盖恢复器生成的目标配置；损坏、非空目标或不兼容时保持停止。</li><li>恢复点之后未知的撤权、删除、外部副作用和本机未保存操作仍需对账；恢复不会自动清除 unknown，也不会复活旧会话或机器授权。</li></ul>
+<h2 id="记录与停止条件">记录与停止条件</h2>
+<p>证据记录 job.id、backup_id、捕获点、包大小/摘要、任务终态、独立恢复范围及未覆盖事项。目录缺失、容量不足、摘要错误、恢复未完成、实例或代际不符时停止；由设备管理员保留现场处理，不关闭安全校验。可复制<a href="acceptance.html#空白验收记录">空白验收记录</a>。高级部署与命令另见<a href="https://github.com/oujinhaoai/lantai/blob/candidate/r11-web-help-20261021/docs/online-backup.md">运行中备份说明</a>，不作为普通网页使用前提。</p></article>
+<nav class="pagination" aria-label="上一篇与下一篇"><a href="upgrade.html">← 更新网页与版本边界</a><a href="troubleshooting.html">故障与版本兼容 →</a></nav>
+<footer>r11 Web 候选 · 兼容 r10 核心；精确源码、兼容核心与验证范围以 Web 制品 manifest 为准。文档版本不代表当前服务器版本。<br>所有示例均为合成数据。帮助无需登录；目录、正文和人工验收入口不依赖 JavaScript。</footer></main></div></div></body></html>

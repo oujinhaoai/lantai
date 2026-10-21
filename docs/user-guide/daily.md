@@ -1,100 +1,33 @@
-# 浏览、入藏与下载资源
+# 日常素材操作
 
-目标：找到有权限的项目和精确版本，安全上传或下载文件。下面的命令在**自己的电脑终端**运行，不在 NAS 数据卷内操作。前提：已安装匹配版本的 Lantai CLI，并按[账户](accounts.md)取得私有 `session.json`。
+目标：通过当前网页找到有权项目、固定素材版本，下载核验并维护获准的当前著录。先按[创建项目与权限](accounts.md)取得正确角色和本次会话范围；普通使用者不需要先配置 CLI。
 
-## 1. 确认我在哪个实例和身份下
+## 找到项目和素材
 
-```sh
-lantai meta --server https://library.example:32444
-lantai whoami --server https://library.example:32444 --session-file session.json
-lantai project list --server https://library.example:32444 --session-file session.json --limit 20
-```
+1. 登录后，侧栏最上面是“首页”和“我的项目”。打开“我的项目”，选择自己有权读取的项目；列表为空时核对角色与会话范围，不把空列表当作项目已删除。
+2. 从“素材库”选项目、类型、关键词或精确标签，再执行查询。标签按精确交集匹配；有下一页时继续，不假定当前一页覆盖全部资料。
+3. 打开素材详情，核对 asset_id 和固定 version_id；历史版本与“查看最新版”分开选择。永久引用绑定实例和固定版本，不能用标题相似推定为同一份。
 
-核对 meta 的 `instance_id`、whoami 的主体、project list 中项目的 `project_id` 与 key。后续 `--project` 使用 **project_id，不是项目名称**。若列表为空，先让管理员核对项目角色、会话项目范围和 `read` scope；不要据此认定资料已被删除。
+## 预览和实际下载
 
-## 2. 搜索并查看精确版本
+1. 展开“查看文件清单与 SHA-256”，核对路径、大小和完整摘要。合成示例是自己创建并入藏的 sample.txt。
+2. 在文件选择中选该文件，再点“预览文件”。列表不会自动取原件；HTML/SVG 仅展示源码，不执行。
+3. 点“申请下载原文件”，然后“下载原文件”。下载用途是 raw_export，仍须当前权限及 rights 允许；不能为绕过拒绝随意切换用途。
+4. 等文件实际完成后，用本机可信校验工具比较源文件与下载文件的大小、完整 SHA-256。仅签发链接、点击下载、预览可见或 Range 206 均不代替字节完整。
 
-```sh
-lantai project show --server https://library.example:32444 --session-file session.json --name sample-library
-lantai search --server https://library.example:32444 --session-file session.json --project PROJECT_ID --query 示例 --limit 20
-lantai show --server https://library.example:32444 --session-file session.json --asset ASSET_ID --version VERSION_ID --view full
-```
+图片/音视频能否解码取决于格式、浏览器和页面预算。未知二进制明确不支持预览，不解压、不执行。大媒体的实际读取量与取消行为须单独测试，不能由小文本验收推定。
 
-把占位 ID 换成回执值。列表有下一页游标时用返回的游标作为 `--cursor` 继续，不把第一页当全部结果。`show` 的 full 视图用于核对精确版本与清单。永久 `lantai://…` 引用可用 `--ref` 读取，客户端会核对实例 ID，不能把另一实例的 ID 混过来。
+## 改当前著录并重读
 
-成功标志：找到预期项目、资产 ID 和版本 ID，full 视图内容符合预期。`NOT_FOUND` 也可能是权限过滤；让管理员核对身份与项目，不对陌生 ID 反复猜测。
+1. 需要素材写入与整理范围及相应项目角色。contributor 只按规则维护本人素材；不为编辑他人资料直接提升为 owner。
+2. 展开“编辑当前素材信息”，例如把摘要改为“人工验收合成备注”，点“保存当前著录”。发生修订冲突时保留草稿，由本人重读合并。
+3. 重新打开该资产，核对摘要和当前 revision。**著录 r1→r2 不会创建新的固定文件 version_id**；要改变文件字节须走明确的新版本回交。
+4. “固定版本用途与 rights 管理”读取的是当前核心权利事实。普通标签、业务状态或画像不等于审定、许可、导出或发布授权。
 
-## 文件类型与媒体预览边界
+## 合成入藏、工作集与后续
 
-rc.2/rc.3 原始部署没有业务资源预览页。rc.4 统一包增加以下只读浏览；实际设备须同时更新静态包和网关，不是只换核心镜像。发行状态和 source_commit 以对应 Release / manifest 为准，不证明任何 NAS 已部署。
+按[五入口操作指南](admin.md)中的“迁移中心”保存原状态后入藏 sample.txt，再在“工程工作集”固定该版本、拉取 TAR、保存档案，并显式重新查询列表、从列表重开。下载目录、原状态与验收截图留在批准的私有位置，不是 NAS 数据目录。
 
-### 网页登录、浏览与显式预览
+上传成功仍要读 description_pending；为 true 时版本已经提交，保留原状态补办著录，不重新创建一份资产。新工作集档案有自己的 asset/version；不要把它与所引用素材的文件版本混淆。断线、取消和 unknown 先对账，沿原键续办。
 
-1. 打开原 HTTPS 服务根页，输入原账户、口令及验证器当前动态码。登录只申请 read/self，身份与项目权限仍由原核心判定。
-2. 从首页进入“我的项目”或“资源库”，搜索或筛选已授权内容；没有项目/资源时阅读空态提示，不另建管理员。
-3. 打开详情，选择文件，再点击“预览文件”。标题之后是文件选择/预览，完整清单与技术信息可展开；列表不自动取原件或缩略图。
-4. 文本阅读与源码、行号/复制按页面入口使用；HTML/SVG 只展示源码，不执行。错误/过期按页面提示重试或重新登录，不绕用途拒绝。
-5. “使用帮助”进入公开静态手册；“返回兰台”回同源根页，由会话决定显示登录或首页。
-
-| 类型 | rc.4 统一包的只读展示与限制 |
-| --- | --- |
-| PNG/JPEG/GIF/WebP/AVIF | 原生图片展示；原图超过 16 MiB 时只给提示及受授权约束的下载入口 |
-| 音频、视频 | 原生播放器，设置 `preload=metadata` 提示、不自动播放；该提示不保证只读取元数据或限制流量。PNG、WAV、H.264 MP4 是已验证的合成基线，其余已识别后缀的具体编码能否解码取决于浏览器 |
-| txt/md、代码、JSON/YAML/TOML 等配置 | 严格 UTF-8 解码；初次最多 64 KiB，手动扩展至 256 KiB，最多显示 2000 行，超限明确提示截断；长文本停止高亮以保持响应，源码仍可选择和复制 |
-| Markdown | 阅读与源码切换；禁止 HTML，内嵌图片和链接只显示文字，不自动请求资源 |
-| HTML/SVG | 仅显示源码，不执行或嵌入网页 |
-| 压缩包、PDF/Office、未知二进制 | 基础元数据与不支持提示；不解压、不执行、不显示十六进制；伪装成文本的压缩签名、控制字节和未知编码也会降级 |
-
-预览使用 `archive_review`，下载按钮单独申请 `raw_export`，仍受原服务端权限及用途规则约束。切换文件/页面中止旧读取，过期移除预览，不自动续期。此版没有在线编辑、转码、账户管理网页或列表缩略图；更多操作仍用以下 CLI 流程。
-
-大媒体播放前的实际传输量与取消点尚未完成验证，不承诺音视频字节上限。独立的 Range 206 检查只证明授权的分段读取接口可用，不能代替播放器流量或取消行为的实测。
-
-## 3. 把文件下载到电脑
-
-先在电脑创建一个空的 `downloads` 文件夹，再运行：
-
-```sh
-lantai pull --server https://library.example:32444 --session-file session.json --asset ASSET_ID --version VERSION_ID --directory downloads --purpose archive_review
-```
-
-成功标志：命令成功，目标目录出现清单声明的文件，客户端已经校验大小与 SHA-256。途中中断时保留 `.lantai-part`、`.lantai-download.json` 和锁文件，再用同一命令继续。
-
-用途必须准确：`archive_review` 档案查看、`reference` 参考、`production` 制作、`generative_input` 生成式输入、`raw_export` 原件导出。选择合法值仍需服务端按权利与权限批准。`PATH_CONFLICT` 表示已有不同内容，保留原文件并换空目录，不自动覆盖。
-
-## 4. 将一份合成文件入藏
-
-前提：该项目的 contributor 或 owner 角色、`ingest` scope；希望完成初始标题等著录时还要有 `organize`。在电脑私有工作目录建立 `sample.txt`，写入任意合成文字；在同目录建 `push.yaml`：
-
-```yaml
-project_id: PROJECT_ID
-slug: sample
-content:
-  asset_type: doc
-  files:
-    - path: sample.txt
-      role: source
-  rights:
-    usage: production
-    license: CC0-1.0
-    redistribute_raw: true
-    noai: false
-    sensitivity: normal
-describe:
-  title: 示例文本
-```
-
-将项目 ID 换成授权项目。权利字段只适用于这份自己创建的合成文本；真实资料须按其实际许可填写，不照抄 CC0。运行：
-
-```sh
-lantai push --server https://library.example:32444 --session-file session.json --input push.yaml --state push.state.json
-```
-
-成功标志：保存回执中的 `asset_id`、`version_id`、`operation_id` 与永久引用，然后用 `show` 和 `pull` 核对。**退出码 0 仍要检查 `description_pending`**：为 true 时文件已经提交，但初始著录未完成。先保留原回执与 state，补齐所需权限或单独处理著录；不要创建第二份资产。
-
-## 5. 中断、修改和后续工作
-
-上传中断后保留原 `push.yaml`、原文件、原 state 和幂等键。重跑同一命令会核对输入并补缺的分片；结果不确定时先用 `lantai operation --id OPERATION_ID`（带原 server/session）查询。改过文件却复用 state 会产生 `IDEMPOTENCY_CONFLICT`，应先恢复原输入并完成对账，不盲目换键。
-
-修改著录先用 `metadata get --asset ASSET_ID` 取得当前描述和修订，再用 `metadata set --asset ASSET_ID --input patch.json --if-match '"REVISION"' --idempotency-key KEY`，各命令均带原 server/session。patch 字段按[客户端契约](../contracts/client.md)准备；冲突时重读并由本人合并，不覆盖他人修改。
-
-任务、Flow、检查、讨论、人审和回收站有各自的 CLI，见[协作命令](../contracts/manual-execution.md)。上传成功不等于审定或发布；敏感人审动作仍由人审核。网页浏览之外的写入、协作与管理员操作仍按各自 CLI/授权流程。
+需要 CLI/MCP 的使用者可在完成界面验收后阅读[客户端说明](../contracts/client.md)和[连接 Codex MCP](codex-mcp.md)。这些高级入口不作为普通网页验收的前置条件。
