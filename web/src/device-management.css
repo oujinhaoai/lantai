@@ -1,0 +1,72 @@
+.device-console,
+.device-management {
+  min-width: 0;
+}
+.device-console pre,
+.device-management pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 28rem;
+  overflow: auto;
+}
+.device-console code,
+.device-management code {
+  overflow-wrap: anywhere;
+}
+.device-facts,
+.device-job-facts dl {
+  display: grid;
+  grid-template-columns: minmax(6rem, 12rem) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+.device-facts dt,
+.device-job-facts dt {
+  font-weight: 600;
+}
+.device-facts dd,
+.device-job-facts dd {
+  margin: 0;
+  min-width: 0;
+}
+.device-inspection {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line, #b9c6c0);
+  border-radius: 12px;
+}
+.device-console .system-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  line-height: 1.6;
+}
+.device-console button,
+.device-management button {
+  min-height: 44px;
+}
+.device-confirmation input[type="checkbox"] {
+  width: auto;
+}
+.device-console details {
+  margin-block: 1rem;
+}
+.device-console summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 0.6rem;
+}
+@media (max-width: 600px) {
+  .device-facts,
+  .device-job-facts dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .device-facts dd,
+  .device-job-facts dd {
+    margin-bottom: 0.65rem;
+  }
+  .device-console .system-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

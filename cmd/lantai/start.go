@@ -16,6 +16,7 @@ func runStart(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	fs.SetOutput(stderr)
 	home := homeFlag(fs)
 	setup := fs.String("setup-dir", "", "私有首次设置目录")
+	template := fs.String("config-template", "", "新安装模板或旧只读配置 bind 的迁移输入；已有有效配置不覆盖")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
@@ -23,8 +24,22 @@ func runStart(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		return exitUsage
 	}
 	if *home == "" || *setup == "" || fs.NArg() != 0 {
-		fmt.Fprintln(stderr, "usage: lantai start --home <data root> --setup-dir <private setup directory>")
+		fmt.Fprintln(stderr, "usage: lantai start --home <data root> --setup-dir <private setup directory> [--config-template <read-only template>]")
 		return exitUsage
+	}
+	if err := firststart.SeedConfigTemplate(*home, *template); err != nil {
+		return reportStartup(stderr, "start", err)
+	}
+	entry, err := firststart.OpenEntry(ctx, operations.Options{Home: *home}, *setup)
+	if err != nil {
+		return reportStartup(stderr, "start", err)
+	}
+	if entry != nil {
+		fmt.Fprintln(stderr, entry.Description())
+		err = errors.Join(entry.Serve(ctx), entry.Close())
+		if err != nil {
+			return reportStartup(stderr, "start", err)
+		}
 	}
 	session, err := firststart.Open(ctx, operations.Options{Home: *home}, *setup)
 	if err != nil {
@@ -63,5 +78,29 @@ func runPrepareVolumes(_ context.Context, args []string, _ io.Writer, stderr io.
 		fmt.Fprintln(stderr, err)
 		return exitInvalid
 	}
+	return exitOK
+}
+
+// runPrepareConfig is a one-shot offline preflight for the upgrade launcher.
+// The service UID, lock and same mounts are retained; no listeners are opened.
+func runPrepareConfig(_ context.Context, args []string, _ io.Writer, stderr io.Writer) int {
+	fs := flag.NewFlagSet("prepare-config", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	home := homeFlag(fs)
+	template := fs.String("config-template", "", "现有部署的只读配置输入")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK
+		}
+		return exitUsage
+	}
+	if *home == "" || *template == "" || fs.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: lantai prepare-config --home <data root> --config-template <existing read-only deployment config>")
+		return exitUsage
+	}
+	if err := firststart.SeedConfigTemplate(*home, *template); err != nil {
+		return reportStartup(stderr, "prepare-config", err)
+	}
+	fmt.Fprintln(stderr, "configuration ready; existing instance and keys retained")
 	return exitOK
 }

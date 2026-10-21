@@ -112,7 +112,8 @@ class Instance:
         self.setup = work / "setup"
         self.setup.mkdir(mode=0o700)
         run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256",
-             "-nodes", "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost",
+             "-nodes", "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
+             "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,digitalSignature,keyCertSign,cRLSign",
              "-keyout", str(self.tls / "key.pem"), "-out", str(self.tls / "cert.pem")])
         (self.tls / "key.pem").chmod(0o600)
         PRIVATE_VALUES.append((self.tls / "key.pem").read_text())
@@ -369,10 +370,8 @@ class Instance:
         check("actual gateway static mount is exact and read-only", len(mounts) == 1 and not mounts[0]["RW"] and mounts[0]["Source"] == str(self.web))
 
     def browser(self, evidence, label):
-        public_key = run(["openssl", "x509", "-in", str(self.tls / "cert.pem"), "-pubkey", "-noout"])
-        der = subprocess.check_output(["openssl", "pkey", "-pubin", "-outform", "der"], input=public_key.encode(), env=ENV)
-        pin = base64.b64encode(hashlib.sha256(der).digest()).decode()
-        payload = {"origin": self.origin, "certificate_spki": pin, "name": self.name,
+        payload = {"origin": self.origin, "ca_file": str(self.tls / "cert.pem"),
+                   "browser_profile": str(self.root / (label + "-private-browser-profile")), "name": self.name,
                    "password": self.password, "code": self.totp(), "receipt": self.receipt,
                    "principal_id": self.who["principal"]["principal_id"], "screenshots": str(evidence), "label": label}
         output = run(["node", str(ROOT / "scripts/test-release-browser.cjs")], stdin=json.dumps(payload))

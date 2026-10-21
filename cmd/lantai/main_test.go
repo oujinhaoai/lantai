@@ -40,17 +40,21 @@ func TestVersionJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &v); err != nil {
 		t.Fatal(err)
 	}
-	if len(v.Contracts) == 0 || len(v.Protocols) != 3 || v.GoVersion == "" {
+	wantProtocols := map[string]string{
+		"lantai.agent-execution/v1": "enabled",
+		"lantai.processor/v1":       "enabled",
+		"lantai.host-control/v1":    "reserved",
+		"lantai.local-assistant/v1": "enabled",
+	}
+	if len(v.Contracts) == 0 || len(v.Protocols) != len(wantProtocols) || v.GoVersion == "" {
 		t.Fatalf("version info: %+v", v)
 	}
 	for _, p := range v.Protocols {
-		want := "enabled"
-		if string(p.Protocol) == "lantai.host-control/v1" {
-			want = "reserved"
-		}
-		if p.Status != want {
+		want, exists := wantProtocols[string(p.Protocol)]
+		if !exists || p.Status != want {
 			t.Fatalf("%s: %s, want %s", p.Protocol, p.Status, want)
 		}
+		delete(wantProtocols, string(p.Protocol))
 	}
 	if code, out, _ := runCLI(t, "version"); code != exitOK || !strings.Contains(out, "lantai.agent-execution/v1") {
 		t.Fatalf("text version: %d %q", code, out)

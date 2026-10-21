@@ -179,13 +179,24 @@ type JobAttempt struct {
 	Revision           int64                       `json:"revision"`
 	Protocol           execution.Protocol          `json:"protocol"`
 	Fence              JobFence                    `json:"job_fence"`
-	ActivationSnapshot ActivationSnapshot          `json:"activation_snapshot"`
+	ActivationSnapshot ActivationSnapshot          `json:"activation_snapshot,omitzero"`
+	LocalExecution     *LocalExecutionBinding      `json:"local_execution,omitempty"`
 	Input              tasks.InputSnapshot         `json:"input_snapshot"`
 	State              string                      `json:"state"`
 	Termination        Termination                 `json:"termination"`
 	Outcome            execution.InvocationOutcome `json:"outcome,omitempty"`
 	Verdict            execution.CheckVerdict      `json:"verdict,omitempty"`
 	ResultDigest       digest.Digest               `json:"result_digest,omitempty"`
+}
+
+// LocalExecutionBinding binds first-party execution to the same T06 attempt.
+// It cannot be used as an extension activation or evidence of local bytes.
+type LocalExecutionBinding struct {
+	DeviceID         ids.ID `json:"device_id"`
+	WorkspaceAlias   string `json:"workspace_alias"`
+	WorkspaceBinding string `json:"workspace_binding"`
+	JobDigest        string `json:"job_digest"`
+	ApprovalDigest   string `json:"approval_digest"`
 }
 type Capabilities struct {
 	CheckpointFormatVersions []string                `json:"checkpoint_format_versions"`

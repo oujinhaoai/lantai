@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["secure-tests", "playwright.secure.config.ts"]
+}

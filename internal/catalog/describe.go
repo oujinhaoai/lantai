@@ -24,6 +24,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/schema"
 	"github.com/oujinhaoai/lantai/internal/storage/fileop"
 )
 
@@ -80,6 +81,9 @@ type AssetPatch struct {
 	Tags     *[]string       `json:"tags,omitempty"`
 	Subjects *[]string       `json:"subjects,omitempty"`
 	Extra    *map[string]any `json:"extra,omitempty"`
+	// Profile replaces only extra.asset_profile under the same revision guard.
+	// Unrelated server values never round-trip through a browser JSON number.
+	Profile json.RawMessage `json:"profile,omitempty"`
 
 	Sensitivity *string   `json:"sensitivity,omitempty"`
 	Defaults    *Defaults `json:"defaults,omitempty"`
@@ -132,6 +136,9 @@ func (p AssetPatch) apply(d AssetDescription) (AssetDescription, error) {
 		return d, errcode.New(errcode.FieldRequiresSpecialCommand,
 			"sensitivity and default rights can only be changed with a dedicated rights command")
 	}
+	if len(p.Profile) > 0 && p.Extra != nil {
+		return d, invalid("profile and extra cannot be replaced in the same patch")
+	}
 	var err error
 	if p.Title != nil {
 		if d.Title, err = cleanText("title", *p.Title, 200); err != nil {
@@ -160,6 +167,28 @@ func (p AssetPatch) apply(d AssetDescription) (AssetDescription, error) {
 		if d.Extra, err = cleanExtra(*p.Extra); err != nil {
 			return d, err
 		}
+	}
+	if len(p.Profile) > 0 {
+		if len(p.Profile) > 1<<20 {
+			return d, invalid("profile exceeds the bounded metadata size")
+		}
+		tree, e := canonjson.Decode(p.Profile)
+		if e != nil {
+			return d, invalid("profile must contain valid JSON")
+		}
+		reg, e := schema.Default()
+		if e != nil {
+			return d, e
+		}
+		if e = reg.Validate("lantai.asset-profile/v1", tree); e != nil {
+			return d, errcode.Wrap(errcode.SchemaInvalid, "invalid asset profile", e)
+		}
+		extra := make(map[string]any, len(d.Extra)+1)
+		for key, value := range d.Extra {
+			extra[key] = value
+		}
+		extra["asset_profile"] = tree
+		d.Extra = extra
 	}
 	return d, nil
 }

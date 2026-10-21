@@ -1,0 +1,58 @@
+/* Shared interaction primitives for the five management entrances. */
+.management-json {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 28rem;
+  overflow: auto;
+  background: #f5f3ee;
+  padding: 1rem;
+  border: 1px solid var(--line, #dedbd1);
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+}
+.managed-record-saver,
+.recovery-management {
+  margin-top: 1.5rem;
+}
+.managed-record-saver > label,
+.recovery-management > label {
+  display: block;
+  margin: 0.8rem 0;
+}
+.managed-record-saver textarea,
+.recovery-management textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0.4rem 0;
+  padding: 0.7rem;
+  border: 1px solid var(--line, #dedbd1);
+  border-radius: 0.4rem;
+  resize: vertical;
+  font: 0.85rem/1.5 monospace;
+}
+.managed-record-saver button,
+.recovery-management button {
+  margin: 0.3rem 0.5rem 0.3rem 0;
+  min-height: 44px;
+}
+.recovery-management select,
+.recovery-management input {
+  max-width: 100%;
+}
+.managed-record-saver label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: start;
+  gap: 0.6rem;
+}
+.managed-record-saver details,
+.recovery-management details {
+  margin: 1rem 0;
+}
+@media (max-width: 640px) {
+  .managed-record-saver button,
+  .recovery-management button {
+    width: 100%;
+    margin-right: 0;
+  }
+}

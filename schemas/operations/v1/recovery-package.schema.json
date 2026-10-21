@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v1/recovery-package.schema.json",
+  "title": "RecoveryPackageManifest",
+  "description": "敏感自包含恢复包；摘要证明内部一致性，不证明可信来源。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "package_id",
+    "backup_id",
+    "instance_id",
+    "recovery_epoch",
+    "key_id",
+    "manifest_digest",
+    "captured_at",
+    "sensitive",
+    "files"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.recovery-package/v1"
+    },
+    "package_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "backup_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "instance_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "recovery_epoch": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "key_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "captured_at": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/timestamp"
+    },
+    "sensitive": {
+      "const": true
+    },
+    "files": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "size",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1099511627776
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

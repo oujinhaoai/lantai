@@ -11,6 +11,7 @@
     "lint": "prettier --check src tests *.ts *.js *.json index.html && eslint . && tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "test": "playwright test",
+    "test:unit": "node --import ./unit/register.mjs --test unit/*.test.mjs tests/*.unit.ts",
     "preview": "vite preview --host 127.0.0.1",
     "format": "prettier --write src tests *.ts *.js *.json index.html"
   },

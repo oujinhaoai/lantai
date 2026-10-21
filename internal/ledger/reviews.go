@@ -656,8 +656,8 @@ func (c *reviewCommand) Commit(ctx context.Context, cmd commands.Context, _ iden
 			return commands.Receipt{}, err
 		}
 		self = t.MakerID == c.who.PrincipalID
-		if self && !policyBool(policies, "review.allow_self_human") {
-			return commands.Receipt{}, errcode.New(errcode.SelfReviewForbidden, "")
+		if err = validateHumanSelfReviewPolicy(self, policies); err != nil {
+			return commands.Receipt{}, err
 		}
 		if in.Verdict == "approve" {
 			if err = r.satisfied(ctx, c.who, v, t, in.Waivers, policyBool(policies, "review.qa_required"), c.who.PrincipalID); err != nil {

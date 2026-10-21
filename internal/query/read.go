@@ -26,6 +26,9 @@ type Filter struct {
 	ProjectID       ids.ID             `json:"project_id,omitempty"`
 	Text            string             `json:"text,omitempty"`
 	AssetType       manifest.AssetType `json:"asset_type,omitempty"`
+	// Tags is an exact, case-sensitive NFC intersection over the current
+	// authorized directory projection. It is part of the opaque cursor scope.
+	Tags []string `json:"tags,omitempty"`
 }
 
 type SearchRequest struct {
@@ -91,6 +94,11 @@ func cleanFilter(f Filter) (Filter, error) {
 	f.Text = strings.ToLower(norm.NFC.String(strings.TrimSpace(f.Text)))
 	if len(f.Text) > 4096 {
 		return f, errcode.New(errcode.SchemaInvalid, "query text is too long")
+	}
+	var err error
+	f.Tags, err = cleanExactTags(f.Tags)
+	if err != nil {
+		return f, err
 	}
 	return f, nil
 }
@@ -241,7 +249,7 @@ func (s *Service) selectItems(ctx context.Context, who authz.Context, f Filter, 
 		for n, i := range batch {
 			after = i.AssetID
 			scanned++
-			if f.AssetType == "" || f.AssetType == i.AssetType {
+			if (f.AssetType == "" || f.AssetType == i.AssetType) && hasExactTags(i.Tags, f.Tags) {
 				ok, err := s.visible(ctx, who, i.AssetID, i.VersionID, f.IncludeArchived)
 				if err != nil {
 					return nil, after, false, err

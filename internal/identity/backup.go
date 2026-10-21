@@ -2,8 +2,10 @@ package identity
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/backupmgmt"
@@ -39,6 +41,7 @@ type ApproveBackup struct {
 	DrainSeconds   int                  `json:"drain_seconds,omitempty"`
 	TimeoutSeconds int                  `json:"timeout_seconds,omitempty"`
 	Schedule       *BackupScheduleInput `json:"schedule,omitempty"`
+	PackageSHA256  string               `json:"package_sha256,omitempty"`
 }
 
 func (c *ApproveBackup) action() authz.Action {
@@ -49,13 +52,15 @@ func (c *ApproveBackup) action() authz.Action {
 		return ActBackupResume
 	case "schedule":
 		return ActBackupSchedule
+	case "download":
+		return ActBackupExport
 	}
 	return ""
 }
 func (c *ApproveBackup) project() ids.ID { return "" }
 func (c *ApproveBackup) targets() []Target {
 	target := "instance"
-	if c.Kind == "resume" {
+	if c.Kind == "resume" || c.Kind == "download" {
 		target = string(c.JobID)
 	}
 	revision := int64(0)
@@ -79,7 +84,16 @@ func backupTimeouts(drain, timeout int) error {
 	return nil
 }
 func (c *ApproveBackup) check() error {
+	if c.Kind != "download" && c.PackageSHA256 != "" {
+		return fmt.Errorf("unexpected package digest")
+	}
 	switch c.Kind {
+	case "download":
+		digest, err := hex.DecodeString(c.PackageSHA256)
+		if err != nil || len(digest) != 32 || hex.EncodeToString(digest) != c.PackageSHA256 || !c.JobID.Valid() || c.Schedule != nil || c.DrainSeconds != 0 || c.TimeoutSeconds != 0 {
+			return fmt.Errorf("invalid recovery package download")
+		}
+		return nil
 	case "start", "resume":
 		if c.Schedule != nil || (c.Kind == "start" && c.JobID != "") || (c.Kind == "resume" && !c.JobID.Valid()) {
 			return fmt.Errorf("invalid backup target")
@@ -116,8 +130,10 @@ func (c *ApproveBackup) describe(context.Context, commands.DBTX) (string, error)
 	if timeout == 0 {
 		timeout = 7200
 	}
-	limits := fmt.Sprintf("Drain limit %d seconds; total limit %d seconds. All business reads and writes pause until backup work exits.", drain, timeout)
+	limits := fmt.Sprintf("Drain limit %d seconds; total limit %d seconds. All business reads and writes pause until backup work exits. The complete package includes sensitive recovery material; anyone holding it can read and restore the backup.", drain, timeout)
 	switch c.Kind {
+	case "download":
+		return fmt.Sprintf("Download complete recovery package %s (%s). It contains sensitive recovery material; anyone holding it can read and restore the backup.", c.JobID, c.PackageSHA256), nil
 	case "start":
 		return "Start a full instance backup. " + limits, nil
 	case "resume":
@@ -168,4 +184,20 @@ func (s *Service) WithBackupScheduleOwner(ctx context.Context, principalID ids.I
 		return errcode.New(errcode.Forbidden, "backup schedule owner is not an active administrator")
 	}
 	return admit()
+}
+
+// RecoveryKeyID and WriteBackupRecoveryMaterial are internal maintenance-only
+// capabilities. They use the same resident key as active identity records,
+// never a replacement file or a client-selected path.
+func (s *Service) RecoveryKeyID(ctx context.Context) (ids.ID, error) {
+	if err := s.gate.RequireMaintenance(ctx); err != nil {
+		return "", err
+	}
+	return s.key.ID(), nil
+}
+func (s *Service) WriteBackupRecoveryMaterial(ctx context.Context, w io.Writer) error {
+	if err := s.gate.RequireMaintenance(ctx); err != nil {
+		return err
+	}
+	return s.key.WriteRecoveryMaterial(w)
 }

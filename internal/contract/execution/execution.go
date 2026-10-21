@@ -24,10 +24,13 @@ const (
 	// HostControl 是常驻实例的控制协议，按真实需求实现；不套用在一次性处理器上，
 	// 也不替代业务执行协议。
 	HostControl Protocol = "lantai.host-control/v1"
+	// LocalAssistant is the first-party outbound device protocol. It uses the
+	// jobs owner's JobAttempt/fence; it is not an extension host or arbitrary shell.
+	LocalAssistant Protocol = "lantai.local-assistant/v1"
 )
 
 // Protocols 列出全部协议族。
-var Protocols = []Protocol{AgentExecution, Processor, HostControl}
+var Protocols = []Protocol{AgentExecution, Processor, HostControl, LocalAssistant}
 
 // Support 描述协议在当前构建中的状态。
 type Support struct {
@@ -45,6 +48,7 @@ func SupportMatrix() []Support {
 		{AgentExecution, "enabled", "manual_cli only; managed runner deferred"},
 		{Processor, "enabled", "builtin corecheck only; external packages deferred"},
 		{HostControl, "reserved", "on demand, resident instances only"},
+		{LocalAssistant, "enabled", "explicit two-stage first-party device approval only"},
 	}
 }
 

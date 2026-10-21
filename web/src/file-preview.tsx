@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, APIError, hasCSRF, isSessionError, message } from "./api";
+import { FileEnhancements } from "./asset-enhancements";
 
 const TextPreview = lazy(() =>
   import("./text-preview").catch(() => ({
@@ -353,7 +354,9 @@ function Viewer({
       </div>
       {kind === "unsupported" && (
         <p className="notice">
-          此格式不支持预览。压缩包及其他二进制仅显示基础信息，不解压、不执行、不展示内容。
+          {/\.obj$/i.test(file.path)
+            ? "OBJ 可使用下方有界线框工具查看，不加载 MTL、贴图或脚本。"
+            : "此格式不支持通用预览。压缩包及其他二进制仅显示基础信息，不解压、不执行。"}
         </p>
       )}
       {kind === "image" && file.size > imageLimit && (
@@ -565,6 +568,13 @@ export function FilePreview({
       )}
       <Viewer
         key={file.path}
+        file={file}
+        assetID={assetID}
+        versionID={versionID}
+        expire={expire}
+      />
+      <FileEnhancements
+        key={`tools/${file.path}`}
         file={file}
         assetID={assetID}
         versionID={versionID}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/asset-profile.schema.json",
+  "title": "AssetProfile",
+  "description": "结构化的普通资产画像。历史状态、来源路径和笔记仅是著录，不授权用途、执行、发布或人审。profile PATCH只替换extra.asset_profile，其他extra由核心保留。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "business_state"],
+  "properties": {
+    "schema": {"const": "lantai.asset-profile/v1"},
+    "characters": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 54, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"}},
+    "source": {"type": "string", "maxLength": 57, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"},
+    "business_state": {"type": "string", "enum": ["active", "reference", "rejected", "superseded", "archived", "pending_review", "unknown"]},
+    "legacy_state": {"type": "string", "maxLength": 200, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"},
+    "legacy_version": {"type": "string", "maxLength": 49, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"},
+    "source_paths": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"}},
+    "notes": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 4000, "pattern": "^[^\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]*$"}}
+  }
+}

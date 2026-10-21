@@ -44,6 +44,8 @@ func BackupMaintenanceRequest(r *http.Request) bool {
 	return false
 }
 func (h *Handler) backupRoutes(m *http.ServeMux) {
+	h.route(m, "POST /api/v1/admin/backups/{id}/download-request", false, h.backupDownloadRequest)
+	h.route(m, "GET /api/v1/admin/backups/{id}/package", false, h.backupDownloadPackage)
 	h.controlSessionRoutes(m)
 	h.backupReadRoute(m, "GET /api/v1/admin/backups", h.backupOverview)
 	h.backupReadRoute(m, "GET /api/v1/admin/backups/history", h.backupHistory)

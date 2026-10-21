@@ -40,6 +40,7 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	var c struct {
 		Services map[string]struct {
 			Ports       []string
+			Command     []string
 			Privileged  bool
 			Networks    []string
 			Volumes     []string
@@ -65,6 +66,18 @@ func TestComposeOnlyPublishesGateway(t *testing.T) {
 	}
 	if c.Services["core"].DependsOn["prepare"].Condition != "service_completed_successfully" {
 		t.Fatal("core must wait for successful volume preparation")
+	}
+	core := c.Services["core"]
+	if !slices.Contains(core.Command, "--config-template") || !slices.Contains(core.Command, "/etc/lantai/config.template.yaml") {
+		t.Fatal("core must seed an owned configuration from the read-only template")
+	}
+	for _, mount := range core.Volumes {
+		if mount == "${LANTAI_CONFIG_FILE:?set the reviewed config.container.yaml}:/var/lib/lantai/config.yaml:ro" {
+			t.Fatal("recovery cannot replace a read-only configuration bind mount")
+		}
+	}
+	if !slices.Contains(core.Volumes, "${LANTAI_CONFIG_FILE:?set the reviewed config.container.yaml}:/etc/lantai/config.template.yaml:ro") {
+		t.Fatal("deployment template must remain read-only outside the data volume")
 	}
 	if n := c.Services["core"].Networks; len(n) != 1 || n[0] != "backend" {
 		t.Fatal("core must remain only on the internal backend")

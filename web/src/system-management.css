@@ -1,0 +1,235 @@
+.system-management {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.system-header h1 {
+  margin: 0.25rem 0 0.65rem;
+}
+.system-header p {
+  max-width: 78ch;
+}
+.system-tabs,
+.system-actions,
+.system-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+}
+.system-tabs button {
+  min-height: 44px;
+}
+.system-stack {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.system-section {
+  padding: 1.25rem;
+  min-width: 0;
+}
+.system-section > h2:first-child {
+  margin-top: 0;
+}
+.system-form {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 52rem;
+  margin: 1rem 0;
+}
+.system-management label,
+.system-confirmation label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.system-management input:not([type="checkbox"]):not([type="file"]),
+.system-management select,
+.system-management textarea,
+.system-confirmation input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ccd4d0;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #26372e;
+  font: inherit;
+}
+.system-management textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.system-inline > label {
+  flex: 1 1 20rem;
+}
+.system-management .system-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  font-weight: 400;
+}
+.system-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.system-management fieldset {
+  border: 1px solid #dce2dd;
+  border-radius: 0.55rem;
+  padding: 0.9rem;
+}
+.system-table-scroll {
+  overflow: auto;
+  max-width: 100%;
+  margin: 1rem 0;
+}
+.system-management table,
+.system-confirmation table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+.system-management th,
+.system-management td,
+.system-confirmation th,
+.system-confirmation td {
+  border-bottom: 1px solid #dce2dd;
+  padding: 0.7rem 0.55rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.system-management code,
+.system-confirmation code {
+  overflow-wrap: anywhere;
+  font-size: 0.85em;
+}
+.system-management dl,
+.system-confirmation dl {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr);
+  gap: 0.5rem 0.9rem;
+}
+.system-management dd,
+.system-confirmation dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.system-management pre,
+.system-confirmation pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  max-height: 28rem;
+  background: #f3f6f3;
+  padding: 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+}
+.system-object-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.system-object-list li {
+  display: grid;
+  gap: 0.35rem;
+  border-bottom: 1px solid #dce2dd;
+  padding: 0.75rem 0;
+}
+.system-object-list button {
+  justify-self: start;
+}
+.system-subsection {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f6f8f4;
+  border-radius: 0.7rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.system-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #16271cd9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+.system-confirmation {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.4rem;
+  width: min(58rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  box-shadow: 0 1rem 5rem #08150b55;
+}
+.system-confirmation h2 {
+  margin-top: 0;
+}
+.system-confirmation form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.system-proof-summary {
+  padding: 0.8rem;
+  border-left: 0.3rem solid #56765a;
+  background: #f4f7f0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.system-secret {
+  padding: 1.25rem;
+  border: 2px solid #866736;
+}
+.system-secret textarea {
+  min-height: 7rem;
+  font-family: ui-monospace, monospace;
+}
+.system-management button:focus-visible,
+.system-management input:focus-visible,
+.system-management select:focus-visible,
+.system-management textarea:focus-visible,
+.system-confirmation button:focus-visible,
+.system-confirmation input:focus-visible {
+  outline: 3px solid #386849;
+  outline-offset: 3px;
+}
+.system-management button:disabled,
+.system-confirmation button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .system-section {
+    padding: 1rem;
+  }
+  .system-management dl,
+  .system-confirmation dl {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+  .system-management dd,
+  .system-confirmation dd {
+    margin-bottom: 0.5rem;
+  }
+  .system-overlay {
+    padding: 0.4rem;
+  }
+  .system-confirmation {
+    padding: 1rem;
+    max-height: calc(100dvh - 0.8rem);
+  }
+  .system-actions > button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}

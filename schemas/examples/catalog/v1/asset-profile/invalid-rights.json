@@ -1,0 +1,1 @@
+{"description":"画像不能包含安全权限或虚构核心审定状态","schema":"lantai.asset-profile/v1","valid":false,"expect":[{"pointer":"/business_state","keyword":"enum"}],"document":{"schema":"lantai.asset-profile/v1","business_state":"approved","rights":{"redistribute_raw":true}}}

@@ -14,6 +14,25 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 )
 
+// BackupDestination is only available while the caller owns maintenance. It
+// resolves a source-owned record, never an arbitrary client path.
+func (i *Instance) BackupDestination(ctx context.Context, id ids.ID) (string, error) {
+	if err := i.gate.RequireMaintenance(ctx); err != nil {
+		return "", err
+	}
+	if !id.Valid() {
+		return "", errors.New("operations: invalid backup ID")
+	}
+	var rec backupRecord
+	if err := readBackupJSON(i.backupRecordPath(id), &rec); err != nil {
+		return "", err
+	}
+	if rec.Manifest.BackupID != id || rec.Manifest.InstanceID != i.InstanceID() {
+		return "", errors.New("operations: backup record identity mismatch")
+	}
+	return independentTarget(i.layout.Home, rec.Destination)
+}
+
 // A valid archive is not necessarily this backup. Compare the complete frozen
 // point with its authoritative source record before accepting or modifying a
 // destination. Only copying -> complete may add a completion timestamp.

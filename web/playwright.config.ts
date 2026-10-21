@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "https://localhost:4180",
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false,
     screenshot: "only-on-failure",
     trace: "off",
   },
@@ -19,6 +19,8 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         channel: "chromium",
+        // Fail closed when the selected host cannot provide Chromium's sandbox.
+        launchOptions: { chromiumSandbox: true },
         viewport: { width: 1440, height: 1050 },
       },
     },
@@ -29,7 +31,7 @@ export default defineConfig({
     command:
       "cd .. && LANTAI_WEB_FIXTURE=1 go test -tags=lantai_test_hooks -run ^TestWebBrowserFixture$ -count=1 -timeout=15m ./tests/integration",
     url: "https://localhost:4180/ready",
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false,
     reuseExistingServer: process.env.LANTAI_WEB_REUSE === "1",
     timeout: 120000,
   },

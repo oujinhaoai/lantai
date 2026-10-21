@@ -1,5 +1,7 @@
 # 共同备份与空目录恢复
 
+本开发分支的默认完整备份入口另见[自包含恢复包](../recovery-package.md)。`backup` 自动在私有快照目录生成 `recovery.lantai`；`backup-verify -backup <file.lantai>` 校验整包，`restore -home <new-target> -backup <file.lantai>` 不需要 `-key-dir`。普通用户可通过新目标 `/setup/` 恢复向导完成同一流程。以下 v1 目录与单独 key-dir 流程仅为旧数据快照兼容，不作为默认完整恢复交付。
+
 M1 实现由 `operations` 编排、各领域所有者核验；实现见 [`internal/operations`](../../internal/operations/)、[`application`](../../internal/application/)、[实例生命周期](instance.md)。公开文件协议为 [`lantai.backup/v1`](../../schemas/operations/v1/backup.schema.json) 和 [`lantai.recovery-review/v1`](../../schemas/operations/v1/recovery-review.schema.json)。旧本机 `backup` 命令需要停止服务并持有数据根独占锁；含新功能的开发版本提供 [运行中互斥备份](../online-backup.md)，由同一 core 内部服务协调 CLI 与[本机控制接口](../../api/backup-control.md)。该能力不属于已发布 rc.4。
 
 ## 冻结共同点

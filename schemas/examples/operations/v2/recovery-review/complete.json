@@ -1,0 +1,20 @@
+{
+  "description": "明确接受恢复点并保留灾后未知事项",
+  "schema": "lantai.recovery-review/v2",
+  "valid": true,
+  "document": {
+    "contract": "lantai.recovery-review/v2",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recovery_epoch": 3,
+    "administrator": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "revocations_reconciled": false,
+    "deletions_reconciled": false,
+    "open_operations_reconciled": false,
+    "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "note": "Owner accepted recovery point and known-change review; unknown source events remain unknown.",
+    "accept_recovery_point": true,
+    "unknown_after_capture": true
+  }
+}

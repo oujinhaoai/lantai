@@ -665,8 +665,16 @@ func (b *businessRecovery) restore(flow ids.ID, v catalog.VersionResult, oldTarg
 		t.Fatal(err)
 	}
 	verified, err := operations.VerifyBackup(ctx, archive)
-	if err != nil || !reflect.DeepEqual(verified, backup) {
+	// The snapshot wire contract excludes the in-process complete-package
+	// descriptor. Verify both artifacts separately, including that descriptor.
+	snapshotManifest := backup
+	snapshotManifest.RecoveryPackage = nil
+	if err != nil || !reflect.DeepEqual(verified, snapshotManifest) {
 		t.Fatal("common backup verification", err)
+	}
+	complete, err := operations.VerifyRecoveryPackage(ctx, operations.RecoveryPackagePath(archive))
+	if err != nil || backup.RecoveryPackage == nil || !reflect.DeepEqual(complete, *backup.RecoveryPackage) {
+		t.Fatal("complete recovery package verification", err)
 	}
 	b.record(map[string]any{"kind": "backup", "manifest": backup, "facts": before, "old_activation": snapshot})
 	if err = a.Close(context.Background()); err != nil {

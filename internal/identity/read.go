@@ -2,11 +2,13 @@ package identity
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
 	"github.com/oujinhaoai/lantai/internal/identity/totp"
 )
 
@@ -115,6 +117,17 @@ func (s *Service) Members(ctx context.Context, who authz.Context, project ids.ID
 // CheckStartup 是实例启动前的核对步骤：已登记的 TOTP 因子必须能用当前主密钥
 // 解开，主密钥缺失或与因子不符时实例不开放服务。
 func (s *Service) CheckStartup(ctx context.Context) error {
+	return CheckStoredFactors(ctx, s.main, s.key)
+}
+
+// CheckStoredFactors verifies the existing encrypted factors without creating a
+// service, changing credentials or writing maintenance state. A read-only main
+// connection is sufficient for deployment configuration migration preflight.
+func CheckStoredFactors(ctx context.Context, main *sql.DB, key *masterkey.Key) error {
+	if main == nil || key == nil {
+		return errors.New("identity: existing main database and key are required")
+	}
+	s := &Service{main: main, key: key}
 	rows, err := s.main.QueryContext(ctx, `SELECT factor_id, principal_id, key_id, sealed_secret
 		FROM identity_totp_factors WHERE state IN ('enabled', 'pending') ORDER BY factor_id`)
 	if err != nil {

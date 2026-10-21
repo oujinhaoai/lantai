@@ -10,7 +10,8 @@
       "enum": [
         "lantai.agent-execution/v1",
         "lantai.processor/v1",
-        "lantai.host-control/v1"
+        "lantai.host-control/v1",
+        "lantai.local-assistant/v1"
       ]
     },
     "execution_action": {

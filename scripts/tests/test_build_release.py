@@ -33,8 +33,11 @@ class BuildGuards(unittest.TestCase):
         for name in ("Caddyfile", "config.container.yaml", "compose.web.yaml", "compose.backup.yaml", "release-install.md", "release-upgrade.md"):
             (self.source / "deploy" / name).write_text("synthetic public deployment template\n")
         (self.source / "docs").mkdir()
+        (self.source / "docs/recovery-package.md").write_text("Sensitive recovery package\n")
+        (self.source / "api/recovery-control.md").parent.mkdir(exist_ok=True)
+        (self.source / "api/recovery-control.md").write_text("Claimed new target recovery\n")
         (self.source / "docs/online-backup.md").write_text("See (contracts/backup-restore.md)\n")
-        (self.source / "api").mkdir()
+        (self.source / "api").mkdir(exist_ok=True)
         (self.source / "api/backup-management.md").write_text("See (openapi.yaml) and (../docs/online-backup.md)\n")
         (self.source / "deploy/compose.yaml").write_text("services:\n  gateway:\n    image: caddy:2.11.4\n")
         (self.source / "web").mkdir()

@@ -13,6 +13,33 @@ import (
 	"github.com/oujinhaoai/lantai/internal/identity/totp"
 )
 
+type RestoreAdministrator struct {
+	ID   ids.ID `json:"id"`
+	Name string `json:"name"`
+}
+
+// RestoreAdministrators is a narrow maintenance-only projection for a claimed
+// new-target recovery controller. It exposes no factor or credential material.
+func (s *Service) RestoreAdministrators(ctx context.Context) ([]RestoreAdministrator, error) {
+	if err := s.gate.RequireMaintenance(ctx); err != nil {
+		return nil, err
+	}
+	rows, err := s.main.QueryContext(ctx, `SELECT p.principal_id,p.name FROM identity_principals p JOIN identity_system_roles r ON r.principal_id=p.principal_id WHERE p.kind='human' AND p.state='active' AND r.role='admin' ORDER BY p.name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []RestoreAdministrator{}
+	for rows.Next() {
+		var v RestoreAdministrator
+		if err = rows.Scan(&v.ID, &v.Name); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
 // InvalidateForRestore closes every authentication path present in a backup.
 // The caller first advances the instance recovery epoch and keeps the same
 // exclusive maintenance barrier until the full restore has been reconciled.

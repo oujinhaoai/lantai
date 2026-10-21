@@ -167,6 +167,7 @@ test("mixed versions default to a previewable file without reading and keep unsu
   await page.route(versionURL, async (route) => {
     const response = await route.fetch();
     const data = await response.json();
+    data.manifest.content.asset_type = "image";
     const note = data.manifest.content.files.find(
       (item: { path: string }) => item.path === "readme.md",
     );
@@ -440,7 +441,7 @@ test("download and preview grants stay bound to the session and recheck revocati
   await expect(page.locator(".media-image")).toBeVisible();
   const url = (await page.locator(".media-image").getAttribute("src"))!;
   const stranger = await playwright.request.newContext({
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false,
   });
   expect((await stranger.get(url)).status()).toBe(401);
   await stranger.dispose();

@@ -730,5 +730,16 @@ func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest 
 	if _, err := operations.VerifyBackup(ctx, archive); err != nil {
 		t.Fatal("restoration altered its source archive", err)
 	}
+	info, err := restored.ManagementInfo(ctx)
+	if err != nil || info.InstanceID != marker.InstanceID || info.RecoveryEpoch != marker.RecoveryEpoch || info.State != "ready" || info.RecoveryError != "" {
+		t.Fatalf("restored management projection: %+v %v", info, err)
+	}
+	if len(info.RecoveryReceipts) != 1 {
+		t.Fatalf("completed real restore missing from management projection: %+v", info.RecoveryReceipts)
+	}
+	completed := info.RecoveryReceipts[0]
+	if completed.RunID != review.RunID || completed.BackupID != review.BackupID || completed.ManifestDigest != review.ManifestDigest || completed.RecoveryEpoch != review.RecoveryEpoch || completed.EvidenceDigest != review.EvidenceDigest || completed.UnknownAfterCapture {
+		t.Fatalf("completed management receipt lost its fixed restore basis: %+v", completed)
+	}
 	t.Logf("empty-directory restore reconciled with a new administrator; old credentials/capability refused; rebuilt index and %d source bytes match SHA256", len(content))
 }

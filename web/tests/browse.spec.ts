@@ -113,7 +113,7 @@ test("Chinese browse, project isolation, real pagination, fixed detail and histo
   await shot(page, info, "empty");
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
   await expect(page.locator(".asset-list li")).toHaveCount(24);
   await page.getByRole("button", { name: "加载下一页" }).click();
@@ -178,7 +178,7 @@ test("real revoked project permissions hide entries and reject known details", a
     await shot(page, info, "permission");
     await page
       .getByRole("navigation")
-      .getByRole("link", { name: "资源库" })
+      .getByRole("link", { name: "素材库" })
       .click();
     await expect(
       page.getByRole("heading", { name: "暂无可见资源" }),
@@ -222,7 +222,7 @@ test("loading, server failure, retry and late response after navigation", async 
   });
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
   await expect(page.getByRole("status")).toContainText("正在读取");
   release();
@@ -320,7 +320,7 @@ test("responsive portrait/landscape, long filenames, touch targets and keyboard 
   await login(page, request);
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
   await page.getByLabel("搜索资源").fill("声音素材");
   await page.getByRole("button", { name: "搜索", exact: true }).click();
@@ -390,7 +390,7 @@ test("WCAG accessibility for login, home, search and fixed detail", async ({
   await audit();
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
   await expect(page.locator(".asset-list li")).toHaveCount(24);
   await audit();

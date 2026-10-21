@@ -388,6 +388,13 @@ func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 	f.h.deps.Rights = &provenance.Service{}
 	f.h.deps.Human = &identity.Service{}
 	f.h.deps.HumanTargets = f.h.deps.Ledger
+	// The optional first-party device adapter is exercised only after auth.
+	// Embed its nil port just as the zero-value owner handles above; dispatch
+	// would fail, so this continues to test authentication before any method.
+	f.h.deps.Operations = struct {
+		OperationReader
+		DeviceAPI
+	}{f.h.deps.Operations, nil}
 	configured, setupErr := New(f.h.deps, f.h.cfg)
 	if setupErr != nil {
 		t.Fatal(setupErr)

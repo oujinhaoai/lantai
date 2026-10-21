@@ -96,8 +96,24 @@ func (c *Client) Download(ctx context.Context, g DownloadGrant, rootDir, relativ
 		return err
 	}
 	defer root.Close()
+	return c.downloadRoot(ctx, g, root, relative)
+}
+
+// downloadRoot shares the transfer implementation with callers that pin one
+// directory handle for an entire multi-file operation. It never reopens a root
+// by pathname, including after that directory is renamed or replaced.
+func (c *Client) downloadRoot(ctx context.Context, g DownloadGrant, root *os.Root, relative string) error {
+	if err := SafeRelative(relative); err != nil {
+		return err
+	}
+	if !digest.ValidHex(g.SHA256) || g.Size < 0 {
+		return errors.New("client: invalid authorized download size or digest")
+	}
+	if _, err := c.authorizedURL(g.URL); err != nil {
+		return err
+	}
 	name := filepath.FromSlash(relative)
-	if err = root.MkdirAll(filepath.Dir(name), 0700); err != nil {
+	if err := root.MkdirAll(filepath.Dir(name), 0700); err != nil {
 		return err
 	}
 	// Keep all writers away from the partial inode, including after Link makes

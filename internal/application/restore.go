@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
 	"io"
@@ -16,12 +17,12 @@ import (
 	"github.com/oujinhaoai/lantai/internal/operations"
 )
 
-// Restore copies only a complete archive, verifies the separately recovered old
+// Restore copies only a complete archive, verifies the recovered old
 // key against encrypted factors, revokes all restored credentials, then installs
 // a fresh key. It returns with a durable maintenance latch, never a running App.
 func Restore(ctx context.Context, opts operations.RestoreOptions, key *masterkey.Key, cfg identity.Config) (operations.Marker, error) {
 	if key == nil {
-		return operations.Marker{}, errors.New("application: separately recovered master key is required")
+		return operations.Marker{}, errors.New("application: validated recovery key is required")
 	}
 	opts.KeyID = key.ID()
 	marker, err := operations.RestoreTo(ctx, opts)
@@ -85,6 +86,22 @@ func Restore(ctx context.Context, opts operations.RestoreOptions, key *masterkey
 func (a *App) CompleteRestore(ctx context.Context, review operations.RecoveryReview, evidence []byte) error {
 	if len(evidence) == 0 || len(evidence) > 8<<20 || digest.Of(evidence) != review.EvidenceDigest {
 		return errors.New("application: recovery review evidence digest mismatch")
+	}
+	if review.Contract == "lantai.recovery-review/v2" {
+		var proof struct {
+			Core struct {
+				RunID      ids.ID `json:"run_id"`
+				Passed     bool   `json:"automatic_checks_passed"`
+				Unresolved int    `json:"unresolved_operations"`
+			} `json:"core_review"`
+			Accepted        bool  `json:"operator_accepted_recovery_point"`
+			Known           bool  `json:"operator_confirmed_known_changes_reviewed"`
+			Offline         bool  `json:"operator_confirmed_source_offline"`
+			UnknownVerified *bool `json:"unknown_after_capture_verified"`
+		}
+		if json.Unmarshal(evidence, &proof) != nil || proof.Core.RunID != review.RunID || !proof.Core.Passed || proof.Core.Unresolved != 0 || !proof.Accepted || !proof.Known || !proof.Offline || proof.UnknownVerified == nil || *proof.UnknownVerified {
+			return errors.New("application: explicit recovery point decision and core evidence required")
+		}
 	}
 	return a.Maintenance(ctx, func(c context.Context) error {
 		return a.Instance.CompleteRestore(c, review, func(c context.Context) error {

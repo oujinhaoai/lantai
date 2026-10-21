@@ -20,6 +20,7 @@ TOPICS = [
     ("install", "install", "在 NAS 安装", "镜像、项目配置、卷与首次启动。"),
     ("setup", "setup", "首次设置", "引导码、TOTP、恢复码及登记过期。"),
     ("accounts", "accounts", "账户与权限", "管理员、Agent、项目角色与会话。"),
+    ("admin", "admin", "管理工作台", "素材、迁移、工作集、备份恢复与系统操作。"),
     ("daily", "daily", "日常资源操作", "找项目、搜索、下载、入藏与续传。"),
     ("codex-mcp", "codex-mcp", "连接 Codex MCP", "本机配置、工作目录与连接检查。"),
     ("upgrade", "upgrade", "升级与保留数据", "保留实际卷身份，核对后恢复写入。"),

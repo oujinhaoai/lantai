@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext"}
+	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset"}
 }
 func Help() string {
 	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
@@ -38,6 +38,7 @@ pull --purpose：archive_review（默认）| reference | production | generative
 ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
+素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`
 }
 
@@ -61,6 +62,9 @@ type options struct {
 // Run receives the command name as args[0]. It never calls os.Exit, making
 // cancellation and output ownership explicit for the executable and tests.
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "asset" {
+		return runAssets(ctx, args[1:], stdout, stderr)
+	}
 	if len(args) == 0 {
 		fmt.Fprintln(stdout, Help())
 		return 0
@@ -227,6 +231,18 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 }
 
 func input(path string) (json.RawMessage, error) {
+	b, err := readInputBytes(path)
+	if err != nil {
+		return nil, err
+	}
+	b, err = yamljson.ToJSON(b)
+	if err != nil {
+		return nil, usage("input must be a single valid JSON/YAML document")
+	}
+	return b, nil
+}
+
+func readInputBytes(path string) ([]byte, error) {
 	if path == "" {
 		return nil, usage("--input is required")
 	}
@@ -241,10 +257,6 @@ func input(path string) (json.RawMessage, error) {
 	}
 	if int64(len(b)) > client.MaxJSONBytes {
 		return nil, usage("input exceeds 8 MiB")
-	}
-	b, err = yamljson.ToJSON(b)
-	if err != nil {
-		return nil, usage("input must be a single valid JSON/YAML document")
 	}
 	return b, nil
 }

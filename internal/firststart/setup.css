@@ -8,3 +8,5 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #da7e
 code,pre{display:block;padding:1rem;background:#eef2f5;overflow:auto}
 p{color:#435665}#status{color:#9b2c20;white-space:pre-wrap}.check{display:flex;gap:.6rem;align-items:baseline}
 [hidden]{display:none!important}@media(max-width:42rem){main{margin:0;padding:1.25rem;border-radius:0}}
+
+#package-info,#review-info{white-space:pre-wrap;overflow-wrap:anywhere}details summary{cursor:pointer;color:#175a77}

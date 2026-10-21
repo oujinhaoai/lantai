@@ -6,6 +6,8 @@ package integration
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"encoding/base32"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -24,7 +26,9 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog"
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/commands"
+	"github.com/oujinhaoai/lantai/internal/firststart"
 	"github.com/oujinhaoai/lantai/internal/identity"
+	"github.com/oujinhaoai/lantai/internal/identity/totp"
 	"github.com/oujinhaoai/lantai/internal/operations"
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
@@ -219,7 +223,24 @@ func TestWebBrowserFixture(t *testing.T) {
 	mediaEnabled := false
 	stop := make(chan struct{})
 	var stopped sync.Once
+	var recoveryEntry *firststart.Entry
+	var recoveryOptions operations.Options
+	t.Cleanup(func() {
+		if recoveryEntry != nil {
+			_ = recoveryEntry.Close()
+		}
+	})
 	mux := http.NewServeMux()
+	mux.HandleFunc("/setup/", func(w http.ResponseWriter, r *http.Request) {
+		control.Lock()
+		entry := recoveryEntry
+		control.Unlock()
+		if entry == nil {
+			http.NotFound(w, r)
+			return
+		}
+		entry.ServeHTTP(w, r)
+	})
 	mux.Handle("/api/", proxy)
 	mux.Handle("/xfer/", proxy)
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
@@ -233,6 +254,65 @@ func TestWebBrowserFixture(t *testing.T) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
+		case "/__fixture/recovery-target":
+			if recoveryEntry != nil {
+				_ = recoveryEntry.Close()
+			}
+			root := t.TempDir()
+			home := filepath.Join(root, "data")
+			setup := filepath.Join(root, "setup")
+			secrets := filepath.Join(root, "secrets")
+			for _, dir := range []string{home, setup, secrets} {
+				if err = os.Mkdir(dir, 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			config := map[string]any{"contract": "lantai.config/v1", "secrets": map[string]string{"dir": secrets}, "storage": map[string]int{"min_free_bytes": 1048576}, "http": map[string]any{"allowed_origins": []string{origin}}}
+			data, _ := json.Marshal(config)
+			if err = os.WriteFile(filepath.Join(home, "config.yaml"), data, 0600); err != nil {
+				t.Fatal(err)
+			}
+			recoveryOptions = operations.Options{Home: home, Clock: e.clk}
+			recoveryEntry, err = firststart.OpenEntry(t.Context(), recoveryOptions, setup)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err = os.ReadFile(filepath.Join(setup, firststart.ClaimFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var claim map[string]any
+			if err = json.Unmarshal(data, &claim); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"code": claim["code"]})
+		case "/__fixture/recovery-code":
+			var in struct {
+				Secret string `json:"secret"`
+			}
+			if err = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&in); err != nil {
+				t.Fatal(err)
+			}
+			secret, er := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(in.Secret)
+			if er != nil {
+				t.Fatal(er)
+			}
+			e.clk.Advance(30 * time.Second)
+			_ = json.NewEncoder(w).Encode(map[string]string{"code": totp.Code(secret, totp.Counter(e.clk.Now()))})
+		case "/__fixture/recovery-verify":
+			if recoveryEntry == nil {
+				t.Fatal("missing recovery entry")
+			}
+			if err = recoveryEntry.Close(); err != nil {
+				t.Fatal(err)
+			}
+			restored, er := application.Open(t.Context(), application.Options{Instance: recoveryOptions})
+			if er != nil {
+				t.Fatal(er)
+			}
+			ready := restored.Ready()
+			_ = restored.Close(context.Background())
+			_ = json.NewEncoder(w).Encode(map[string]bool{"ready": ready})
 		case "/__fixture/login":
 			_ = json.NewEncoder(w).Encode(map[string]string{"name": "ada", "password": adminPassword, "code": e.fresh(), "project": string(e.project.ProjectID)})
 		case "/__fixture/code":
@@ -310,6 +390,19 @@ func TestWebBrowserFixture(t *testing.T) {
 	server := httptest.NewUnstartedServer(mux)
 	_ = server.Listener.Close()
 	server.Listener = listener
+	// Opt-in local test CA material is supplied by the secure browser harness.
+	// No production TLS configuration or host trust store is changed.
+	certFile, keyFile := os.Getenv("LANTAI_WEB_TLS_CERT_FILE"), os.Getenv("LANTAI_WEB_TLS_KEY_FILE")
+	if certFile != "" || keyFile != "" {
+		if certFile == "" || keyFile == "" {
+			t.Fatal("both synthetic TLS certificate and private key are required")
+		}
+		certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			t.Fatal("load explicitly selected synthetic TLS certificate:", err)
+		}
+		server.TLS = &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{certificate}}
+	}
 	server.StartTLS()
 	defer server.Close()
 	t.Log("Disposable HTTPS browser fixture ready on " + origin)

@@ -1,0 +1,1 @@
+{"description":"结构化画像只保存普通著录；来源路径是静态文字","schema":"lantai.asset-profile/v1","valid":true,"document":{"schema":"lantai.asset-profile/v1","characters":["hero-a"],"source":"synthetic","business_state":"unknown","legacy_state":"historical approved label","legacy_version":"v1","source_paths":["selected/source.txt"],"notes":["Synthetic descriptive record only"]}}

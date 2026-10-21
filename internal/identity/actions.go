@@ -52,10 +52,15 @@ const (
 	ActBackupStart    authz.Action = "identity.backup_start"
 	ActBackupResume   authz.Action = "identity.backup_resume"
 	ActBackupSchedule authz.Action = "identity.backup_schedule"
+	ActBackupExport   authz.Action = "identity.backup_export"
 )
 
 // 身份与安全动作。
 const (
+	ActDeviceRead   authz.Action = "node.device_read"
+	ActDeviceManage authz.Action = "node.device_manage"
+	ActDeviceWork   authz.Action = "node.device_work"
+
 	ActWhoAmI              authz.Action = "identity.whoami"
 	ActEndSession          authz.Action = "identity.end_session"
 	ActNarrowSession       authz.Action = "identity.narrow_session"
@@ -146,6 +151,9 @@ var taskWorkers = []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurato
 var adminOnly = []SystemRole{RoleAdmin}
 
 var actionList = []ActionSpec{
+	{Action: ActDeviceRead, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles, HumanOnly: true},
+	{Action: ActDeviceManage, Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleCoordinator, RoleContributor, RoleCurator}, HumanOnly: true},
+	{Action: ActDeviceWork, Scope: ScopeRead, Level: ProjectLevel, Roles: allProjectRoles, HumanOnly: true},
 	{Action: "ledger.trash", Scope: ScopeAdmin, Level: ProjectLevel, Roles: []Role{RoleOwner}, HumanOnly: true, HumanGrant: true},
 	{Action: "ledger.force_trash", Scope: ScopeAdmin, Level: ProjectLevel, AdminAlso: true, HumanOnly: true, HumanGrant: true},
 	{Action: "ledger.trash_own", Scope: ScopeOrganize, Level: ProjectLevel, Roles: []Role{RoleOwner, RoleContributor, RoleCurator, RoleCoordinator}},
@@ -197,6 +205,7 @@ var actionList = []ActionSpec{
 	{Action: ActBackupStart, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActBackupResume, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActBackupSchedule, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
+	{Action: ActBackupExport, Scope: ScopeAdmin, SystemRoles: adminOnly, HumanOnly: true, HumanGrant: true},
 	{Action: ActWhoAmI, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActEndSession, Scope: ScopeSelf, AllowRecovery: true},
 	{Action: ActNarrowSession, Scope: ScopeSelf},

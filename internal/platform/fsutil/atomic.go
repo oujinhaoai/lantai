@@ -3,6 +3,7 @@ package fsutil
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -84,10 +85,23 @@ func WriteFileAtomicWithObserver(path string, data []byte, perm fs.FileMode, obs
 	return SyncDir(dir)
 }
 
-// CreateFileExclusive 只在 path 尚不存在时写入完整内容（先写临时文件再以
-// 硬链接或改名落位）；已存在返回 fs.ErrExist，不覆盖。用于只能生成一次的
-// 密钥等文件。
+// CreateFileExclusive writes a complete synced temporary file and publishes it
+// using a same-directory hard link, which atomically fails if path exists. No
+// Rename fallback is allowed: a check followed by Rename could replace a racing
+// creator. A filesystem without hard links fails explicitly. Normal returns
+// clean temporary files; process death requires caller-specific recovery.
 func CreateFileExclusive(path string, data []byte, perm fs.FileMode) error {
+	return createFileExclusive(path, data, perm, exclusiveHooks{})
+}
+
+// Test hooks are per invocation, package-private and have no runtime switches.
+type exclusiveHooks struct {
+	write   func(*os.File, []byte) (int, error)
+	link    func(string, string) error
+	observe func(string) error
+}
+
+func createFileExclusive(path string, data []byte, perm fs.FileMode, h exclusiveHooks) (err error) {
 	if _, err := os.Lstat(path); err == nil {
 		return fmt.Errorf("fsutil: %s: %w", path, fs.ErrExist)
 	} else if !errors.Is(err, fs.ErrNotExist) {
@@ -101,34 +115,56 @@ func CreateFileExclusive(path string, data []byte, perm fs.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("fsutil: create temp file: %w", err)
 	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
-	if err := tmp.Chmod(perm); err != nil && runtime.GOOS != "windows" {
-		tmp.Close()
-		return err
-	}
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	// 硬链接在目标已存在时失败，保证不覆盖；不支持硬链接的文件系统上
-	// 退回“再次确认不存在后改名”。
-	if err := os.Link(tmpName, path); err != nil {
-		if errors.Is(err, fs.ErrExist) {
-			return fmt.Errorf("fsutil: %s: %w", path, fs.ErrExist)
+	name := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		if removeErr := os.Remove(name); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
+			err = errors.Join(err, removeErr)
 		}
-		if _, statErr := os.Lstat(path); statErr == nil {
-			return fmt.Errorf("fsutil: %s: %w", path, fs.ErrExist)
+		// Sync the cleanup as well as publication; successful calls do not knowingly
+		// leave a second hard link after a durable directory commit.
+		err = errors.Join(err, SyncDir(dir))
+	}()
+	if err = tmp.Chmod(perm); err != nil && runtime.GOOS != "windows" {
+		return err
+	}
+	write := h.write
+	if write == nil {
+		write = func(f *os.File, b []byte) (int, error) { return f.Write(b) }
+	}
+	n, err := write(tmp, data)
+	if err != nil {
+		return err
+	}
+	if n != len(data) {
+		return io.ErrShortWrite
+	}
+	if h.observe != nil {
+		if err = h.observe("file_sync"); err != nil {
+			return err
 		}
-		if err := os.Rename(tmpName, path); err != nil {
-			return fmt.Errorf("fsutil: place %s: %w", path, err)
+	}
+	if err = tmp.Sync(); err != nil {
+		return err
+	}
+	if err = tmp.Close(); err != nil {
+		return err
+	}
+	if h.observe != nil {
+		if err = h.observe("after_file_sync"); err != nil {
+			return err
+		}
+	}
+	link := h.link
+	if link == nil {
+		link = os.Link
+	}
+	if err = link(name, path); err != nil {
+		return fmt.Errorf("fsutil: publish without replacement: %w", err)
+	}
+	if h.observe != nil {
+		if err = h.observe("after_publish"); err != nil {
+			return err
 		}
 	}
 	return SyncDir(dir)

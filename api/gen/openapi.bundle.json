@@ -212,6 +212,9 @@
             "additionalProperties": true,
             "type": "object"
           },
+          "profile": {
+            "$ref": "#/components/schemas/AssetProfile"
+          },
           "sensitivity": {
             "type": "string"
           },
@@ -234,6 +237,81 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "AssetProfile": {
+        "additionalProperties": false,
+        "description": "结构化的普通资产画像。历史状态、来源路径和笔记仅是著录，不授权用途、执行、发布或人审。profile PATCH只替换extra.asset_profile，其他extra由核心保留。",
+        "properties": {
+          "business_state": {
+            "enum": [
+              "active",
+              "reference",
+              "rejected",
+              "superseded",
+              "archived",
+              "pending_review",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "characters": {
+            "items": {
+              "maxLength": 54,
+              "minLength": 1,
+              "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "legacy_state": {
+            "maxLength": 200,
+            "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+            "type": "string"
+          },
+          "legacy_version": {
+            "maxLength": 49,
+            "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "schema": {
+            "const": "lantai.asset-profile/v1"
+          },
+          "source": {
+            "maxLength": 57,
+            "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+            "type": "string"
+          },
+          "source_paths": {
+            "items": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$",
+              "type": "string"
+            },
+            "maxItems": 256,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "schema",
+          "business_state"
+        ],
+        "title": "AssetProfile",
         "type": "object"
       },
       "AssetView": {
@@ -266,7 +344,7 @@
       },
       "BackupApproval": {
         "additionalProperties": false,
-        "description": "identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.",
+        "description": "identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule; identity.backup_export uses kind=download with job_id and package_sha256. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.",
         "properties": {
           "drain_seconds": {
             "maximum": 3600,
@@ -280,8 +358,13 @@
             "enum": [
               "start",
               "resume",
-              "schedule"
+              "schedule",
+              "download"
             ],
+            "type": "string"
+          },
+          "package_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
             "type": "string"
           },
           "schedule": {
@@ -432,6 +515,9 @@
           },
           "id": {
             "$ref": "#/components/schemas/Ulid"
+          },
+          "package": {
+            "$ref": "#/components/schemas/RecoveryPackage"
           },
           "schedule_revision": {
             "format": "int64",
@@ -1110,7 +1196,8 @@
         "enum": [
           "lantai.agent-execution/v1",
           "lantai.processor/v1",
-          "lantai.host-control/v1"
+          "lantai.host-control/v1",
+          "lantai.local-assistant/v1"
         ],
         "type": "string"
       },
@@ -1179,6 +1266,50 @@
         "required": [
           "termination_confirmed",
           "unresolved_effects"
+        ],
+        "type": "object"
+      },
+      "CompletedRestoreReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptance_basis": {
+            "enum": [
+              "legacy_reconciliation",
+              "accepted_capture_point"
+            ],
+            "type": "string"
+          },
+          "backup_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "evidence_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "manifest_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "recovery_epoch": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "run_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "unknown_after_capture": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run_id",
+          "backup_id",
+          "manifest_digest",
+          "recovery_epoch",
+          "evidence_digest",
+          "acceptance_basis",
+          "unknown_after_capture"
         ],
         "type": "object"
       },
@@ -1291,6 +1422,585 @@
         "required": [
           "project_id",
           "files"
+        ],
+        "type": "object"
+      },
+      "CredentialInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "label": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "type": "array"
+          },
+          "revoked_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "credential_id",
+          "principal_id",
+          "prefix",
+          "scopes",
+          "projects",
+          "label",
+          "created_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "CredentialPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CredentialInfo"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DeviceApproveDevice": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_code": {
+            "type": "string"
+          },
+          "expected_revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspace_alias": {
+            "type": "string"
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "claim_code",
+          "workspace_alias",
+          "workspace_binding"
+        ],
+        "type": "object"
+      },
+      "DeviceApproveJob": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_digest": {
+            "type": "string"
+          },
+          "expected_revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "job_digest": {
+            "type": "string"
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "job_digest",
+          "approval_digest",
+          "workspace_binding"
+        ],
+        "type": "object"
+      },
+      "DeviceClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alias": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "workspace_alias": {
+            "type": "string"
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "alias",
+          "workspace_alias",
+          "workspace_binding",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "DeviceClaimResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_code": {
+            "type": "string"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceDevice"
+          }
+        },
+        "required": [
+          "device"
+        ],
+        "type": "object"
+      },
+      "DeviceControl": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "type": "object"
+      },
+      "DeviceCreateJob": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_device_revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "job": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "job_digest": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "workspace_alias": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_device_revision",
+          "project_id",
+          "workspace_alias",
+          "job",
+          "job_digest"
+        ],
+        "type": "object"
+      },
+      "DeviceDevice": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alias": {
+            "type": "string"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "owner_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "workspace_alias": {
+            "type": "string"
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "project_id",
+          "owner_id",
+          "alias",
+          "workspace_alias",
+          "workspace_binding",
+          "actions",
+          "state",
+          "revision",
+          "expires_at",
+          "last_seen_at"
+        ],
+        "type": "object"
+      },
+      "DeviceDevicePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DeviceDevice"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DeviceInspectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "inspection": {
+            "$ref": "#/components/schemas/DeviceInspection"
+          }
+        },
+        "required": [
+          "inspection"
+        ],
+        "type": "object"
+      },
+      "DeviceInspection": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "approval_digest": {
+            "type": "string"
+          },
+          "input_sha256": {
+            "type": "string"
+          },
+          "job_digest": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "network_required": {
+            "type": "boolean"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "paths": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "remote_writes": {
+            "type": "boolean"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "source_deleted": {
+            "type": "boolean"
+          },
+          "timeout_seconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "job_id",
+          "action",
+          "job_digest",
+          "approval_digest",
+          "workspace_binding",
+          "input_sha256",
+          "paths",
+          "network_required",
+          "remote_writes",
+          "source_deleted",
+          "timeout_seconds",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "DeviceJobFence": {
+        "additionalProperties": false,
+        "properties": {
+          "job_attempt_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "lease_fence": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recovery_epoch": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id",
+          "job_attempt_id",
+          "lease_fence",
+          "recovery_epoch"
+        ],
+        "type": "object"
+      },
+      "DeviceJobPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DeviceJobView": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_digest": {
+            "type": "string"
+          },
+          "cancel_requested": {
+            "type": "boolean"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "failure_code": {
+            "type": "string"
+          },
+          "inspection": {
+            "$ref": "#/components/schemas/DeviceInspection"
+          },
+          "job": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "job_digest": {
+            "type": "string"
+          },
+          "job_fence": {
+            "$ref": "#/components/schemas/DeviceJobFence"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "lease_expires_at": {
+            "type": "string"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "owner_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "stopped": {
+            "type": "boolean"
+          },
+          "workspace_alias": {
+            "type": "string"
+          },
+          "workspace_binding": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "owner_id",
+          "workspace_alias",
+          "workspace_binding",
+          "job",
+          "job_digest",
+          "stopped",
+          "job_id",
+          "operation_id",
+          "project_id",
+          "state",
+          "revision",
+          "cancel_requested"
+        ],
+        "type": "object"
+      },
+      "DeviceLeaseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "job_fence": {
+            "$ref": "#/components/schemas/DeviceJobFence"
+          }
+        },
+        "required": [
+          "job_fence"
+        ],
+        "type": "object"
+      },
+      "DevicePoll": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "job": {
+            "$ref": "#/components/schemas/DeviceJobView"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "stop": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "device_id",
+          "stop"
+        ],
+        "type": "object"
+      },
+      "DeviceResultRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "job_fence": {
+            "$ref": "#/components/schemas/DeviceJobFence"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "stopped": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "job_fence",
+          "result",
+          "stopped"
         ],
         "type": "object"
       },
@@ -1557,6 +2267,71 @@
         "required": [
           "principal",
           "session"
+        ],
+        "type": "object"
+      },
+      "InstanceManagementInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "capacity_error": {
+            "enum": [
+              "capacity_unavailable"
+            ],
+            "type": "string"
+          },
+          "free_bytes": {
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "min_free_bytes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "recovery_epoch": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "recovery_error": {
+            "enum": [
+              "recovery_receipts_unavailable",
+              "recovery_receipt_budget_exceeded",
+              "recovery_receipt_invalid"
+            ],
+            "type": "string"
+          },
+          "recovery_partial": {
+            "type": "boolean"
+          },
+          "recovery_receipts": {
+            "items": {
+              "$ref": "#/components/schemas/CompletedRestoreReceipt"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "recovery_epoch",
+          "state",
+          "observed_at",
+          "free_bytes",
+          "min_free_bytes",
+          "recovery_receipts",
+          "recovery_partial"
         ],
         "type": "object"
       },
@@ -3676,6 +4451,35 @@
                 "outcome"
               ]
             }
+          },
+          {
+            "else": {
+              "not": {
+                "required": [
+                  "local_execution"
+                ]
+              },
+              "required": [
+                "activation_snapshot"
+              ]
+            },
+            "if": {
+              "properties": {
+                "protocol": {
+                  "const": "lantai.local-assistant/v1"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "activation_snapshot"
+                ]
+              },
+              "required": [
+                "local_execution"
+              ]
+            }
           }
         ],
         "properties": {
@@ -3697,6 +4501,38 @@
           "job_id": {
             "$ref": "#/components/schemas/Ulid"
           },
+          "local_execution": {
+            "additionalProperties": false,
+            "properties": {
+              "approval_digest": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "device_id": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "job_digest": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "workspace_alias": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+                "type": "string"
+              },
+              "workspace_binding": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "device_id",
+              "workspace_alias",
+              "workspace_binding",
+              "job_digest",
+              "approval_digest"
+            ],
+            "type": "object"
+          },
           "operation_id": {
             "$ref": "#/components/schemas/Ulid"
           },
@@ -3704,7 +4540,10 @@
             "$ref": "#/components/schemas/CommonV1ExecutionInvocationOutcome"
           },
           "protocol": {
-            "const": "lantai.processor/v1"
+            "enum": [
+              "lantai.processor/v1",
+              "lantai.local-assistant/v1"
+            ]
           },
           "result_digest": {
             "$ref": "#/components/schemas/Digest"
@@ -3737,7 +4576,6 @@
           "revision",
           "protocol",
           "job_fence",
-          "activation_snapshot",
           "input_snapshot",
           "state",
           "termination"
@@ -5009,6 +5847,9 @@
           "extra": {
             "additionalProperties": {},
             "type": "object"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/AssetProfile"
           },
           "sensitivity": {
             "type": "string"
@@ -9363,6 +10204,156 @@
         ],
         "type": "object"
       },
+      "ManagementBatchCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptance": {
+            "enum": [
+              "blocked",
+              "ready"
+            ],
+            "type": "string"
+          },
+          "assets": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "asset_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "manifest_digest": {
+                  "$ref": "#/components/schemas/Digest"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "version_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                }
+              },
+              "required": [
+                "asset_id",
+                "version_id",
+                "key",
+                "manifest_digest",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "batch_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "checked_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "checks": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "missing",
+                    "pending",
+                    "unknown"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "instance_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "intended_purpose": {
+            "enum": [
+              "archive_review",
+              "reference",
+              "production",
+              "generative_input",
+              "raw_export"
+            ],
+            "type": "string"
+          },
+          "record_ref": {
+            "$ref": "#/components/schemas/ManagementRecordRef"
+          },
+          "recovery_refs": {
+            "items": {
+              "$ref": "#/components/schemas/ManagementRecordRef"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "schema": {
+            "enum": [
+              "lantai.batch-check/v1"
+            ],
+            "type": "string"
+          },
+          "worksets": {
+            "items": {
+              "$ref": "#/components/schemas/ManagementRecordRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema",
+          "instance_id",
+          "record_ref",
+          "batch_id",
+          "revision",
+          "checked_at",
+          "acceptance",
+          "intended_purpose",
+          "checks",
+          "assets",
+          "worksets",
+          "recovery_refs"
+        ],
+        "type": "object"
+      },
+      "ManagementRecordRef": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "version_id": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "asset_id",
+          "version_id"
+        ],
+        "type": "object"
+      },
       "MemberPage": {
         "additionalProperties": false,
         "properties": {
@@ -9820,6 +10811,24 @@
         ],
         "type": "object"
       },
+      "PrincipalPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PrincipalView"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "PrincipalView": {
         "additionalProperties": false,
         "properties": {
@@ -10026,6 +11035,45 @@
           "state",
           "description"
         ],
+        "type": "object"
+      },
+      "ProvenanceEvidence": {
+        "additionalProperties": false,
+        "description": "M1 追加来源证据。更正不擦除旧证据；外部未知输入不自动获得生产许可。限制解除另走 M2 安全命令。",
+        "properties": {
+          "external_inputs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "rights_status": {
+                  "const": "unknown"
+                },
+                "sha256": {
+                  "$ref": "#/components/schemas/Sha256Hex"
+                },
+                "source_url": {
+                  "maxLength": 2048,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "rights_status"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "note",
+          "external_inputs"
+        ],
+        "title": "ProvenanceEvidence",
         "type": "object"
       },
       "QueryItem": {
@@ -10245,6 +11293,41 @@
         ],
         "type": "object"
       },
+      "RecoveryPackage": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "lantai.recovery-package/v1"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "sensitive": {
+            "const": true,
+            "type": "boolean"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "format",
+          "sha256",
+          "size",
+          "sensitive"
+        ],
+        "type": "object"
+      },
       "RelativePath": {
         "description": "版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。",
         "maxLength": 200,
@@ -10258,6 +11341,75 @@
         "minimum": 1,
         "type": "integer"
       },
+      "RightsEvidenceReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "type": "boolean"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "record_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "rights_epoch": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "record_id",
+          "digest",
+          "ref",
+          "created",
+          "revision",
+          "rights_epoch",
+          "operation_id"
+        ],
+        "type": "object"
+      },
+      "RightsEvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "$ref": "#/components/schemas/ProvenanceEvidence"
+          },
+          "expected_revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/PermanentRef"
+          },
+          "supersedes": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
+        "required": [
+          "subject",
+          "manifest_digest",
+          "expected_revision",
+          "evidence"
+        ],
+        "type": "object"
+      },
       "SensitiveRequest": {
         "additionalProperties": false,
         "description": "Closed identity command JSON matches the selected core action. Backup actions accept BackupApproval only in challenges; submit the verified grant through the backup route, never identity/commands. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.",
@@ -10267,6 +11419,7 @@
               "identity.backup_start",
               "identity.backup_resume",
               "identity.backup_schedule",
+              "identity.backup_export",
               "identity.register_principal",
               "identity.issue_credential",
               "identity.revoke_credential",
@@ -10926,6 +12079,126 @@
         ],
         "type": "object"
       },
+      "VersionPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VersionView"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "maxLength": 4096,
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "VersionRightsView": {
+        "additionalProperties": false,
+        "properties": {
+          "deny_purposes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "revision": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "record_id",
+                "revision"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "evidence_revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "last_assertion_id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "manifest_digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "purposes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "allowed": {
+                  "type": "boolean"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "purpose": {
+                  "type": "string"
+                },
+                "rights_epoch": {
+                  "format": "int64",
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "purpose",
+                "allowed",
+                "rights_epoch"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "type": "array"
+          },
+          "restricted_source": {
+            "type": "boolean"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "rights": {
+            "$ref": "#/components/schemas/VersionManifestRights"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/PermanentRef"
+          }
+        },
+        "required": [
+          "subject",
+          "manifest_digest",
+          "revision",
+          "rights",
+          "restricted_source",
+          "deny_purposes",
+          "evidence_revision",
+          "evidence",
+          "purposes"
+        ],
+        "type": "object"
+      },
       "VersionView": {
         "additionalProperties": false,
         "properties": {
@@ -11441,6 +12714,153 @@
         ]
       }
     },
+    "/api/v1/admin/backups/{id}/download-request": {
+      "post": {
+        "description": "需要人类管理员、admin scope和绑定job及包摘要的新鲜identity.backup_export HumanGrant。设置15分钟HttpOnly下载Cookie；API客户端可使用返回的短期token请求头。控制身份无权使用。",
+        "operationId": "approveBackupDownload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "grant_id": {
+                    "type": "string"
+                  },
+                  "package_sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "grant_id",
+                  "package_sha256"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "download_token": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "package": {
+                      "$ref": "#/components/schemas/RecoveryPackage"
+                    }
+                  },
+                  "required": [
+                    "download_token",
+                    "expires_at",
+                    "package"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "下载授权，秘密不得写入URL或持久浏览器存储"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "确认下载包含敏感恢复材料的完整包",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/admin/backups/{id}/package": {
+      "get": {
+        "description": "同时要求当前管理员会话和绑定会话、job、摘要的短期下载授权；不接受维护控制身份。包本身包含敏感恢复能力，摘要不证明独立可信来源。",
+        "operationId": "downloadBackupPackage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Lantai-Backup-Download",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Range",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Range",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "完整包"
+          },
+          "206": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "完整包的指定字节范围"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "下载完整恢复包，支持Range与If-Range",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
     "/api/v1/admin/backups/{id}/resume": {
       "post": {
         "description": "仅交互式人类系统管理员且会话含 admin scope；浏览器写请求继续校验 Origin 和 CSRF。\n开始、续传和计划变更须先以对应 backup action 创建并验证 HumanGrant，再提交相同内容及 Idempotency-Key。维护期拒绝新的业务写请求。\n",
@@ -11490,6 +12910,33 @@
         "tags": [
           "backups"
         ]
+      }
+    },
+    "/api/v1/admin/instance": {
+      "get": {
+        "description": "当前本人普通人类管理员且有admin scope；每次实时授权，维护期拒绝。容量仅数据卷；回执只证明历史接受点，不证明当前全量可读、原生软件可用或源可删除。不返回主机路径、操作人、备注、凭据或密钥。",
+        "operationId": "getInstanceManagementInfo",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceManagementInfo"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "管理员读取当前实例容量与已完成恢复的有限回执"
       }
     },
     "/api/v1/assets": {
@@ -11554,6 +13001,23 @@
           },
           {
             "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "description": "可重复的精确AND标签；NFC、去首尾空白、大小写敏感。最多64项，每项64个Unicode字符，拒绝空/控制字符。规范集合绑定原查询游标，空页有cursor须继续；非当前浏览器页局部过滤。",
+            "explode": true,
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "items": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "style": "form"
           }
         ],
         "responses": {
@@ -11672,6 +13136,61 @@
         "summary": "patchAssetMetadata"
       }
     },
+    "/api/v1/assets/{asset_id}/versions": {
+      "get": {
+        "description": "权威版本号升序；每页最多扫描1024项，可能空页带加密游标。按当前项目权限/rights/生命周期过滤，最新不可读不隐藏可读旧版。cursor绑定asset/principal/session/auth和recovery代次，重启/错误范围返回CURSOR_EXPIRED。",
+        "operationId": "listAssetVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "列出当前可读取的已提交历史版本"
+      }
+    },
     "/api/v1/assets/{asset_id}/versions/{version_id}": {
       "get": {
         "description": "Authority-backed exact read. Full includes the frozen manifest; brief omits it.",
@@ -11781,6 +13300,46 @@
         "summary": "issueReadGrant"
       }
     },
+    "/api/v1/assets/{asset_id}/versions/{version_id}/rights": {
+      "get": {
+        "description": "当前项目、personal、来源风险与证据完整性复验；不返回来源URL、隐藏uses、凭据或下载授权。返回的用途判定仅为当前观测。",
+        "operationId": "getVersionRights",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionRightsView"
+                }
+              }
+            },
+            "description": "当前权利有限视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "固定版本的当前有效权利与用途判定"
+      }
+    },
     "/api/v1/context": {
       "get": {
         "operationId": "getContext",
@@ -11821,6 +13380,657 @@
         "tags": [
           "collaboration"
         ]
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "listDevices",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDevicePage"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "listDevices"
+      }
+    },
+    "/api/v1/devices/claims": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "claimDevice",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceClaim"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceClaimResponse"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "claimDevice"
+      }
+    },
+    "/api/v1/devices/{device_id}": {
+      "get": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "readDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDevice"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "readDevice"
+      }
+    },
+    "/api/v1/devices/{device_id}/approve": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "approveDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApproveDevice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDevice"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "approveDevice"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs": {
+      "get": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "listDeviceJobs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobPage"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "listDeviceJobs"
+      },
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "createDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCreateJob"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "createDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}": {
+      "get": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "readDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "readDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}/approve": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "approveDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApproveJob"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "approveDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}/cancel": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "cancelDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "cancelDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}/heartbeat": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "heartbeatDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceLeaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePoll"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "heartbeatDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}/inspect": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "inspectDeviceJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceInspectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "inspectDeviceJob"
+      }
+    },
+    "/api/v1/devices/{device_id}/jobs/{job_id}/result": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "acceptDeviceJobResult",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceResultRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceJobView"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "acceptDeviceJobResult"
+      }
+    },
+    "/api/v1/devices/{device_id}/poll": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "pollDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePoll"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "pollDevice"
+      }
+    },
+    "/api/v1/devices/{device_id}/revoke": {
+      "post": {
+        "description": "首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。",
+        "operationId": "revokeDevice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDevice"
+                }
+              }
+            },
+            "description": "当前已授权的设备或权威作业视图"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "revokeDevice"
       }
     },
     "/api/v1/events": {
@@ -12878,6 +15088,52 @@
         "summary": "setSetupPassword"
       }
     },
+    "/api/v1/identity/principals": {
+      "get": {
+        "description": "仅当前人类本人普通非委托系统管理员及admin scope，复用identity.read_principals；不返回总数，每页重新授权。",
+        "operationId": "listPrincipals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "管理员按稳定ID枚举主体"
+      }
+    },
     "/api/v1/identity/principals/{principal_id}": {
       "get": {
         "operationId": "getPrincipal",
@@ -12910,6 +15166,60 @@
           }
         },
         "summary": "getPrincipal"
+      }
+    },
+    "/api/v1/identity/principals/{principal_id}/credentials": {
+      "get": {
+        "description": "同identity.read_principals限制；只返回元数据，永不读取/返回token、secret_hash、口令或TOTP。",
+        "operationId": "listPrincipalCredentials",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "principal_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialPage"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "管理员读取主体的凭据元数据"
       }
     },
     "/api/v1/identity/projects/{project_id}/members": {
@@ -13286,6 +15596,38 @@
         "tags": [
           "collaboration"
         ]
+      }
+    },
+    "/api/v1/management/batches/check": {
+      "post": {
+        "description": "只读计算，最多256资产、64项每类档案和256MiB内容。重新核验私有档案、原修订链、责任人、固定工作集、逐文件摘要与核心恢复回执。客户端完成标记无效；任何缺失、失败、pending或unknown均阻塞接受。原生软件继续制作未经独立验证时保持unknown。",
+        "operationId": "checkManagementBatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementRecordRef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagementBatchCheck"
+                }
+              }
+            },
+            "description": "当前批次检查；不是持久审定或删除源件授权"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "当前权限下重新核验固定批次修订"
       }
     },
     "/api/v1/messages": {
@@ -14031,6 +16373,43 @@
         "tags": [
           "collaboration"
         ]
+      }
+    },
+    "/api/v1/rights/evidence": {
+      "post": {
+        "description": "复用provenance.append_evidence授权、原幂等键与expected_revision。仅保存已接受证据，不自动确认许可或解除限制；宽松更正仍须HumanGrant。",
+        "operationId": "appendRightsEvidence",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RightsEvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsEvidenceReceipt"
+                }
+              }
+            },
+            "description": "核心已接受的证据记录"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "条件追加固定版本的来源权利证据"
       }
     },
     "/api/v1/sessions/current": {

@@ -10,10 +10,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -450,6 +453,38 @@ func TestClaimFileValidation(t *testing.T) {
 }
 
 func TestPreparePreservesExistingContents(t *testing.T) {
+	testPreparePreservesExistingContents(t)
+}
+
+// Umask is process-global. Each value gets a separate test process, so neither
+// this package's other tests nor their goroutines observe a temporary umask.
+func TestPreparePreservesExistingContentsUmasks(t *testing.T) {
+	const key = "LANTAI_TEST_PREPARE_UMASK"
+	if mask := os.Getenv(key); mask != "" {
+		value, err := strconv.ParseUint(mask, 8, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		previous := syscall.Umask(int(value))
+		defer syscall.Umask(previous)
+		testPreparePreservesExistingContents(t)
+		return
+	}
+	for _, mask := range []string{"0077", "0022"} {
+		t.Run(mask, func(t *testing.T) {
+			cmd := exec.Command(os.Args[0], "-test.run=^TestPreparePreservesExistingContentsUmasks$", "-test.v")
+			cmd.Env = append(os.Environ(), key+"="+mask)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("isolated umask %s: %v\n%s", mask, err, output)
+			}
+			t.Logf("isolated umask %s:\n%s", mask, output)
+		})
+	}
+}
+
+func testPreparePreservesExistingContents(t *testing.T) {
+	t.Helper()
 	a, b, c := t.TempDir(), t.TempDir(), t.TempDir()
 	if err := PrepareVolumes([]string{a, b, c}, os.Geteuid(), os.Getegid()); err != nil {
 		t.Fatal(err)
@@ -458,14 +493,29 @@ func TestPreparePreservesExistingContents(t *testing.T) {
 	if err := os.WriteFile(file, []byte("keep"), 0o640); err != nil {
 		t.Fatal(err)
 	}
+	beforeInfo, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeBytes, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := PrepareVolumes([]string{a, b, c}, os.Geteuid(), os.Getegid()); err != nil {
 		t.Fatal(err)
 	}
-	info, _ := os.Stat(file)
-	raw, _ := os.ReadFile(file)
-	if info.Mode().Perm() != 0o640 || string(raw) != "keep" {
+	info, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode() != beforeInfo.Mode() || !bytes.Equal(raw, beforeBytes) {
 		t.Fatal("existing content changed")
 	}
+	t.Logf("existing file mode before=%#o after=%#o; bytes before=%d after=%d equal=%t", beforeInfo.Mode().Perm(), info.Mode().Perm(), len(beforeBytes), len(raw), bytes.Equal(raw, beforeBytes))
 	if err := os.Chmod(a, 0o755); err != nil {
 		t.Fatal(err)
 	}

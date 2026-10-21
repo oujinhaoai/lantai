@@ -1,0 +1,167 @@
+.workset-management {
+  display: grid;
+  gap: 1.25rem;
+}
+.workset-management .panel {
+  min-width: 0;
+  padding: 1.25rem;
+}
+.workset-heading h1 {
+  margin-block: 0.3rem 0.7rem;
+}
+.workset-management h2 {
+  font-size: 1.18rem;
+  margin: 0 0 1rem;
+}
+.workset-management h3 {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+.workset-management p {
+  line-height: 1.65;
+}
+.workset-management label {
+  display: grid;
+  gap: 0.4rem;
+  margin-block: 0.8rem;
+  font-weight: 600;
+}
+.workset-management input:not([type="checkbox"]),
+.workset-management textarea,
+.workset-management select {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #b9b9ae;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #292d29;
+  font: inherit;
+}
+.workset-management input[type="file"] {
+  padding: 0.4rem;
+  font-size: 0.9rem;
+}
+.workset-entry {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem 1rem;
+  padding: 1rem;
+  margin-block: 1rem;
+  border: 1px solid #d7d7ce;
+  border-radius: 0.5rem;
+}
+.workset-entry legend {
+  padding-inline: 0.4rem;
+}
+.workset-entry label {
+  margin: 0;
+  font-size: 0.86rem;
+}
+.workset-entry .text-button {
+  justify-self: start;
+}
+.workset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.workset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-block: 1rem;
+}
+.workset-management .primary,
+.workset-management .secondary {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.workset-code,
+.workset-management code,
+.workset-management pre {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.82rem;
+}
+.workset-management code {
+  overflow-wrap: anywhere;
+}
+.workset-management pre {
+  padding: 0.9rem;
+  background: #f0f0e9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 0.4rem;
+}
+.workset-status:empty {
+  display: none;
+}
+.workset-status {
+  padding: 0.8rem 1rem;
+  background: #edf2e8;
+  border-left: 3px solid #527044;
+  border-radius: 0.3rem;
+  line-height: 1.6;
+}
+.workset-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+.workset-facts dt {
+  color: #62695e;
+}
+.workset-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.workset-table-scroll {
+  overflow-x: auto;
+}
+.workset-management table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.workset-management caption {
+  text-align: left;
+  margin-block: 0.5rem;
+  font-weight: 600;
+}
+.workset-management th,
+.workset-management td {
+  padding: 0.65rem;
+  border-bottom: 1px solid #e1e2d9;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.workset-management td code {
+  display: block;
+  max-width: 32rem;
+}
+.workset-management th[scope="row"] {
+  font-weight: 500;
+}
+.workset-management details {
+  margin-top: 1rem;
+}
+.workset-management summary {
+  cursor: pointer;
+  padding-block: 0.4rem;
+  font-weight: 600;
+}
+.workset-management button:focus-visible,
+.workset-management summary:focus-visible {
+  outline: 3px solid #48683b;
+  outline-offset: 3px;
+}
+@media (max-width: 800px) {
+  .workset-entry,
+  .workset-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workset-management .panel {
+    padding: 1rem;
+  }
+}

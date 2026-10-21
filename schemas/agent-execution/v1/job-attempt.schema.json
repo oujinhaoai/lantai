@@ -12,7 +12,6 @@
     "revision",
     "protocol",
     "job_fence",
-    "activation_snapshot",
     "input_snapshot",
     "state",
     "termination"
@@ -34,7 +33,10 @@
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/revision"
     },
     "protocol": {
-      "const": "lantai.processor/v1"
+      "enum": [
+        "lantai.processor/v1",
+        "lantai.local-assistant/v1"
+      ]
     },
     "job_fence": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/agent-execution/v1/defs.schema.json#/$defs/job_fence"
@@ -66,6 +68,38 @@
     },
     "result_digest": {
       "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+    },
+    "local_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "workspace_alias",
+        "workspace_binding",
+        "job_digest",
+        "approval_digest"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "workspace_alias": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "workspace_binding": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "job_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "approval_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
     }
   },
   "allOf": [
@@ -202,6 +236,35 @@
         "required": [
           "outcome"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "protocol": {
+            "const": "lantai.local-assistant/v1"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "local_execution"
+        ],
+        "not": {
+          "required": [
+            "activation_snapshot"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "activation_snapshot"
+        ],
+        "not": {
+          "required": [
+            "local_execution"
+          ]
+        }
       }
     }
   ]

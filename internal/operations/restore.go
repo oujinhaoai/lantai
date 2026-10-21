@@ -12,6 +12,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/schema"
 	"github.com/oujinhaoai/lantai/internal/contract/yamljson"
 	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
 )
@@ -29,12 +30,17 @@ type RestoreRun struct {
 type RestoreOptions struct {
 	Home      string
 	BackupDir string
-	// KeyID is obtained by the local caller from a separately recovered key,
-	// never from an archive-contained secret. The key itself is not copied here.
+	// KeyID is obtained by the local caller from validated recovery material,
+	// including a verified complete package. The key itself is not copied here.
 	KeyID ids.ID
 	// MinimumEpoch is the latest known live epoch when restoring an older point.
 	MinimumEpoch int64
-	fault        func(string) error
+	// TargetConfig is trusted new-target configuration supplied by the local
+	// recovery controller, never a path or setting selected by the archive.
+	TargetConfig []byte
+	// StagingDir is a private, writable recovery workspace on the target host.
+	StagingDir string
+	fault      func(string) error
 }
 
 // RestoreTo restores only into an empty directory (or its own interrupted copy).
@@ -46,7 +52,7 @@ func RestoreTo(ctx context.Context, opts RestoreOptions) (Marker, error) {
 		return zero, err
 	}
 	if opts.KeyID != m.KeyID {
-		return zero, errors.New("operations: separate master key does not match backup")
+		return zero, errors.New("operations: recovery key does not match backup")
 	}
 	l, err := NewLayout(opts.Home)
 	if err != nil {
@@ -133,22 +139,16 @@ func RestoreTo(ctx context.Context, opts RestoreOptions) (Marker, error) {
 			}
 		}
 	}
-	// Absolute secret paths from the old host are never followed on the new one.
-	// Preserve nonsecret deployment settings but require a new local secret root.
-	if raw, err = os.ReadFile(l.ConfigPath()); err == nil {
-		doc, e := yamljson.Decode(raw)
-		if e != nil {
-			return marker, e
-		}
-		obj, ok := doc.(map[string]any)
-		if !ok {
-			return marker, errors.New("operations: invalid restored config")
-		}
-		obj["secrets"] = map[string]any{"dir": "secrets"}
-		if e = writeBackupJSON(l.ConfigPath(), obj); e != nil {
-			return marker, e
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
+	// Preserve portable behavior and rebind only host-owned deployment fields.
+	raw, err = os.ReadFile(l.ConfigPath())
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return marker, err
+	}
+	merged, err := mergeRecoveryConfig(raw, opts.TargetConfig)
+	if err != nil {
+		return marker, err
+	}
+	if err = writeBackupJSON(l.ConfigPath(), merged); err != nil {
 		return marker, err
 	}
 	marker.Restore.Stage = "credentials_required"
@@ -215,6 +215,8 @@ type RecoveryReview struct {
 	OpenOperationsReconciled bool          `json:"open_operations_reconciled"`
 	EvidenceDigest           digest.Digest `json:"evidence_digest"`
 	Note                     string        `json:"note"`
+	AcceptRecoveryPoint      bool          `json:"accept_recovery_point,omitempty"`
+	UnknownAfterCapture      bool          `json:"unknown_after_capture,omitempty"`
 }
 
 // CompleteRestore is the last step, after application-owned credential, file and
@@ -232,7 +234,9 @@ func (i *Instance) CompleteRestore(ctx context.Context, review RecoveryReview, c
 		return errors.New("operations: no matching completed restore receipt")
 	}
 	r := m.Restore
-	if r == nil || r.Stage != "reconciliation_required" || review.Contract != "lantai.recovery-review/v1" || review.RunID != r.RunID || review.BackupID != r.BackupID || review.ManifestDigest != r.ManifestDigest || review.RecoveryEpoch != m.RecoveryEpoch || review.Administrator == "" || !review.RevocationsReconciled || !review.DeletionsReconciled || !review.OpenOperationsReconciled || !review.EvidenceDigest.Valid() || len(review.Note) < 8 || len(review.Note) > 2000 {
+	legacyReview := review.Contract == "lantai.recovery-review/v1" && review.RevocationsReconciled && review.DeletionsReconciled && review.OpenOperationsReconciled && !review.AcceptRecoveryPoint && !review.UnknownAfterCapture
+	pointReview := review.Contract == "lantai.recovery-review/v2" && review.AcceptRecoveryPoint && review.UnknownAfterCapture && !review.RevocationsReconciled && !review.DeletionsReconciled && !review.OpenOperationsReconciled
+	if r == nil || r.Stage != "reconciliation_required" || (!legacyReview && !pointReview) || review.RunID != r.RunID || review.BackupID != r.BackupID || review.ManifestDigest != r.ManifestDigest || review.RecoveryEpoch != m.RecoveryEpoch || review.Administrator == "" || !review.EvidenceDigest.Valid() || len(review.Note) < 8 || len(review.Note) > 2000 {
 		return errors.New("operations: complete, bound reconciliation review is required")
 	}
 	if check == nil {
@@ -259,4 +263,63 @@ func (i *Instance) CompleteRestore(ctx context.Context, review RecoveryReview, c
 		return fmt.Errorf("operations: restore finished but instance remains blocked: %v", i.Readiness().Reasons)
 	}
 	return nil
+}
+
+// mergeRecoveryConfig retains source quotas, expiry, throttling, HTTP limits,
+// instance name and lifecycle tuning. A new host supplies only deployment
+// bindings. Missing bindings deliberately select safe built-in defaults.
+func mergeRecoveryConfig(source, target []byte) (map[string]any, error) {
+	decode := func(raw []byte) (map[string]any, error) {
+		if len(raw) == 0 {
+			return map[string]any{"contract": ConfigContract}, nil
+		}
+		doc, err := yamljson.Decode(raw)
+		if err != nil {
+			return nil, err
+		}
+		reg, err := schema.Default()
+		if err != nil {
+			return nil, err
+		}
+		if err = reg.Validate(ConfigContract, doc); err != nil {
+			return nil, err
+		}
+		return doc.(map[string]any), nil
+	}
+	original, err := decode(source)
+	if err != nil {
+		return nil, err
+	}
+	binding, err := decode(target)
+	if err != nil {
+		return nil, err
+	}
+	object := func(m map[string]any, k string) map[string]any {
+		if v, ok := m[k].(map[string]any); ok {
+			return v
+		}
+		v := map[string]any{}
+		m[k] = v
+		return v
+	}
+	original["secrets"] = map[string]any{"dir": "secrets"}
+	if v, ok := binding["secrets"]; ok {
+		original["secrets"] = v
+	}
+	delete(original, "listen")
+	if v, ok := binding["listen"]; ok {
+		original["listen"] = v
+	}
+	httpCfg := object(original, "http")
+	delete(httpCfg, "allowed_origins")
+	if v, ok := object(binding, "http")["allowed_origins"]; ok {
+		httpCfg["allowed_origins"] = v
+	}
+	// FUSE admission is a property of this host, never inherited permission.
+	object(original, "storage")["allow_fuse"] = false
+	if v, ok := object(binding, "storage")["allow_fuse"]; ok {
+		object(original, "storage")["allow_fuse"] = v
+	}
+	object(original, "lifecycle")["scheduler"] = false
+	return original, nil
 }

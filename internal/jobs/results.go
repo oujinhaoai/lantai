@@ -363,6 +363,9 @@ func (s *Service) control(ctx context.Context, w authz.Context, key, action stri
 	if e != nil {
 		return Job{}, e
 	}
+	if j.Device != nil {
+		return Job{}, errcode.New(errcode.UnsupportedCapability, "local assistant jobs use the device control protocol")
+	}
 	ctx, release, e := s.lock(ctx, j)
 	if e != nil {
 		return Job{}, e

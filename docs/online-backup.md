@@ -31,7 +31,7 @@ services:
           create_host_path: false
 ```
 
-只在原私有环境文件增加 `LANTAI_BACKUP_DIR` 和 `LANTAI_BACKUP_ROOT_ID`；示例片段用于增量合并，不能替换整个原配置。首次加入挂载需要在经批准的升级/部署窗口重建 core；之后正常备份使用管理页，不再改 YAML，也不手工停启 core。只读根容器还必须给 `/tmp` 提供可写 tmpfs；模板明确设置 `mode=1777`，让 UID 65532 在容器重启后也能建立私有 `0700` 控制目录和 `0600` socket。目录应由服务账户持有且为 `0700`（或经过核验的等效私有 ACL）；本版不会代替管理员纠正共享可写目录。它与数据根、密钥根互不包含，密钥不能存放其中。
+只在原私有环境文件增加 `LANTAI_BACKUP_DIR` 和 `LANTAI_BACKUP_ROOT_ID`；示例片段用于增量合并，不能替换整个原配置。首次加入挂载需要在经批准的升级/部署窗口重建 core；之后正常备份使用管理页，不再改 YAML，也不手工停启 core。只读根容器还必须给 `/tmp` 提供可写 tmpfs；模板明确设置 `mode=1777`，让 UID 65532 在容器重启后也能建立私有 `0700` 控制目录和 `0600` socket。目录应由服务账户持有且为 `0700`（或经过核验的等效私有 ACL）；本版不会代替管理员纠正共享可写目录。它与数据根、运行密钥根互不包含，不能把运行 `master.key` 移到其中；新完整恢复包自身包含敏感恢复材料，因此整个备份目录也必须私有。
 
 原生部署在 core 的服务环境设置 `LANTAI_BACKUP_ROOT=<备份目录绝对规范路径>` 和 `LANTAI_BACKUP_ROOT_ID=<标记内容>`。管理 HTTP API 不依赖本机 socket；Linux/macOS 另支持私有本机控制 socket。Windows 的管理备份须以相应平台验证为准。
 
@@ -77,7 +77,7 @@ docker compose -f deploy/compose.yaml -f deploy/compose.backup.yaml exec -T core
 lantai backup-online -home /path/to/data
 ```
 
-命令先输出持久任务 ID，默认等待并输出终态。`complete` 才表示副本校验、完成标记和水位确认都成功；备份路径为配置 root 下的在线任务 ID。它不会输出密钥。`-wait=false` 可在任务被接收后退出，任务仍由 core 执行。
+命令先输出持久任务 ID，默认等待并输出终态；完整文件位于 `<root>/<job_id>/recovery.lantai`。`complete` 才表示副本校验、完成标记和水位确认都成功；备份路径为配置 root 下的在线任务 ID。它不会在终端输出密钥。`-wait=false` 可在任务被接收后退出，任务仍由 core 执行。
 
 ```sh
 lantai backup-online -home /path/to/data -status ONLINE_JOB_ID
@@ -103,10 +103,18 @@ core 重启后，旧执行中任务变为 `interrupted`。控制日志原子写�
 lantai backup-verify -backup /path/to/backups/ONLINE_JOB_ID
 ```
 
-正常业务不会读取备份目录；保管方可将已经完成的目录复制到异地，并在最终介质上再校验。旧主密钥必须独立安全保存，不能放进备份目录。恢复仍按[共同备份与空目录恢复](contracts/backup-restore.md)执行。
+正常业务不会读取备份目录；保管方可将已经完成的目录复制到异地，并在最终介质上再校验。旧 v1 数据目录需要的旧主密钥必须独立安全保存；本分支的新 `recovery.lantai` 已包含敏感恢复材料，不需要额外密钥或恢复口令。恢复仍按[共同备份与空目录恢复](contracts/backup-restore.md)执行。
 
 本机测试不代表 NAS 验收。挂载来源、UID/GID、NAS 的 fsync/断电行为、磁盘满/热拔盘及真实数据恢复须在批准的目标环境演练；本任务没有操作 NAS 或当前部署。
 
 整馆恢复与原卷重启不同：控制日志目录 `backups/` 不属于备份成品，空目录恢复不会复活原任务历史或自动计划。恢复完成并建立新管理员后，重新配置备份根并明确启用所需计划，避免旧自动授权随恢复复活。
 
 活动备份期间，目录可用性显示最近一次准入检查的结果与 `checked_at`，`check_deferred=true` 表示延后重新探测。状态查询和取消不再次访问外部盘，避免坏挂载阻塞管理通道；任务结束后刷新会重新检查。
+
+## 完整包下载与新目标恢复
+
+本分支的新任务在私有任务目录生成 `recovery.lantai`，完整封包与回读验证仍处于同一维护窗口；失败不会报告完整成功。管理页显示整包大小与 SHA256，下载需新的 `identity.backup_export` 人类确认。短期授权绑定当前会话、任务和精确摘要，支持浏览器原生下载、Range 与 If-Range；凭据不进入 URL，维护控制身份不能下载。旧历史任务没有 package 字段时，仅是旧数据快照，界面不得称其为完整恢复包。
+
+将文件上传新目标的 `/setup/`，使用该新设备的安装认领能力进入恢复流程；不需要旧设备在线、单独 master.key 或另设恢复口令。core执行包与数据库校验、旧身份失效、新主密钥及索引重建，用户只完成新管理员设置与恢复点确认。自动检查和未知的捕获后事项分别展示；未知事项不伪报已对账。见[恢复控制协议](../api/recovery-control.md)。
+
+完整包本身是敏感的恢复能力。持包者能读取数据和恢复材料，不能把同包加密声称为抵御持包者读取。请将下载文件放在仅授权用户可读的存储中；源端取消下载权限不能撤回已经下载的副本。

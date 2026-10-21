@@ -29,6 +29,586 @@ tags:
       中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位
       （交互/批量）排队准入。见 docs/contracts/storage.md。
 paths:
+  # BEGIN FIRST PARTY DEVICE PATHS
+  /api/v1/devices/claims:
+    post:
+      operationId: claimDevice
+      summary: claimDevice
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceClaimResponse'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceClaim'
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices:
+    get:
+      operationId: listDevices
+      summary: listDevices
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDevicePage'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - in: query
+        name: project_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: after
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /api/v1/devices/{device_id}:
+    get:
+      operationId: readDevice
+      summary: readDevice
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDevice'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+  /api/v1/devices/{device_id}/approve:
+    post:
+      operationId: approveDevice
+      summary: approveDevice
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDevice'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceApproveDevice'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/revoke:
+    post:
+      operationId: revokeDevice
+      summary: revokeDevice
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDevice'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControl'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs:
+    post:
+      operationId: createDeviceJob
+      summary: createDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCreateJob'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+    get:
+      operationId: listDeviceJobs
+      summary: listDeviceJobs
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobPage'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: after
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /api/v1/devices/{device_id}/jobs/{job_id}:
+    get:
+      operationId: readDeviceJob
+      summary: readDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+  /api/v1/devices/{device_id}/poll:
+    post:
+      operationId: pollDevice
+      summary: pollDevice
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePoll'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs/{job_id}/inspect:
+    post:
+      operationId: inspectDeviceJob
+      summary: inspectDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceInspectRequest'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs/{job_id}/approve:
+    post:
+      operationId: approveDeviceJob
+      summary: approveDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceApproveJob'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs/{job_id}/heartbeat:
+    post:
+      operationId: heartbeatDeviceJob
+      summary: heartbeatDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePoll'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceLeaseRequest'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs/{job_id}/cancel:
+    post:
+      operationId: cancelDeviceJob
+      summary: cancelDeviceJob
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControl'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /api/v1/devices/{device_id}/jobs/{job_id}/result:
+    post:
+      operationId: acceptDeviceJobResult
+      summary: acceptDeviceJobResult
+      description: 首方出站设备协议；T01本人短期单项目会话、双阶段精确摘要批准与T06唯一JobAttempt。详见api/device-control.md；设备结果不代替当前中央文件和恢复验收。
+      responses:
+        '200':
+          description: 当前已授权的设备或权威作业视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceJobView'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceResultRequest'
+      parameters:
+      - in: path
+        name: device_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  # END FIRST PARTY DEVICE PATHS
+  /api/v1/management/batches/check:
+    post:
+      operationId: checkManagementBatch
+      summary: 当前权限下重新核验固定批次修订
+      description: 只读计算，最多256资产、64项每类档案和256MiB内容。重新核验私有档案、原修订链、责任人、固定工作集、逐文件摘要与核心恢复回执。客户端完成标记无效；任何缺失、失败、pending或unknown均阻塞接受。原生软件继续制作未经独立验证时保持unknown。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagementRecordRef'
+      responses:
+        '200':
+          description: 当前批次检查；不是持久审定或删除源件授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementBatchCheck'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/assets/{asset_id}/versions/{version_id}/rights:
+    get:
+      operationId: getVersionRights
+      summary: 固定版本的当前有效权利与用途判定
+      description: 当前项目、personal、来源风险与证据完整性复验；不返回来源URL、隐藏uses、凭据或下载授权。返回的用途判定仅为当前观测。
+      parameters:
+      - in: path
+        name: asset_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: path
+        name: version_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      responses:
+        '200':
+          description: 当前权利有限视图
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionRightsView'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rights/evidence:
+    post:
+      operationId: appendRightsEvidence
+      summary: 条件追加固定版本的来源权利证据
+      description: 复用provenance.append_evidence授权、原幂等键与expected_revision。仅保存已接受证据，不自动确认许可或解除限制；宽松更正仍须HumanGrant。
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RightsEvidenceRequest'
+      responses:
+        '200':
+          description: 核心已接受的证据记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RightsEvidenceReceipt'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/assets/{asset_id}/versions:
+    get:
+      operationId: listAssetVersions
+      summary: 列出当前可读取的已提交历史版本
+      description: 权威版本号升序；每页最多扫描1024项，可能空页带加密游标。按当前项目权限/rights/生命周期过滤，最新不可读不隐藏可读旧版。cursor绑定asset/principal/session/auth和recovery代次，重启/错误范围返回CURSOR_EXPIRED。
+      parameters:
+      - in: path
+        name: asset_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/identity/principals:
+    get:
+      operationId: listPrincipals
+      summary: 管理员按稳定ID枚举主体
+      description: 仅当前人类本人普通非委托系统管理员及admin scope，复用identity.read_principals；不返回总数，每页重新授权。
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrincipalPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/identity/principals/{principal_id}/credentials:
+    get:
+      operationId: listPrincipalCredentials
+      summary: 管理员读取主体的凭据元数据
+      description: 同identity.read_principals限制；只返回元数据，永不读取/返回token、secret_hash、口令或TOTP。
+      parameters:
+      - in: path
+        name: principal_id
+        required: true
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+      - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/admin/instance:
+    get:
+      operationId: getInstanceManagementInfo
+      summary: 管理员读取当前实例容量与已完成恢复的有限回执
+      description: 当前本人普通人类管理员且有admin scope；每次实时授权，维护期拒绝。容量仅数据卷；回执只证明历史接受点，不证明当前全量可读、原生软件可用或源可删除。不返回主机路径、操作人、备注、凭据或密钥。
+      parameters:
+      - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceManagementInfo'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/admin/backups/control-session:
     post:
       tags: [backups]
@@ -313,6 +893,74 @@ paths:
                 $ref: '#/components/schemas/BackupJob'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/admin/backups/{id}/download-request:
+    post:
+      tags: [backups]
+      operationId: approveBackupDownload
+      summary: 确认下载包含敏感恢复材料的完整包
+      description: 需要人类管理员、admin scope和绑定job及包摘要的新鲜identity.backup_export HumanGrant。设置15分钟HttpOnly下载Cookie；API客户端可使用返回的短期token请求头。控制身份无权使用。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [grant_id, package_sha256]
+              properties:
+                grant_id: {type: string}
+                package_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      responses:
+        '200':
+          description: 下载授权，秘密不得写入URL或持久浏览器存储
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [download_token, expires_at, package]
+                properties:
+                  download_token: {type: string}
+                  expires_at: {type: string, format: date-time}
+                  package: {$ref: '#/components/schemas/RecoveryPackage'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/admin/backups/{id}/package:
+    get:
+      tags: [backups]
+      operationId: downloadBackupPackage
+      summary: 下载完整恢复包，支持Range与If-Range
+      description: 同时要求当前管理员会话和绑定会话、job、摘要的短期下载授权；不接受维护控制身份。包本身包含敏感恢复能力，摘要不证明独立可信来源。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+        - in: header
+          name: X-Lantai-Backup-Download
+          schema: {type: string}
+        - in: header
+          name: Range
+          schema: {type: string}
+        - in: header
+          name: If-Range
+          schema: {type: string}
+      responses:
+        '200':
+          description: 完整包
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        '206':
+          description: 完整包的指定字节范围
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        default: {$ref: '#/components/responses/Error'}
   /api/v1/operations/{operation_id}:
     get:
       tags: [operations]
@@ -499,6 +1147,19 @@ paths:
           schema:
             $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/asset_type
         - $ref: '#/components/parameters/RequestID'
+        - in: query
+          name: tag
+          required: false
+          style: form
+          explode: true
+          description: 可重复的精确AND标签；NFC、去首尾空白、大小写敏感。最多64项，每项64个Unicode字符，拒绝空/控制字符。规范集合绑定原查询游标，空页有cursor须继续；非当前浏览器页局部过滤。
+          schema:
+            type: array
+            maxItems: 64
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
       responses:
         "200":
           content:
@@ -3056,6 +3717,644 @@ components:
         独立受限控制 Cookie，仅指定的备份 GET、取消与控制会话端点接受。普通会话过期后须以新鲜口令/TOTP取得；不延长原凭据。
         固定十分钟，不自动续期；绑定当前 job/attempt 和进程，终态/重启/撤权失效。取消和退出须严格 Origin 与自己的 X-CSRF-Token。
   schemas:
+    # BEGIN FIRST PARTY DEVICE SCHEMAS
+    DeviceApproveDevice:
+      additionalProperties: false
+      properties:
+        claim_code:
+          type: string
+        expected_revision:
+          format: int64
+          type: integer
+        workspace_alias:
+          type: string
+        workspace_binding:
+          type: string
+      required:
+      - expected_revision
+      - claim_code
+      - workspace_alias
+      - workspace_binding
+      type: object
+    DeviceApproveJob:
+      additionalProperties: false
+      properties:
+        approval_digest:
+          type: string
+        expected_revision:
+          format: int64
+          type: integer
+        job_digest:
+          type: string
+        workspace_binding:
+          type: string
+      required:
+      - expected_revision
+      - job_digest
+      - approval_digest
+      - workspace_binding
+      type: object
+    DeviceClaim:
+      additionalProperties: false
+      properties:
+        actions:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+        alias:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        workspace_alias:
+          type: string
+        workspace_binding:
+          type: string
+      required:
+      - project_id
+      - alias
+      - workspace_alias
+      - workspace_binding
+      - actions
+      type: object
+    DeviceClaimResponse:
+      additionalProperties: false
+      properties:
+        claim_code:
+          type: string
+        device:
+          $ref: '#/components/schemas/DeviceDevice'
+      required:
+      - device
+      type: object
+    DeviceControl:
+      additionalProperties: false
+      properties:
+        expected_revision:
+          format: int64
+          type: integer
+      required:
+      - expected_revision
+      type: object
+    DeviceCreateJob:
+      additionalProperties: false
+      properties:
+        expected_device_revision:
+          format: int64
+          type: integer
+        job:
+          additionalProperties: true
+          type: object
+        job_digest:
+          type: string
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        workspace_alias:
+          type: string
+      required:
+      - expected_device_revision
+      - project_id
+      - workspace_alias
+      - job
+      - job_digest
+      type: object
+    DeviceDevice:
+      additionalProperties: false
+      properties:
+        actions:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+        alias:
+          type: string
+        device_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        expires_at:
+          format: date-time
+          type: string
+        last_seen_at:
+          format: date-time
+          type: string
+        owner_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        revision:
+          format: int64
+          type: integer
+        state:
+          type: string
+        workspace_alias:
+          type: string
+        workspace_binding:
+          type: string
+      required:
+      - device_id
+      - project_id
+      - owner_id
+      - alias
+      - workspace_alias
+      - workspace_binding
+      - actions
+      - state
+      - revision
+      - expires_at
+      - last_seen_at
+      type: object
+    DeviceDevicePage:
+      additionalProperties: false
+      properties:
+        items:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DeviceDevice'
+            type: array
+          - type: 'null'
+        next_cursor:
+          type: string
+      required:
+      - items
+      type: object
+    DeviceInspectRequest:
+      additionalProperties: false
+      properties:
+        inspection:
+          $ref: '#/components/schemas/DeviceInspection'
+      required:
+      - inspection
+      type: object
+    DeviceInspection:
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        approval_digest:
+          type: string
+        input_sha256:
+          type: string
+        job_digest:
+          type: string
+        job_id:
+          type: string
+        network_required:
+          type: boolean
+        origin:
+          type: string
+        paths:
+          additionalProperties:
+            type: string
+          type: object
+        remote_writes:
+          type: boolean
+        schema:
+          type: string
+        source_deleted:
+          type: boolean
+        timeout_seconds:
+          format: int64
+          type: integer
+        warnings:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+        workspace_binding:
+          type: string
+      required:
+      - schema
+      - job_id
+      - action
+      - job_digest
+      - approval_digest
+      - workspace_binding
+      - input_sha256
+      - paths
+      - network_required
+      - remote_writes
+      - source_deleted
+      - timeout_seconds
+      - warnings
+      type: object
+    DeviceJobFence:
+      additionalProperties: false
+      properties:
+        job_attempt_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        job_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        lease_fence:
+          format: int64
+          type: integer
+        recovery_epoch:
+          format: int64
+          type: integer
+      required:
+      - job_id
+      - job_attempt_id
+      - lease_fence
+      - recovery_epoch
+      type: object
+    DeviceJobPage:
+      additionalProperties: false
+      properties:
+        items:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DeviceJobView'
+            type: array
+          - type: 'null'
+        next_cursor:
+          type: string
+      required:
+      - items
+      type: object
+    DeviceJobView:
+      additionalProperties: false
+      properties:
+        approval_digest:
+          type: string
+        cancel_requested:
+          type: boolean
+        device_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        failure_code:
+          type: string
+        inspection:
+          $ref: '#/components/schemas/DeviceInspection'
+        job:
+          additionalProperties: true
+          type: object
+        job_digest:
+          type: string
+        job_fence:
+          $ref: '#/components/schemas/DeviceJobFence'
+        job_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        lease_expires_at:
+          type: string
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        owner_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        project_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        result:
+          additionalProperties: true
+          type: object
+        revision:
+          format: int64
+          type: integer
+        state:
+          type: string
+        stopped:
+          type: boolean
+        workspace_alias:
+          type: string
+        workspace_binding:
+          type: string
+      required:
+      - device_id
+      - owner_id
+      - workspace_alias
+      - workspace_binding
+      - job
+      - job_digest
+      - stopped
+      - job_id
+      - operation_id
+      - project_id
+      - state
+      - revision
+      - cancel_requested
+      type: object
+    DeviceLeaseRequest:
+      additionalProperties: false
+      properties:
+        job_fence:
+          $ref: '#/components/schemas/DeviceJobFence'
+      required:
+      - job_fence
+      type: object
+    DevicePoll:
+      additionalProperties: false
+      properties:
+        device_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        job:
+          $ref: '#/components/schemas/DeviceJobView'
+        reason:
+          type: string
+        stop:
+          type: boolean
+      required:
+      - device_id
+      - stop
+      type: object
+    DeviceResultRequest:
+      additionalProperties: false
+      properties:
+        job_fence:
+          $ref: '#/components/schemas/DeviceJobFence'
+        result:
+          additionalProperties: true
+          type: object
+        stopped:
+          type: boolean
+      required:
+      - job_fence
+      - result
+      - stopped
+      type: object
+    # END FIRST PARTY DEVICE SCHEMAS
+    ManagementRecordRef:
+      type: object
+      additionalProperties: false
+      required: [asset_id, version_id]
+      properties:
+        asset_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        version_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+    ManagementBatchCheck:
+      type: object
+      additionalProperties: false
+      required: [schema, instance_id, record_ref, batch_id, revision, checked_at, acceptance, intended_purpose, checks, assets, worksets, recovery_refs]
+      properties:
+        schema: {type: string, enum: [lantai.batch-check/v1]}
+        instance_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        record_ref:
+          $ref: '#/components/schemas/ManagementRecordRef'
+        batch_id: {type: string, minLength: 1, maxLength: 128}
+        revision: {type: integer, format: int64, minimum: 1}
+        checked_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        acceptance: {type: string, enum: [blocked, ready]}
+        intended_purpose: {type: string, enum: [archive_review, reference, production, generative_input, raw_export]}
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [key, status]
+            properties:
+              key: {type: string}
+              status: {type: string, enum: [passed, failed, missing, pending, unknown]}
+              code: {type: string}
+        assets:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [asset_id, version_id, key, manifest_digest, status]
+            properties:
+              asset_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              version_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              key: {type: string}
+              manifest_digest:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+              status: {type: string}
+        worksets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagementRecordRef'
+        recovery_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagementRecordRef'
+    VersionRightsView:
+      type: object
+      additionalProperties: false
+      required: [subject, manifest_digest, revision, rights, restricted_source, deny_purposes, evidence_revision, evidence, purposes]
+      properties:
+        subject:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        revision: {type: integer, format: int64, minimum: 1}
+        last_assertion_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        rights:
+          $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/rights
+        restricted_source: {type: boolean}
+        deny_purposes:
+          type: array
+          maxItems: 5
+          items: {type: string}
+        evidence_revision: {type: integer, format: int64, minimum: 0}
+        evidence:
+          type: array
+          maxItems: 1000
+          items:
+            type: object
+            additionalProperties: false
+            required: [record_id, revision]
+            properties:
+              record_id:
+                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+              revision: {type: integer, format: int64, minimum: 1}
+        purposes:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required: [purpose, allowed, rights_epoch]
+            properties:
+              purpose: {type: string}
+              allowed: {type: boolean}
+              code: {type: string}
+              rights_epoch: {type: integer, format: int64, minimum: 1}
+    RightsEvidenceRequest:
+      type: object
+      additionalProperties: false
+      required: [subject, manifest_digest, expected_revision, evidence]
+      properties:
+        subject:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/permanent_ref
+        manifest_digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        expected_revision: {type: integer, format: int64, minimum: 0}
+        supersedes:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        evidence:
+          $ref: ../schemas/provenance/v1/evidence.schema.json
+    RightsEvidenceReceipt:
+      type: object
+      additionalProperties: false
+      required: [record_id, digest, ref, created, revision, rights_epoch, operation_id]
+      properties:
+        record_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        digest:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/digest
+        ref: {type: string}
+        created: {type: boolean}
+        revision: {type: integer, format: int64, minimum: 1}
+        rights_epoch: {type: integer, format: int64, minimum: 0}
+        operation_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+    VersionPage:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionView'
+        next_cursor:
+          type: string
+          maxLength: 4096
+    PrincipalPage:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrincipalView'
+        next_cursor:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+    CredentialInfo:
+      type: object
+      additionalProperties: false
+      required:
+      - credential_id
+      - principal_id
+      - prefix
+      - scopes
+      - projects
+      - label
+      - created_at
+      - expires_at
+      properties:
+        credential_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        principal_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        prefix:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        projects:
+          type: array
+          items:
+            $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        label:
+          type: string
+        created_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        expires_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        revoked_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+    CredentialPage:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialInfo'
+        next_cursor:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+    CompletedRestoreReceipt:
+      type: object
+      additionalProperties: false
+      required:
+      - run_id
+      - backup_id
+      - manifest_digest
+      - recovery_epoch
+      - evidence_digest
+      - acceptance_basis
+      - unknown_after_capture
+      properties:
+        run_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        backup_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        manifest_digest:
+          type: string
+          pattern: ^sha256:[0-9a-f]{64}$
+        recovery_epoch:
+          type: integer
+          format: int64
+          minimum: 1
+        evidence_digest:
+          type: string
+          pattern: ^sha256:[0-9a-f]{64}$
+        acceptance_basis:
+          type: string
+          enum:
+          - legacy_reconciliation
+          - accepted_capture_point
+        unknown_after_capture:
+          type: boolean
+    InstanceManagementInfo:
+      type: object
+      additionalProperties: false
+      required:
+      - instance_id
+      - recovery_epoch
+      - state
+      - observed_at
+      - free_bytes
+      - min_free_bytes
+      - recovery_receipts
+      - recovery_partial
+      properties:
+        instance_id:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+        recovery_epoch:
+          type: integer
+          format: int64
+          minimum: 1
+        state:
+          type: string
+        observed_at:
+          $ref: ../schemas/common/v1/defs.schema.json#/$defs/timestamp
+        free_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          nullable: true
+        min_free_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        capacity_error:
+          type: string
+          enum:
+          - capacity_unavailable
+        recovery_error:
+          type: string
+          enum:
+          - recovery_receipts_unavailable
+          - recovery_receipt_budget_exceeded
+          - recovery_receipt_invalid
+        recovery_receipts:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/CompletedRestoreReceipt'
+        recovery_partial:
+          type: boolean
     BackupControlLogin:
       type: object
       additionalProperties: false
@@ -3141,13 +4440,14 @@ components:
       type: object
       additionalProperties: false
       required: [kind]
-      description: identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
+      description: identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule; identity.backup_export uses kind=download with job_id and package_sha256. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
       properties:
-        kind: {type: string, enum: [start, resume, schedule]}
+        kind: {type: string, enum: [start, resume, schedule, download]}
         job_id:
           $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
         drain_seconds: {type: integer, minimum: 0, maximum: 3600}
         timeout_seconds: {type: integer, minimum: 0, maximum: 86400}
+        package_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
         schedule:
           $ref: '#/components/schemas/BackupScheduleInput'
     BackupJob:
@@ -3169,6 +4469,17 @@ components:
         schedule_timezone: {type: string}
         schedule_revision: {type: integer, format: int64}
         attempt: {type: integer}
+        package: {$ref: '#/components/schemas/RecoveryPackage'}
+    RecoveryPackage:
+      type: object
+      additionalProperties: false
+      required: [id, format, sha256, size, sensitive]
+      properties:
+        id: {type: string}
+        format: {type: string, enum: [lantai.recovery-package/v1]}
+        sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        size: {type: integer, format: int64, minimum: 1}
+        sensitive: {type: boolean, const: true}
     BackupSchedule:
       type: object
       additionalProperties: false
@@ -3386,6 +4697,8 @@ components:
       additionalProperties: false
       description: sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
       properties:
+        profile:
+          $ref: ../schemas/catalog/v1/asset-profile.schema.json
         defaults:
           additionalProperties: true
           type: object
@@ -4130,6 +5443,7 @@ components:
             - identity.backup_start
             - identity.backup_resume
             - identity.backup_schedule
+            - identity.backup_export
             - identity.register_principal
             - identity.issue_credential
             - identity.revoke_credential
@@ -4803,6 +6117,8 @@ components:
     M2CatalogAssetPatch:
       additionalProperties: false
       properties:
+        profile:
+          $ref: ../schemas/catalog/v1/asset-profile.schema.json
         defaults:
           $ref: '#/components/schemas/M2CatalogDefaults'
         extra:

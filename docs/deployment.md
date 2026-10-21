@@ -156,3 +156,30 @@ LANTAI_TEST_CADDY=/path/to/caddy go test -race -count=1 -run TestCaddySingleHTTP
 ```
 
 网关测试只绑定随机 loopback 端口，生成临时自签名证书并显式信任，使用合成后端验证实际 Caddyfile：TLS、路由隔离、Range、分片头、上传流、并发 API、断连取消、502 失败日志脱敏。单元测试覆盖未知指标、数据库/WAL 缺失、维护入口拒绝、并发日志与超时透传。真实存取/恢复集成与目标机器性能、容器启动、证书轮换、平台恢复演练应分别记录证据。
+
+### 容器卷内配置与新安装
+
+`start --config-template /etc/lantai/config.template.yaml` 在新空卷初始化已校验配置；已有有效卷内配置始终优先。默认 Compose 的外部输入仍只读，但位于数据根外，卷内配置属于 UID65532、0600，可由安装恢复安全替换。根只读、core UID65532、cap_drop ALL、NNP、仅 `/tmp` 的既有有界 tmpfs 均不变。后续单改模板不会改写已有有效配置。
+
+### 旧只读配置 bind 的自动迁移
+
+此流程用于兼容当前数据/schema、完整 active、原配置仍存在的本机 Linux amd64 Compose 安装。它是布局调整，不是数据库格式迁移或备份恢复，不提升 recovery epoch、不轮换或复制主密钥。新安装继续使用正常 `compose up`，完整包恢复继续走安装期受保护页面/API。
+
+先按原部署流程生成、校验并保留完整备份和回执，记录原项目名及数据/密钥卷身份。加载已审查的新本地镜像，只修改原环境文件的 `LANTAI_IMAGE` 为新标签；保留同一 Compose 项目名、`LANTAI_DATA_DIR`、`LANTAI_SECRETS_DIR`、`LANTAI_SETUP_DIR`、`LANTAI_CONFIG_FILE`、TLS 和网关设置。不要换成示例空卷，不要删除旧环境文件、旧镜像、备份或卷；无需手工复制配置或密钥。
+
+在主机执行（Python3 标准库 + 已有 Docker/Compose，不下载依赖）：
+
+```sh
+python3 deploy/upgrade-config.py --project <原项目名> --env-file /absolute/existing.env --compose deploy/compose.yaml --check-only
+python3 deploy/upgrade-config.py --project <原项目名> --env-file /absolute/existing.env --compose deploy/compose.yaml
+```
+
+离线 GUI 包对应脚本在 `gui/upgrade-config.py`，`--compose` 传同包 `gui/compose.gui.yaml`。`--check-only` 只读核对新解析布局与旧 core 的实际挂载，未通过时不停止服务；它不代替停机后的实例/密钥核验。正式命令核对数据/密钥卷、setup 路径完全相同，且旧有效只读配置 bind 的源路径就是新模板路径后，停 core/gateway；用新镜像、原卷、相同 UID65532/cap_drop ALL/NNP/只读根执行一次 `prepare-config`，成功后才调用新默认 Compose 启动。不会 `pull`、`build`、`down -v`、递归 chown 或复制密钥。启动请求成功后仍应核对严格 TLS、登录、版本读取与服务日志；脚本不宣称完成浏览器验收。
+
+`prepare-config` 会明确区分已有有效配置、新空根、可证明的旧 active 布局及恢复状态。旧布局只有在源配置契约/Origin有效、实例与权威库绑定/schema匹配、既有密钥能解开认证因子、管理员初始化已关闭时才迁入完整原配置字节。已有有效配置不覆盖；非空无效配置、错误源文件、密钥缺失/不匹配、异常权限、数据库缺失/不匹配、未知残留均保留现场并以非零退出，不生成替代密钥或实例。
+
+配置迁入中断时重跑同一正式命令即可：固定私有事务目录仅接受文件名绑定完整输入摘要且内容匹配的 part 或已发布配置的同 inode 见证，零字节 Docker 旧占位文件保留到发布完成；未标记新根不接受旧迁移占位见证。未知文件不删。失败报告区分三个阶段：`initial_stop` 停机失败时不准备配置；`configuration_preparation` 准备命令失败时不调用 up，配置是否已经原子发布由重试协议判定；`service_start` 的 up失败/超时/可捕获中断可能已经启动部分服务，脚本先终止本次本机CLI进程组，再仅执行当前项目 `stop core gateway`。随后读取当前项目容器状态，报告停止命令结果、core/gateway是否已确认停止及是否仍有活动一次性准备容器。失败清理不停止当前项目其他服务或其他项目，也不删除服务容器、卷、日志或配置，不执行down。
+
+只有报告 `cleanup.core_gateway_confirmed_stopped=true` 且无活动一次性容器、`retry_after_correction_safe=true` 时，才能在修正根因后重跑同一命令。停止失败或Docker状态读取失败会明确报告仍运行或未确认（null），不会承诺已停机。此时用原项目范围的 `docker compose ... ps --all` 和 `docker inspect` 核对，再仅停止该项目core/gateway并确认准备进程退出；不要清卷、复制新密钥或覆盖已有有效配置。宿主掉电、脚本SIGKILL和Docker不可达不保证能够执行清理；恢复连接后同样先核对实际状态。若启动版本不兼容须按已审查的备份/版本回退流程处理，本脚本不自动执行降级。
+
+底层独占创建不再使用有覆盖竞态的 Rename 回退。要求本机数据文件系统支持同目录 hard link 和 fsync；不支持时明确失败。断电持久性受文件系统与介质语义约束；已测确定性进程强杀，不等于物理断电试验。未在 NAS 或真实素材上运行，目标机器部署与实际浏览器仍是独立门禁。协议与边界见 [首次设置契约](../api/first-start.md#配置发布的中断协议)。
