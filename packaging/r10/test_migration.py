@@ -60,16 +60,26 @@ def reset_admin(base,name):
     return password,secret
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--candidate',type=Path,required=True);ap.add_argument('--baseline',type=Path,required=True);ap.add_argument('--out',type=Path,required=True);a=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--candidate',type=Path,required=True);ap.add_argument('--baseline',type=Path,required=True);ap.add_argument('--baseline-commit',default=BASELINE,choices=[BASELINE,'4406320354e2241ca996a16ae97abb5dff4f477e']);ap.add_argument('--out',type=Path,required=True);a=ap.parse_args()
     a.out.mkdir(mode=0o700);work=Path(tempfile.mkdtemp(prefix='lantai-migration-'));work.chmod(0o700)
     d.RESULT.update(schema='lantai.isolated-migration-recovery/v1',status='running',
-        candidate_image_commit=EXPECTED,baseline_commit=BASELINE,product_source_modified=False,
+        candidate_image_commit=EXPECTED,baseline_commit=a.baseline_commit,product_source_modified=False,
         NAS_accessed=False,real_data_used=False,browser_retested=False,checks=[])
     instances=[]
+    original_wait=d.Instance.wait
+    def wait(instance,path,status):
+        try:return original_wait(instance,path,status)
+        except Exception:
+            logs=subprocess.run(instance.compose+['logs','--no-color','--tail','25','core'],capture_output=True,text=True,env=d.ENV).stdout
+            for value in d.PRIVATE_VALUES:
+                if value:logs=logs.replace(value,'[REDACTED]')
+            d.RESULT['failed_wait']={'path':path,'expected_status':status,'core_log_redacted':logs[-4000:]}
+            raise
+    d.Instance.wait=wait
     try:
         d.require_local_docker(d.run)
         new=json.loads((a.candidate/'manifest.json').read_text());old=json.loads((a.baseline/'manifest.json').read_text())
-        assert new['source_commit']==EXPECTED and old['source_commit']==BASELINE
+        assert new['source_commit']==EXPECTED and old['source_commit']==a.baseline_commit
         verify_sums(a.candidate);d.verify_files(a.baseline,old)
         d.load_image(a.baseline,old);d.load_image(a.candidate,new)
         d.run(['docker','load','-i',str(a.candidate/'caddy-2.11.4-linux-amd64-image.tar.gz')])
@@ -159,6 +169,16 @@ def main():
         review['evidence_digest']='sha256:'+review['evidence_digest'];save(review_path,review)
         d.run(complete_worker+['restore-complete','-home','/var/lib/lantai','-review','/review.json','-evidence','/evidence.txt'])
         status,report=doctor(recovery_worker);d.check('verified old-format recovery completes',status==0 and report['compatible'] and runtime(report)==14)
+        # Old restore intentionally rewrites external secret paths to the new
+        # data root's local secrets. Start with that owned recovered config,
+        # rather than overlaying the old host config and its empty key volume.
+        base=restored.root/'compose.yaml';text=base.read_text()
+        lines=[line for line in text.splitlines(True) if ':/var/lib/lantai/config.yaml:ro' not in line]
+        assert len(lines)==len(text.splitlines())-1;base.write_text(''.join(lines))
+        owned=restored.root/'owned-restored-config.json'
+        d.run(['docker','cp',prepare_cid+':/var/lib/lantai/config.yaml',str(owned)])
+        recovered_config=json.loads(owned.read_text());d.check('recovery uses its owned independent local secret root',recovered_config['secrets']['dir']=='secrets')
+        restored.config=owned;restored.config_hash=sha(owned);restored.select(old['core_image']['tag'])
         d.run(restored.compose+['up','-d']);restored.wait('/api/v1/meta',200);restored.ready();restored.tls_negative()
         d.check('source session is invalid after restored epoch',restored.request('/api/v1/whoami',credential=source.token)[0]==401)
         status,body,_=restored.request('/api/v1/sessions/login',{'name':restored.name,'password':restored.password,'code':restored.totp(),'channel':'cli','scopes':['admin','read','ingest','organize','self'],'ttl_seconds':900})

@@ -23,9 +23,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
-          gh run download 38677996246 --repo "$GITHUB_REPOSITORY" --name lantai-v0.1.0-rc.5-linux-amd64-d27a06fe0af55e205a19e8f95f0764167e217741 --dir "$RUNNER_TEMP/baseline"
+          gh run download 38842432727 --repo "$GITHUB_REPOSITORY" --name lantai-v0.1.0-rc.6-linux-amd64-4406320354e2241ca996a16ae97abb5dff4f477e --dir "$RUNNER_TEMP/baseline"
       - name: Verify guarded Compose migration and independent old-format recovery
-        run: python3 source/packaging/r10/test_migration.py --candidate "$RUNNER_TEMP/candidate" --baseline "$RUNNER_TEMP/baseline" --out "$RUNNER_TEMP/r10-migration-evidence"
+        run: python3 source/packaging/r10/test_migration.py --candidate "$RUNNER_TEMP/candidate" --baseline "$RUNNER_TEMP/baseline" --baseline-commit 4406320354e2241ca996a16ae97abb5dff4f477e --out "$RUNNER_TEMP/r10-migration-evidence"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
