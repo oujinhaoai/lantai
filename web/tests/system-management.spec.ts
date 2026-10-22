@@ -65,7 +65,9 @@ test("new project members are manageable by explicit ID; a lost role response re
   const key = `synthetic-system-${crypto.randomUUID().slice(0, 8)}`;
   await page.getByLabel("项目 key", { exact: true }).fill(key);
   await page.getByLabel("名称", { exact: true }).fill("合成成员授权验收");
-  await page.getByLabel("项目类别", { exact: true }).selectOption("sandbox");
+  await page
+    .getByRole("combobox", { name: "项目类别", exact: true })
+    .selectOption("sandbox");
   await page.getByRole("button", { name: "核对创建请求" }).click();
   const created = page.waitForResponse(
     (r) =>

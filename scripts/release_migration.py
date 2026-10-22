@@ -115,7 +115,7 @@ def run_migration_recovery(d,source,new,old,web,deployment,old_web,old_deploy,ne
     proof_path=work/'restore-evidence.txt';proof_path.write_bytes(proof);proof_path.chmod(0o644)
     r=marker['restore'];review={'contract':'lantai.recovery-review/v1','run_id':r['run_id'],'backup_id':r['backup_id'],'manifest_digest':r['manifest_digest'],
         'recovery_epoch':marker['recovery_epoch'],'administrator':source.who['principal']['principal_id'],
-        'revocations_reconciled':True,'deletions_reconciled':True,'open_operations_reconciled':True,'evidence_digest':hashlib.sha256(proof).hexdigest(),'note':'synthetic isolated rollback evidence'}
+        'revocations_reconciled':True,'deletions_reconciled':True,'open_operations_reconciled':True,'evidence_digest':'sha256:'+hashlib.sha256(proof).hexdigest(),'note':'synthetic isolated rollback evidence'}
     review_path=work/'review.json';save(review_path,review);review_path.chmod(0o644)
     complete_worker=worker(prepare_cid,old['core_image']['tag'],extra+['--mount',f'type=bind,source={proof_path},target=/evidence.txt,readonly','--mount',f'type=bind,source={review_path},target=/review.json,readonly'])
     d.run(complete_worker+['restore-complete','-home','/var/lib/lantai','-review','/review.json','-evidence','/evidence.txt'])

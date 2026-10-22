@@ -70,7 +70,9 @@ async function controlled(page: Page) {
     route.fulfill({ json: { items: [] } }),
   );
   await page.goto("/#/migrations");
-  await page.getByLabel("目标项目", { exact: true }).selectOption(project);
+  await page
+    .getByRole("combobox", { name: "目标项目", exact: true })
+    .selectOption(project);
 }
 test("new journal fixes actual actor and preserves incomplete scope instead of showing accepted", async ({
   page,

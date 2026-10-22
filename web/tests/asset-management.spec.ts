@@ -268,6 +268,11 @@ test("OBJ preview verifies the fixed bytes and never fetches declared external m
       route.fulfill({
         json: {
           ...state.file,
+          grant_id: version1,
+          asset_id: assetID,
+          version_id: version1,
+          purpose: "archive_review",
+          method: "GET",
           url: `/xfer/v1/reads/${version1}`,
           expires_at: new Date(Date.now() + 60000).toISOString(),
           range: true,

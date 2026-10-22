@@ -192,7 +192,7 @@ test("mixed versions default to a previewable file without reading and keep unsu
   await expect(page.getByLabel("选择版本文件").locator("option")).toHaveCount(
     2,
   );
-  await expect(page.getByText(/此格式不支持预览/)).toBeVisible();
+  await expect(page.getByText(/此格式不支持通用预览/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "预览文件", exact: true }),
   ).toHaveCount(0);
@@ -399,7 +399,7 @@ test("archives and unknown binaries never preview; encoding and decoder errors d
   });
   for (const file of ["archive.zip", "binary.bin"]) {
     await open(page, assets.text, file);
-    await expect(page.getByText(/此格式不支持预览/)).toBeVisible();
+    await expect(page.getByText(/此格式不支持通用预览/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "预览文件", exact: true }),
     ).toHaveCount(0);
@@ -550,7 +550,7 @@ test("preview grants expire visibly, duplicate clicks are bounded and late respo
   await expect.poll(() => reached).toBe(true);
   await page.getByLabel("选择版本文件").selectOption("binary.bin");
   releaseText();
-  await expect(page.getByText(/此格式不支持预览/)).toBeVisible();
+  await expect(page.getByText(/此格式不支持通用预览/)).toBeVisible();
   await expect(page.locator(".code-preview")).toHaveCount(0);
 });
 
