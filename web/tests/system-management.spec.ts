@@ -101,7 +101,9 @@ test("new project members are manageable by explicit ID; a lost role response re
   await page
     .getByLabel("主体标识", { exact: true })
     .fill(who.principal.principal_id);
-  await page.getByLabel("项目角色", { exact: true }).selectOption("viewer");
+  await page
+    .getByRole("combobox", { name: "项目角色", exact: true })
+    .selectOption("viewer");
 
   const writes: { body: string | null; key: string }[] = [];
   let verified = 0;
@@ -181,8 +183,12 @@ test("new project members are manageable by explicit ID; a lost role response re
     ).roles,
   ).toEqual(["viewer"]);
 
-  await expect(page.getByLabel("动作", { exact: true })).toBeEnabled();
-  await page.getByLabel("动作", { exact: true }).selectOption("revoke");
+  await expect(
+    page.getByRole("combobox", { name: "动作", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("combobox", { name: "动作", exact: true })
+    .selectOption("revoke");
   await page.getByRole("button", { name: "请求动作绑定的人类确认" }).click();
   const next = await control(request, "code");
   await page
