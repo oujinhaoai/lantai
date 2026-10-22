@@ -30,6 +30,26 @@ class StartupDiagnostics(unittest.TestCase):
             "core | permission denied", "synthetic unused key"))
 
 
+class UnclaimedBusinessGate(unittest.TestCase):
+    def test_selector_requires_claim_and_legacy_hides_business_route(self):
+        for script, expected in (("entry.js", 401), ("setup.js", 404)):
+            page = f'<script src="/setup/{script}" defer></script>'.encode()
+            with self.subTest(script=script):
+                request = Mock(return_value=(expected, b"", None))
+                smoke.assert_unclaimed_business_closed(page, request)
+                request.assert_called_once_with("/api/v1/meta")
+                for status in (200, 403, 500, 404 if expected == 401 else 401):
+                    with self.subTest(status=status), self.assertRaises(AssertionError):
+                        smoke.assert_unclaimed_business_closed(
+                            page, Mock(return_value=(status, b"", None)))
+
+    def test_unknown_setup_page_is_not_assumed_compatible(self):
+        request = Mock()
+        with self.assertRaisesRegex(AssertionError, "Unknown first-start page"):
+            smoke.assert_unclaimed_business_closed(b"unknown page", request)
+        request.assert_not_called()
+
+
 class LifecycleDiagnostics(unittest.TestCase):
     def test_state_allowlist_excludes_environment_logs_labels_and_error_text(self):
         private = "synthetic-secret-do-not-serialize"
