@@ -28,7 +28,7 @@ for (const [name, certVariable, keyVariable] of [
       const address = server.address();
       if (!address || typeof address === "string")
         throw new Error("No fixture port");
-      const target = `https://localhost:${address.port}/`;
+      const target = `https://127.0.0.1:${address.port}/`;
       // Prove the server is reachable independently of the expected TLS rejection.
       await expect(
         new Promise((resolve, reject) => {
@@ -47,6 +47,7 @@ for (const [name, certVariable, keyVariable] of [
       await page.goto(baseURL!);
       await expect(page.getByLabel("账户名称")).toBeVisible();
     } finally {
+      server.closeAllConnections();
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       );
