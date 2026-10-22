@@ -27,7 +27,7 @@ flowchart LR
 | [config.container.yaml](../deploy/config.container.yaml) | 容器私网 API/传输监听；运维仍仅容器内 loopback |
 | [compose.yaml](../deploy/compose.yaml) | 自动空卷准备、核心与网关；一次 up，仅网关发布端口 |
 | [compose.backup.yaml](../deploy/compose.backup.yaml) | 含 backup-online 的版本可选；部署时一次性挂载私有备份根，日常在原 core 触发 |
-| [Dockerfile](../deploy/Dockerfile) | Go 1.26.9 编译、无 shell 的非 root 核心镜像 |
+| [Dockerfile](../deploy/Dockerfile) | Go 1.26.10 编译、无 shell 的非 root 核心镜像 |
 | [lantai.service](../deploy/lantai.service) | Linux systemd 核心服务模板，固定单进程、优雅停止 |
 
 网关固定 **Caddy 2.11.4**，Apache-2.0；[官方发布](https://github.com/caddyserver/caddy/releases/tag/v2.11.4)提供二进制、SHA-512 校验和与签名，[许可证](https://github.com/caddyserver/caddy/blob/v2.11.4/LICENSE)随官方包保留。容器模板使用[官方 Caddy 镜像](https://hub.docker.com/_/caddy)，实际部署应再记录所用平台镜像摘要。Go 版本与仓库 `go.mod` 一致，BSD-3-Clause；核心其余依赖见[依赖说明](dependencies.md)。没有新增 Go 运行依赖，也不自动安装网关。

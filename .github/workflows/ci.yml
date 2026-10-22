@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: |
             go.sum
             scripts/tools/go.sum
+      - name: govulncheck
+        run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
       - name: Real Compose first-start smoke (synthetic data and TLS only)
         run: python3 scripts/test-compose-first-start.py --evidence-file first-start-lifecycle.json
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -53,8 +55,6 @@ jobs:
           python3 scripts/test-web-strict.py --evidence-file strict-web-ci.json
       - name: scripts/check.sh
         run: scripts/check.sh
-      - name: govulncheck
-        run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: failure()
         with:

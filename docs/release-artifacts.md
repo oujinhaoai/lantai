@@ -4,7 +4,7 @@
 
 ## 前置与触发
 
-先将必要源码和本工作流合入 main，再等待目标提交的 `ci.yml` main push 运行全部 10 项成功。必须使用 40 位精确提交 SHA；源树必须干净、Go 必须是 `go.mod` 固定的 1.26.9，并含完整 Docker 输入（包括 `api/`）。工作流位于默认分支才可手动触发，依据 [GitHub 文档](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
+先将必要源码和本工作流合入 main，再等待目标提交的 `ci.yml` main push 运行全部 10 项成功。必须使用 40 位精确提交 SHA；源树必须干净、Go 必须是 `go.mod` 固定的 1.26.10，并含完整 Docker 输入（包括 `api/`）。工作流位于默认分支才可手动触发，依据 [GitHub 文档](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
 
 ```sh
 gh workflow run release-artifacts.yml --ref main \
@@ -16,7 +16,7 @@ gh workflow run release-artifacts.yml --ref main \
 
 控制脚本和目标源码各自 checkout，目标必须在 origin/main 历史上并具有该精确提交的成功 main CI。检查缺失、跳过、失败或名称不符都拒绝构建。工作流仅授予 contents/actions 读取权限，无额外 secret；版本参数经格式校验后通过 argv 传给命令，不作为 shell 代码。源码、制品和实际客户端验收应绑定同一明确目标；旧提交通过不能自动沿用。
 
-在本机 Linux Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.9、Node 24/npm、锁定的 Chromium 和 gh；必须使用本地 Linux Unix Docker socket（拒绝远程 context/DOCKER_HOST），输出位于源码树外的新目录：
+在本机 Linux Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.10、Node 24/npm、锁定的 Chromium 和 gh；必须使用本地 Linux Unix Docker socket（拒绝远程 context/DOCKER_HOST），输出位于源码树外的新目录：
 
 ```sh
 # gh 使用构建者已授权的只读身份；先 fetch main，保留工作区已有改动。

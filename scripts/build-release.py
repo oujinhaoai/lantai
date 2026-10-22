@@ -98,7 +98,7 @@ def check_buildinfo(buildinfo, commit, goos, goarch):
     expected = {"build\tvcs.revision=" + commit, "build\tvcs.modified=false",
                 "build\tCGO_ENABLED=0", "build\tGOOS=" + goos,
                 "build\tGOARCH=" + goarch}
-    if not expected.issubset(settings) or not buildinfo.splitlines()[0].endswith("go1.26.9"):
+    if not expected.issubset(settings) or not buildinfo.splitlines()[0].endswith("go1.26.10"):
         raise RuntimeError("binary build info lacks the exact clean commit/toolchain/platform")
 
 
@@ -147,11 +147,11 @@ def main():
     if "COPY api ./api" not in original.splitlines() or "!api/**" not in allowlist.read_text().splitlines():
         raise RuntimeError("required API Docker input repair is absent")
     source_go = re.search(r"^toolchain go([0-9.]+)$", (source / "go.mod").read_text(), re.M)
-    if not source_go or source_go.group(1) != "1.26.9":
+    if not source_go or source_go.group(1) != "1.26.10":
         raise RuntimeError("review the changed Go version before building")
     go_version = command(["go", "version"])
-    if "go1.26.9 " not in go_version:
-        raise RuntimeError("Go 1.26.9 is required")
+    if "go1.26.10 " not in go_version:
+        raise RuntimeError("Go 1.26.10 is required")
     ci = None
     if args.require_main_ci:
         repository = os.environ.get("GITHUB_REPOSITORY", "")
@@ -193,13 +193,13 @@ def main():
         (deliver / "docker-version.json").write_text(docker_version + "\n")
         (deliver / "compose-version.txt").write_text(compose_version + "\n")
         # Resolve the base, then build from its immutable repository digest.
-        command(["docker", "pull", "--platform", "linux/amd64", "golang:1.26.9"], capture=False)
-        go_image = image_info("golang:1.26.9")
+        command(["docker", "pull", "--platform", "linux/amd64", "golang:1.26.10"], capture=False)
+        go_image = image_info("golang:1.26.10")
         repo_digests = go_image.get("RepoDigests") or []
         if not repo_digests:
             raise RuntimeError("Go base has no repository digest")
         base = repo_digests[0]
-        old_from = "FROM golang:1.26.9 AS build"
+        old_from = "FROM golang:1.26.10 AS build"
         if original.count(old_from) != 1:
             raise RuntimeError("review the changed Dockerfile before base pinning")
         effective = work / "Dockerfile"
@@ -219,7 +219,7 @@ def main():
         if core.get("Config", {}).get("User") != "65532:65532":
             raise RuntimeError("unexpected image user")
         core_version = json.loads(command(["docker", "run", "--rm", "--network", "none", core_tag, "version", "--json"]))
-        if core_version.get("platform") != "linux/amd64" or core_version.get("go_version") != "go1.26.9":
+        if core_version.get("platform") != "linux/amd64" or core_version.get("go_version") != "go1.26.10":
             raise RuntimeError("unexpected core image binary platform/toolchain")
         save_json(deliver / "image-version.json", core_version)
         save_json(deliver / "core-image-inspect.json", core)
@@ -299,7 +299,7 @@ def main():
             if goos == "linux" and goarch == "amd64":
                 version = json.loads(command([str(binary), "version", "--json"]))
                 if (version.get("vcs_revision") != args.commit or version.get("vcs_modified") is not False
-                        or version.get("platform") != "linux/amd64" or version.get("go_version") != "go1.26.9"):
+                        or version.get("platform") != "linux/amd64" or version.get("go_version") != "go1.26.10"):
                     raise RuntimeError("standalone version smoke mismatch")
                 save_json(deliver / "binary-version-linux-amd64.json", version)
         web = build_web_bundle(build_source, deliver, args.version, args.commit, stamp, command)
