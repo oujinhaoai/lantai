@@ -14,6 +14,7 @@ import tarfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from release_upgrade import upgrade_evidence_passed
 from release_bundle import build_web_bundle, build_deployment_bundle, require_local_docker
 
 
@@ -323,9 +324,10 @@ def main():
                 or delivery_result.get("core_image_id") != core["Id"]
                 or delivery_result.get("caddy_image_id") != caddy["Id"]
                 or not all(delivery_result.get(x) for x in
-                           ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
+                           ("fresh_install_passed", "original_identity_preserved",
                             "original_totp_login_passed", "static_archive_served", "volumes_preserved",
-                            "backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed", "rollback_passed"))):
+                            "backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed"))
+                or not upgrade_evidence_passed(delivery_result)):
             raise RuntimeError("actual delivery image/static/direct-upgrade smoke did not pass")
         (deliver / "delivery-image-smoke.txt").write_text(delivery_output + "\n")
         if (command(["git", "rev-parse", "HEAD"], cwd=source) != args.commit
@@ -334,7 +336,7 @@ def main():
             raise RuntimeError("source changed during build")
         (deliver / "release-images.env").write_text(f"LANTAI_IMAGE={core_tag}\nLANTAI_CADDY_IMAGE={caddy_tag}\n")
         files = [{"name": p.name, "size_bytes": p.stat().st_size, "sha256": digest(p)} for p in sorted(deliver.iterdir())]
-        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-web-and-direct-upgrade-smoke",
+        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-web-and-verified-upgrade-smoke",
                     "version": args.version, "source_commit": args.commit, "platform": "linux/amd64",
                     "go_version": go_version, "main_ci": ci,
                     "build_run": {"repository": os.environ.get("GITHUB_REPOSITORY"), "run_id": os.environ.get("GITHUB_RUN_ID"),

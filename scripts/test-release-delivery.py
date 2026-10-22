@@ -24,7 +24,8 @@ import tempfile
 import time
 
 from release_bundle import extract_verified_archive, sha256, validate_static, require_local_docker
-from release_upgrade import assert_retained_upgrade
+from release_upgrade import assert_retained_upgrade, schema_upgrade_mode
+import release_migration
 from release_backup import prepare_backup_command
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -551,53 +552,64 @@ def main():
         upgrade.stop()
         before = upgrade.snapshot("before")
 
-        RESULT["phase"] = "direct current-baseline to target retained-volume upgrade"
-        upgrade.change_caddy(new["caddy_image"]["tag"])
-        upgrade.web = web
-        upgrade.enable_backup(deployment)
-        upgrade.select(new["core_image"]["tag"])
-        (upgrade.root / "compose.web.yaml").write_bytes((deployment / "compose.web.yaml").read_bytes())
-        upgrade.caddy_file.write_bytes((deployment / "Caddyfile").read_bytes())
-        after_config = json.loads(run(upgrade.compose + ["config", "--format", "json"]))
-        assert_retained_upgrade(before_config, after_config, core_image=new["core_image"]["tag"],
-            caddy_image=new["caddy_image"]["tag"], web=web, backup=upgrade.backup_root, root_id=upgrade.backup_root_id,
-            no_create_verified=candidate_no_create and baseline_no_create)
-        RESULT["bind_no_create_passed"] = candidate_no_create and baseline_no_create
-        check("resolved original project/networks/ports/volumes and environment preserved")
-        run(upgrade.compose + ["up", "-d"])
-        run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
-        upgrade.retained(new_cli, new)
-        upgrade.ready()
-        upgrade.tls_negative()
-        check("original actual data/key/setup/config mounts preserved", upgrade.mounts() == mounts)
-        upgrade.static(new["web"]["files"])
-        upgrade.browser(evidence, "direct-upgrade")
-        upgrade.reduced_session()
-        upgrade.backup_smoke(new)
-        upgrade.retained(new_cli, new)
-        RESULT["backup_smoke_passed"] = True
-        upgrade.stop()
-        after = upgrade.snapshot("after")
-        check("database schemas and original key files unchanged", before == after)
-        RESULT.update(direct_upgrade_passed=True, original_identity_preserved=True,
-                      original_totp_login_passed=True, static_archive_served=True, volumes_preserved=True)
+        status, compatibility = release_migration.doctor(sys.modules[__name__],
+            release_migration.worker(upgrade.cid(), new["core_image"]["tag"]))
+        mode = schema_upgrade_mode(compatibility)
+        RESULT["upgrade_mode"] = mode
+        RESULT["schema_versions_before"] = {row["database"]: {key: row[key] for key in ("applied_version", "latest_version")} for row in compatibility["databases"]}
+        if mode == "runtime14-to15-offline-migration":
+            check("migration requires incompatible old schema", status != 0)
+            release_migration.run_migration_recovery(sys.modules[__name__], upgrade, new, old,
+                web, deployment, old_web, old_deployment, new_cli, old_cli, work, evidence, instances,
+                candidate_no_create and baseline_no_create)
+        else:
+            RESULT["phase"] = "direct current-baseline to target retained-volume upgrade"
+            upgrade.change_caddy(new["caddy_image"]["tag"])
+            upgrade.web = web
+            upgrade.enable_backup(deployment)
+            upgrade.select(new["core_image"]["tag"])
+            (upgrade.root / "compose.web.yaml").write_bytes((deployment / "compose.web.yaml").read_bytes())
+            upgrade.caddy_file.write_bytes((deployment / "Caddyfile").read_bytes())
+            after_config = json.loads(run(upgrade.compose + ["config", "--format", "json"]))
+            assert_retained_upgrade(before_config, after_config, core_image=new["core_image"]["tag"],
+                caddy_image=new["caddy_image"]["tag"], web=web, backup=upgrade.backup_root, root_id=upgrade.backup_root_id,
+                no_create_verified=candidate_no_create and baseline_no_create)
+            RESULT["bind_no_create_passed"] = candidate_no_create and baseline_no_create
+            check("resolved original project/networks/ports/volumes and environment preserved")
+            run(upgrade.compose + ["up", "-d"])
+            run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
+            upgrade.retained(new_cli, new)
+            upgrade.ready()
+            upgrade.tls_negative()
+            check("original actual data/key/setup/config mounts preserved", upgrade.mounts() == mounts)
+            upgrade.static(new["web"]["files"])
+            upgrade.browser(evidence, "direct-upgrade")
+            upgrade.reduced_session()
+            upgrade.backup_smoke(new)
+            upgrade.retained(new_cli, new)
+            RESULT["backup_smoke_passed"] = True
+            upgrade.stop()
+            after = upgrade.snapshot("after")
+            check("database schemas and original key files unchanged", before == after)
+            RESULT.update(direct_upgrade_passed=True, original_identity_preserved=True,
+                          original_totp_login_passed=True, static_archive_served=True, volumes_preserved=True)
 
-        RESULT["phase"] = "conditional same-pair program/static rollback"
-        for name, contents in original_files.items():
-            (upgrade.root / name).write_bytes(contents)
-        upgrade.env.chmod(0o600)
-        upgrade.compose = original_args
-        upgrade.web, upgrade.caddy = old_web, old["caddy_image"]["tag"]
-        upgrade.caddy_id = old["caddy_image"]["id"]
-        check("rollback restores exact baseline resolved configuration",
-              json.loads(run(upgrade.compose + ["config", "--format", "json"])) == before_config)
-        run(upgrade.compose + ["up", "-d"])
-        run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
-        upgrade.retained(old_cli, old)
-        upgrade.ready()
-        check("rollback keeps original mounts", upgrade.mounts() == mounts)
-        upgrade.static(old["web"]["files"])
-        RESULT["rollback_passed"] = True
+            RESULT["phase"] = "conditional same-pair program/static rollback"
+            for name, contents in original_files.items():
+                (upgrade.root / name).write_bytes(contents)
+            upgrade.env.chmod(0o600)
+            upgrade.compose = original_args
+            upgrade.web, upgrade.caddy = old_web, old["caddy_image"]["tag"]
+            upgrade.caddy_id = old["caddy_image"]["id"]
+            check("rollback restores exact baseline resolved configuration",
+                  json.loads(run(upgrade.compose + ["config", "--format", "json"])) == before_config)
+            run(upgrade.compose + ["up", "-d"])
+            run(upgrade.compose + ["up", "-d", "--force-recreate", "gateway"])
+            upgrade.retained(old_cli, old)
+            upgrade.ready()
+            check("rollback keeps original mounts", upgrade.mounts() == mounts)
+            upgrade.static(old["web"]["files"])
+            RESULT["rollback_passed"] = True
         for instance in instances:
             logs = run(instance.compose + ["logs", "--no-color"])
             check("ordinary container logs exclude all synthetic credentials", not any(x in logs for x in PRIVATE_VALUES if x))

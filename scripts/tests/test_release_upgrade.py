@@ -86,3 +86,51 @@ class RetainedConfig(unittest.TestCase):
         self.after["services"]["core"]["volumes"][-1]["bind"]["create_host_path"] = True
         with self.assertRaisesRegex(RuntimeError, "protected"):
             self.verify(proof=True)
+
+
+class SchemaAwareUpgrade(unittest.TestCase):
+    def report(self):
+        return {"compatible": False, "databases": [{"database": name, "applied_version": 14 if name == "runtime" else 5,
+            "latest_version": 15 if name == "runtime" else 5} for name in ("main", "ledger", "runtime", "events", "index")]}
+
+    def test_only_reviewed_schema_transition_is_selected(self):
+        report = self.report()
+        self.assertEqual(upgrade.schema_upgrade_mode(report), "runtime14-to15-offline-migration")
+        report["databases"][0]["latest_version"] += 1
+        with self.assertRaises(RuntimeError):
+            upgrade.schema_upgrade_mode(report)
+        report = self.report()
+        report["databases"][2]["applied_version"] = 15
+        with self.assertRaises(RuntimeError):
+            upgrade.schema_upgrade_mode(report)  # Equal schemas do not hide another incompatibility.
+        report["compatible"] = True
+        self.assertEqual(upgrade.schema_upgrade_mode(report), "same-schema")
+
+    def test_migration_requires_recovery_and_rejects_same_volume_rollback_claim(self):
+        result = {"upgrade_mode": "runtime14-to15-offline-migration", "migration_upgrade_passed": True,
+                  "independent_restore_passed": True, "direct_upgrade_passed": False,
+                  "rollback_passed": False, "same_volume_old_image_rollback_supported": False}
+        self.assertTrue(upgrade.upgrade_evidence_passed(result))
+        for key in result.keys() - {"upgrade_mode"}:
+            altered = dict(result)
+            altered[key] = not result[key]
+            self.assertFalse(upgrade.upgrade_evidence_passed(altered), key)
+        self.assertTrue(upgrade.upgrade_evidence_passed({"direct_upgrade_passed": True, "rollback_passed": True}))
+        self.assertFalse(upgrade.upgrade_evidence_passed({"direct_upgrade_passed": True}))
+
+    def test_config_template_transition_preserves_source_and_all_other_constraints(self):
+        fixture = RetainedConfig()
+        fixture.setUp()
+        fixture.before["services"]["core"]["volumes"].append({"type": "bind", "source": "/original-config", "target": "/var/lib/lantai/config.yaml", "read_only": True})
+        fixture.before["services"]["core"]["command"] = ["start", "--home", "/var/lib/lantai", "--setup-dir", "/var/lib/lantai-setup"]
+        # The baseline captures its verified backup before migrating.
+        fixture.before["services"]["core"]["volumes"].append(deepcopy(fixture.after["services"]["core"]["volumes"][-1]))
+        fixture.before["services"]["core"]["environment"] = deepcopy(fixture.after["services"]["core"]["environment"])
+        fixture.after["services"]["core"]["volumes"].append({"type": "bind", "source": "/original-config", "target": "/etc/lantai/config.template.yaml", "read_only": True})
+        fixture.after["services"]["core"]["command"] = fixture.before["services"]["core"]["command"] + ["--config-template", "/etc/lantai/config.template.yaml"]
+        def verify():
+            upgrade.assert_retained_upgrade(fixture.before, fixture.after, core_image="new", caddy_image="new-caddy", web="/new-web", backup="/private-backup", root_id="synthetic-volume", backup_preconfigured=True, config_template_migration=True)
+        verify()
+        fixture.after["services"]["core"]["volumes"][-1]["source"] = "/replacement-config"
+        with self.assertRaisesRegex(RuntimeError, "protected"):
+            verify()
