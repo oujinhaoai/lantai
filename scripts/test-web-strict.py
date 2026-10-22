@@ -61,6 +61,13 @@ def main():
         env = {key: os.environ[key] for key in ('PATH', 'CI', 'GOTOOLCHAIN', 'GOROOT',
                'GOCACHE', 'GOMODCACHE', 'GOPATH', 'TMPDIR',
                'LANTAI_WEB_CHROMIUM_EXECUTABLE') if key in os.environ}
+        # Changing HOME must not silently discard the runner's prepared Go
+        # cache and force a cold fixture build inside the readiness deadline.
+        cache_keys = ('GOCACHE', 'GOMODCACHE', 'GOPATH')
+        cache_values = subprocess.check_output(['go', 'env', *cache_keys], text=True).splitlines()
+        if len(cache_values) != len(cache_keys):
+            raise RuntimeError('Cannot resolve the explicit Go fixture cache paths')
+        env.update(zip(cache_keys, cache_values))
         env.update(json.loads(generated))
         home = work / 'home'
         database = home / '.pki/nssdb'
