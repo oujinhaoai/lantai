@@ -502,7 +502,9 @@ func TestAssistantWorkerLinuxAliasCaseAndLateCoreAcceptanceRemainUnknown(t *test
 		root := workspace(t)
 		f := newWorkerPeer(t)
 		config := f.config(t, root)
-		if e := os.Mkdir(filepath.Join(root, "SOURCES"), 0700); e != nil {
+		// A case-insensitive volume already has this directory as "sources".
+		// Let SameFile below detect that prerequisite before running the test.
+		if e := os.MkdirAll(filepath.Join(root, "SOURCES"), 0700); e != nil {
 			t.Fatal(e)
 		}
 		a, _ := os.Stat(filepath.Join(root, "sources"))
