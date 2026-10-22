@@ -1,10 +1,15 @@
-name: r11-web-navigation-and-manual
+name: r11-frozen-web-revalidation
 on:
   push:
     branches: [candidate/r11-web-help-20261021]
+  workflow_dispatch:
 permissions:
   contents: read
   actions: read
+env:
+  # This workflow revalidates the delivered Web-only source. Integration
+  # changes are tested at their current head by ci.yml and release-artifacts.yml.
+  FROZEN_R11_COMMIT: 9fa0a60993b35a31f0b66ac29896d6ef36cffe0c
 jobs:
   web-only:
     runs-on: ubuntu-latest
@@ -13,6 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: source
+          ref: ${{ env.FROZEN_R11_COMMIT }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
@@ -20,8 +26,10 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: source/web/package-lock.json
-      - name: Verify new Web revision and unchanged frozen r10 backend
-        run: python3 source/packaging/r11/verify_web_source.py --out "$RUNNER_TEMP/source-proof.json"
+      - name: Verify frozen r11 identity and unchanged frozen r10 backend
+        run: |
+          test "$(git -C source rev-parse HEAD)" = "$FROZEN_R11_COMMIT"
+          python3 source/packaging/r11/verify_web_source.py --out "$RUNNER_TEMP/source-proof.json"
       - name: Build only Web with existing release bundler, help checks and Web tests
         id: build
         run: python3 source/packaging/r11/build_web.py --out "$RUNNER_TEMP/web-build"
@@ -44,14 +52,14 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && steps.build.outcome == 'success'
         with:
-          name: lantai-r11-web-help-${{ github.sha }}
+          name: lantai-r11-web-help-frozen-${{ env.FROZEN_R11_COMMIT }}
           path: ${{ runner.temp }}/delivery/
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: r11-web-help-evidence-${{ github.sha }}
+          name: r11-web-help-frozen-evidence-${{ env.FROZEN_R11_COMMIT }}
           path: |
             ${{ runner.temp }}/source-proof.json
             ${{ runner.temp }}/web-evidence/WEB-BROWSER-RESULT.json
