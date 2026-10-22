@@ -118,6 +118,7 @@ jobs:
         run: |
           npm ci --prefix release-source/web
           npm exec --prefix release-source/web -- playwright install --with-deps chromium
+          sudo apt-get install --no-install-recommends -y libnss3-tools
       - name: Download original release artifacts (no production state)
         env:
           BASE_RUN: ${{ inputs.baseline_run || '38677996246' }}
@@ -128,6 +129,7 @@ jobs:
             --name "$BASE_ARTIFACT" --dir "$RUNNER_TEMP/lantai-upgrade-baseline"
       - name: Build immutable local image archives and packages
         env:
+          LANTAI_RELEASE_BROWSER_EXECUTABLE: /opt/google/chrome/chrome
           RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || inputs.commit }}
           RELEASE_VERSION: ${{ github.event_name == 'pull_request' && format('v0.0.0-pr.{0}', github.event.number) || inputs.version }}
           BASE_COMMIT: ${{ inputs.baseline_commit || 'd27a06fe0af55e205a19e8f95f0764167e217741' }}

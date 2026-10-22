@@ -20,7 +20,10 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         channel: "chromium",
         // Fail closed when the selected host cannot provide Chromium's sandbox.
-        launchOptions: { chromiumSandbox: true },
+        launchOptions: {
+          chromiumSandbox: true,
+          executablePath: process.env.LANTAI_WEB_CHROMIUM_EXECUTABLE,
+        },
         viewport: { width: 1440, height: 1050 },
       },
     },

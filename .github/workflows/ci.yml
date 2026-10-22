@@ -46,8 +46,11 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
         working-directory: web
       - name: Web real-instance responsive acceptance
-        run: npm test
-        working-directory: web
+        env:
+          LANTAI_WEB_CHROMIUM_EXECUTABLE: /opt/google/chrome/chrome
+        run: |
+          sudo apt-get install --no-install-recommends -y libnss3-tools
+          python3 scripts/test-web-strict.py --evidence-file strict-web-ci.json
       - name: scripts/check.sh
         run: scripts/check.sh
       - name: govulncheck
@@ -59,6 +62,7 @@ jobs:
           path: |
             web/test-results/
             first-start-lifecycle.json
+            strict-web-ci.json
           if-no-files-found: ignore
 
   test:

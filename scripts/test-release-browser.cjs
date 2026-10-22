@@ -26,7 +26,9 @@ const privateValues = [];
   const result = {
     label: input.label,
     passed: false,
-    tls: "Native Chromium validates the selected private profile CA and hostname; sandbox enabled",
+    tls: process.env.LANTAI_TEST_NSS_DATABASE
+      ? "Chromium validates the explicit temporary NSS CA and hostname; sandbox enabled"
+      : "Native Chromium validates the selected private profile CA and hostname; sandbox enabled",
   };
   try {
     await trustLocalTestCA(context, input.ca_file);
@@ -53,7 +55,7 @@ const privateValues = [];
     result.cookie_protected = true;
     await page.screenshot({ path: path.join(input.screenshots, input.label + "-desktop-home.png"), fullPage: true });
     phase = "authorized resource detail and preview";
-    await page.getByRole("navigation").getByRole("link", { name: "资源库" }).click();
+    await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "素材库", exact: true }).click();
     await page.getByRole("link", { name: /release-sample/ }).click();
     await expect(page.getByRole("heading", { name: "release-sample" })).toBeVisible();
     const grantResponse = page.waitForResponse(r => r.url().endsWith("/read-grants") && r.request().method() === "POST");

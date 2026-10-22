@@ -18,6 +18,7 @@ import sqlite3
 import ssl
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -374,7 +375,13 @@ class Instance:
                    "browser_profile": str(self.root / (label + "-private-browser-profile")), "name": self.name,
                    "password": self.password, "code": self.totp(), "receipt": self.receipt,
                    "principal_id": self.who["principal"]["principal_id"], "screenshots": str(evidence), "label": label}
-        output = run(["node", str(ROOT / "scripts/test-release-browser.cjs")], stdin=json.dumps(payload))
+        command = ["node", str(ROOT / "scripts/test-release-browser.cjs")]
+        executable = os.environ.get("LANTAI_RELEASE_BROWSER_EXECUTABLE")
+        if executable:
+            command = [sys.executable, str(ROOT / "scripts/test-browser-trust.py"),
+                       "--ca-file", payload["ca_file"], "--executable", executable,
+                       "--", *command]
+        output = run(command, stdin=json.dumps(payload))
         result = json.loads(output)
         check(label + " actual artifact browser login/home/resource/help/TOTP", result.get("passed") is True
               and result.get("same_principal") is True and result.get("cookie_protected") is True)
