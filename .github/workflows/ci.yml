@@ -54,6 +54,10 @@ jobs:
           sudo apt-get install --no-install-recommends -y libnss3-tools
           python3 scripts/test-web-strict.py --evidence-file strict-web-ci.json
       - name: scripts/check.sh
+        # This is a per-package cumulative watchdog, not a per-test deadline.
+        # The full Linux race suite exceeded 30m while its current test was 7s old.
+        env:
+          LANTAI_TEST_TIMEOUT: 45m
         run: scripts/check.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: failure()

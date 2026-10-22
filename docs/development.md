@@ -188,3 +188,7 @@ go test -count=1 -run '^TestAuditWindowsOccupiedManifestRecovery$' ./internal/ev
 ### Windows 文件系统回归
 
 Windows 原生文件私有性按 owner/DACL 核验，不能以 Unix 的 0600 位代替。私有状态、工作区锁及恢复包创建时使用当前用户 owner 和禁止继承的 DACL；临时文件仅共享只读访问供固定目录中的身份检查，不共享写入或删除。固定目录句柄若由 Windows 拒绝改名，测试核对原目标和外部目录均安全；改名可行的平台继续测试替换后的拒绝。CI 先运行这些短用例，再运行未裁剪的三平台 Go 套件。
+
+### 完整 race 套件的 CI 预算
+
+本地 `scripts/check.sh` 仍默认使用 30 分钟的单包累计 race 预算，普通套件和各用例内的超时、性能阈值不变。Linux CI 对完整套件显式设置 `LANTAI_TEST_TIMEOUT=45m`：[2026-10-22 的 CI 运行](https://github.com/oujinhaoai/lantai/actions/runs/39818026357/job/119961782665)在集成包累计 30 分钟时结束，当时第 145/162 个测试仅开始 7 秒，结束前仍有成功请求，未记录断言或 race 失败。该参数只增加整包执行余量，仍执行所有用例；发生超时时必须按具体测试及日志诊断，不能据超时自动放宽断言或跳过测试。
