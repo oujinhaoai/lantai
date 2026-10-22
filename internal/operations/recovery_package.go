@@ -155,7 +155,7 @@ func WriteRecoveryPackage(ctx context.Context, snapshot, target string, keyID id
 	if err = fsutil.CheckPrivate(parent); err != nil {
 		return zero, err
 	}
-	f, err := os.CreateTemp(filepath.Dir(target), ".recovery-package-*")
+	f, err := fsutil.CreatePrivateTemp(filepath.Dir(target), ".recovery-package-")
 	if err != nil {
 		return zero, err
 	}

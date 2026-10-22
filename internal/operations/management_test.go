@@ -1,11 +1,13 @@
 package operations
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
@@ -13,7 +15,13 @@ import (
 
 func TestManagementInfoProjectsCompletedRecoveryWithoutPrivateNotes(t *testing.T) {
 	i := create(t, t.TempDir(), Options{})
-	t.Cleanup(func() { _ = i.Close(t.Context()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := i.Close(ctx); err != nil {
+			t.Errorf("close instance: %v", err)
+		}
+	})
 	i.marker.RecoveryEpoch = 4
 	run := ids.New()
 	r := RecoveryReview{Contract: "lantai.recovery-review/v2", RunID: run, BackupID: ids.New(), ManifestDigest: digest.Of([]byte("snapshot")), RecoveryEpoch: 3, Administrator: "private-admin", EvidenceDigest: digest.Of([]byte("evidence")), Note: "private path /home/private/secret", AcceptRecoveryPoint: true, UnknownAfterCapture: true}
@@ -42,7 +50,13 @@ func TestManagementInfoProjectsCompletedRecoveryWithoutPrivateNotes(t *testing.T
 
 func TestManagementInfoRejectsForeignEpochMalformedAndLinkedReceipts(t *testing.T) {
 	i := create(t, t.TempDir(), Options{})
-	t.Cleanup(func() { _ = i.Close(t.Context()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := i.Close(ctx); err != nil {
+			t.Errorf("close instance: %v", err)
+		}
+	})
 	i.marker.RecoveryEpoch = 2
 	logs := filepath.Join(i.layout.Home, "logs")
 	if err := os.MkdirAll(logs, 0700); err != nil {

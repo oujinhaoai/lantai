@@ -29,7 +29,9 @@ func createPinnedOutputTemp(root *os.Root, name string) (*os.File, error) {
 	oa := windows.OBJECT_ATTRIBUTES{RootDirectory: windows.Handle(parent.Fd()), ObjectName: objectName, Attributes: windows.OBJ_DONT_REPARSE, SecurityDescriptor: sd}
 	oa.Length = uint32(unsafe.Sizeof(oa))
 	var handle windows.Handle
-	err = windows.NtCreateFile(&handle, windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE, &oa, &windows.IO_STATUS_BLOCK{}, nil, windows.FILE_ATTRIBUTE_NORMAL, 0, windows.FILE_CREATE, windows.FILE_SYNCHRONOUS_IO_NONALERT|windows.FILE_NON_DIRECTORY_FILE, 0, 0)
+	// Root.Lstat opens a second read handle to obtain a stable file identity.
+	// Permit that inspection, while retaining exclusive write/delete access.
+	err = windows.NtCreateFile(&handle, windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE, &oa, &windows.IO_STATUS_BLOCK{}, nil, windows.FILE_ATTRIBUTE_NORMAL, windows.FILE_SHARE_READ, windows.FILE_CREATE, windows.FILE_SYNCHRONOUS_IO_NONALERT|windows.FILE_NON_DIRECTORY_FILE, 0, 0)
 	if errors.Is(err, windows.STATUS_OBJECT_NAME_COLLISION) {
 		return nil, os.ErrExist
 	}

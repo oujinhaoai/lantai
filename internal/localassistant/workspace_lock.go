@@ -38,7 +38,7 @@ func lockWorkspace(ctx context.Context, workspace string) (context.Context, func
 		root.Close()
 		return ctx, nil, invalid("workspace lock must be a private regular file")
 	}
-	f, err := root.OpenFile(name, os.O_RDWR|os.O_CREATE, 0600)
+	f, err := client.OpenPrivateLockFile(root, name)
 	if err != nil {
 		root.Close()
 		return ctx, nil, invalid("workspace lock cannot be opened")

@@ -103,8 +103,11 @@ func (o *PinnedPrivateOutput) Write(b []byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	defer o.root.Remove(name)
+	defer func() {
+		// Windows does not permit deletion while the private write handle is open.
+		_ = f.Close()
+		_ = o.root.Remove(name)
+	}()
 	if n, err := f.Write(b); err != nil {
 		return err
 	} else if n != len(b) {

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -101,9 +102,14 @@ func TestExclusiveConcurrentPublishOneWinner(t *testing.T) {
 	if wins != 1 {
 		t.Fatal("exclusive winners", wins)
 	}
-	st, err := os.Stat(path)
-	if err != nil || st.Mode().Perm() != 0600 {
-		t.Fatal("mode", st, err)
+	if err := CheckPrivateFile(path); err != nil {
+		t.Fatal("private access", err)
+	}
+	if runtime.GOOS != "windows" {
+		st, err := os.Stat(path)
+		if err != nil || st.Mode().Perm() != 0600 {
+			t.Fatalf("Unix private mode: %v %v", st, err)
+		}
 	}
 	got, _ := os.ReadFile(path)
 	if string(got) != "whole file" {

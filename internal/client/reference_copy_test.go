@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -300,8 +302,13 @@ func TestReferencePinnedDestinationRejectsRootReplacement(t *testing.T) {
 	if err = os.Remove(probe); err != nil {
 		t.Fatal(err)
 	}
+	var replacementBlocked atomic.Bool
 	done := watchFirstReference(t, target, func() {
 		if err := os.Rename(target, target+"-original"); err != nil {
+			if runtime.GOOS == "windows" && os.IsPermission(err) {
+				replacementBlocked.Store(true) // The pinned directory handle denies rename.
+				return
+			}
 			t.Error(err)
 			return
 		}
@@ -313,7 +320,15 @@ func TestReferencePinnedDestinationRejectsRootReplacement(t *testing.T) {
 	if !<-done {
 		t.Fatal("no first note")
 	}
-	if err == nil || r.Complete {
+	if replacementBlocked.Load() {
+		if err != nil || !r.Complete {
+			t.Fatalf("OS-blocked replacement interrupted safe copy: %+v %v", r, err)
+		}
+
+		if err := os.Rename(target, target+"-after-close"); err != nil {
+			t.Fatalf("directory remained locked after copy returned: %v", err)
+		}
+	} else if err == nil || r.Complete {
 		t.Fatal("root replacement accepted")
 	}
 	entries, err := os.ReadDir(outside)

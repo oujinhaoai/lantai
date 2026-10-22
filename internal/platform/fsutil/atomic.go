@@ -40,7 +40,7 @@ func WriteFileAtomicWithObserver(path string, data []byte, perm fs.FileMode, obs
 	if dir == "" {
 		dir = "."
 	}
-	tmp, err := os.CreateTemp(dir, "."+base+".tmp-*")
+	tmp, err := createTempForMode(dir, "."+base+".tmp-", perm)
 	if err != nil {
 		return fmt.Errorf("fsutil: create temp file: %w", err)
 	}
@@ -111,7 +111,7 @@ func createFileExclusive(path string, data []byte, perm fs.FileMode, h exclusive
 	if dir == "" {
 		dir = "."
 	}
-	tmp, err := os.CreateTemp(dir, "."+base+".tmp-*")
+	tmp, err := createTempForMode(dir, "."+base+".tmp-", perm)
 	if err != nil {
 		return fmt.Errorf("fsutil: create temp file: %w", err)
 	}
@@ -212,4 +212,12 @@ func CheckPrivate(path string) error {
 		return fmt.Errorf("%w: %s has mode %v", ErrInsecurePermissions, path, st.Mode().Perm())
 	}
 	return nil
+}
+
+// Private writes require an ACL on Windows; mode bits alone only set attributes.
+func createTempForMode(dir, prefix string, perm fs.FileMode) (*os.File, error) {
+	if perm.Perm()&0077 == 0 {
+		return CreatePrivateTemp(dir, prefix)
+	}
+	return os.CreateTemp(dir, prefix+"*")
 }

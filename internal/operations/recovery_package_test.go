@@ -11,10 +11,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/platform/fsutil"
 )
 
 func recoveryFixture(t *testing.T) (string, BackupManifest, []byte) {
@@ -52,9 +54,14 @@ func TestRecoveryPackageRoundTripAndPrivatePublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st, _ := os.Stat(file)
-	if st.Mode().Perm() != 0600 {
-		t.Fatal("package must be private")
+	if err := fsutil.CheckPrivateFile(file); err != nil {
+		t.Fatalf("package must be private: %v", err)
+	}
+	if runtime.GOOS != "windows" {
+		st, err := os.Stat(file)
+		if err != nil || st.Mode().Perm() != 0600 {
+			t.Fatalf("Unix private mode: %v %v", st, err)
+		}
 	}
 	dest := filepath.Join(filepath.Dir(file), "extracted")
 	var gotKey []byte

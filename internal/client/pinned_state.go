@@ -72,27 +72,43 @@ func (o *PinnedPrivateOutput) saveState(value any) error {
 	return o.Write(append(b, '\n'))
 }
 
+// OpenPrivateLockFile opens or exclusively creates a private regular lock file
+// under an already pinned directory. It does not replace an existing inode or
+// acquire the caller's platform-specific lock.
+func OpenPrivateLockFile(root *os.Root, name string) (*os.File, error) {
+	if root == nil || name == "" || name == "." || name == ".." || filepath.Base(name) != name {
+		return nil, errors.New("client: lock must be one pinned file name")
+	}
+	f, err := createPinnedOutputTemp(root, name)
+	if errors.Is(err, os.ErrExist) {
+		f, err = root.OpenFile(name, os.O_RDWR, 0)
+	}
+	if err != nil {
+		return nil, err
+	}
+	current, statErr := root.Lstat(name)
+	opened, openErr := f.Stat()
+	if statErr != nil || openErr != nil || !current.Mode().IsRegular() || !os.SameFile(current, opened) {
+		f.Close()
+		return nil, errors.New("client: private lock changed while opening")
+	}
+	if err = checkPinnedOutputPrivate(f); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}
+
 func (o *PinnedPrivateOutput) lockState() (func(), error) {
 	if err := o.check(); err != nil {
 		return nil, err
 	}
 	name := o.name + ".lock"
-	st, err := o.root.Lstat(name)
-	var f *os.File
-	if errors.Is(err, os.ErrNotExist) {
-		f, err = createPinnedOutputTemp(o.root, name)
-		if errors.Is(err, os.ErrExist) {
-			f, err = o.root.OpenFile(name, os.O_RDWR, 0)
-		}
-	} else if err == nil && st.Mode().IsRegular() {
-		f, err = o.root.OpenFile(name, os.O_RDWR, 0)
-	} else if err == nil {
-		err = errors.New("client: state lock must be a regular file")
-	}
+	f, err := OpenPrivateLockFile(o.root, name)
 	if err != nil {
 		return nil, err
 	}
-	st, err = o.root.Lstat(name)
+	st, err := o.root.Lstat(name)
 	opened, openErr := f.Stat()
 	if err != nil || openErr != nil || !st.Mode().IsRegular() || !os.SameFile(st, opened) {
 		f.Close()

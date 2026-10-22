@@ -9,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
@@ -580,6 +582,7 @@ func TestWorksetRootAndDescendantReplacementCannotEscape(t *testing.T) {
 			if err := os.Mkdir(dir, 0700); err != nil {
 				t.Fatal(err)
 			}
+			var replacementBlocked atomic.Bool
 			replace := func() {
 				source := dir
 				if when == "grant-descendant" {
@@ -587,6 +590,10 @@ func TestWorksetRootAndDescendantReplacementCannotEscape(t *testing.T) {
 					os.Mkdir(source, 0700)
 				}
 				if err := os.Rename(source, source+"-retained"); err != nil {
+					if runtime.GOOS == "windows" && os.IsPermission(err) {
+						replacementBlocked.Store(true)
+						return
+					}
 					t.Error(err)
 					return
 				}
@@ -599,7 +606,16 @@ func TestWorksetRootAndDescendantReplacementCannotEscape(t *testing.T) {
 			} else {
 				f.onGrant = replace
 			}
-			if _, err := f.c.PullWorkset(t.Context(), worksetInput(e), dir, "production"); err == nil {
+			_, pullErr := f.c.PullWorkset(t.Context(), worksetInput(e), dir, "production")
+			if replacementBlocked.Load() {
+				if pullErr != nil {
+					t.Fatalf("OS-blocked replacement interrupted safe pull: %v", pullErr)
+				}
+
+				if err := os.Rename(dir, dir+"-after-close"); err != nil {
+					t.Fatalf("directory remained locked after pull returned: %v", err)
+				}
+			} else if pullErr == nil {
 				t.Fatal("replaced destination reported success")
 			}
 			contents, err := os.ReadDir(outside)
@@ -607,7 +623,11 @@ func TestWorksetRootAndDescendantReplacementCannotEscape(t *testing.T) {
 				t.Fatalf("escaped pinned root: %v %v", contents, err)
 			}
 			if when == "transfer-root" {
-				data, err := os.ReadFile(filepath.Join(base, "work-retained/output/file"))
+				retained := filepath.Join(base, "work-retained")
+				if replacementBlocked.Load() {
+					retained = dir + "-after-close"
+				}
+				data, err := os.ReadFile(filepath.Join(retained, "output/file"))
 				if err != nil || string(data) != "safe" {
 					t.Fatalf("pinned original file=%q %v", data, err)
 				}

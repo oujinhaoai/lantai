@@ -66,3 +66,49 @@ func TestWindowsPinnedOutputRefusesBroadenedExistingACL(t *testing.T) {
 		t.Fatalf("refused output changed=%q %v", got, err)
 	}
 }
+
+func TestWindowsPinnedTempAllowsIdentityInspectionWithoutWriteSharing(t *testing.T) {
+	root, err := os.OpenRoot(pinnedOutputTestRoot(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	f, err := createPinnedOutputTemp(root, "identity.tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := root.Lstat("identity.tmp")
+	if err != nil || !os.SameFile(opened, current) {
+		t.Fatalf("pinned identity cannot be inspected: %v", err)
+	}
+	if writer, err := root.OpenFile("identity.tmp", os.O_RDWR, 0); err == nil {
+		writer.Close()
+		t.Fatal("temporary write handle was shared")
+	}
+}
+func TestWindowsPrivateLockFileUsesProtectedUserACL(t *testing.T) {
+	root, err := os.OpenRoot(pinnedOutputTestRoot(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	f, err := OpenPrivateLockFile(root, "work.lock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sd, err := windows.GetSecurityInfo(windows.Handle(f.Fd()), windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPrivateDescriptor(t, sd, user.User.Sid)
+}
