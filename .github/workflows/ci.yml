@@ -84,7 +84,7 @@ jobs:
           go-version-file: go.mod
       - name: Windows filesystem prerequisites
         if: runner.os == 'Windows'
-        run: go test -count=1 -run 'TestWindows|TestPinned|TestAssistantCLIInspect|TestAssistantWorkerPolicy|TestRecoveryPackageRoundTrip|TestExclusiveConcurrent|TestManagementInfo|TestReferencePinned|TestWorksetRootAndDescendant|TestImportApplyPinnedState' ./cmd/lantai ./internal/client ./internal/localassistant ./internal/operations ./internal/platform/fsutil
+        run: go test -count=1 -run 'TestWindows|TestPinned|TestAssistantCLIInspect|TestAssistantWorkerPolicy|TestAssistantWorkerLocalResult|TestRecoveryPackageRoundTrip|TestExclusiveConcurrent|TestManagementInfo|TestReferencePinned|TestWorksetRootAndDescendant|TestImportApplyPinnedState' ./cmd/lantai ./internal/client ./internal/localassistant ./internal/operations ./internal/platform/fsutil
       - name: go test
         # Windows 托管 runner 的真实实例矩阵可超过 20 分钟累计执行；
         # 按平台限制整个测试包，不修改用例断言或性能验收阈值。

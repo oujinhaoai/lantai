@@ -477,8 +477,12 @@ func TestAssistantWorkerLocalResultReviewIsReadOnlyAndExact(t *testing.T) {
 		t.Fatal(e)
 	}
 	review, e := InspectLocalResult(root, o.LocalResultRef.JobID, o.LocalResultRef.ResultSHA256)
-	if e != nil || review.Result.Action != "import.plan" || hash(review.Result.Result) != o.LocalResultRef.ResultSHA256 || !strings.Contains(string(review.Result.Result), root) {
+	if e != nil || review.Result.Action != "import.plan" || hash(review.Result.Result) != o.LocalResultRef.ResultSHA256 {
 		t.Fatalf("local original plan not available for human review %+v %v", review, e)
+	}
+	var plan client.ImportPlan
+	if e = json.Unmarshal(review.Result.Result, &plan); e != nil || plan.SourceRoot != filepath.Join(root, "sources") || plan.SelectedFiles != 1 {
+		t.Fatalf("review did not expose the exact original plan: %+v %v", plan, e)
 	}
 	after, _ := os.ReadFile(artifactPath)
 	if string(before) != string(after) {
