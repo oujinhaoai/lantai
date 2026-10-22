@@ -48,6 +48,16 @@ def reset_admin(d,base,name):
     # Never publish enrollment, passwords, recovery codes or the transcript.
     return password,secret
 
+def restored_compose(text):
+    # The old restore writes its own config with a fresh local secret root.
+    # A legacy host bind would hide that recovered config at normal startup.
+    lines = text.splitlines(keepends=True)
+    matches = [line for line in lines if line.strip().endswith(":/var/lib/lantai/config.yaml:ro")]
+    if len(matches) != 1 or not matches[0].lstrip().startswith("- ${LANTAI_CONFIG_FILE:"):
+        raise RuntimeError("expected exactly one reviewed legacy config bind")
+    return "".join(line for line in lines if line != matches[0])
+
+
 def run_migration_recovery(d,source,new,old,web,deployment,old_web,old_deploy,new_cli,old_cli,work,evidence,instances,no_create_verified):
     # Enable the verified backup path on this synthetic old instance before capture.
     source.enable_backup(old_deploy);source.select(old['core_image']['tag'])
@@ -97,7 +107,7 @@ def run_migration_recovery(d,source,new,old,web,deployment,old_web,old_deploy,ne
     # original key. The migrated source data volume is never a restore target.
     d.RESULT['phase']='restore verified schema14 backup to independent volumes'
     restored=d.Instance(work/'restored',old_deploy,old_web,old['caddy_image']['tag'],
-        (old_deploy/'compose.yaml').read_text(),(old_deploy/'Caddyfile').read_bytes(),old['core_image']['tag'])
+        restored_compose((old_deploy/'compose.yaml').read_text()),(old_deploy/'Caddyfile').read_bytes(),old['core_image']['tag'])
     restored.port=source.port;restored.origin=source.origin;restored.config.write_bytes(source.config.read_bytes());restored.config_hash=sha(restored.config);restored.select(old['core_image']['tag'])
     restored.compose+=['-f',str(restored.root/'compose.web.yaml')];instances.append(restored)
     d.run(restored.compose+['up','--no-deps','prepare'])
@@ -120,6 +130,13 @@ def run_migration_recovery(d,source,new,old,web,deployment,old_web,old_deploy,ne
     complete_worker=worker(prepare_cid,old['core_image']['tag'],extra+['--mount',f'type=bind,source={proof_path},target=/evidence.txt,readonly','--mount',f'type=bind,source={review_path},target=/review.json,readonly'])
     d.run(complete_worker+['restore-complete','-home','/var/lib/lantai','-review','/review.json','-evidence','/evidence.txt'])
     status,report=doctor(d,recovery_worker);d.check('verified old-format recovery completes',status==0 and report['compatible'] and runtime(report)==14)
+    recovered_config=work/'recovered-config.json'
+    d.run(['docker','cp',prepare_cid+':/var/lib/lantai/config.yaml',str(recovered_config)])
+    config=json.loads(recovered_config.read_text())
+    resolved=json.loads(d.run(restored.compose+['config','--format','json']))
+    d.check('restored owned config and fresh local secret root are not shadowed',
+        config.get('secrets',{}).get('dir')=='secrets' and not any(
+            v['target']=='/var/lib/lantai/config.yaml' for v in resolved['services']['core']['volumes']))
     d.run(restored.compose+['up','-d']);restored.wait('/api/v1/meta',200);restored.ready();restored.tls_negative()
     d.check('source session is invalid after restored epoch',restored.request('/api/v1/whoami',credential=source.token)[0]==401)
     status,body,_=restored.request('/api/v1/sessions/login',{'name':restored.name,'password':restored.password,'code':restored.totp(),'channel':'cli','scopes':['admin','read','ingest','organize','self'],'ttl_seconds':900})

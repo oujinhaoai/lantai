@@ -273,13 +273,13 @@ test("OBJ preview verifies the fixed bytes and never fetches declared external m
           version_id: version1,
           purpose: "archive_review",
           method: "GET",
-          url: `/xfer/v1/reads/${version1}`,
+          url: `/xfer/v1/reads/${version1}?sig=${"a".repeat(43)}`,
           expires_at: new Date(Date.now() + 60000).toISOString(),
           range: true,
         },
       }),
   );
-  await page.route(`**/xfer/v1/reads/${version1}`, (route) =>
+  await page.route(`**/xfer/v1/reads/${version1}?sig=*`, (route) =>
     route.fulfill({ body: data }),
   );
   await page.getByRole("button", { name: "读取并显示线框" }).click();

@@ -11,6 +11,7 @@ for (const [name, certVariable, keyVariable] of [
     page,
     context,
     baseURL,
+    browserName,
   }) => {
     const certPath = process.env[certVariable];
     const keyPath = process.env[keyVariable];
@@ -20,9 +21,13 @@ for (const [name, certVariable, keyVariable] of [
       );
     await page.goto(baseURL!);
     await expect(page.getByLabel("账户名称")).toBeVisible();
+    let receivedHTTPRequests = 0;
     const server = createServer(
       { cert: await readFile(certPath), key: await readFile(keyPath) },
-      (_request, response) => response.end("TLS negative fixture"),
+      (_request, response) => {
+        receivedHTTPRequests++;
+        response.end("TLS negative fixture");
+      },
     );
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -47,10 +52,36 @@ for (const [name, certVariable, keyVariable] of [
       // Chromium can commit its error page after goto has rejected. Keep that
       // navigation on its own tab so it cannot interrupt the positive probe.
       const rejectedPage = await context.newPage();
+      const failedRequests: string[] = [];
+      let receivedResponses = 0;
+      rejectedPage.on("requestfailed", (request) =>
+        failedRequests.push(request.url()),
+      );
+      rejectedPage.on("response", (response) => {
+        if (response.url() === target) receivedResponses++;
+      });
       try {
-        await expect(rejectedPage.goto(target)).rejects.toThrow(
-          /certificate|SSL|TLS|CERT/i,
-        );
+        let rejection: unknown;
+        try {
+          await rejectedPage.goto(target);
+        } catch (error) {
+          rejection = error;
+        }
+        expect(rejection).toBeInstanceOf(Error);
+        const message = (rejection as Error).message;
+        // WebKit can surface a rejected provisional TLS navigation as this
+        // cancellation. Require the failed request and no HTTP on either side,
+        // rather than treating every navigation error as a certificate failure.
+        expect(
+          /certificate|SSL|TLS|CERT/i.test(message) ||
+            (browserName === "webkit" &&
+              /Operation was cancelled; maybe frame was detached/u.test(
+                message,
+              )),
+        ).toBe(true);
+        await expect.poll(() => failedRequests).toContain(target);
+        expect(receivedResponses).toBe(0);
+        expect(receivedHTTPRequests).toBe(0);
       } finally {
         await rejectedPage.close();
       }

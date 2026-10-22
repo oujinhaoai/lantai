@@ -250,15 +250,23 @@ class Instance:
 
     def wait(self, path, status):
         deadline = time.monotonic() + 90
+        last = {}
         while time.monotonic() < deadline:
             try:
                 response = self.request(path)
+                last = {"http_status": response[0]}
+                try:
+                    code = json.loads(response[1]).get("error", {}).get("code")
+                    if isinstance(code, str) and len(code) <= 80:
+                        last["error_code"] = code
+                except (ValueError, AttributeError):
+                    pass
                 if response[0] == status:
                     return response[1]
-            except (OSError, http.client.HTTPException):
-                pass
+            except (OSError, http.client.HTTPException) as error:
+                last = {"transport_error": type(error).__name__}
             time.sleep(0.3)
-        raise AssertionError("expected status never reached: " + path)
+        raise AssertionError("expected status never reached: " + path + "; " + json.dumps(last))
 
     def cid(self):
         return run(self.compose + ["ps", "-a", "-q", "core"])
