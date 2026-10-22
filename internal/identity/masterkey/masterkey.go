@@ -5,10 +5,11 @@
 // 加密使用标准库经过验证的 AES-256-GCM，每次随机 96 位 nonce，附加数据绑定
 // 用途与对象 ID，密文不能挪用到别的对象；子密钥由 HKDF-SHA256 按标签派生。
 // 主密钥丢失意味着已登记的 TOTP 因子无法验证，只能走因子恢复；主密钥需按
-// 运维流程单独备份。
+// 运维流程保护；完整恢复包明确包含受保护的恢复材料。
 package masterkey
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hkdf"
@@ -176,4 +177,46 @@ func (k *Key) Open(sealed, aad []byte) ([]byte, error) {
 // 子密钥泄露不暴露主密钥。
 func (k *Key) Derive(label string) ([]byte, error) {
 	return hkdf.Key(sha256.New, k.material, []byte(k.id), "lantai/"+label, keyLen)
+}
+
+// WriteRecoveryMaterial is only for a complete, access-controlled recovery
+// package. The output grants access to the original security root; it is not
+// encrypted and must never be used as a standalone HTTP response or log value.
+// Key deliberately remains non-serializable through ordinary JSON APIs.
+func (k *Key) WriteRecoveryMaterial(w io.Writer) error {
+	if k == nil || !k.id.Valid() || len(k.material) != keyLen {
+		return errors.New("masterkey: invalid recovery material")
+	}
+	v := fileWire{Contract: "lantai.recovery-key/v1", KeyID: k.id, Key: base64.StdEncoding.EncodeToString(k.material), CreatedAt: clock.Format(k.createdAt)}
+	return json.NewEncoder(w).Encode(v)
+}
+
+// ReadRecoveryMaterial reconstructs an old key in memory. Callers must first
+// validate the complete recovery package and then perform the normal old-factor
+// verification and credential invalidation; this key is never the new run key.
+func ReadRecoveryMaterial(r io.Reader) (*Key, error) {
+	var v fileWire
+	rawJSON, err := io.ReadAll(io.LimitReader(r, 4097))
+	if err != nil || len(rawJSON) > 4096 {
+		return nil, errors.New("masterkey: invalid recovery material size")
+	}
+	defer clear(rawJSON)
+	d := json.NewDecoder(bytes.NewReader(rawJSON))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&v); err != nil {
+		return nil, errors.New("masterkey: invalid recovery material")
+	}
+	if d.Decode(&struct{}{}) != io.EOF || v.Contract != "lantai.recovery-key/v1" || !v.KeyID.Valid() {
+		return nil, errors.New("masterkey: invalid recovery material")
+	}
+	raw, err := base64.StdEncoding.DecodeString(v.Key)
+	if err != nil || len(raw) != keyLen {
+		return nil, errors.New("masterkey: invalid recovery material")
+	}
+	created, err := clock.Parse(v.CreatedAt)
+	if err != nil {
+		clear(raw)
+		return nil, errors.New("masterkey: invalid recovery material")
+	}
+	return &Key{id: v.KeyID, material: raw, createdAt: created}, nil
 }

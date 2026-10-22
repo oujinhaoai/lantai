@@ -355,6 +355,12 @@ func (a JobAttempt) Validate() error {
 	if a.Fence.JobAttemptID != a.ID || a.Fence.JobID != a.JobID {
 		return invalid("job_fence_ref_mismatch")
 	}
+	if a.Protocol == execution.LocalAssistant {
+		if a.ActivationSnapshot != (ActivationSnapshot{}) || a.LocalExecution == nil {
+			return invalid("local_job_is_not_an_extension_activation")
+		}
+		return a.Input.Validate()
+	}
 	if err := a.ActivationSnapshot.Validate(); err != nil {
 		return err
 	}

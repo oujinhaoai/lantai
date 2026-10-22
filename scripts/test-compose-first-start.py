@@ -46,6 +46,17 @@ def redact_startup_log(output, key):
     return re.sub(r"[A-Za-z0-9_+/=-]{32,}", "[REDACTED TOKEN]", output)
 
 
+def assert_unclaimed_business_closed(page, request):
+    # The recovery selector checks the device claim before routing. Legacy
+    # setup routes an unknown business URL directly to 404. Neither admits it.
+    if b'src="/setup/entry.js"' in page:
+        expected = 401
+    else:
+        assert b'src="/setup/setup.js"' in page, "Unknown first-start page"
+        expected = 404
+    assert request("/api/v1/meta")[0] == expected, "Unclaimed business route is not closed"
+
+
 def public_container_state(info):
     """Allowlist Docker lifecycle/port fields; never serialize Config or logs."""
     state = info.get("State", {})
@@ -285,7 +296,7 @@ def main():
             print("PASS: setup reached over verified TLS", flush=True)
             record("initial-setup-ready")
             assert page[2] == "no-store"
-            assert request("/api/v1/meta")[0] == 404
+            assert_unclaimed_business_closed(page[1], request)
             assert request("/setup/begin", {}, "wrong")[0] == 401
             cid = command(compose + ["ps", "-q", "core"])
             assert command(["docker", "inspect", "--format", "{{.Image}}", cid]) == core_id
@@ -298,6 +309,7 @@ def main():
             os.chmod(claim_path, 0o600)
             token = json.loads(claim_path.read_text())["code"]
             claim_path.unlink()
+            assert request("/api/v1/meta", token=token)[0] == 404
             password = secrets.token_urlsafe(24)
             status, body, _ = request("/setup/begin", {"name": "ada", "password": password}, token)
             assert status == 200

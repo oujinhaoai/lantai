@@ -107,6 +107,20 @@ type configWire struct {
 
 // LoadConfig 读取并校验数据根下的 config.yaml；文件不存在时返回默认配置。
 func LoadConfig(l Layout) (Config, error) {
+	raw, err := os.ReadFile(l.ConfigPath())
+	if errors.Is(err, fs.ErrNotExist) {
+		return ParseConfig(l, nil)
+	}
+	if err != nil {
+		return Config{}, fmt.Errorf("operations: read config: %w", err)
+	}
+	return ParseConfig(l, raw)
+}
+
+// ParseConfig validates candidate bytes without installing them. Relative secret
+// paths are resolved against the real instance home, never a staging directory.
+// nil selects defaults; an existing empty file is invalid.
+func ParseConfig(l Layout, raw []byte) (Config, error) {
 	cfg := Config{
 		InstanceName: DefaultInstanceName,
 		SecretsDir:   filepath.Join(l.Home, "secrets"),
@@ -116,12 +130,8 @@ func LoadConfig(l Layout) (Config, error) {
 		Transfer:     TransferConfig{InteractiveSlots: 4, BatchSlots: 8, BatchPerPrincipal: 4},
 		Lifecycle:    LifecycleConfig{IntervalSeconds: 300, Batch: 100},
 	}
-	raw, err := os.ReadFile(l.ConfigPath())
-	if errors.Is(err, fs.ErrNotExist) {
+	if raw == nil {
 		return cfg, nil
-	}
-	if err != nil {
-		return cfg, fmt.Errorf("operations: read config: %w", err)
 	}
 	doc, err := yamljson.Decode(raw)
 	if err != nil {

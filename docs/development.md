@@ -4,10 +4,10 @@
 
 ## 环境
 
-- Go 由 `go.mod` 的 `toolchain go1.26.9` 固定；本机 Go ≥ 1.21 且 `GOTOOLCHAIN` 为默认的 `auto` 时，`go` 命令会自动下载并使用该版本。
+- Go 由 `go.mod` 的 `toolchain go1.26.10` 固定；本机 Go ≥ 1.21 且 `GOTOOLCHAIN` 为默认的 `auto` 时，`go` 命令会自动下载并使用该版本。
 - 纯 Go 构建，不需要 CGo 或 C 编译器；只有 `-race` 测试需要本机 C 工具链。
 - 开发工具（oapi-codegen、staticcheck、govulncheck）锁定在独立的 [`scripts/tools/go.mod`](../scripts/tools/go.mod)，通过 `go tool -modfile=scripts/tools/go.mod <tool>` 运行，不影响运行时依赖的版本选择。
-- Node.js 24 与 npm 用于独立 Web 的锁定安装、lint、类型检查和生产构建；`scripts/check.sh` 包含这些检查。真实浏览器另运行 `cd web && npx playwright install chromium webkit && npm test`，仅使用临时合成实例。
+- Node.js 24 与 npm 用于独立 Web 的锁定安装、`test:unit` 协议/模型回归、lint、类型检查和生产构建；`scripts/check.sh` 包含这些检查。真实浏览器另运行 `cd web && npx playwright install chromium webkit && npm test`，仅使用临时合成实例。
 - Python ≥ 3.11 用于最小 SDK、契约元数据生成与联调测试；运行时仅用标准库，`scripts/check.sh` 也运行 Python 测试。
 - 数据库、运行数据与真实配置放在仓库之外；测试只使用临时目录和合成数据。
 
@@ -184,3 +184,11 @@ go test -count=1 -run '^TestAuditWindowsOccupiedManifestRecovery$' ./internal/ev
 反例持有无删除共享句柄，核对释放后替换、持续失败时旧文件/水位保留、临时文件清理与同事实重试恢复。重试不改变仅创建一次文件的排他语义。
 
 网页真实复制与会话过期测试使用 `lantai_test_hooks` 构建标签。该标签只给测试夹具安装真实 manifest copying 阶段的 latch；普通发行构建不包含此方法或任何外部故障注入入口。Playwright 的临时后端由测试配置自动使用此标签。
+
+### Windows 文件系统回归
+
+Windows 原生文件私有性按 owner/DACL 核验，不能以 Unix 的 0600 位代替。私有状态、工作区锁及恢复包创建时使用当前用户 owner 和禁止继承的 DACL；临时文件仅共享只读访问供固定目录中的身份检查，不共享写入或删除。固定目录句柄若由 Windows 拒绝改名，测试核对原目标和外部目录均安全；改名可行的平台继续测试替换后的拒绝。CI 先运行这些短用例，再运行未裁剪的三平台 Go 套件。
+
+### 完整 race 套件的 CI 预算
+
+本地 `scripts/check.sh` 仍默认使用 30 分钟的单包累计 race 预算，普通套件和各用例内的超时、性能阈值不变。Linux CI 对完整套件显式设置 `LANTAI_TEST_TIMEOUT=45m`：[2026-10-22 的 CI 运行](https://github.com/oujinhaoai/lantai/actions/runs/39818026357/job/119961782665)在集成包累计 30 分钟时结束，当时第 145/162 个测试仅开始 7 秒，结束前仍有成功请求，未记录断言或 race 失败。该参数只增加整包执行余量，仍执行所有用例；发生超时时必须按具体测试及日志诊断，不能据超时自动放宽断言或跳过测试。

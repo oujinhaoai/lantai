@@ -90,19 +90,20 @@ type Deps struct {
 
 // Service 是 catalog 的应用服务。
 type Service struct {
-	producers ProducerVerifier
-	home      string
-	layout    storage.Layout
-	gate      *commands.Gate
-	storage   *storage.Service
-	ledger    Ledger
-	authz     authz.Authorizer
-	rights    rights.Evaluator
-	pubs      Publications
-	clock     clock.Clock
-	ids       *ids.Generator
-	instance  ids.ID
-	fs        fileop.FS
+	producers     ProducerVerifier
+	home          string
+	layout        storage.Layout
+	gate          *commands.Gate
+	storage       *storage.Service
+	ledger        Ledger
+	authz         authz.Authorizer
+	rights        rights.Evaluator
+	pubs          Publications
+	clock         clock.Clock
+	ids           *ids.Generator
+	instance      ids.ID
+	fs            fileop.FS
+	versionCursor *versionCursorCodec
 }
 
 var _ commit.RevisionVerifier = (*Service)(nil)
@@ -122,10 +123,15 @@ func New(d Deps) (*Service, error) {
 	if d.Clock == nil {
 		d.Clock = clock.System{}
 	}
+	cursor, err := newVersionCursorCodec()
+	if err != nil {
+		return nil, err
+	}
 	home := filepath.Clean(d.Home)
 	return &Service{
 		home: home, layout: storage.Layout{Home: home}, gate: d.Gate, storage: d.Storage, ledger: d.Ledger,
 		producers: d.Producers, authz: d.Authz, rights: d.Rights, pubs: d.Publications, clock: d.Clock, ids: d.IDs, instance: d.InstanceID, fs: d.FS,
+		versionCursor: cursor,
 	}, nil
 }
 

@@ -14,6 +14,7 @@ import tarfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from release_upgrade import upgrade_evidence_passed
 from release_bundle import build_web_bundle, build_deployment_bundle, require_local_docker
 
 
@@ -97,7 +98,7 @@ def check_buildinfo(buildinfo, commit, goos, goarch):
     expected = {"build\tvcs.revision=" + commit, "build\tvcs.modified=false",
                 "build\tCGO_ENABLED=0", "build\tGOOS=" + goos,
                 "build\tGOARCH=" + goarch}
-    if not expected.issubset(settings) or not buildinfo.splitlines()[0].endswith("go1.26.9"):
+    if not expected.issubset(settings) or not buildinfo.splitlines()[0].endswith("go1.26.10"):
         raise RuntimeError("binary build info lacks the exact clean commit/toolchain/platform")
 
 
@@ -146,11 +147,11 @@ def main():
     if "COPY api ./api" not in original.splitlines() or "!api/**" not in allowlist.read_text().splitlines():
         raise RuntimeError("required API Docker input repair is absent")
     source_go = re.search(r"^toolchain go([0-9.]+)$", (source / "go.mod").read_text(), re.M)
-    if not source_go or source_go.group(1) != "1.26.9":
+    if not source_go or source_go.group(1) != "1.26.10":
         raise RuntimeError("review the changed Go version before building")
     go_version = command(["go", "version"])
-    if "go1.26.9 " not in go_version:
-        raise RuntimeError("Go 1.26.9 is required")
+    if "go1.26.10 " not in go_version:
+        raise RuntimeError("Go 1.26.10 is required")
     ci = None
     if args.require_main_ci:
         repository = os.environ.get("GITHUB_REPOSITORY", "")
@@ -192,13 +193,13 @@ def main():
         (deliver / "docker-version.json").write_text(docker_version + "\n")
         (deliver / "compose-version.txt").write_text(compose_version + "\n")
         # Resolve the base, then build from its immutable repository digest.
-        command(["docker", "pull", "--platform", "linux/amd64", "golang:1.26.9"], capture=False)
-        go_image = image_info("golang:1.26.9")
+        command(["docker", "pull", "--platform", "linux/amd64", "golang:1.26.10"], capture=False)
+        go_image = image_info("golang:1.26.10")
         repo_digests = go_image.get("RepoDigests") or []
         if not repo_digests:
             raise RuntimeError("Go base has no repository digest")
         base = repo_digests[0]
-        old_from = "FROM golang:1.26.9 AS build"
+        old_from = "FROM golang:1.26.10 AS build"
         if original.count(old_from) != 1:
             raise RuntimeError("review the changed Dockerfile before base pinning")
         effective = work / "Dockerfile"
@@ -218,7 +219,7 @@ def main():
         if core.get("Config", {}).get("User") != "65532:65532":
             raise RuntimeError("unexpected image user")
         core_version = json.loads(command(["docker", "run", "--rm", "--network", "none", core_tag, "version", "--json"]))
-        if core_version.get("platform") != "linux/amd64" or core_version.get("go_version") != "go1.26.9":
+        if core_version.get("platform") != "linux/amd64" or core_version.get("go_version") != "go1.26.10":
             raise RuntimeError("unexpected core image binary platform/toolchain")
         save_json(deliver / "image-version.json", core_version)
         save_json(deliver / "core-image-inspect.json", core)
@@ -298,7 +299,7 @@ def main():
             if goos == "linux" and goarch == "amd64":
                 version = json.loads(command([str(binary), "version", "--json"]))
                 if (version.get("vcs_revision") != args.commit or version.get("vcs_modified") is not False
-                        or version.get("platform") != "linux/amd64" or version.get("go_version") != "go1.26.9"):
+                        or version.get("platform") != "linux/amd64" or version.get("go_version") != "go1.26.10"):
                     raise RuntimeError("standalone version smoke mismatch")
                 save_json(deliver / "binary-version-linux-amd64.json", version)
         web = build_web_bundle(build_source, deliver, args.version, args.commit, stamp, command)
@@ -323,9 +324,10 @@ def main():
                 or delivery_result.get("core_image_id") != core["Id"]
                 or delivery_result.get("caddy_image_id") != caddy["Id"]
                 or not all(delivery_result.get(x) for x in
-                           ("fresh_install_passed", "direct_upgrade_passed", "original_identity_preserved",
+                           ("fresh_install_passed", "original_identity_preserved",
                             "original_totp_login_passed", "static_archive_served", "volumes_preserved",
-                            "backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed", "rollback_passed"))):
+                            "backup_smoke_passed", "backup_preparation_passed", "bind_no_create_passed"))
+                or not upgrade_evidence_passed(delivery_result)):
             raise RuntimeError("actual delivery image/static/direct-upgrade smoke did not pass")
         (deliver / "delivery-image-smoke.txt").write_text(delivery_output + "\n")
         if (command(["git", "rev-parse", "HEAD"], cwd=source) != args.commit
@@ -334,7 +336,7 @@ def main():
             raise RuntimeError("source changed during build")
         (deliver / "release-images.env").write_text(f"LANTAI_IMAGE={core_tag}\nLANTAI_CADDY_IMAGE={caddy_tag}\n")
         files = [{"name": p.name, "size_bytes": p.stat().st_size, "sha256": digest(p)} for p in sorted(deliver.iterdir())]
-        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-web-and-direct-upgrade-smoke",
+        manifest = {"schema": "lantai.release-artifacts/v1", "status": "built-with-cli-web-and-verified-upgrade-smoke",
                     "version": args.version, "source_commit": args.commit, "platform": "linux/amd64",
                     "go_version": go_version, "main_ci": ci,
                     "build_run": {"repository": os.environ.get("GITHUB_REPOSITORY"), "run_id": os.environ.get("GITHUB_RUN_ID"),

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/operations/v2/recovery-review.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "run_id",
+    "backup_id",
+    "manifest_digest",
+    "recovery_epoch",
+    "administrator",
+    "revocations_reconciled",
+    "deletions_reconciled",
+    "open_operations_reconciled",
+    "evidence_digest",
+    "note",
+    "accept_recovery_point",
+    "unknown_after_capture"
+  ],
+  "properties": {
+    "contract": {
+      "const": "lantai.recovery-review/v2"
+    },
+    "run_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "backup_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "manifest_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "recovery_epoch": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/epoch"
+    },
+    "administrator": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "revocations_reconciled": {
+      "const": false
+    },
+    "deletions_reconciled": {
+      "const": false
+    },
+    "open_operations_reconciled": {
+      "const": false
+    },
+    "evidence_digest": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/digest"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 2000
+    },
+    "accept_recovery_point": {
+      "const": true
+    },
+    "unknown_after_capture": {
+      "const": true
+    }
+  },
+  "title": "RecoveryPointDecision",
+  "description": "恢复控制器生成的恢复点接受记录。保留未知事项为未知；不将它们宣称为已对账。仍要求新管理员、领域检查和证据摘要。"
+}

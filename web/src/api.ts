@@ -9,7 +9,12 @@ export interface Session {
   delegated_by?: string;
 }
 export interface Identity {
-  principal: { name: string; display_name?: string; kind?: string };
+  principal: {
+    principal_id?: string;
+    name: string;
+    display_name?: string;
+    kind?: string;
+  };
   session: Session;
   system_roles?: string[];
   project_roles?: Record<string, string[]>;
@@ -58,6 +63,9 @@ export interface Asset {
     tags: string[];
     subjects: string[];
     revision: number;
+    sensitivity?: "normal" | "personal";
+    defaults?: { usage: string; license: string };
+    extra?: Record<string, unknown>;
   };
   latest: Version;
 }
@@ -123,6 +131,11 @@ export function clearCSRF() {
 export function hasCSRF() {
   return !!csrf;
 }
+// Used only after the transfer adapter verifies the exact same-origin /xfer
+// endpoint. This is the existing per-tab CSRF proof, never a session token.
+export function csrfForRequest(): string | null {
+  return csrf?.value ?? null;
+}
 export const isSessionError = (e: unknown) =>
   e instanceof APIError &&
   ["AUTH_REQUIRED", "TOKEN_EXPIRED", "TOKEN_REVOKED"].includes(e.code);
@@ -148,6 +161,7 @@ export async function api<T>(
       headers,
       credentials: "same-origin",
       cache: "no-store",
+      redirect: "error",
     });
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") throw e;

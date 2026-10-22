@@ -82,12 +82,8 @@ func runBackup(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			fmt.Fprintln(stderr, "lantai backup: -before-upgrade requires a stopped instance awaiting a new migration")
 			return exitInvalid
 		}
-		key, err := masterkey.Load(inst.Config().SecretsDir)
-		if err != nil {
-			return reportStartup(stderr, "backup", err)
-		}
-		m, err := inst.Backup(ctx, operations.BackupOptions{Destination: *destination, BackupID: ids.ID(*resume), KeyID: key.ID()})
-		outputErr := outputJSON(stdout, m)
+		m, err := application.BackupBeforeUpgrade(ctx, inst, operations.BackupOptions{Destination: *destination, BackupID: ids.ID(*resume)})
+		outputErr := backupOutput(stdout, m)
 		if err != nil {
 			return reportStartup(stderr, "backup", err)
 		}
@@ -103,7 +99,7 @@ func runBackup(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	defer a.Close(context.Background())
 	m, err := a.Backup(ctx, operations.BackupOptions{Destination: *destination, BackupID: ids.ID(*resume)})
-	outputErr := outputJSON(stdout, m)
+	outputErr := backupOutput(stdout, m)
 	if err != nil {
 		return reportStartup(stderr, "backup", err)
 	}
@@ -113,10 +109,27 @@ func runBackup(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	return exitOK
 }
+
+// Keep the snapshot JSON contract stable; emit the complete artifact metadata
+// as an additional field for command users, without any key material.
+func backupOutput(w io.Writer, m operations.BackupManifest) error {
+	raw, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	var v map[string]any
+	if err = json.Unmarshal(raw, &v); err != nil {
+		return err
+	}
+	if m.RecoveryPackage != nil {
+		v["recovery_package"] = m.RecoveryPackage
+	}
+	return outputJSON(w, v)
+}
 func runBackupVerify(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("backup-verify", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	dir := fs.String("backup", "", "完整备份目录")
+	dir := fs.String("backup", "", "完整恢复包文件或旧数据快照目录")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return exitOK
@@ -125,6 +138,16 @@ func runBackupVerify(ctx context.Context, args []string, stdout, stderr io.Write
 	}
 	if *dir == "" || fs.NArg() != 0 {
 		return exitUsage
+	}
+	if st, err := os.Stat(*dir); err == nil && st.Mode().IsRegular() {
+		info, err := operations.VerifyRecoveryPackage(ctx, *dir)
+		if err != nil {
+			return reportStartup(stderr, "backup-verify", err)
+		}
+		if outputJSON(stdout, info) != nil {
+			return exitInternal
+		}
+		return exitOK
 	}
 	m, err := operations.VerifyBackup(ctx, *dir)
 	if err != nil {
@@ -139,7 +162,7 @@ func runRestore(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	fs := flag.NewFlagSet("restore", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	home := homeFlag(fs)
-	dir := fs.String("backup", "", "完整备份目录")
+	dir := fs.String("backup", "", "完整恢复包文件或旧数据快照目录")
 	keyDir := fs.String("key-dir", "", "单独恢复的原主密钥目录")
 	minimum := fs.Int64("minimum-epoch", 0, "已知旧实例的最高 recovery_epoch，新实例必须高于它")
 	if err := fs.Parse(args); err != nil {
@@ -148,7 +171,24 @@ func runRestore(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		}
 		return exitUsage
 	}
-	if *home == "" || *dir == "" || *keyDir == "" || *minimum < 0 || fs.NArg() != 0 {
+	if *home == "" || *dir == "" || *minimum < 0 || fs.NArg() != 0 {
+		return exitUsage
+	}
+	if st, err := os.Stat(*dir); err == nil && st.Mode().IsRegular() {
+		if *keyDir != "" {
+			return exitUsage
+		}
+		marker, err := application.RestorePackage(ctx, *dir, operations.RestoreOptions{Home: *home, MinimumEpoch: *minimum}, identity.Config{})
+		if err != nil {
+			return reportStartup(stderr, "restore", err)
+		}
+		if outputJSON(stdout, marker) != nil {
+			return exitInternal
+		}
+		fmt.Fprintln(stderr, "Restored complete package; old identities are invalid. Service remains closed pending administrator confirmation and reconciliation.")
+		return exitOK
+	}
+	if *keyDir == "" {
 		return exitUsage
 	}
 	key, err := masterkey.Load(*keyDir)

@@ -46,8 +46,14 @@
 
 `cancelling` 仍持有保护；只有工作实际退出后才恢复业务。重启把执行态变为 `interrupted`，不会自动续传。历史错误、源 pin 和不完整目标都保留；管理员修复后对原任务显式续传。完成必须通过原有的复制、完整性验证和源端确认，不能替换另一任务的完整副本。控制日志损坏只停用备份、保留证据；业务启动不会因此失败。
 
-日志存在原数据根的 `backups/online` 与 `backups/management.json`，权限为私有目录/文件。数据备份从不包含主密钥；密钥独立保管。任务/计划历史不会自动删除；控制日志设置有界容量，达到上限安全拒绝新记录，须经运维审查后处理，不能直接删改防重记录。
+日志存在原数据根的 `backups/online` 与 `backups/management.json`，权限为私有目录/文件。普通 v1 数据快照不包含主密钥；本分支的新 `.lantai` 完整包包含恢复材料，按敏感文件保护。任务/计划历史不会自动删除；控制日志设置有界容量，达到上限安全拒绝新记录，须经运维审查后处理，不能直接删改防重记录。
 
 整馆恢复与原卷重启不同：控制日志目录 `backups/` 不属于备份成品，空目录恢复不会复活原任务历史或自动计划。恢复完成并建立新管理员后，重新配置备份根并明确启用所需计划，避免旧自动授权随恢复复活。
 
 活动备份期间，目录可用性显示最近一次准入检查的结果与 `checked_at`，`check_deferred=true` 表示延后重新探测。状态查询和取消不再次访问外部盘，避免坏挂载阻塞管理通道；任务结束后刷新会重新检查。
+
+## 本分支新增完整包下载
+
+完成任务的 `package` 字段包含整包标识、格式、SHA256、大小和 `sensitive: true`。它表示自包含敏感恢复包；旧历史中没有该字段的任务不具有同一含义。
+
+先以 `identity.backup_export` 创建并验证 HumanGrant，命令为 `kind: download`、`job_id` 和精确 `package_sha256`，再调用 `POST /api/v1/admin/backups/{id}/download-request`。返回15分钟下载能力，同时给浏览器设置HttpOnly/Secure/SameSite=Strict Cookie。API客户端通过 `X-Lantai-Backup-Download` 头提交返回的短期token。`GET /api/v1/admin/backups/{id}/package` 仍要求同一有效管理员会话；支持Range、If-Range和稳定ETag，拒绝控制身份、跨会话能力和摘要不匹配。token不放入URL或浏览器持久存储。

@@ -1,0 +1,25 @@
+准确交付为 r10-gui-migration-r1，产品冻结摘要 dbca6589325d6e043f9c85b914912683ba3f99a0d9fa0d4f2d55ef85a5c6d09c，共1557个产品文件。镜像/Web 构建提交3ad86ea10830676d5ef5d72286a02fd0d9d01c65；封存配置/证据提交8de6b0f572d84ec2523765ec5ea5247a599e8505。后续只调整测试、打包和配置，没有修改产品源码或重建镜像/Web。
+
+安装下载：https://github.com/oujinhaoai/lantai/actions/runs/39542828167/artifacts/12320610312 。39,580,861字节，SHA256 ec041ae08b308e2307c9bbdbfd2411141b00db8ef786aa6586ae013ae64be84e；2026-11-20T04:14:31Z 到期。包内manifest.json SHA256 fbd22e77e0aaece8e0d44e7c624d50a71807d5a78117bf17eb7563dd484affe8；SHA256SUMS SHA256 64856b6c615aa47fb97f7f64aa9b9636e5b9cb4e8f28c8085d54ca4053959a4f。
+
+已执行的准确产物验证：原生Linux x86_64/amd64，Docker28.0.4、Compose2.38.2；冷启动、受保护设置/TOTP、严格CA/证书/主机名、同卷新版本重启和全项目停启。新run39542828167以实际核心网络命名空间对照私有bridge合成服务：普通bridge成功，核心Internal网络失败；UID65532、只读根、无发布核心端口、cap_drop ALL、正常停止通过。没有外联NAS、真实素材或Internet测试端点。
+
+准确rc6(4406320354e2241ca996a16ae97abb5dff4f477e)→同卷r10、既有migrate 14→15、备份缺失/错误拒绝、身份/会话/历史版本/字节/密钥保持及幂等停启已通过111项检查。迁移新增node_devices表及索引；未放宽任何schema/备份守卫。旧镜像拒绝schema15；不能直接同卷降级。独立新卷恢复schema14、原保护点、凭据失效/新因素确认、绑定恢复审阅与restore-complete、重开和重启通过；这依赖recover-admin及restore-complete，不能称为NAS纯GUI旧版本恢复通过。run39538298792，artifact12318104345。
+
+真实浏览器run39541828961通过。Chrome155使用PID/network namespace及Seccomp-BPF/TSYNC沙箱；私有profile经原生证书管理器导入合成CA，严格TLS保持。文件选择使用独立D-Bus测试会话的FileChooser协议夹具，只返回明确的合成公有CA；没有修改宿主portal、信任库、AppArmor/sysctl/SUID或忽略证书错误。原始全部登录/cookie/Range/会话绑定/CSRF/响应式/无JS帮助断言保留，仅导航操作从旧“资源库”适配真实“主导航/素材库”。4张合成登录后截图另在artifact12319623468，未混入安装包。
+
+历史失败原样保留：39535413064初始门禁同时有未迁移schema14拒绝启动、/api/v1/meta超时、cleanup_failed与浏览器证书定位/沙箱路径失败；不把它改称整体通过或仅浏览器问题。39542667020网络探针本身通过，未完成首次设置时停止的exit0断言失败；冻结firststart取消上下文会返回启动错误，仍未验证该阶段退出0。之后完整初始化的运行核心正常停止通过。
+
+GUI升级必须保留原项目身份、主目录、端口32444、原卷rc4_fresh_data/rc4_fresh_secrets和全部私有宿主来源/TLS值。旧版网页完成备份并暂停写入后，停止整个原项目；导入配对核心，保留旧Web后替换整套web目录；新增LANTAI_UPGRADE_BACKUP_DIR=原备份bind的NAS宿主目录/<complete任务job.id>，该目录直接含manifest.json，不能填写backup_id或裸ID。应用配套配置，由prepare→无网络schema-migrate→core/gateway依次启动。缺备份值/目录会拒绝，不得绕过。公开模板中的域名与路径为占位，不能覆盖用户原私有值；NAS GUI须支持Compose的一次性成功依赖。未在NAS实机执行。
+
+NAS现场、真实DCC打开编辑回交、生产设备授权及1GiB可选负载未执行。完整既有统一检查已收到且不重跑：冻结产品54个Go测试包、64 Python、128 Web单元，源码前后摘要相同。该旧统一检查与新的准确CI镜像/迁移/浏览器结果分开记录。
+
+配置验证范围：公开完整模板在Compose2.38.2渲染校验通过；111项联测实际执行了同守卫、同卷、同依赖语义的合成迁移服务。用户NAS私有宿主路径及其GUI对depends_on/service_completed_successfully的实现尚未现场验证。
+
+五入口真实业务冒烟 run39544283683 success，提交b877354be6f0d92c1022b0d3c87fe39bb4ab1cd4，artifact12321031686，3348字节，SHA256 23475361e88f840c44823646cdf078fb1746212aedc6aa17525c9a5ec2eb202d。13个初始化/关闭检查及9个业务/DOM观察项通过，覆盖五条基本业务路径，没有请求mock。Chrome155.0.8059.84仍使用实际namespace/seccomp、私有CA和严格TLS。完成画像全部8字段保存重读、真实rights读取；合成文件复制入藏、原状态下载、commit、全文件SHA核验及完整单行台账；固定版本TAR独立SHA检查、档案保存、经界面重新查询后的列表发现与重新打开；项目创建、显式ACL查询以及管理员不自动获项目资料角色；经新鲜TOTP绑定HumanGrant的网页完整备份并验证完成。没有网页pageerror，business_failures为空。工作集列表的有界界面刷新成功，备用固定ID路径未被使用。
+
+五入口可见、这五条实际业务路径通过、所有功能完整验收是三个不同层级。完整设备八动作/M1-07复制回退与最终接受正例、三档案经完整包恢复后逐网页重开、rights全部变更及工作集新版本回交，仍不得扩大声称为本次准确镜像浏览器全覆盖。原冻结产品相关非浏览器真实HTTPS/CLI与统一检查证据保留。
+
+新五入口夹具前两轮因自身临时路径不符合未放宽的CA选择守卫而失败；第三轮真实DOM的选择框名称含option文本，严格短名选择器不匹配；第四轮列表首次查询未刷新，不能等待一个静态空列表自动更新。最终夹具按唯一combobox语义匹配、明确选文件、有界真实UI重新查询，保留全部入藏/散列/台账/重开/权限断言，未修改产品或删除失败检查。未做再次镜像或Web构建。
+
+同一安装ZIP已通过支持的GitHub原生artifact下载工具取得可复用私有文件引用；私有file_id不公开提交。没有调用Library prepare/finalize，不把该动作冒称为Library上传成功。main仍为4406320354e2241ca996a16ae97abb5dff4f477e；未合并main、未创建正式Release、未推送镜像注册表、未改仓库权限或新增凭据。

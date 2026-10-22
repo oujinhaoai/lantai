@@ -307,6 +307,11 @@ func TestBackupScheduleSingleDailySlotBusyMissedAndRestart(t *testing.T) {
 				if _, err := operations.VerifyBackup(t.Context(), filepath.Join(b.root, string(j.ID))); err != nil {
 					t.Fatal(err)
 				}
+				info, err := operations.VerifyRecoveryPackage(t.Context(), operations.RecoveryPackagePath(filepath.Join(b.root, string(j.ID))))
+				if err != nil || j.Package == nil || info.SHA256 != j.Package.SHA256 || info.Manifest.BackupID != j.BackupID {
+					t.Fatal("scheduled backup lacks complete recovery artifact", err)
+				}
+				t.Logf("scheduled complete package: job=%s backup=%s sha256=%s", j.ID, j.BackupID, info.SHA256)
 			}
 			// Repeated and backward-clock ticks must not create another job for this day.
 			for range 3 {

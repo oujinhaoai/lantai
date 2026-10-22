@@ -1,0 +1,47 @@
+name: r10-five-entry-browser
+on:
+  push:
+    branches: [candidate/r10-five-entry-20261021]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native-ca-manager:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/web/package-lock.json
+      - name: Install only locked test client dependencies
+        run: npm ci --prefix source/web
+      - name: Verify unchanged product bytes
+        working-directory: source
+        run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/browser-source-proof.json"
+      - name: Prepare private portal test libraries
+        run: |
+          if ! /usr/bin/python3 -c 'import dbus; from gi.repository import GLib'; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y python3-dbus python3-gi
+          fi
+      - name: Download the exact paired candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
+      - name: Run additional actual five-entry business UI smoke
+        run: xvfb-run -a -s "-screen 0 1920x1200x24" dbus-run-session -- python3 source/packaging/r10/test_five_entry.py --candidate "$RUNNER_TEMP/candidate" --out "$RUNNER_TEMP/r10-five-entry-evidence"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: r10-five-entry-browser-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/browser-source-proof.json
+            ${{ runner.temp }}/r10-five-entry-evidence/FIVE-ENTRY-ACCEPTANCE.json
+          if-no-files-found: error
+          retention-days: 30

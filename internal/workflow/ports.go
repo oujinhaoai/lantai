@@ -123,11 +123,16 @@ func (x *ReviewExecution) Task(ctx context.Context, who authz.Context, v commit.
 		if err != nil {
 			return err
 		}
-		if !activeFlow(r.flow.State) {
+		if !activeFlow(r.flow.State) && !(action == "effective_approval" && r.flow.State == "completed") {
 			return errcode.New(errcode.InvalidStateTransition, "").WithDetails(errcode.Detail{Reason: "flow_" + string(r.flow.State)})
 		}
 	}
 	switch action {
+	case "effective_approval":
+		if (t.State != "submitted" && t.State != "done") || !delivered {
+			return staleTarget("task_not_currently_accepted")
+		}
+		return nil
 	case "submit":
 		switch t.State {
 		case "submitted":

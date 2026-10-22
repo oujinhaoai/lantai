@@ -3,7 +3,9 @@
 package backupmgmt
 
 import (
+	"context"
 	"errors"
+	"io"
 	"io/fs"
 	"time"
 
@@ -38,6 +40,24 @@ type Job struct {
 	ScheduleTimezone string    `json:"schedule_timezone,omitempty"`
 	ScheduleRevision int64     `json:"schedule_revision,omitempty"`
 	Attempt          int       `json:"attempt,omitempty"`
+	Package          *Package  `json:"package,omitempty"`
+}
+
+type Package struct {
+	ID        ids.ID `json:"id"`
+	Format    string `json:"format"`
+	SHA256    string `json:"sha256"`
+	Size      int64  `json:"size"`
+	Sensitive bool   `json:"sensitive"`
+}
+
+type PackageReader interface {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+type PackageService interface {
+	OpenPackage(context.Context, ids.ID, string) (PackageReader, Package, error)
 }
 type Availability struct {
 	// CheckedAt records the last completed admission/idle probe, not a live

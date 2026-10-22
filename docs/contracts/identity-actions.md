@@ -35,6 +35,7 @@
 | `extensions.probe` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `extensions.read` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `identity.backup_cancel` | 实例 | `admin` | 系统 admin | 仅人本人 |
+| `identity.backup_export` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.backup_read` | 实例 | `admin` | 系统 admin | 仅人本人 |
 | `identity.backup_resume` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
 | `identity.backup_schedule` | 实例 | `admin` | 系统 admin | 仅人本人；需 HumanGrant |
@@ -89,6 +90,9 @@
 | `ledger.unarchive` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
 | `ledger.unhold` | 项目 | `admin` | ；系统 admin | 仅人本人；需 HumanGrant |
 | `ledger.unlock` | 项目 | `admin` | owner | 仅人本人；需 HumanGrant |
+| `node.device_manage` | 项目 | `organize` | owner、coordinator、contributor、curator | 仅人本人 |
+| `node.device_read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer | 仅人本人 |
+| `node.device_work` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer | 仅人本人 |
 | `node.observe` | 项目 | `node` | owner、checker |  |
 | `personal.read` | 项目 | `read` | owner、coordinator、contributor、curator、checker、reviewer、viewer |  |
 | `provenance.append_evidence` | 项目 | `organize` | owner、curator |  |

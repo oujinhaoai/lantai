@@ -207,8 +207,8 @@ func (b *BackupControl) checkDestination() error {
 	return nil
 }
 
-// Reserve the configured low-water mark plus twice the captured bytes. This
-// conservative preflight includes WAL and temporary copy overhead. Per-blob and
+// Reserve the configured low-water mark plus three times the captured bytes. This
+// conservative preflight includes the snapshot, complete package and copy/WAL overhead. Per-blob and
 // final checks still handle ENOSPC and external consumers after preflight.
 func (b *BackupControl) checkCapacity(ctx context.Context) error {
 	var bytes uint64
@@ -237,10 +237,10 @@ func (b *BackupControl) checkCapacity(ctx context.Context) error {
 				return errors.New("unsafe source file")
 			}
 			n := uint64(st.Size())
-			if n > (^uint64(0)-bytes)/2 {
+			if n > (^uint64(0)-bytes)/3 {
 				return errors.New("backup size overflow")
 			}
-			bytes += n * 2
+			bytes += n * 3
 			return nil
 		})
 		if err != nil {
@@ -432,6 +432,10 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 		}
 		if m.BackupID != "" && j.BackupID == "" {
 			j.BackupID = m.BackupID
+		}
+		if err == nil && m.RecoveryPackage != nil {
+			p := m.RecoveryPackage
+			j.Package = &backupmgmt.Package{ID: p.Manifest.PackageID, Format: p.Manifest.Contract, SHA256: p.SHA256, Size: p.Size, Sensitive: true}
 		}
 		j.UpdatedAt = b.now()
 		b.reachTestBoundary("job.final.before_record", j)

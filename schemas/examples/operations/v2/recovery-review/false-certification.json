@@ -1,0 +1,26 @@
+{
+  "description": "false-certification",
+  "schema": "lantai.recovery-review/v2",
+  "valid": false,
+  "document": {
+    "contract": "lantai.recovery-review/v2",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "backup_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recovery_epoch": 3,
+    "administrator": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "revocations_reconciled": true,
+    "deletions_reconciled": false,
+    "open_operations_reconciled": false,
+    "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "note": "Owner accepted recovery point and known-change review; unknown source events remain unknown.",
+    "accept_recovery_point": true,
+    "unknown_after_capture": true
+  },
+  "expect": [
+    {
+      "pointer": "/revocations_reconciled",
+      "keyword": "const"
+    }
+  ]
+}

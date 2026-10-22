@@ -26,6 +26,13 @@ interface Job {
   scheduled_for?: string;
   schedule_timezone?: string;
   attempt?: number;
+  package?: {
+    id: string;
+    format: string;
+    sha256: string;
+    size: number;
+    sensitive: boolean;
+  };
 }
 interface Schedule {
   enabled: boolean;
@@ -174,6 +181,26 @@ function ErrorNotice({ error }: { error: unknown }) {
 function JobFacts({ job }: { job: Job }) {
   return (
     <dl className="backup-facts">
+      {job.state === "complete" && (
+        <>
+          <dt>恢复材料</dt>
+          <dd>
+            {job.package
+              ? "完整自包含恢复包"
+              : "旧数据快照，未包含完整恢复材料"}
+          </dd>
+        </>
+      )}
+      {job.package && (
+        <>
+          <dt>完整包 SHA256</dt>
+          <dd>
+            <code>{job.package.sha256}</code>
+          </dd>
+          <dt>完整包大小</dt>
+          <dd>{job.package.size.toLocaleString()} 字节</dd>
+        </>
+      )}
       <dt>任务标识</dt>
       <dd>
         <code>{job.id}</code>
@@ -458,6 +485,21 @@ export function BackupManagement({
       method: "POST",
       body: {},
     });
+  const download = (job: Job) => {
+    if (!job.package) return;
+    return prepare({
+      title: "下载完整恢复包",
+      action: "identity.backup_export",
+      command: {
+        kind: "download",
+        job_id: job.id,
+        package_sha256: job.package.sha256,
+      },
+      path: `${root}/${encodeURIComponent(job.id)}/download-request`,
+      method: "POST",
+      body: { package_sha256: job.package.sha256 },
+    });
+  };
   const cancel = async (job: Job) => {
     if (!lock()) return;
     setActionError(undefined);
@@ -531,6 +573,16 @@ export function BackupManagement({
           dirtyRef.current = false;
           setDirty(false);
           setNotice("每日计划已保存。下次运行时间以服务器返回为准。");
+        } else if (submitted.action === "identity.backup_export") {
+          const link = document.createElement("a");
+          link.href = `${root}/${encodeURIComponent(String(submitted.command.job_id))}/package`;
+          link.download = `lantai-${String(submitted.command.job_id)}.lantai`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          setNotice(
+            "完整恢复包下载已交给浏览器。文件包含恢复所需敏感材料，请按私密资料保管；下载结束后可核对 SHA256。",
+          );
         } else setNotice("任务已受理。请查看当前阶段与最终结果。");
         reload();
       }
@@ -686,7 +738,11 @@ export function BackupManagement({
               </p>
               {overview.last_success ? (
                 <>
-                  <p>已完成备份与验证。</p>
+                  <p>
+                    {overview.last_success.package
+                      ? "完整恢复包已生成并验证。"
+                      : "旧版数据快照；未包含独立恢复材料。"}
+                  </p>
                   <code>{overview.last_success.id}</code>
                 </>
               ) : (
@@ -744,6 +800,17 @@ export function BackupManagement({
                   <p className="backup-job-error">{errorText(current.error)}</p>
                 )}
                 <JobFacts job={current} />
+                {!restricted &&
+                  current.state === "complete" &&
+                  current.package && (
+                    <button
+                      className="secondary"
+                      onClick={() => void download(current)}
+                      disabled={!mutable}
+                    >
+                      下载完整恢复包
+                    </button>
+                  )}
                 {active && (
                   <button
                     ref={cancelButton}
@@ -986,6 +1053,15 @@ export function BackupManagement({
                     <summary>任务详情</summary>
                     <JobFacts job={job} />
                   </details>
+                  {!restricted && job.state === "complete" && job.package && (
+                    <button
+                      className="secondary"
+                      onClick={() => void download(job)}
+                      disabled={!mutable}
+                    >
+                      下载完整恢复包
+                    </button>
+                  )}
                   {!restricted && resumableStates.has(job.state) && (
                     <button
                       className="secondary"

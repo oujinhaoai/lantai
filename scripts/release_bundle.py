@@ -196,6 +196,9 @@ def build_deployment_bundle(source, work, deliver, version, commit, stamp, core_
         f"(https://github.com/oujinhaoai/lantai/blob/{commit}/api/openapi.yaml)")
     management_doc = management_doc.replace("(../docs/online-backup.md)", "(online-backup.md)")
     (root / "backup-management-api.md").write_text(management_doc)
+    recovery_doc = (source / "docs/recovery-package.md").read_text()
+    (root / "recovery-package.md").write_text(recovery_doc)
+    (root / "recovery-control-api.md").write_text((source / "api/recovery-control.md").read_text())
     for name in ("release-install.md", "release-upgrade.md"):
         path = root / name
         path.write_text(path.read_text().replace("../docs/online-backup.md", "online-backup.md"))

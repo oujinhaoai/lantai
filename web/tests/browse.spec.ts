@@ -26,6 +26,9 @@ async function login(page: Page, request: APIRequestContext) {
   await expect(page.getByRole("heading", { name: "你好，Ada" })).toBeVisible();
   return credentials;
 }
+function assetRows(page: Page) {
+  return page.getByRole("region", { name: "素材检索结果" }).locator("tbody tr");
+}
 async function shot(page: Page, info: TestInfo, name: string) {
   if (!process.env.LANTAI_WEB_EVIDENCE) return;
   await mkdir(process.env.LANTAI_WEB_EVIDENCE, { recursive: true });
@@ -113,15 +116,15 @@ test("Chinese browse, project isolation, real pagination, fixed detail and histo
   await shot(page, info, "empty");
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
-  await expect(page.locator(".asset-list li")).toHaveCount(24);
+  await expect(assetRows(page)).toHaveCount(24);
   await page.getByRole("button", { name: "加载下一页" }).click();
-  await expect(page.locator(".asset-list li")).toHaveCount(27);
+  await expect(assetRows(page)).toHaveCount(27);
   await expect(page.getByRole("button", { name: "加载下一页" })).toHaveCount(0);
-  await page.getByLabel("搜索资源").fill("镜头");
-  await page.getByRole("button", { name: "搜索", exact: true }).click();
-  await expect(page.locator(".asset-list li")).toHaveCount(1);
+  await page.getByRole("textbox", { name: "著录文字" }).fill("镜头");
+  await page.getByRole("button", { name: "应用筛选", exact: true }).click();
+  await expect(assetRows(page)).toHaveCount(1);
   await expect(
     page.getByRole("link", { name: /镜头语言与场景参考/ }),
   ).toBeVisible();
@@ -134,17 +137,19 @@ test("Chinese browse, project isolation, real pagination, fixed detail and histo
   await expect(page.getByRole("cell", { name: "content.txt" })).toBeVisible();
   await shot(page, info, "detail");
   await page.goBack();
-  await expect(page.getByLabel("搜索资源")).toHaveValue("镜头");
-  await expect(page.locator(".asset-list li")).toHaveCount(1);
+  await expect(page.getByRole("textbox", { name: "著录文字" })).toHaveValue(
+    "镜头",
+  );
+  await expect(assetRows(page)).toHaveCount(1);
   await page.goForward();
   await expect(
     page.getByRole("heading", { name: "镜头语言与场景参考" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "返回列表" }).click();
   await page.getByLabel("资源类型").selectOption("image");
-  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await page.getByRole("button", { name: "应用筛选", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "没有匹配的资源" }),
+    page.getByText("当前页没有可见的匹配素材。", { exact: false }),
   ).toBeVisible();
   const horizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
@@ -178,10 +183,10 @@ test("real revoked project permissions hide entries and reject known details", a
     await shot(page, info, "permission");
     await page
       .getByRole("navigation")
-      .getByRole("link", { name: "资源库" })
+      .getByRole("link", { name: "素材库" })
       .click();
     await expect(
-      page.getByRole("heading", { name: "暂无可见资源" }),
+      page.getByText("当前页没有可见的匹配素材。", { exact: false }),
     ).toBeVisible();
   } finally {
     await control(request, "roles?enabled=true");
@@ -222,15 +227,15 @@ test("loading, server failure, retry and late response after navigation", async 
   });
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
   await expect(page.getByRole("status")).toContainText("正在读取");
   release();
   await expect(page.getByRole("alert")).toContainText("服务暂时不可用");
   await shot(page, info, "error");
   await page.unroute("**/api/v1/assets?*");
-  await page.getByRole("button", { name: "重试", exact: true }).click();
-  await expect(page.locator(".asset-list li")).toHaveCount(24);
+  await page.getByRole("button", { name: "从第一页重试", exact: true }).click();
+  await expect(assetRows(page)).toHaveCount(24);
   // Delay a response while leaving its view. Its data must never replace the
   // new page, even if cancellation reaches the server too late.
   const later = new Promise<void>((resolve) => {
@@ -242,7 +247,8 @@ test("loading, server failure, retry and late response after navigation", async 
       json: { items: [{ asset_id: "late", title: "不应显示的迟到数据" }] },
     });
   });
-  await page.getByRole("button", { name: "刷新", exact: true }).click();
+  await page.getByRole("textbox", { name: "著录文字" }).fill("归档");
+  await page.getByRole("button", { name: "应用筛选", exact: true }).click();
   await expect(page.getByRole("status")).toBeVisible();
   await page
     .getByRole("navigation")
@@ -297,7 +303,7 @@ test("server enforces exact Origin and CSRF; new tabs retain read-only browsing"
   const tab = await context.newPage();
   await tab.goto("/#/assets");
   await expect(tab.getByRole("button", { name: "重新验证" })).toBeVisible();
-  await expect(tab.locator(".asset-list li")).toHaveCount(24);
+  await expect(assetRows(tab)).toHaveCount(24);
   await tab.close();
   // Privacy modes may disable storage after login. The same session's
   // in-memory CSRF value must still support a real server-side logout.
@@ -320,10 +326,10 @@ test("responsive portrait/landscape, long filenames, touch targets and keyboard 
   await login(page, request);
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
-  await page.getByLabel("搜索资源").fill("声音素材");
-  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await page.getByRole("textbox", { name: "著录文字" }).fill("声音素材");
+  await page.getByRole("button", { name: "应用筛选", exact: true }).click();
   await page.getByRole("link", { name: /声音素材索引/ }).click();
   await page.getByText("查看文件清单与 SHA-256", { exact: true }).click();
   const longFile = page.getByRole("cell", {
@@ -390,11 +396,11 @@ test("WCAG accessibility for login, home, search and fixed detail", async ({
   await audit();
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "资源库" })
+    .getByRole("link", { name: "素材库" })
     .click();
-  await expect(page.locator(".asset-list li")).toHaveCount(24);
+  await expect(assetRows(page)).toHaveCount(24);
   await audit();
-  await page.locator(".asset-list a").first().click();
+  await assetRows(page).getByRole("link").first().click();
   await page.getByText("著录与技术详情", { exact: true }).click();
   await page.getByText("查看文件清单与 SHA-256", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "著录信息" })).toBeVisible();

@@ -1,0 +1,59 @@
+{
+  "description": "machine-proof-forbidden; schema only, not DCC proof",
+  "schema": "lantai.native-continuation/v1",
+  "valid": false,
+  "document": {
+    "schema": "lantai.native-continuation/v1",
+    "instance_id": "01J00000000000000000000001",
+    "project_id": "01J00000000000000000000002",
+    "batch_id": "synthetic-protocol",
+    "recovery_epoch": 1,
+    "workset_ref": {
+      "asset_id": "01J00000000000000000000003",
+      "version_id": "01J00000000000000000000004"
+    },
+    "intended_purpose": "archive_review",
+    "evidence_basis": "machine_verified",
+    "operator_id": "01J00000000000000000000005",
+    "application": {
+      "name": "SyntheticProtocolFixture",
+      "version": "1",
+      "platform": "no DCC process executed"
+    },
+    "started_at": "2026-10-20T00:00:00Z",
+    "finished_at": "2026-10-20T00:01:00Z",
+    "entrypoints": [
+      "scene/model.obj"
+    ],
+    "returns": [
+      {
+        "base": {
+          "asset_id": "01J00000000000000000000003",
+          "version_id": "01J00000000000000000000004"
+        },
+        "result": {
+          "asset_id": "01J00000000000000000000003",
+          "version_id": "01J00000000000000000000005"
+        },
+        "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ],
+    "supporting_evidence": [
+      {
+        "asset_id": "01J00000000000000000000006",
+        "version_id": "01J00000000000000000000007",
+        "key": "synthetic-notes",
+        "manifest_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "status": "committed"
+      }
+    ],
+    "outcome": "completed",
+    "unresolved": []
+  },
+  "expect": [
+    {
+      "pointer": "/evidence_basis",
+      "keyword": "const"
+    }
+  ]
+}

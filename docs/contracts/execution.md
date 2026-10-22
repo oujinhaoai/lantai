@@ -2,7 +2,7 @@
 
 状态：**M1 共享执行契约，已实现规则与测试**（T00.6）。本篇规定任务、Agent 执行、作业与扩展宿主共同遵守的协议边界、凭据检查、错误映射、状态分离与副作用恢复规则。机器可校验的定义在 [`schemas/common/v1/execution.schema.json`](../../schemas/common/v1/execution.schema.json)，判定规则在 [`internal/contract/execution`](../../internal/contract/execution/)；领域完整 schema 由各自任务补充：Task/Seat/Attempt/Flow 归 [T05](../tasks/T05-tasks-workflow.md)，ExecutionProfile/TaskRun/AgentStepRun/Checkpoint/ToolOperation/JobAttempt 归 [T06](../tasks/T06-execution-nodes.md)，扩展清单与激活快照归 [T09](../tasks/T09-extension-platform.md)，插件规格以[扩展设计](../extensions.md)为准。
 
-M1 只交付契约与判定规则；M2 当前已启用 manual_cli 与官方 corecheck 一次性宿主，运行边界见[手动执行](manual-execution.md)。自动后端和动态 loader 未启用。`lantai version` 如实报告各协议状态。
+M1 只交付契约与判定规则；M2 已启用 manual_cli 与官方 corecheck 一次性宿主，运行边界见[手动执行](manual-execution.md)。开发候选另提供首方 `lantai.local-assistant/v1` 出站设备通道，复用原八动作客户端，不使用外部扩展宿主。自动后端和动态 loader 未启用。`lantai version` 如实报告各协议状态。
 
 ## 对象归属
 
@@ -21,9 +21,14 @@ M1 只交付契约与判定规则；M2 当前已启用 manual_cli 与官方 core
 |---|---|---|
 | `lantai.agent-execution/v1` | 任务内 Agent 执行的业务协议（adapter） | `describe`、`start`、`lookup`、`status`、`resume`、`cancel`、`result` |
 | `lantai.processor/v1` | 一次性处理器文件协议：`job.json` → spawn/run/exit → `out/result.json` | 无；超时、取消与回收由宿主处理进程树 |
+| `lantai.local-assistant/v1` | 首方受控工作区内的八个固定客户端动作 | 网页创建 → 本机 inspect → 网页批准精确摘要 → 出站 poll/heartbeat/result；可取消或撤权 |
 | `lantai.host-control/v1` | 常驻实例控制，按真实需求实现 | `describe`、`negotiate`、`configure`、`health`、`drain`、`stop` |
 
-两套动作互不相通：`health`、`drain` 不能借执行协议下发，`start`、`resume` 也不属于宿主控制；常驻控制协议不套用在一次性处理器上，不替代业务执行协议。执行协议请求的公共头 `execution_header` 包含 `protocol`、`operation_id`、`request_hash`、`fence`，来自扩展时再带 `activation`；授权材料不放在请求头或命令行参数中。
+协议动作互不相通：`health`、`drain` 不能借执行协议下发，`start`、`resume` 也不属于宿主控制；常驻控制协议不套用在一次性处理器或首方设备上。执行协议请求的公共头 `execution_header` 包含 `protocol`、`operation_id`、`request_hash`、`fence`，来自扩展时再带 `activation`；授权材料不放在请求头或命令行参数中。
+
+首方设备的 `JobAttempt` 仍由 T06 jobs 唯一持有，其 `protocol=lantai.local-assistant/v1`、完整 `JobFence` 与 `LocalExecutionBinding` 绑定 device_id、workspace_alias、workspace_binding、job_digest、approval_digest。此分支不携扩展 `ActivationSnapshot`，不能伪装成 corecheck 或绕过 T09 激活成为外部处理器。设备登记归 node，身份/短期会话与撤权归 T01；原 Job/Attempt 表保存唯一执行状态，无第二份队列、租约或第六数据库。精确 HTTP/DTO 见[设备协议](../../api/device-control.md)。
+
+设备会话是独立、本人、单项目、最长15分钟的 CLI 会话；网页用另一个本人普通会话批准认领和每个本机检查摘要。所有网络请求严格验证 TLS 与主机名。任意 shell、宿主路径、浏览器凭据和长期生产密钥均不进入作业。私有计划留在本机，安全结果引用只能由同设备/项目/工作区展开。状态与结果响应丢失时沿用原操作，崩溃、到期或撤权造成的未知副作用保持 needs_reconciliation 并阻塞执行；停止进程不等于已对账副作用，不能自动清除 unknown 或换键重跑。
 
 ## 执行权凭据与接受检查
 
@@ -121,7 +126,7 @@ M1 只交付契约与判定规则；M2 当前已启用 manual_cli 与官方 core
 | Checkpoint | agent_execution | 固定输入/profile 摘要、旧 Attempt、顺序、后端版本与格式、已接受产物、完成步骤、工具回执水位、恢复类别 |
 | ArtifactCandidate | agent_execution | 运行/Attempt、清单摘要、相对路径/文件摘要/大小、用途、来源/许可证据、验证状态及 producer |
 | ToolOperation | agent_execution | 稳定操作 ID、全 TaskRun 单调 sequence、请求摘要、工具版本、副作用类别与进度、外部幂等键/请求引用/回执摘要 |
-| JobAttempt | jobs | `lantai.processor/v1`、独立 `job_fence`、固定输入与激活快照、运行结论和检查结论 |
+| JobAttempt | jobs | `lantai.processor/v1` + 激活快照，或首方 `lantai.local-assistant/v1` + LocalExecutionBinding；同一独立 `job_fence`、固定输入、运行结论和检查结论 |
 
 TaskRun 的执行成功只表示结果与候选已交回。修改任务验收或固定输入时新建 TaskRun，并通过 `supersedes_run_id` 关联历史；重试/恢复在同 TaskRun 下建立新的 tasks Attempt，保留累计预算。Agent 不能生成自己的 Task Attempt 或 JobAttempt 来冒充授权。
 

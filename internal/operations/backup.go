@@ -41,6 +41,8 @@ type BackupManifest struct {
 	Watermarks    map[string]int64 `json:"watermarks"`
 	Files         []BackupFile     `json:"files"`
 	Blobs         []BackupFile     `json:"blobs"`
+	// RecoveryPackage is an in-process result, never part of the v1 snapshot.
+	RecoveryPackage *RecoveryPackageInfo `json:"-"`
 }
 
 // MarshalJSON uses the shared fixed UTC-millisecond timestamp convention.

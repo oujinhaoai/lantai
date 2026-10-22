@@ -36,7 +36,7 @@ func (h *Handler) identityRoutes(m *http.ServeMux) {
 func parseSensitive(in SensitiveRequest) (identity.Command, error) {
 	var command identity.Command
 	switch in.Action {
-	case identity.ActBackupStart, identity.ActBackupResume, identity.ActBackupSchedule:
+	case identity.ActBackupStart, identity.ActBackupResume, identity.ActBackupSchedule, identity.ActBackupExport:
 		command = &identity.ApproveBackup{}
 	case identity.ActRegisterPrincipal:
 		command = &identity.RegisterPrincipal{}
@@ -61,7 +61,7 @@ func parseSensitive(in SensitiveRequest) (identity.Command, error) {
 		return nil, invalid("role grant flag must match the selected action")
 	}
 	if c, ok := command.(*identity.ApproveBackup); ok {
-		expected := map[authz.Action]string{identity.ActBackupStart: "start", identity.ActBackupResume: "resume", identity.ActBackupSchedule: "schedule"}[in.Action]
+		expected := map[authz.Action]string{identity.ActBackupStart: "start", identity.ActBackupResume: "resume", identity.ActBackupSchedule: "schedule", identity.ActBackupExport: "download"}[in.Action]
 		if c.Kind != expected {
 			return nil, invalid("backup kind must match the selected action")
 		}

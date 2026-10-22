@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/ledger/v1/native-continuation.schema.json",
+  "title": "Human-attested native continuation (not machine execution proof)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "instance_id",
+    "project_id",
+    "batch_id",
+    "recovery_epoch",
+    "workset_ref",
+    "intended_purpose",
+    "evidence_basis",
+    "operator_id",
+    "application",
+    "started_at",
+    "finished_at",
+    "entrypoints",
+    "returns",
+    "supporting_evidence",
+    "outcome",
+    "unresolved"
+  ],
+  "properties": {
+    "schema": {
+      "const": "lantai.native-continuation/v1"
+    },
+    "instance_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "project_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+    },
+    "recovery_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workset_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "version_id"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "version_id": {
+          "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+        }
+      }
+    },
+    "intended_purpose": {
+      "enum": [
+        "archive_review",
+        "reference",
+        "production",
+        "generative_input",
+        "raw_export"
+      ]
+    },
+    "evidence_basis": {
+      "const": "human_attested"
+    },
+    "operator_id": {
+      "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "platform"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+        }
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "entrypoints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+      }
+    },
+    "returns": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "base",
+          "result",
+          "manifest_digest"
+        ],
+        "properties": {
+          "base": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "version_id"
+            ],
+            "properties": {
+              "asset_id": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+              },
+              "version_id": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+              }
+            }
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "version_id"
+            ],
+            "properties": {
+              "asset_id": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+              },
+              "version_id": {
+                "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+              }
+            }
+          },
+          "manifest_digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          }
+        }
+      }
+    },
+    "supporting_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_id",
+          "version_id",
+          "key",
+          "manifest_digest",
+          "status"
+        ],
+        "properties": {
+          "asset_id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+          },
+          "version_id": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/ulid"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+          },
+          "manifest_digest": {
+            "$ref": "https://github.com/oujinhaoai/lantai/raw/main/schemas/common/v1/defs.schema.json#/$defs/digest"
+          },
+          "status": {
+            "const": "committed"
+          }
+        }
+      }
+    },
+    "outcome": {
+      "enum": [
+        "completed",
+        "partial",
+        "unknown",
+        "cancelled"
+      ]
+    },
+    "unresolved": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000,
+        "pattern": "^[^\u0000-\u001f-‪-‮⁦-⁩]*$"
+      }
+    }
+  }
+}

@@ -8,8 +8,10 @@ import (
 
 	"github.com/oujinhaoai/lantai/internal/catalog/manifest"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
+	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/ledger"
+	"github.com/oujinhaoai/lantai/internal/provenance"
 	"github.com/oujinhaoai/lantai/internal/query"
 )
 
@@ -92,6 +94,9 @@ func (h *Handler) collaborationRoutes(m *http.ServeMux) {
 		})
 	}
 	if s := h.deps.Rights; s != nil {
+		h.route(m, "POST /api/v1/rights/evidence", false, commandEndpoint(h, func(ctx context.Context, who authz.Context, key string, in rightsEvidenceRequest) (provenance.AcceptedRecord, error) {
+			return s.AppendEvidence(ctx, provenance.AppendRequest{Who: who, IdempotencyKey: key, Ref: in.Subject, ManifestDigest: in.ManifestDigest, ExpectedRevision: in.ExpectedRevision, Evidence: in.Evidence, Supersedes: in.Supersedes})
+		}))
 		h.route(m, "POST /api/v1/rights/assertions", false, commandEndpoint(h, s.ApplyAssertion))
 		h.route(m, "POST /api/v1/rights/cancel", false, commandEndpoint(h, s.CancelAssertion))
 	}
@@ -102,6 +107,15 @@ func (h *Handler) collaborationRoutes(m *http.ServeMux) {
 		h.humanRoutes(m)
 	}
 }
+
+type rightsEvidenceRequest struct {
+	Subject          ids.PermanentRef    `json:"subject"`
+	ManifestDigest   digest.Digest       `json:"manifest_digest"`
+	ExpectedRevision int64               `json:"expected_revision"`
+	Evidence         provenance.Evidence `json:"evidence"`
+	Supersedes       ids.ID              `json:"supersedes,omitempty"`
+}
+
 func (h *Handler) messages(w http.ResponseWriter, r *http.Request, who authz.Context) error {
 	p, e := projectID(r)
 	if e != nil {

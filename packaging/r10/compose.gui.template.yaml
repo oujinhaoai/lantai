@@ -1,0 +1,128 @@
+services:
+  prepare:
+    image: __CORE_IMAGE__
+    pull_policy: never
+    command:
+    - prepare-volumes
+    - /var/lib/lantai
+    - /var/lib/lantai-secrets
+    - /var/lib/lantai-setup
+    user: 0:0
+    read_only: true
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    cap_add:
+    - CHOWN
+    - FOWNER
+    - DAC_READ_SEARCH
+    network_mode: none
+    volumes:
+    - rc4_fresh_data:/var/lib/lantai
+    - rc4_fresh_secrets:/var/lib/lantai-secrets
+    - type: bind
+      source: ${LANTAI_PROJECT_DIR:?fill the absolute NAS project directory}/setup
+      target: /var/lib/lantai-setup
+      bind:
+        create_host_path: false
+    restart: 'no'
+  core:
+    image: __CORE_IMAGE__
+    pull_policy: never
+    command:
+    - start
+    - --home
+    - /var/lib/lantai
+    - --setup-dir
+    - /var/lib/lantai-setup
+    - --config-template
+    - /etc/lantai/config.template.yaml
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    init: true
+    read_only: true
+    user: 65532:65532
+    environment:
+      LANTAI_BACKUP_ROOT: /var/lib/lantai-backup
+      LANTAI_BACKUP_ROOT_ID: library-backup-volume-v1
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m
+    volumes:
+    - rc4_fresh_data:/var/lib/lantai
+    - rc4_fresh_secrets:/var/lib/lantai-secrets
+    - type: bind
+      source: ${LANTAI_PROJECT_DIR:?fill the absolute NAS project directory}/setup
+      target: /var/lib/lantai-setup
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${LANTAI_PROJECT_DIR:?fill the absolute NAS project directory}/config.container.yaml
+      target: /etc/lantai/config.template.yaml
+      bind:
+        create_host_path: false
+      read_only: true
+    - type: bind
+      source: ${LANTAI_BACKUP_DIR:?set the existing private backup directory}
+      target: /var/lib/lantai-backup
+      bind:
+        create_host_path: false
+    networks:
+    - backend
+    stop_grace_period: 45s
+    restart: unless-stopped
+  gateway:
+    image: lantai-caddy:2.11.4-2d8b1708bf80
+    pull_policy: never
+    environment:
+      LANTAI_HTTPS_ADDRESS: https://${LANTAI_DOMAIN:?set the existing TLS domain}:443
+      LANTAI_TLS_CERT: /run/tls/${LANTAI_TLS_CERT_NAME:-cert.pem}
+      LANTAI_TLS_KEY: /run/tls/${LANTAI_TLS_KEY_NAME:-key.pem}
+      LANTAI_API_UPSTREAM: core:8080
+      LANTAI_TRANSFER_UPSTREAM: core:8081
+      XDG_DATA_HOME: /tmp/caddy-data
+      XDG_CONFIG_HOME: /tmp/caddy-config
+    ports:
+    - 32444:443
+    volumes:
+    - type: bind
+      source: ${LANTAI_PROJECT_DIR:?fill the absolute NAS project directory}/Caddyfile
+      target: /etc/caddy/Caddyfile
+      bind:
+        create_host_path: false
+      read_only: true
+    - type: bind
+      source: ${LANTAI_TLS_DIR:?fill the existing protected TLS directory}
+      target: /run/tls
+      bind:
+        create_host_path: false
+      read_only: true
+    - type: bind
+      source: ${LANTAI_PROJECT_DIR:?fill the absolute NAS project directory}/web
+      target: /srv/lantai-web
+      bind:
+        create_host_path: false
+      read_only: true
+    read_only: true
+    tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,mode=1777,size=64m
+    security_opt:
+    - no-new-privileges:true
+    networks:
+    - edge
+    - backend
+    stop_grace_period: 15s
+    restart: unless-stopped
+networks:
+  edge:
+    driver: bridge
+  backend:
+    internal: true
+volumes:
+  rc4_fresh_data: {}
+  rc4_fresh_secrets: {}

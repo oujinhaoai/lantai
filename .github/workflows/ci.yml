@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: |
             go.sum
             scripts/tools/go.sum
+      - name: govulncheck
+        run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
       - name: Real Compose first-start smoke (synthetic data and TLS only)
         run: python3 scripts/test-compose-first-start.py --evidence-file first-start-lifecycle.json
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -46,12 +48,17 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
         working-directory: web
       - name: Web real-instance responsive acceptance
-        run: npm test
-        working-directory: web
+        env:
+          LANTAI_WEB_CHROMIUM_EXECUTABLE: /opt/google/chrome/chrome
+        run: |
+          sudo apt-get install --no-install-recommends -y libnss3-tools
+          python3 scripts/test-web-strict.py --evidence-file strict-web-ci.json
       - name: scripts/check.sh
+        # This is a per-package cumulative watchdog, not a per-test deadline.
+        # The full Linux race suite exceeded 30m while its current test was 7s old.
+        env:
+          LANTAI_TEST_TIMEOUT: 45m
         run: scripts/check.sh
-      - name: govulncheck
-        run: go tool -modfile=scripts/tools/go.mod govulncheck ./...
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: failure()
         with:
@@ -59,6 +66,7 @@ jobs:
           path: |
             web/test-results/
             first-start-lifecycle.json
+            strict-web-ci.json
           if-no-files-found: ignore
 
   test:
@@ -78,6 +86,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: Windows filesystem prerequisites
+        if: runner.os == 'Windows'
+        run: go test -count=1 -run 'TestWindows|TestPinned|TestAssistantCLIInspect|TestAssistantWorkerPolicy|TestAssistantWorkerLocalResult|TestRecoveryPackageRoundTrip|TestExclusiveConcurrent|TestManagementInfo|TestReferencePinned|TestWorksetRootAndDescendant|TestImportApplyPinnedState' ./cmd/lantai ./internal/client ./internal/localassistant ./internal/operations ./internal/platform/fsutil
       - name: go test
         # Windows 托管 runner 的真实实例矩阵可超过 20 分钟累计执行；
         # 按平台限制整个测试包，不修改用例断言或性能验收阈值。

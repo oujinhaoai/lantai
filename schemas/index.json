@@ -17,6 +17,7 @@
     { "contract": "lantai.config/v1", "path": "operations/v1/config.schema.json", "kind": "document", "owner": "T08" },
     { "contract": "lantai.waiver/v1", "path": "ledger/v1/waiver.schema.json", "kind": "document", "owner": "T03" },
     { "contract": "lantai.review-target/v1", "path": "ledger/v1/review-target.schema.json", "kind": "document", "owner": "T03" },
+    { "contract": "lantai.native-continuation/v1", "path": "ledger/v1/native-continuation.schema.json", "kind": "document", "owner": "T03" },
     { "contract": "lantai.review/v1", "path": "ledger/v1/review.schema.json", "kind": "document", "owner": "T03" },
     { "contract": "lantai.discussion-message/v1", "path": "ledger/v1/message.schema.json", "kind": "document", "owner": "T03" },
     { "contract": "lantai.rights-assertion/v1", "path": "provenance/v1/assertion.schema.json", "kind": "document", "owner": "T03" },
@@ -28,6 +29,7 @@
     { "contract": "lantai.review-evidence/v1", "path": "ledger/v1/review-evidence.schema.json", "kind": "document", "owner": "T03" },
     { "contract": "lantai.project-document/v1", "path": "catalog/v1/project-document.schema.json", "kind": "document", "owner": "T02" },
     { "contract": "lantai.asset/v1", "path": "catalog/v1/asset.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.asset-profile/v1", "path": "catalog/v1/asset-profile.schema.json", "kind": "document", "owner": "T02" },
     { "contract": "lantai.project/v1", "path": "catalog/v1/project.schema.json", "kind": "document", "owner": "T02" },
     { "contract": "lantai.tasks-defs/v1", "path": "tasks/v1/defs.schema.json", "kind": "library", "owner": "T05" },
     { "contract": "lantai.task/v1", "path": "tasks/v1/task.schema.json", "kind": "document", "owner": "T05" },
@@ -58,7 +60,9 @@
     { "contract": "lantai.processor-result/v1", "path": "extensions/v1/processor-result.schema.json", "kind": "document", "owner": "T09" },
     { "contract": "lantai.cli-command-input/v1", "path": "extensions/v1/cli-command-input.schema.json", "kind": "document", "owner": "T09" },
     { "contract": "lantai.cli-command-result/v1", "path": "extensions/v1/cli-command-result.schema.json", "kind": "document", "owner": "T09" },
+    { "contract": "lantai.recovery-package/v1", "path": "operations/v1/recovery-package.schema.json", "kind": "document", "owner": "T08" },
     { "contract": "lantai.backup/v1", "path": "operations/v1/backup.schema.json", "kind": "document", "owner": "T08" },
-    { "contract": "lantai.recovery-review/v1", "path": "operations/v1/recovery-review.schema.json", "kind": "document", "owner": "T08" }
+    { "contract": "lantai.recovery-review/v1", "path": "operations/v1/recovery-review.schema.json", "kind": "document", "owner": "T08" },
+    { "contract": "lantai.recovery-review/v2", "path": "operations/v2/recovery-review.schema.json", "kind": "document", "owner": "T08" }
   ]
 }

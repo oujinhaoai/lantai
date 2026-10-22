@@ -43,7 +43,7 @@ async function login(page: Page, request: APIRequestContext, admin = true) {
 async function openBackups(page: Page) {
   await page
     .getByRole("navigation")
-    .getByRole("link", { name: "备份管理" })
+    .getByRole("link", { name: "备份与恢复" })
     .click();
   await expect(
     page.getByRole("heading", { name: "备份管理", exact: true }),
@@ -69,7 +69,7 @@ test("ordinary browser scope has no backup entry and cannot use the API", async 
   context,
 }) => {
   await login(page, request, false);
-  await expect(page.getByRole("link", { name: "备份管理" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "备份与恢复" })).toHaveCount(0);
   expect((await context.request.get("/api/v1/admin/backups")).status()).toBe(
     403,
   );
@@ -123,7 +123,7 @@ test("administrator creates a real verified backup and persists the daily schedu
   await page.getByRole("button", { name: "刷新状态" }).click();
   await expect(
     page.getByRole("heading", { name: "上次成功" }).locator(".."),
-  ).toContainText("已完成备份与验证");
+  ).toContainText("完整恢复包已生成并验证");
   await expect(page.locator(".backup-history")).toContainText("已完成并验证");
   await page.getByLabel("每日时间", { exact: true }).fill("04:32");
   await page.getByLabel("IANA 时区").fill("Asia/Shanghai");
@@ -539,7 +539,7 @@ test("BM-UI-05: keyboard confirmation, cancellation, resume and persistent live 
   await login(page, request);
   const navigation = page
     .getByRole("navigation")
-    .getByRole("link", { name: "备份管理" });
+    .getByRole("link", { name: "备份与恢复" });
   await navigation.focus();
   await page.keyboard.press("Enter");
   await expect(

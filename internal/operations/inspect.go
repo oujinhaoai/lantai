@@ -38,7 +38,26 @@ func Inspect(ctx context.Context, home string) (Report, error) {
 	return inspect(ctx, home, fsutil.Inspect)
 }
 
+// InspectConfig checks an existing instance against candidate configuration
+// without publishing it or opening writable database connections. The caller
+// must hold the instance lock when using this for configuration migration.
+func InspectConfig(ctx context.Context, home string, raw []byte) (Report, error) {
+	l, err := NewLayout(home)
+	if err != nil {
+		return Report{}, err
+	}
+	cfg, err := ParseConfig(l, raw)
+	if err != nil {
+		return Report{}, err
+	}
+	return inspectWithConfig(ctx, home, fsutil.Inspect, &cfg)
+}
+
 func inspect(ctx context.Context, home string, fsInfo func(string) (fsutil.FSInfo, error)) (Report, error) {
+	return inspectWithConfig(ctx, home, fsInfo, nil)
+}
+
+func inspectWithConfig(ctx context.Context, home string, fsInfo func(string) (fsutil.FSInfo, error), candidate *Config) (Report, error) {
 	l, err := NewLayout(home)
 	if err != nil {
 		return Report{}, err
@@ -47,9 +66,14 @@ func inspect(ctx context.Context, home string, fsInfo func(string) (fsutil.FSInf
 	add := func(code, format string, args ...any) {
 		rep.Problems = append(rep.Problems, Reason{Code: code, Message: fmt.Sprintf(format, args...)})
 	}
-	cfg, err := LoadConfig(l)
-	if err != nil {
-		return rep, err
+	var cfg Config
+	if candidate != nil {
+		cfg = *candidate
+	} else {
+		cfg, err = LoadConfig(l)
+		if err != nil {
+			return rep, err
+		}
 	}
 	rep.MinFree = cfg.MinFreeBytes
 	if h, err := fsutil.ReadHolder(l.LockPath()); err == nil {

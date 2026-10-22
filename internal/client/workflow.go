@@ -127,7 +127,26 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 	if statePath == "" {
 		return Response{}, errors.New("client: a persistent state file is required")
 	}
-	unlock, err := lockState(statePath)
+	return c.pushWithStateFile(ctx, in, directory, pathPushStateFile(statePath), uploadOnly)
+}
+
+// pushStateFile supplies the original Push state I/O without changing its
+// schema, keys or request order. Batch imports use a pinned directory handle;
+// the public Push command retains its existing path-backed behavior.
+type pushStateFile interface {
+	loadState(any) error
+	saveState(any) error
+	lockState() (func(), error)
+}
+
+type pathPushStateFile string
+
+func (p pathPushStateFile) loadState(value any) error  { return LoadState(string(p), value) }
+func (p pathPushStateFile) saveState(value any) error  { return SaveState(string(p), value) }
+func (p pathPushStateFile) lockState() (func(), error) { return lockState(string(p)) }
+
+func (c *Client) pushWithStateFile(ctx context.Context, in PushInput, directory string, stateFile pushStateFile, uploadOnly bool) (Response, error) {
+	unlock, err := stateFile.lockState()
 	if err != nil {
 		return Response{}, err
 	}
@@ -140,10 +159,10 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 	sum := sha256.Sum256(raw)
 	hash := hex.EncodeToString(sum[:])
 	var state PushState
-	err = LoadState(statePath, &state)
+	err = stateFile.loadState(&state)
 	if errors.Is(err, os.ErrNotExist) {
 		state = PushState{Schema: "lantai.client-push/v1", Origin: c.Origin(), RequestHash: hash, CreateKey: string(ids.New()), CommitKey: string(ids.New())}
-		if err = SaveState(statePath, state); err != nil {
+		if err = stateFile.saveState(state); err != nil {
 			return Response{}, err
 		}
 	} else if err != nil {
@@ -167,7 +186,7 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 				return Response{}, err
 			}
 		}
-		return c.finishPush(ctx, body, statePath, &state)
+		return c.finishPush(ctx, body, stateFile, &state)
 	}
 	var upload Upload
 	if state.UploadID == "" {
@@ -194,7 +213,7 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 			return r, errors.New("client: server omitted upload identity")
 		}
 		state.UploadID, state.OperationID = upload.UploadID, upload.OperationID
-		if err = SaveState(statePath, state); err != nil {
+		if err = stateFile.saveState(state); err != nil {
 			return Response{}, err
 		}
 	} else {
@@ -266,18 +285,18 @@ func (c *Client) Push(ctx context.Context, in PushInput, directory, statePath st
 		return c.Do(ctx, http.MethodGet, "/api/v1/uploads/"+url.PathEscape(state.UploadID), nil, Options{})
 	}
 	state.Committing = true
-	if err = SaveState(statePath, state); err != nil {
+	if err = stateFile.saveState(state); err != nil {
 		return Response{}, err
 	}
-	return c.finishPush(ctx, body, statePath, &state)
+	return c.finishPush(ctx, body, stateFile, &state)
 }
-func (c *Client) finishPush(ctx context.Context, body any, path string, state *PushState) (Response, error) {
+func (c *Client) finishPush(ctx context.Context, body any, stateFile pushStateFile, state *PushState) (Response, error) {
 	r, err := c.Do(ctx, http.MethodPost, "/api/v1/uploads/"+url.PathEscape(state.UploadID)+"/commit", body, Options{IdempotencyKey: state.CommitKey})
 	if err != nil {
 		return r, err
 	}
 	state.Result = bytes.Clone(r.Body)
-	if err = SaveState(path, state); err != nil {
+	if err = stateFile.saveState(state); err != nil {
 		return Response{}, fmt.Errorf("client: server accepted commit but local receipt save failed; retry the same state: %w", err)
 	}
 	return r, nil

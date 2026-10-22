@@ -494,10 +494,28 @@ func (s *Service) BeginOfflineReset(ctx context.Context, name, newPassword strin
 // 在持有数据根锁、未对外开放写入的本机进程中进行，由已控制数据根与主密钥
 // 的主机管理员明确确认后执行。它不是远程自助提权接口。
 type OfflineResetSession struct {
-	s          *Service
-	principal  Principal
-	rec        password.Record
-	Enrollment Enrollment
+	s             *Service
+	principal     Principal
+	rec           password.Record
+	Enrollment    Enrollment
+	recoveryCodes []string
+}
+
+// PrepareRecoveryCodes lets the recovery UI require storage before committing
+// a new administrator, so a lost confirmation response does not lose codes.
+func (o *OfflineResetSession) PrepareRecoveryCodes() ([]string, error) {
+	if o.recoveryCodes == nil {
+		codes := make([]string, o.s.cfg.RecoveryCodes)
+		for i := range codes {
+			var e error
+			codes[i], e = newCode()
+			if e != nil {
+				return nil, e
+			}
+		}
+		o.recoveryCodes = codes
+	}
+	return append([]string(nil), o.recoveryCodes...), nil
 }
 
 // Principal 返回被重置的主体。
@@ -560,7 +578,13 @@ func (o *OfflineResetSession) Confirm(ctx context.Context, code, note string) ([
 		if err != nil {
 			return err
 		}
-		if codes, err = s.issueRecoveryCodes(ctx, tx, p.ID); err != nil {
+		if o.recoveryCodes != nil {
+			codes = append([]string(nil), o.recoveryCodes...)
+			err = s.storeRecoveryCodes(ctx, tx, p.ID, codes)
+		} else {
+			codes, err = s.issueRecoveryCodes(ctx, tx, p.ID)
+		}
+		if err != nil {
 			return err
 		}
 		if err := setAccount(ctx, tx, p.ID, factorEnrolled, "", now); err != nil {

@@ -11,8 +11,42 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AssetProfileBusinessState.
+const (
+	AssetProfileBusinessStateActive        AssetProfileBusinessState = "active"
+	AssetProfileBusinessStateArchived      AssetProfileBusinessState = "archived"
+	AssetProfileBusinessStatePendingReview AssetProfileBusinessState = "pending_review"
+	AssetProfileBusinessStateReference     AssetProfileBusinessState = "reference"
+	AssetProfileBusinessStateRejected      AssetProfileBusinessState = "rejected"
+	AssetProfileBusinessStateSuperseded    AssetProfileBusinessState = "superseded"
+	AssetProfileBusinessStateUnknown       AssetProfileBusinessState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the AssetProfileBusinessState enum.
+func (e AssetProfileBusinessState) Valid() bool {
+	switch e {
+	case AssetProfileBusinessStateActive:
+		return true
+	case AssetProfileBusinessStateArchived:
+		return true
+	case AssetProfileBusinessStatePendingReview:
+		return true
+	case AssetProfileBusinessStateReference:
+		return true
+	case AssetProfileBusinessStateRejected:
+		return true
+	case AssetProfileBusinessStateSuperseded:
+		return true
+	case AssetProfileBusinessStateUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BackupApprovalKind.
 const (
+	BackupApprovalKindDownload BackupApprovalKind = "download"
 	BackupApprovalKindResume   BackupApprovalKind = "resume"
 	BackupApprovalKindSchedule BackupApprovalKind = "schedule"
 	BackupApprovalKindStart    BackupApprovalKind = "start"
@@ -21,6 +55,8 @@ const (
 // Valid indicates whether the value is a known member of the BackupApprovalKind enum.
 func (e BackupApprovalKind) Valid() bool {
 	switch e {
+	case BackupApprovalKindDownload:
+		return true
 	case BackupApprovalKindResume:
 		return true
 	case BackupApprovalKindSchedule:
@@ -288,6 +324,7 @@ func (e CommonV1ExecutionInvocationOutcome) Valid() bool {
 const (
 	CommonV1ExecutionProtocolIdLantaiAgentExecutionv1 CommonV1ExecutionProtocolId = "lantai.agent-execution/v1"
 	CommonV1ExecutionProtocolIdLantaiHostControlv1    CommonV1ExecutionProtocolId = "lantai.host-control/v1"
+	CommonV1ExecutionProtocolIdLantaiLocalAssistantv1 CommonV1ExecutionProtocolId = "lantai.local-assistant/v1"
 	CommonV1ExecutionProtocolIdLantaiProcessorv1      CommonV1ExecutionProtocolId = "lantai.processor/v1"
 )
 
@@ -297,6 +334,8 @@ func (e CommonV1ExecutionProtocolId) Valid() bool {
 	case CommonV1ExecutionProtocolIdLantaiAgentExecutionv1:
 		return true
 	case CommonV1ExecutionProtocolIdLantaiHostControlv1:
+		return true
+	case CommonV1ExecutionProtocolIdLantaiLocalAssistantv1:
 		return true
 	case CommonV1ExecutionProtocolIdLantaiProcessorv1:
 		return true
@@ -371,6 +410,24 @@ func (e CommonV1ExecutionTaskRunState) Valid() bool {
 	}
 }
 
+// Defines values for CompletedRestoreReceiptAcceptanceBasis.
+const (
+	CompletedRestoreReceiptAcceptanceBasisAcceptedCapturePoint CompletedRestoreReceiptAcceptanceBasis = "accepted_capture_point"
+	CompletedRestoreReceiptAcceptanceBasisLegacyReconciliation CompletedRestoreReceiptAcceptanceBasis = "legacy_reconciliation"
+)
+
+// Valid indicates whether the value is a known member of the CompletedRestoreReceiptAcceptanceBasis enum.
+func (e CompletedRestoreReceiptAcceptanceBasis) Valid() bool {
+	switch e {
+	case CompletedRestoreReceiptAcceptanceBasisAcceptedCapturePoint:
+		return true
+	case CompletedRestoreReceiptAcceptanceBasisLegacyReconciliation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateProjectRequestProjectType.
 const (
 	CreateProjectRequestProjectTypeLibrary    CreateProjectRequestProjectType = "library"
@@ -389,6 +446,42 @@ func (e CreateProjectRequestProjectType) Valid() bool {
 	case CreateProjectRequestProjectTypeReference:
 		return true
 	case CreateProjectRequestProjectTypeSandbox:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceManagementInfoCapacityError.
+const (
+	InstanceManagementInfoCapacityErrorCapacityUnavailable InstanceManagementInfoCapacityError = "capacity_unavailable"
+)
+
+// Valid indicates whether the value is a known member of the InstanceManagementInfoCapacityError enum.
+func (e InstanceManagementInfoCapacityError) Valid() bool {
+	switch e {
+	case InstanceManagementInfoCapacityErrorCapacityUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceManagementInfoRecoveryError.
+const (
+	InstanceManagementInfoRecoveryErrorRecoveryReceiptBudgetExceeded InstanceManagementInfoRecoveryError = "recovery_receipt_budget_exceeded"
+	InstanceManagementInfoRecoveryErrorRecoveryReceiptInvalid        InstanceManagementInfoRecoveryError = "recovery_receipt_invalid"
+	InstanceManagementInfoRecoveryErrorRecoveryReceiptsUnavailable   InstanceManagementInfoRecoveryError = "recovery_receipts_unavailable"
+)
+
+// Valid indicates whether the value is a known member of the InstanceManagementInfoRecoveryError enum.
+func (e InstanceManagementInfoRecoveryError) Valid() bool {
+	switch e {
+	case InstanceManagementInfoRecoveryErrorRecoveryReceiptBudgetExceeded:
+		return true
+	case InstanceManagementInfoRecoveryErrorRecoveryReceiptInvalid:
+		return true
+	case InstanceManagementInfoRecoveryErrorRecoveryReceiptsUnavailable:
 		return true
 	default:
 		return false
@@ -1214,6 +1307,93 @@ func (e M2ExtensionsEnablementViewTarget) Valid() bool {
 	}
 }
 
+// Defines values for ManagementBatchCheckAcceptance.
+const (
+	ManagementBatchCheckAcceptanceBlocked ManagementBatchCheckAcceptance = "blocked"
+	ManagementBatchCheckAcceptanceReady   ManagementBatchCheckAcceptance = "ready"
+)
+
+// Valid indicates whether the value is a known member of the ManagementBatchCheckAcceptance enum.
+func (e ManagementBatchCheckAcceptance) Valid() bool {
+	switch e {
+	case ManagementBatchCheckAcceptanceBlocked:
+		return true
+	case ManagementBatchCheckAcceptanceReady:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ManagementBatchCheckChecksStatus.
+const (
+	ManagementBatchCheckChecksStatusFailed  ManagementBatchCheckChecksStatus = "failed"
+	ManagementBatchCheckChecksStatusMissing ManagementBatchCheckChecksStatus = "missing"
+	ManagementBatchCheckChecksStatusPassed  ManagementBatchCheckChecksStatus = "passed"
+	ManagementBatchCheckChecksStatusPending ManagementBatchCheckChecksStatus = "pending"
+	ManagementBatchCheckChecksStatusUnknown ManagementBatchCheckChecksStatus = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the ManagementBatchCheckChecksStatus enum.
+func (e ManagementBatchCheckChecksStatus) Valid() bool {
+	switch e {
+	case ManagementBatchCheckChecksStatusFailed:
+		return true
+	case ManagementBatchCheckChecksStatusMissing:
+		return true
+	case ManagementBatchCheckChecksStatusPassed:
+		return true
+	case ManagementBatchCheckChecksStatusPending:
+		return true
+	case ManagementBatchCheckChecksStatusUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ManagementBatchCheckIntendedPurpose.
+const (
+	ManagementBatchCheckIntendedPurposeArchiveReview   ManagementBatchCheckIntendedPurpose = "archive_review"
+	ManagementBatchCheckIntendedPurposeGenerativeInput ManagementBatchCheckIntendedPurpose = "generative_input"
+	ManagementBatchCheckIntendedPurposeProduction      ManagementBatchCheckIntendedPurpose = "production"
+	ManagementBatchCheckIntendedPurposeRawExport       ManagementBatchCheckIntendedPurpose = "raw_export"
+	ManagementBatchCheckIntendedPurposeReference       ManagementBatchCheckIntendedPurpose = "reference"
+)
+
+// Valid indicates whether the value is a known member of the ManagementBatchCheckIntendedPurpose enum.
+func (e ManagementBatchCheckIntendedPurpose) Valid() bool {
+	switch e {
+	case ManagementBatchCheckIntendedPurposeArchiveReview:
+		return true
+	case ManagementBatchCheckIntendedPurposeGenerativeInput:
+		return true
+	case ManagementBatchCheckIntendedPurposeProduction:
+		return true
+	case ManagementBatchCheckIntendedPurposeRawExport:
+		return true
+	case ManagementBatchCheckIntendedPurposeReference:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ManagementBatchCheckSchema.
+const (
+	ManagementBatchCheckSchemaLantaiBatchCheckv1 ManagementBatchCheckSchema = "lantai.batch-check/v1"
+)
+
+// Valid indicates whether the value is a known member of the ManagementBatchCheckSchema enum.
+func (e ManagementBatchCheckSchema) Valid() bool {
+	switch e {
+	case ManagementBatchCheckSchemaLantaiBatchCheckv1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MetaApiVersion.
 const (
 	MetaApiVersionV1 MetaApiVersion = "v1"
@@ -1373,8 +1553,39 @@ func (e RecoveryAction) Valid() bool {
 	}
 }
 
+// Defines values for RecoveryPackageFormat.
+const (
+	RecoveryPackageFormatLantaiRecoveryPackagev1 RecoveryPackageFormat = "lantai.recovery-package/v1"
+)
+
+// Valid indicates whether the value is a known member of the RecoveryPackageFormat enum.
+func (e RecoveryPackageFormat) Valid() bool {
+	switch e {
+	case RecoveryPackageFormatLantaiRecoveryPackagev1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecoveryPackageSensitive.
+const (
+	RecoveryPackageSensitiveTrue RecoveryPackageSensitive = true
+)
+
+// Valid indicates whether the value is a known member of the RecoveryPackageSensitive enum.
+func (e RecoveryPackageSensitive) Valid() bool {
+	switch e {
+	case RecoveryPackageSensitiveTrue:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SensitiveRequestAction.
 const (
+	SensitiveRequestActionIdentityBackupExport      SensitiveRequestAction = "identity.backup_export"
 	SensitiveRequestActionIdentityBackupResume      SensitiveRequestAction = "identity.backup_resume"
 	SensitiveRequestActionIdentityBackupSchedule    SensitiveRequestAction = "identity.backup_schedule"
 	SensitiveRequestActionIdentityBackupStart       SensitiveRequestAction = "identity.backup_start"
@@ -1388,6 +1599,8 @@ const (
 // Valid indicates whether the value is a known member of the SensitiveRequestAction enum.
 func (e SensitiveRequestAction) Valid() bool {
 	switch e {
+	case SensitiveRequestActionIdentityBackupExport:
+		return true
 	case SensitiveRequestActionIdentityBackupResume:
 		return true
 	case SensitiveRequestActionIdentityBackupSchedule:
@@ -1698,14 +1911,32 @@ type AssetDescriptionView struct {
 
 // AssetPatch sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
 type AssetPatch struct {
-	Defaults    *map[string]interface{} `json:"defaults,omitempty"`
-	Extra       *map[string]interface{} `json:"extra,omitempty"`
-	Sensitivity *string                 `json:"sensitivity,omitempty"`
-	Subjects    *[]string               `json:"subjects,omitempty"`
-	Summary     *string                 `json:"summary,omitempty"`
-	Tags        *[]string               `json:"tags,omitempty"`
-	Title       *string                 `json:"title,omitempty"`
+	Defaults *map[string]interface{} `json:"defaults,omitempty"`
+	Extra    *map[string]interface{} `json:"extra,omitempty"`
+
+	// Profile 结构化的普通资产画像。历史状态、来源路径和笔记仅是著录，不授权用途、执行、发布或人审。profile PATCH只替换extra.asset_profile，其他extra由核心保留。
+	Profile     *AssetProfile `json:"profile,omitempty"`
+	Sensitivity *string       `json:"sensitivity,omitempty"`
+	Subjects    *[]string     `json:"subjects,omitempty"`
+	Summary     *string       `json:"summary,omitempty"`
+	Tags        *[]string     `json:"tags,omitempty"`
+	Title       *string       `json:"title,omitempty"`
 }
+
+// AssetProfile 结构化的普通资产画像。历史状态、来源路径和笔记仅是著录，不授权用途、执行、发布或人审。profile PATCH只替换extra.asset_profile，其他extra由核心保留。
+type AssetProfile struct {
+	BusinessState AssetProfileBusinessState `json:"business_state"`
+	Characters    *[]string                 `json:"characters,omitempty"`
+	LegacyState   *string                   `json:"legacy_state,omitempty"`
+	LegacyVersion *string                   `json:"legacy_version,omitempty"`
+	Notes         *[]string                 `json:"notes,omitempty"`
+	Schema        interface{}               `json:"schema"`
+	Source        *string                   `json:"source,omitempty"`
+	SourcePaths   *[]string                 `json:"source_paths,omitempty"`
+}
+
+// AssetProfileBusinessState defines model for AssetProfile.BusinessState.
+type AssetProfileBusinessState string
 
 // AssetView defines model for AssetView.
 type AssetView struct {
@@ -1719,13 +1950,14 @@ type AssetView struct {
 	ProjectId Ulid `json:"project_id"`
 }
 
-// BackupApproval identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
+// BackupApproval identity.backup_start uses kind=start; identity.backup_resume uses kind=resume and job_id; identity.backup_schedule uses kind=schedule and schedule; identity.backup_export uses kind=download with job_id and package_sha256. No mixed fields. Zero timeout values select defaults; drain must not exceed timeout.
 type BackupApproval struct {
 	DrainSeconds *int `json:"drain_seconds,omitempty"`
 
 	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	JobId          *Ulid                `json:"job_id,omitempty"`
 	Kind           BackupApprovalKind   `json:"kind"`
+	PackageSha256  *string              `json:"package_sha256,omitempty"`
 	Schedule       *BackupScheduleInput `json:"schedule,omitempty"`
 	TimeoutSeconds *int                 `json:"timeout_seconds,omitempty"`
 }
@@ -1780,6 +2012,7 @@ type BackupJob struct {
 
 	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	Id               Ulid                `json:"id"`
+	Package          *RecoveryPackage    `json:"package,omitempty"`
 	ScheduleRevision *int64              `json:"schedule_revision,omitempty"`
 	ScheduleTimezone *string             `json:"schedule_timezone,omitempty"`
 	ScheduledFor     *openapi_types.Date `json:"scheduled_for,omitempty"`
@@ -2066,6 +2299,24 @@ type CommonV1ExecutionTermination struct {
 	UnresolvedEffects    int  `json:"unresolved_effects"`
 }
 
+// CompletedRestoreReceipt defines model for CompletedRestoreReceipt.
+type CompletedRestoreReceipt struct {
+	AcceptanceBasis CompletedRestoreReceiptAcceptanceBasis `json:"acceptance_basis"`
+
+	// BackupId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	BackupId       Ulid   `json:"backup_id"`
+	EvidenceDigest string `json:"evidence_digest"`
+	ManifestDigest string `json:"manifest_digest"`
+	RecoveryEpoch  int64  `json:"recovery_epoch"`
+
+	// RunId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RunId               Ulid `json:"run_id"`
+	UnknownAfterCapture bool `json:"unknown_after_capture"`
+}
+
+// CompletedRestoreReceiptAcceptanceBasis defines model for CompletedRestoreReceipt.AcceptanceBasis.
+type CompletedRestoreReceiptAcceptanceBasis string
+
 // ContentInput defines model for ContentInput.
 type ContentInput struct {
 	// AssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
@@ -2112,6 +2363,206 @@ type CreateUploadRequest struct {
 
 	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	ProjectId Ulid `json:"project_id"`
+}
+
+// CredentialInfo defines model for CredentialInfo.
+type CredentialInfo struct {
+	// CreatedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CreatedAt Timestamp `json:"created_at"`
+
+	// CredentialId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	CredentialId Ulid `json:"credential_id"`
+
+	// ExpiresAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ExpiresAt Timestamp `json:"expires_at"`
+	Label     string    `json:"label"`
+	Prefix    string    `json:"prefix"`
+
+	// PrincipalId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	PrincipalId Ulid   `json:"principal_id"`
+	Projects    []Ulid `json:"projects"`
+
+	// RevokedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	RevokedAt *Timestamp `json:"revoked_at,omitempty"`
+	Scopes    []string   `json:"scopes"`
+}
+
+// CredentialPage defines model for CredentialPage.
+type CredentialPage struct {
+	Items []CredentialInfo `json:"items"`
+
+	// NextCursor 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	NextCursor *Ulid `json:"next_cursor,omitempty"`
+}
+
+// DeviceApproveDevice defines model for DeviceApproveDevice.
+type DeviceApproveDevice struct {
+	ClaimCode        string `json:"claim_code"`
+	ExpectedRevision int64  `json:"expected_revision"`
+	WorkspaceAlias   string `json:"workspace_alias"`
+	WorkspaceBinding string `json:"workspace_binding"`
+}
+
+// DeviceApproveJob defines model for DeviceApproveJob.
+type DeviceApproveJob struct {
+	ApprovalDigest   string `json:"approval_digest"`
+	ExpectedRevision int64  `json:"expected_revision"`
+	JobDigest        string `json:"job_digest"`
+	WorkspaceBinding string `json:"workspace_binding"`
+}
+
+// DeviceClaim defines model for DeviceClaim.
+type DeviceClaim struct {
+	Actions *[]string `json:"actions"`
+	Alias   string    `json:"alias"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId        Ulid   `json:"project_id"`
+	WorkspaceAlias   string `json:"workspace_alias"`
+	WorkspaceBinding string `json:"workspace_binding"`
+}
+
+// DeviceClaimResponse defines model for DeviceClaimResponse.
+type DeviceClaimResponse struct {
+	ClaimCode *string      `json:"claim_code,omitempty"`
+	Device    DeviceDevice `json:"device"`
+}
+
+// DeviceControl defines model for DeviceControl.
+type DeviceControl struct {
+	ExpectedRevision int64 `json:"expected_revision"`
+}
+
+// DeviceCreateJob defines model for DeviceCreateJob.
+type DeviceCreateJob struct {
+	ExpectedDeviceRevision int64                  `json:"expected_device_revision"`
+	Job                    map[string]interface{} `json:"job"`
+	JobDigest              string                 `json:"job_digest"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId      Ulid   `json:"project_id"`
+	WorkspaceAlias string `json:"workspace_alias"`
+}
+
+// DeviceDevice defines model for DeviceDevice.
+type DeviceDevice struct {
+	Actions *[]string `json:"actions"`
+	Alias   string    `json:"alias"`
+
+	// DeviceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	DeviceId   Ulid      `json:"device_id"`
+	ExpiresAt  time.Time `json:"expires_at"`
+	LastSeenAt time.Time `json:"last_seen_at"`
+
+	// OwnerId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OwnerId Ulid `json:"owner_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId        Ulid   `json:"project_id"`
+	Revision         int64  `json:"revision"`
+	State            string `json:"state"`
+	WorkspaceAlias   string `json:"workspace_alias"`
+	WorkspaceBinding string `json:"workspace_binding"`
+}
+
+// DeviceDevicePage defines model for DeviceDevicePage.
+type DeviceDevicePage struct {
+	Items      *[]DeviceDevice `json:"items"`
+	NextCursor *string         `json:"next_cursor,omitempty"`
+}
+
+// DeviceInspectRequest defines model for DeviceInspectRequest.
+type DeviceInspectRequest struct {
+	Inspection DeviceInspection `json:"inspection"`
+}
+
+// DeviceInspection defines model for DeviceInspection.
+type DeviceInspection struct {
+	Action           string            `json:"action"`
+	ApprovalDigest   string            `json:"approval_digest"`
+	InputSha256      string            `json:"input_sha256"`
+	JobDigest        string            `json:"job_digest"`
+	JobId            string            `json:"job_id"`
+	NetworkRequired  bool              `json:"network_required"`
+	Origin           *string           `json:"origin,omitempty"`
+	Paths            map[string]string `json:"paths"`
+	RemoteWrites     bool              `json:"remote_writes"`
+	Schema           string            `json:"schema"`
+	SourceDeleted    bool              `json:"source_deleted"`
+	TimeoutSeconds   int64             `json:"timeout_seconds"`
+	Warnings         *[]string         `json:"warnings"`
+	WorkspaceBinding string            `json:"workspace_binding"`
+}
+
+// DeviceJobFence defines model for DeviceJobFence.
+type DeviceJobFence struct {
+	// JobAttemptId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobAttemptId Ulid `json:"job_attempt_id"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId         Ulid  `json:"job_id"`
+	LeaseFence    int64 `json:"lease_fence"`
+	RecoveryEpoch int64 `json:"recovery_epoch"`
+}
+
+// DeviceJobPage defines model for DeviceJobPage.
+type DeviceJobPage struct {
+	Items      *[]DeviceJobView `json:"items"`
+	NextCursor *string          `json:"next_cursor,omitempty"`
+}
+
+// DeviceJobView defines model for DeviceJobView.
+type DeviceJobView struct {
+	ApprovalDigest  *string `json:"approval_digest,omitempty"`
+	CancelRequested bool    `json:"cancel_requested"`
+
+	// DeviceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	DeviceId    Ulid                   `json:"device_id"`
+	FailureCode *string                `json:"failure_code,omitempty"`
+	Inspection  *DeviceInspection      `json:"inspection,omitempty"`
+	Job         map[string]interface{} `json:"job"`
+	JobDigest   string                 `json:"job_digest"`
+	JobFence    *DeviceJobFence        `json:"job_fence,omitempty"`
+
+	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	JobId          Ulid    `json:"job_id"`
+	LeaseExpiresAt *string `json:"lease_expires_at,omitempty"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// OwnerId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OwnerId Ulid `json:"owner_id"`
+
+	// ProjectId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	ProjectId        Ulid                    `json:"project_id"`
+	Result           *map[string]interface{} `json:"result,omitempty"`
+	Revision         int64                   `json:"revision"`
+	State            string                  `json:"state"`
+	Stopped          bool                    `json:"stopped"`
+	WorkspaceAlias   string                  `json:"workspace_alias"`
+	WorkspaceBinding string                  `json:"workspace_binding"`
+}
+
+// DeviceLeaseRequest defines model for DeviceLeaseRequest.
+type DeviceLeaseRequest struct {
+	JobFence DeviceJobFence `json:"job_fence"`
+}
+
+// DevicePoll defines model for DevicePoll.
+type DevicePoll struct {
+	// DeviceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	DeviceId Ulid           `json:"device_id"`
+	Job      *DeviceJobView `json:"job,omitempty"`
+	Reason   *string        `json:"reason,omitempty"`
+	Stop     bool           `json:"stop"`
+}
+
+// DeviceResultRequest defines model for DeviceResultRequest.
+type DeviceResultRequest struct {
+	JobFence DeviceJobFence         `json:"job_fence"`
+	Result   map[string]interface{} `json:"result"`
+	Stopped  bool                   `json:"stopped"`
 }
 
 // Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
@@ -2233,6 +2684,30 @@ type IdentityView struct {
 	Session      SessionInfo          `json:"session"`
 	SystemRoles  *[]string            `json:"system_roles,omitempty"`
 }
+
+// InstanceManagementInfo defines model for InstanceManagementInfo.
+type InstanceManagementInfo struct {
+	CapacityError *InstanceManagementInfoCapacityError `json:"capacity_error,omitempty"`
+	FreeBytes     int64                                `json:"free_bytes"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId   Ulid  `json:"instance_id"`
+	MinFreeBytes int64 `json:"min_free_bytes"`
+
+	// ObservedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	ObservedAt       Timestamp                            `json:"observed_at"`
+	RecoveryEpoch    int64                                `json:"recovery_epoch"`
+	RecoveryError    *InstanceManagementInfoRecoveryError `json:"recovery_error,omitempty"`
+	RecoveryPartial  bool                                 `json:"recovery_partial"`
+	RecoveryReceipts []CompletedRestoreReceipt            `json:"recovery_receipts"`
+	State            string                               `json:"state"`
+}
+
+// InstanceManagementInfoCapacityError defines model for InstanceManagementInfo.CapacityError.
+type InstanceManagementInfoCapacityError string
+
+// InstanceManagementInfoRecoveryError defines model for InstanceManagementInfo.RecoveryError.
+type InstanceManagementInfoRecoveryError string
 
 // JsonPointer RFC 6901 JSON Pointer。
 type JsonPointer = string
@@ -2900,8 +3375,8 @@ type LantaiFlowV1 struct {
 
 // LantaiJobAttemptV1 defines model for LantaiJobAttemptV1.
 type LantaiJobAttemptV1 struct {
-	ActivationSnapshot LantaiActivationSnapshotV1 `json:"activation_snapshot"`
-	Contract           interface{}                `json:"contract"`
+	ActivationSnapshot *LantaiActivationSnapshotV1 `json:"activation_snapshot,omitempty"`
+	Contract           interface{}                 `json:"contract"`
 
 	// Id 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	Id            Ulid                               `json:"id"`
@@ -2909,7 +3384,16 @@ type LantaiJobAttemptV1 struct {
 	JobFence      LantaiAgentExecutionDefsV1JobFence `json:"job_fence"`
 
 	// JobId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
-	JobId Ulid `json:"job_id"`
+	JobId          Ulid `json:"job_id"`
+	LocalExecution *struct {
+		ApprovalDigest string `json:"approval_digest"`
+
+		// DeviceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		DeviceId         Ulid   `json:"device_id"`
+		JobDigest        string `json:"job_digest"`
+		WorkspaceAlias   string `json:"workspace_alias"`
+		WorkspaceBinding string `json:"workspace_binding"`
+	} `json:"local_execution,omitempty"`
 
 	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
 	OperationId Ulid `json:"operation_id"`
@@ -3390,13 +3874,16 @@ type M2AgentexecutionToolRequest struct {
 
 // M2CatalogAssetPatch defines model for M2CatalogAssetPatch.
 type M2CatalogAssetPatch struct {
-	Defaults    *M2CatalogDefaults      `json:"defaults,omitempty"`
-	Extra       *map[string]interface{} `json:"extra,omitempty"`
-	Sensitivity *string                 `json:"sensitivity,omitempty"`
-	Subjects    *[]string               `json:"subjects,omitempty"`
-	Summary     *string                 `json:"summary,omitempty"`
-	Tags        *[]string               `json:"tags,omitempty"`
-	Title       *string                 `json:"title,omitempty"`
+	Defaults *M2CatalogDefaults      `json:"defaults,omitempty"`
+	Extra    *map[string]interface{} `json:"extra,omitempty"`
+
+	// Profile 结构化的普通资产画像。历史状态、来源路径和笔记仅是著录，不授权用途、执行、发布或人审。profile PATCH只替换extra.asset_profile，其他extra由核心保留。
+	Profile     *AssetProfile `json:"profile,omitempty"`
+	Sensitivity *string       `json:"sensitivity,omitempty"`
+	Subjects    *[]string     `json:"subjects,omitempty"`
+	Summary     *string       `json:"summary,omitempty"`
+	Tags        *[]string     `json:"tags,omitempty"`
+	Title       *string       `json:"title,omitempty"`
 }
 
 // M2CatalogContentInput defines model for M2CatalogContentInput.
@@ -5099,6 +5586,62 @@ type M2WorkflowTemplate struct {
 	Title            string                                `json:"title"`
 }
 
+// ManagementBatchCheck defines model for ManagementBatchCheck.
+type ManagementBatchCheck struct {
+	Acceptance ManagementBatchCheckAcceptance `json:"acceptance"`
+	Assets     []struct {
+		// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		AssetId Ulid   `json:"asset_id"`
+		Key     string `json:"key"`
+
+		// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+		ManifestDigest Digest `json:"manifest_digest"`
+		Status         string `json:"status"`
+
+		// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		VersionId Ulid `json:"version_id"`
+	} `json:"assets"`
+	BatchId string `json:"batch_id"`
+
+	// CheckedAt UTC 毫秒精度的 RFC 3339 时间，固定以 Z 结尾、3 位小数。
+	CheckedAt Timestamp `json:"checked_at"`
+	Checks    []struct {
+		Code   *string                          `json:"code,omitempty"`
+		Key    string                           `json:"key"`
+		Status ManagementBatchCheckChecksStatus `json:"status"`
+	} `json:"checks"`
+
+	// InstanceId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	InstanceId      Ulid                                `json:"instance_id"`
+	IntendedPurpose ManagementBatchCheckIntendedPurpose `json:"intended_purpose"`
+	RecordRef       ManagementRecordRef                 `json:"record_ref"`
+	RecoveryRefs    []ManagementRecordRef               `json:"recovery_refs"`
+	Revision        int64                               `json:"revision"`
+	Schema          ManagementBatchCheckSchema          `json:"schema"`
+	Worksets        []ManagementRecordRef               `json:"worksets"`
+}
+
+// ManagementBatchCheckAcceptance defines model for ManagementBatchCheck.Acceptance.
+type ManagementBatchCheckAcceptance string
+
+// ManagementBatchCheckChecksStatus defines model for ManagementBatchCheck.Checks.Status.
+type ManagementBatchCheckChecksStatus string
+
+// ManagementBatchCheckIntendedPurpose defines model for ManagementBatchCheck.IntendedPurpose.
+type ManagementBatchCheckIntendedPurpose string
+
+// ManagementBatchCheckSchema defines model for ManagementBatchCheck.Schema.
+type ManagementBatchCheckSchema string
+
+// ManagementRecordRef defines model for ManagementRecordRef.
+type ManagementRecordRef struct {
+	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	AssetId Ulid `json:"asset_id"`
+
+	// VersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	VersionId Ulid `json:"version_id"`
+}
+
 // MemberPage defines model for MemberPage.
 type MemberPage struct {
 	Items []struct {
@@ -5284,6 +5827,14 @@ type PermanentRef struct {
 	VersionId Ulid `json:"version_id"`
 }
 
+// PrincipalPage defines model for PrincipalPage.
+type PrincipalPage struct {
+	Items []PrincipalView `json:"items"`
+
+	// NextCursor 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	NextCursor *Ulid `json:"next_cursor,omitempty"`
+}
+
 // PrincipalView defines model for PrincipalView.
 type PrincipalView struct {
 	AuthEpoch int `json:"auth_epoch"`
@@ -5368,6 +5919,18 @@ type ProjectView struct {
 	State     string `json:"state"`
 }
 
+// ProvenanceEvidence M1 追加来源证据。更正不擦除旧证据；外部未知输入不自动获得生产许可。限制解除另走 M2 安全命令。
+type ProvenanceEvidence struct {
+	ExternalInputs []struct {
+		RightsStatus interface{} `json:"rights_status"`
+
+		// Sha256 64 位小写十六进制 SHA-256，用于名为 sha256 的字段。
+		Sha256    *Sha256Hex `json:"sha256,omitempty"`
+		SourceUrl *string    `json:"source_url,omitempty"`
+	} `json:"external_inputs"`
+	Note string `json:"note"`
+}
+
 // QueryItem defines model for QueryItem.
 type QueryItem struct {
 	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
@@ -5446,11 +6009,59 @@ type RecoveryCodes struct {
 	RecoveryCodes []string `json:"recovery_codes"`
 }
 
+// RecoveryPackage defines model for RecoveryPackage.
+type RecoveryPackage struct {
+	Format    RecoveryPackageFormat    `json:"format"`
+	Id        string                   `json:"id"`
+	Sensitive RecoveryPackageSensitive `json:"sensitive"`
+	Sha256    string                   `json:"sha256"`
+	Size      int64                    `json:"size"`
+}
+
+// RecoveryPackageFormat defines model for RecoveryPackage.Format.
+type RecoveryPackageFormat string
+
+// RecoveryPackageSensitive defines model for RecoveryPackage.Sensitive.
+type RecoveryPackageSensitive bool
+
 // RelativePath 版本内相对路径：/ 分隔，不以 / 开头或结尾，不含空段、. 或 .. 段、反斜杠和控制字符。NFC、大小写冲突、平台保留名等规则由 catalog 另行校验。
 type RelativePath = string
 
 // Revision 服务端递增的修订号，从 1 开始；业务顺序以它为准，不以 ULID 时间推断。
 type Revision = int
+
+// RightsEvidenceReceipt defines model for RightsEvidenceReceipt.
+type RightsEvidenceReceipt struct {
+	Created bool `json:"created"`
+
+	// Digest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	Digest Digest `json:"digest"`
+
+	// OperationId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	OperationId Ulid `json:"operation_id"`
+
+	// RecordId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	RecordId    Ulid   `json:"record_id"`
+	Ref         string `json:"ref"`
+	Revision    int64  `json:"revision"`
+	RightsEpoch int64  `json:"rights_epoch"`
+}
+
+// RightsEvidenceRequest defines model for RightsEvidenceRequest.
+type RightsEvidenceRequest struct {
+	// Evidence M1 追加来源证据。更正不擦除旧证据；外部未知输入不自动获得生产许可。限制解除另走 M2 安全命令。
+	Evidence         ProvenanceEvidence `json:"evidence"`
+	ExpectedRevision int64              `json:"expected_revision"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+
+	// Subject 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Subject PermanentRef `json:"subject"`
+
+	// Supersedes 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	Supersedes *Ulid `json:"supersedes,omitempty"`
+}
 
 // SensitiveRequest Closed identity command JSON matches the selected core action. Backup actions accept BackupApproval only in challenges; submit the verified grant through the backup route, never identity/commands. Challenge can reuse operation_id; execute requires grant_id and forbids operation_id. No generic action dispatch.
 type SensitiveRequest struct {
@@ -5731,6 +6342,43 @@ type VersionManifestUse struct {
 // VersionManifestUseRelation defines model for VersionManifestUse.Relation.
 type VersionManifestUseRelation string
 
+// VersionPage defines model for VersionPage.
+type VersionPage struct {
+	Items      []VersionView `json:"items"`
+	NextCursor *string       `json:"next_cursor,omitempty"`
+}
+
+// VersionRightsView defines model for VersionRightsView.
+type VersionRightsView struct {
+	DenyPurposes []string `json:"deny_purposes"`
+	Evidence     []struct {
+		// RecordId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+		RecordId Ulid  `json:"record_id"`
+		Revision int64 `json:"revision"`
+	} `json:"evidence"`
+	EvidenceRevision int64 `json:"evidence_revision"`
+
+	// LastAssertionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	LastAssertionId *Ulid `json:"last_assertion_id,omitempty"`
+
+	// ManifestDigest 带算法前缀的摘要，用于 *_digest 与 request_hash 字段。
+	ManifestDigest Digest `json:"manifest_digest"`
+	Purposes       []struct {
+		Allowed     bool    `json:"allowed"`
+		Code        *string `json:"code,omitempty"`
+		Purpose     string  `json:"purpose"`
+		RightsEpoch int64   `json:"rights_epoch"`
+	} `json:"purposes"`
+	RestrictedSource bool  `json:"restricted_source"`
+	Revision         int64 `json:"revision"`
+
+	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
+	Rights VersionManifestRights `json:"rights"`
+
+	// Subject 指向具体版本的永久引用；持久保存时 instance_id 必填。
+	Subject PermanentRef `json:"subject"`
+}
+
 // VersionView defines model for VersionView.
 type VersionView struct {
 	// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
@@ -5843,6 +6491,26 @@ type CancelBackupParams struct {
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
 
+// ApproveBackupDownloadJSONBody defines parameters for ApproveBackupDownload.
+type ApproveBackupDownloadJSONBody struct {
+	GrantId       string `json:"grant_id"`
+	PackageSha256 string `json:"package_sha256"`
+}
+
+// ApproveBackupDownloadParams defines parameters for ApproveBackupDownload.
+type ApproveBackupDownloadParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// DownloadBackupPackageParams defines parameters for DownloadBackupPackage.
+type DownloadBackupPackageParams struct {
+	XLantaiBackupDownload *string `json:"X-Lantai-Backup-Download,omitempty"`
+	Range                 *string `json:"Range,omitempty"`
+	IfRange               *string `json:"If-Range,omitempty"`
+}
+
 // ResumeBackupParams defines parameters for ResumeBackup.
 type ResumeBackupParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
@@ -5853,6 +6521,12 @@ type ResumeBackupParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// GetInstanceManagementInfoParams defines parameters for GetInstanceManagementInfo.
+type GetInstanceManagementInfoParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
 // SearchAssetsParams defines parameters for SearchAssets.
 type SearchAssetsParams struct {
 	View      *SearchAssetsParamsView   `form:"view,omitempty" json:"view,omitempty"`
@@ -5861,6 +6535,9 @@ type SearchAssetsParams struct {
 	Q         *string                   `form:"q,omitempty" json:"q,omitempty"`
 	ProjectId *Ulid                     `form:"project_id,omitempty" json:"project_id,omitempty"`
 	AssetType *VersionManifestAssetType `form:"asset_type,omitempty" json:"asset_type,omitempty"`
+
+	// Tag 可重复的精确AND标签；NFC、去首尾空白、大小写敏感。最多64项，每项64个Unicode字符，拒绝空/控制字符。规范集合绑定原查询游标，空页有cursor须继续；非当前浏览器页局部过滤。
+	Tag *[]string `form:"tag,omitempty" json:"tag,omitempty"`
 
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
@@ -5893,6 +6570,15 @@ type PatchAssetMetadataParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// ListAssetVersionsParams defines parameters for ListAssetVersions.
+type ListAssetVersionsParams struct {
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
 // GetVersionParams defines parameters for GetVersion.
 type GetVersionParams struct {
 	View *GetVersionParamsView `form:"view,omitempty" json:"view,omitempty"`
@@ -5914,6 +6600,92 @@ type IssueReadGrantParams struct {
 type GetContextParams struct {
 	ProjectId Ulid   `form:"project_id" json:"project_id"`
 	AssetType string `form:"asset_type" json:"asset_type"`
+}
+
+// ListDevicesParams defines parameters for ListDevices.
+type ListDevicesParams struct {
+	ProjectId Ulid  `form:"project_id" json:"project_id"`
+	After     *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit     *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ClaimDeviceParams defines parameters for ClaimDevice.
+type ClaimDeviceParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ApproveDeviceParams defines parameters for ApproveDevice.
+type ApproveDeviceParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ListDeviceJobsParams defines parameters for ListDeviceJobs.
+type ListDeviceJobsParams struct {
+	After *Ulid `form:"after,omitempty" json:"after,omitempty"`
+	Limit *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateDeviceJobParams defines parameters for CreateDeviceJob.
+type CreateDeviceJobParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ApproveDeviceJobParams defines parameters for ApproveDeviceJob.
+type ApproveDeviceJobParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CancelDeviceJobParams defines parameters for CancelDeviceJob.
+type CancelDeviceJobParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// HeartbeatDeviceJobParams defines parameters for HeartbeatDeviceJob.
+type HeartbeatDeviceJobParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// InspectDeviceJobParams defines parameters for InspectDeviceJob.
+type InspectDeviceJobParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// AcceptDeviceJobResultParams defines parameters for AcceptDeviceJobResult.
+type AcceptDeviceJobResultParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// PollDeviceJSONBody defines parameters for PollDevice.
+type PollDeviceJSONBody = map[string]interface{}
+
+// PollDeviceParams defines parameters for PollDevice.
+type PollDeviceParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// RevokeDeviceParams defines parameters for RevokeDevice.
+type RevokeDeviceParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
 // GetEventsParams defines parameters for GetEvents.
@@ -6045,8 +6817,26 @@ type SetSetupPasswordParams struct {
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
 
+// ListPrincipalsParams defines parameters for ListPrincipals.
+type ListPrincipalsParams struct {
+	Limit  *int  `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *Ulid `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
 // GetPrincipalParams defines parameters for GetPrincipal.
 type GetPrincipalParams struct {
+	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
+	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// ListPrincipalCredentialsParams defines parameters for ListPrincipalCredentials.
+type ListPrincipalCredentialsParams struct {
+	Limit  *int  `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *Ulid `form:"cursor,omitempty" json:"cursor,omitempty"`
+
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
@@ -6210,6 +7000,13 @@ type PostRightsAssertionsParams struct {
 
 // PostRightsCancelParams defines parameters for PostRightsCancel.
 type PostRightsCancelParams struct {
+	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
+	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// AppendRightsEvidenceParams defines parameters for AppendRightsEvidence.
+type AppendRightsEvidenceParams struct {
 	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
 	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
@@ -6534,6 +7331,9 @@ type SaveBackupScheduleJSONRequestBody = BackupScheduleRequest
 // CancelBackupJSONRequestBody defines body for CancelBackup for application/json ContentType.
 type CancelBackupJSONRequestBody = EmptyRequest
 
+// ApproveBackupDownloadJSONRequestBody defines body for ApproveBackupDownload for application/json ContentType.
+type ApproveBackupDownloadJSONRequestBody ApproveBackupDownloadJSONBody
+
 // ResumeBackupJSONRequestBody defines body for ResumeBackup for application/json ContentType.
 type ResumeBackupJSONRequestBody = BackupRunRequest
 
@@ -6542,6 +7342,36 @@ type PatchAssetMetadataJSONRequestBody = AssetPatch
 
 // IssueReadGrantJSONRequestBody defines body for IssueReadGrant for application/json ContentType.
 type IssueReadGrantJSONRequestBody = ReadGrantRequest
+
+// ClaimDeviceJSONRequestBody defines body for ClaimDevice for application/json ContentType.
+type ClaimDeviceJSONRequestBody = DeviceClaim
+
+// ApproveDeviceJSONRequestBody defines body for ApproveDevice for application/json ContentType.
+type ApproveDeviceJSONRequestBody = DeviceApproveDevice
+
+// CreateDeviceJobJSONRequestBody defines body for CreateDeviceJob for application/json ContentType.
+type CreateDeviceJobJSONRequestBody = DeviceCreateJob
+
+// ApproveDeviceJobJSONRequestBody defines body for ApproveDeviceJob for application/json ContentType.
+type ApproveDeviceJobJSONRequestBody = DeviceApproveJob
+
+// CancelDeviceJobJSONRequestBody defines body for CancelDeviceJob for application/json ContentType.
+type CancelDeviceJobJSONRequestBody = DeviceControl
+
+// HeartbeatDeviceJobJSONRequestBody defines body for HeartbeatDeviceJob for application/json ContentType.
+type HeartbeatDeviceJobJSONRequestBody = DeviceLeaseRequest
+
+// InspectDeviceJobJSONRequestBody defines body for InspectDeviceJob for application/json ContentType.
+type InspectDeviceJobJSONRequestBody = DeviceInspectRequest
+
+// AcceptDeviceJobResultJSONRequestBody defines body for AcceptDeviceJobResult for application/json ContentType.
+type AcceptDeviceJobResultJSONRequestBody = DeviceResultRequest
+
+// PollDeviceJSONRequestBody defines body for PollDevice for application/json ContentType.
+type PollDeviceJSONRequestBody = PollDeviceJSONBody
+
+// RevokeDeviceJSONRequestBody defines body for RevokeDevice for application/json ContentType.
+type RevokeDeviceJSONRequestBody = DeviceControl
 
 // PostEvidenceJSONRequestBody defines body for PostEvidence for application/json ContentType.
 type PostEvidenceJSONRequestBody = M2LedgerReviewEvidenceInput
@@ -6612,6 +7442,9 @@ type PostJobsRetryJSONRequestBody = M2JobsControl
 // PostJobsRunJSONRequestBody defines body for PostJobsRun for application/json ContentType.
 type PostJobsRunJSONRequestBody = M2JobsControl
 
+// CheckManagementBatchJSONRequestBody defines body for CheckManagementBatch for application/json ContentType.
+type CheckManagementBatchJSONRequestBody = ManagementRecordRef
+
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
 type PostMessagesJSONRequestBody = M2LedgerMessageInput
 
@@ -6635,6 +7468,9 @@ type PostRightsAssertionsJSONRequestBody = M2ProvenanceAssertionRequest
 
 // PostRightsCancelJSONRequestBody defines body for PostRightsCancel for application/json ContentType.
 type PostRightsCancelJSONRequestBody = M2ProvenanceCancelAssertionRequest
+
+// AppendRightsEvidenceJSONRequestBody defines body for AppendRightsEvidence for application/json ContentType.
+type AppendRightsEvidenceJSONRequestBody = RightsEvidenceRequest
 
 // ExchangeSessionJSONRequestBody defines body for ExchangeSession for application/json ContentType.
 type ExchangeSessionJSONRequestBody = SessionRequest

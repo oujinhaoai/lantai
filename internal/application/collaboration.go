@@ -29,7 +29,7 @@ func (a *App) assembleCollaboration() error {
 	if e = a.assembleExtensions(); e != nil {
 		return e
 	}
-	a.Nodes, e = node.New(node.Deps{DB: db, Gate: i.Gate(), Authority: auth, Clock: i.Clock(), IDs: i.IDs()})
+	a.Nodes, e = node.New(node.Deps{DB: db, Gate: i.Gate(), Authority: auth, Sessions: a.Identity, Clock: i.Clock(), IDs: i.IDs()})
 	if e != nil {
 		return e
 	}

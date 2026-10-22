@@ -3,6 +3,9 @@ package application
 import (
 	"context"
 	"errors"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"io"
+	"path/filepath"
 
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
@@ -29,12 +32,21 @@ func (a *App) Maintenance(ctx context.Context, run func(context.Context) error) 
 // Backup checks owner integrity and freezes event/audit watermarks under the
 // same barrier as all database and mutable-file snapshots. Confirmation is
 // acknowledged only after verified COMPLETE; retries repeat the same watermark.
-func (a *App) Backup(ctx context.Context, opts operations.BackupOptions) (operations.BackupManifest, error) {
-	key, err := masterkey.Load(a.Instance.Config().SecretsDir)
+func (a *App) Backup(ctx context.Context, opts operations.BackupOptions) (manifest operations.BackupManifest, err error) {
+	err = a.Maintenance(ctx, func(c context.Context) error {
+		var e error
+		manifest, e = a.backupComplete(c, opts)
+		return e
+	})
+	return manifest, err
+}
+
+func (a *App) backupComplete(ctx context.Context, opts operations.BackupOptions) (operations.BackupManifest, error) {
+	keyID, err := a.Identity.RecoveryKeyID(ctx)
 	if err != nil {
 		return operations.BackupManifest{}, err
 	}
-	opts.KeyID = key.ID()
+	opts.KeyID = keyID
 	opts.Check = func(c context.Context) error {
 		if err := a.Identity.CheckStartup(c); err != nil {
 			return err
@@ -59,10 +71,48 @@ func (a *App) Backup(ctx context.Context, opts operations.BackupOptions) (operat
 	if err != nil {
 		return manifest, err
 	}
+	info, err := writeCompleteBackup(ctx, a.Instance, manifest, keyID, func(w io.Writer) error { return a.Identity.WriteBackupRecoveryMaterial(ctx, w) }, opts.CheckDestination)
+	if err != nil {
+		return manifest, err
+	}
+	manifest.RecoveryPackage = &info
 	through, ok := manifest.Watermarks["events"]
 	if !ok {
 		return manifest, errors.New("application: backup has no captured event watermark")
 	}
 	err = a.Maintenance(ctx, func(c context.Context) error { return a.Events.ConfirmBackup(c, through) })
 	return manifest, err
+}
+
+// BackupBeforeUpgrade captures an offline, migration-pending instance without
+// opening newer domain services. It has the same complete package contract.
+func BackupBeforeUpgrade(ctx context.Context, inst *operations.Instance, opts operations.BackupOptions) (m operations.BackupManifest, err error) {
+	err = inst.OfflineMaintenance(ctx, func(c context.Context) error {
+		key, e := masterkey.Load(inst.Config().SecretsDir)
+		if e != nil {
+			return e
+		}
+		opts.KeyID = key.ID()
+		m, e = inst.Backup(c, opts)
+		if e != nil {
+			return e
+		}
+		info, e := writeCompleteBackup(c, inst, m, key.ID(), key.WriteRecoveryMaterial, opts.CheckDestination)
+		if e == nil {
+			m.RecoveryPackage = &info
+		}
+		return e
+	})
+	return m, err
+}
+func writeCompleteBackup(ctx context.Context, inst *operations.Instance, m operations.BackupManifest, keyID ids.ID, writeKey func(io.Writer) error, check func(context.Context) error) (operations.RecoveryPackageInfo, error) {
+	destination, err := inst.BackupDestination(ctx, m.BackupID)
+	if err != nil {
+		return operations.RecoveryPackageInfo{}, err
+	}
+	destination, err = filepath.EvalSymlinks(destination)
+	if err != nil {
+		return operations.RecoveryPackageInfo{}, err
+	}
+	return operations.WriteRecoveryPackage(ctx, destination, operations.RecoveryPackagePath(destination), keyID, writeKey, check)
 }

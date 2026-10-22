@@ -1,0 +1,105 @@
+.asset-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.asset-editor-grid label,
+.asset-tools label,
+.asset-editor label {
+  display: grid;
+  gap: 0.4rem;
+}
+.asset-editor input,
+.asset-editor textarea,
+.asset-editor select,
+.asset-library-filters input,
+.asset-library-filters select,
+.asset-tools select {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--line, #cbd4cf);
+  padding: 0.6rem;
+  border-radius: 0.4rem;
+  background: var(--panel, #fff);
+  color: inherit;
+}
+.asset-editor textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.asset-admin-section input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent, #235b4e);
+}
+.asset-admin-section fieldset {
+  border: 1px solid var(--line, #cbd4cf);
+  padding: 1rem;
+  border-radius: 0.4rem;
+}
+.asset-admin-section,
+.asset-tools {
+  margin-block: 1.5rem;
+}
+.asset-admin-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.65rem;
+}
+.asset-admin-section table,
+.asset-library table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.asset-admin-section td,
+.asset-admin-section th,
+.asset-library td,
+.asset-library th {
+  text-align: start;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--line, #dce2df);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.asset-admin-section code {
+  overflow-wrap: anywhere;
+}
+.asset-diff-added {
+  color: #226342;
+}
+.asset-diff-removed {
+  color: #8a3830;
+}
+.asset-derived-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-top: 1rem;
+}
+.asset-wireframe canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid #d3dfda;
+  border-radius: 0.5rem;
+}
+.asset-library-filters details {
+  margin-block: 0.75rem;
+}
+.asset-library-filters .search-bar {
+  flex-wrap: wrap;
+}
+.asset-library-filters .search-bar label {
+  flex: 1 1 12rem;
+}
+.asset-version-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-block: 0.5rem;
+}
+.asset-attempt-note {
+  padding: 0.75rem;
+  border: 1px solid #b5c6bc;
+  overflow-wrap: anywhere;
+}

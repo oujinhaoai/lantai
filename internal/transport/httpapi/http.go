@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
@@ -28,10 +29,12 @@ import (
 const DefaultMaxJSONBytes int64 = 8 << 20
 
 type Handler struct {
-	deps  Deps
-	cfg   Config
-	guard *httpauth.Guard
-	api   http.Handler
+	deps       Deps
+	cfg        Config
+	guard      *httpauth.Guard
+	api        http.Handler
+	downloadMu sync.Mutex
+	downloads  map[string]backupDownload
 }
 
 func New(deps Deps, cfg Config) (*Handler, error) {
@@ -103,7 +106,7 @@ var idempotencyRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 func (h *Handler) middleware(next http.Handler, api bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		readLimit, writeLimit := h.cfg.TransferIdleTimeout, h.cfg.TransferIdleTimeout
-		if api {
+		if api && !backupPackageRequest(r) {
 			ctx, cancel := context.WithTimeout(r.Context(), h.cfg.APITimeout)
 			defer cancel()
 			r = r.WithContext(ctx)

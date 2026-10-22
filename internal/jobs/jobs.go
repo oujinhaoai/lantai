@@ -18,6 +18,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
 	"github.com/oujinhaoai/lantai/internal/contract/commit"
+	dc "github.com/oujinhaoai/lantai/internal/contract/device"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/event"
@@ -91,6 +92,7 @@ type Service struct {
 	running   map[ids.ID]context.CancelFunc
 }
 type Job struct {
+	Device          *dc.JobData                  `json:"device,omitempty"`
 	Reconciliations []Reconciliation             `json:"reconciliations,omitempty"`
 	ID              ids.ID                       `json:"job_id"`
 	OperationID     ids.ID                       `json:"operation_id"`
@@ -157,6 +159,12 @@ func (s *Service) Read(ctx context.Context, w authz.Context, id ids.ID) (Job, er
 	if e != nil {
 		return j, e
 	}
+	if j.Device != nil {
+		if _, e = s.webDevice(ctx, w, j.Device.DeviceID, false); e != nil {
+			return Job{}, e
+		}
+		return j, nil
+	}
 	if e = s.auth(ctx, w, identity.ActTasksRead, j.Request.ProjectID); e != nil {
 		return Job{}, e
 	}
@@ -183,6 +191,14 @@ func (s *Service) List(ctx context.Context, w authz.Context, p, after ids.ID, li
 		}
 		if e = json.Unmarshal([]byte(b), &j); e != nil {
 			return nil, e
+		}
+		if j.Device != nil {
+			if _, err := s.webDevice(ctx, w, j.Device.DeviceID, false); err != nil {
+				if code := errcode.CodeOf(err); code == errcode.NotFound || code == errcode.Forbidden {
+					continue
+				}
+				return nil, err
+			}
 		}
 		out = append(out, j)
 	}
@@ -248,7 +264,15 @@ func (s *Service) save(ctx context.Context, c commands.Context, j Job) (Job, err
 				return commands.Result{}, e
 			}
 		}
-		ev, e := event.New(s.d.IDs, s.d.Clock, event.Params{EventType: "job.changed", SchemaVersion: 1, AggregateType: "job", AggregateID: j.ID, AggregateRevision: j.Revision, ActorID: c.ActorID, SessionID: c.SessionID, ProjectID: j.Request.ProjectID, OperationID: c.OperationID, CorrelationID: c.Correlation(), Payload: map[string]any{"state": j.State, "flow_id": j.Request.FlowID, "task_id": j.Request.Flow.TaskID}})
+		eventType := "job.changed"
+		payload := map[string]any{"state": j.State, "flow_id": j.Request.FlowID, "task_id": j.Request.Flow.TaskID}
+		if j.Device != nil {
+			// Device jobs are not T05 task collaboration objects. Do not emit
+			// an empty task locator that would poison event replay on restart.
+			eventType = "job.device_changed"
+			payload = map[string]any{"state": j.State, "device_id": j.Device.DeviceID}
+		}
+		ev, e := event.New(s.d.IDs, s.d.Clock, event.Params{EventType: eventType, SchemaVersion: 1, AggregateType: "job", AggregateID: j.ID, AggregateRevision: j.Revision, ActorID: c.ActorID, SessionID: c.SessionID, ProjectID: j.Request.ProjectID, OperationID: c.OperationID, CorrelationID: c.Correlation(), Payload: payload})
 		if e != nil {
 			return commands.Result{}, e
 		}
@@ -343,6 +367,9 @@ func (s *Service) Run(ctx context.Context, w authz.Context, key string, in Contr
 	j, e := s.Read(ctx, w, in.JobID)
 	if e != nil {
 		return Job{}, e
+	}
+	if j.Device != nil {
+		return Job{}, errcode.New(errcode.UnsupportedCapability, "local assistant jobs use the outbound device fence protocol")
 	}
 	ctxLock, release, e := s.lock(ctx, j)
 	if e != nil {

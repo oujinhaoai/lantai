@@ -11,3 +11,4 @@
 | [0005](0005-instance-lifecycle.md) | 实例标记、单实例锁、按库迁移与维护屏障 | 已采纳 | 2026-09-27 |
 | [0006](0006-identity-sessions-and-human-grants.md) | 身份、会话、委托与人类授权的实现取舍 | 已采纳 | 2026-09-27 |
 | [0007](0007-storage-layout-and-catalog-ledger-split.md) | 资源与存储（T02）的实现取舍 | 已采纳 | 2026-09-27 |
+| [0008](0008-first-party-outbound-device.md) | 首方出站设备、两阶段摘要批准与原 JobAttempt | 开发候选已采纳 | 2026-10-20 |

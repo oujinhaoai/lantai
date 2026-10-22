@@ -32,6 +32,7 @@ type Deps struct {
 	Authority Authority
 	IDs       *ids.Generator
 	Clock     clock.Clock
+	Sessions  DeviceSessions
 }
 type Service struct {
 	d     Deps

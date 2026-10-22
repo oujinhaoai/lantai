@@ -33,8 +33,10 @@ type command struct {
 
 var commands = []command{
 	{"start", "自动衔接受保护的首次管理员设置与正常服务", runStart},
+	{"prepare-config", "离线核验并迁移旧配置 bind，或准备首次设置配置；已有有效配置不覆盖", runPrepareConfig},
 	{"prepare-volumes", "仅准备空容器卷的根目录，已有目录只校验", runPrepareVolumes},
 	{"mcp", "使用现有会话启动官方 Go SDK stdio MCP 适配器", runMCP},
+	{"assistant", "检查并单次批准执行受控本机作业，不建立设备持续访问", runAssistant},
 	{"version", "显示版本、构建信息、公共契约与协议支持状态", runVersion},
 	{"schema", "列出公共契约 schema，或校验 JSON/YAML 文档", runSchema},
 	{"init", "本机初始化实例与首个管理员（口令、TOTP、恢复码），只能进行一次", runInit},

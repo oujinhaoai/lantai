@@ -18,8 +18,6 @@ import {
   rememberCSRF,
   restoreCSRF,
   typeNames,
-  type Asset,
-  type ExactVersion,
   type Identity,
   type Item,
   type Page,
@@ -27,9 +25,15 @@ import {
   type Session,
 } from "./api";
 import "./style.css";
-import { FilePreview } from "./file-preview";
-import { BackupManagement, canManageBackups } from "./backup-management";
+import { AssetVersionView } from "./asset-version-view";
+import { AssetLibrary } from "./asset-management";
+import { canManageBackups } from "./backup-management";
+import { BackupsAndRecovery } from "./backups-and-recovery";
 import { BackupMaintenanceAccess } from "./backup-maintenance-access";
+import { MigrationCenter } from "./migration-center";
+import { WorksetManagement } from "./workset-management";
+import { SystemManagement } from "./system-management";
+import "./management.css";
 
 type Expire = (error: unknown) => void;
 const href = (path: string) => `#${path}`;
@@ -42,9 +46,39 @@ const decodeKey = (key: string) => {
   }
 };
 const routeSnapshot = () => location.hash.slice(1) || "/";
+let guardedRoute = routeSnapshot();
+const pendingOperations = new Set<string>();
+addEventListener("lantai:unsaved-operation", (event) => {
+  const detail = (
+    event as CustomEvent<boolean | { owner: string; pending: boolean }>
+  ).detail;
+  const owner = typeof detail === "boolean" ? "page-operation" : detail?.owner;
+  const pending = typeof detail === "boolean" ? detail : detail?.pending;
+  if (!owner) return;
+  if (pending) pendingOperations.add(owner);
+  else pendingOperations.delete(owner);
+});
+addEventListener("beforeunload", (event) => {
+  if (pendingOperations.size) event.preventDefault();
+});
 const subscribeRoute = (change: () => void) => {
-  addEventListener("hashchange", change);
-  return () => removeEventListener("hashchange", change);
+  const changed = () => {
+    const next = routeSnapshot();
+    if (
+      pendingOperations.size &&
+      next !== guardedRoute &&
+      !window.confirm(
+        "仍有敏感操作结果尚未核对。请先保存原操作编号和状态；离开后不能把它当成未执行。仍要离开吗？",
+      )
+    ) {
+      history.replaceState(null, "", `#${guardedRoute}`);
+      return;
+    }
+    guardedRoute = next;
+    change();
+  };
+  addEventListener("hashchange", changed);
+  return () => removeEventListener("hashchange", changed);
 };
 function useRoute() {
   // React rechecks the snapshot when subscribing, including a navigation that
@@ -641,174 +675,6 @@ const date = (value: string) =>
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-const bytes = (size: number) =>
-  size < 1024
-    ? `${size} B`
-    : size < 1048576
-      ? `${(size / 1024).toFixed(1)} KB`
-      : `${(size / 1048576).toFixed(1)} MB`;
-function AssetDetail({
-  assetID,
-  route,
-  expire,
-}: {
-  assetID: string;
-  route: string;
-  expire: Expire;
-}) {
-  const from =
-    new URLSearchParams(route.split("?")[1]).get("from") || "/assets";
-  const safeFrom = /^\/(?:assets(?:\?|$)|projects(?:\/|$)|$)/.test(from)
-    ? from
-    : "/assets";
-  return (
-    <div className="asset-detail">
-      <a className="back" href={href(safeFrom)}>
-        <Icon kind="back" size={17} />
-        返回列表
-      </a>
-      <Resource<Asset>
-        path={`/api/v1/assets/${encodeURIComponent(assetID)}?view=full`}
-        expire={expire}
-      >
-        {(asset) => (
-          <>
-            <Heading
-              eyebrow={`资源 / ${typeNames[asset.asset_type] || asset.asset_type}`}
-              title={asset.description.title || asset.description.slug}
-            >
-              {asset.description.summary}
-            </Heading>
-            <section>
-              <div className="section-head">
-                <h2>
-                  当前固定版本{" "}
-                  <span className="badge">v{asset.latest.version_number}</span>
-                </h2>
-                <span>{date(asset.latest.committed_at)}</span>
-              </div>
-              <Resource<ExactVersion>
-                path={`/api/v1/assets/${encodeURIComponent(assetID)}/versions/${asset.latest.version_id}?view=full`}
-                expire={expire}
-              >
-                {(exact) => (
-                  <>
-                    {exact.manifest?.content.version_note && (
-                      <p>{exact.manifest.content.version_note}</p>
-                    )}
-                    {!!exact.manifest?.content.files.length && (
-                      <FilePreview
-                        files={exact.manifest.content.files}
-                        assetType={asset.asset_type}
-                        assetID={assetID}
-                        versionID={asset.latest.version_id}
-                        expire={expire}
-                      />
-                    )}
-                    {exact.manifest?.content.files.length ? (
-                      <details className="file-manifest">
-                        <summary>查看文件清单与 SHA-256</summary>
-                        <div className="table-scroll">
-                          <table>
-                            <thead>
-                              <tr>
-                                <th scope="col">文件路径</th>
-                                <th scope="col">用途</th>
-                                <th scope="col">大小</th>
-                                <th scope="col">SHA-256</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {exact.manifest.content.files.map((file) => (
-                                <tr key={file.path}>
-                                  <td data-label="文件路径">{file.path}</td>
-                                  <td data-label="用途">
-                                    {file.role === "primary"
-                                      ? "主文件"
-                                      : file.role}
-                                  </td>
-                                  <td data-label="大小">{bytes(file.size)}</td>
-                                  <td data-label="SHA-256">
-                                    <code>{file.sha256}</code>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </details>
-                    ) : (
-                      <Empty title="没有可显示的文件清单">
-                        此版本未返回文件清单。
-                      </Empty>
-                    )}
-                  </>
-                )}
-              </Resource>
-            </section>
-            <details className="detail-metadata">
-              <summary>著录与技术详情</summary>
-              <div className="detail-grid">
-                <section className="panel">
-                  <h2>著录信息</h2>
-                  <dl>
-                    <dt>资源类型</dt>
-                    <dd>{typeNames[asset.asset_type] || asset.asset_type}</dd>
-                    <dt>资源路径名</dt>
-                    <dd>{asset.description.slug}</dd>
-                    <dt>著录修订</dt>
-                    <dd>r{asset.description.revision}</dd>
-                    <dt>标签</dt>
-                    <dd className="tags">
-                      {asset.description.tags?.length
-                        ? asset.description.tags.map((tag) => (
-                            <span key={tag}>{tag}</span>
-                          ))
-                        : "暂无标签"}
-                    </dd>
-                    <dt>主题</dt>
-                    <dd>
-                      {asset.description.subjects?.join("、") || "暂无主题"}
-                    </dd>
-                    <dt>资源标识</dt>
-                    <dd>
-                      <code>{asset.asset_id}</code>
-                    </dd>
-                  </dl>
-                </section>
-                <section className="panel">
-                  <h2>
-                    当前固定版本{" "}
-                    <span className="badge">
-                      v{asset.latest.version_number}
-                    </span>
-                  </h2>
-                  <dl>
-                    <dt>提交时间</dt>
-                    <dd>{date(asset.latest.committed_at)}</dd>
-                    <dt>版本标识</dt>
-                    <dd>
-                      <code>{asset.latest.version_id}</code>
-                    </dd>
-                    <dt>永久引用</dt>
-                    <dd>
-                      <code>{asset.latest.uri}</code>
-                    </dd>
-                    <dt>清单摘要</dt>
-                    <dd>
-                      <code>{asset.latest.manifest_digest}</code>
-                    </dd>
-                  </dl>
-                  <p className="subtle">版本内容不可变，著录修订独立记录。</p>
-                </section>
-              </div>
-            </details>
-          </>
-        )}
-      </Resource>
-    </div>
-  );
-}
 function Workspace({
   who,
   expire,
@@ -848,13 +714,23 @@ function Workspace({
       setLoggingOut(false);
     }
   };
+  const canManageSystem =
+    who.principal.kind === "human" &&
+    who.session.session_kind === "normal" &&
+    who.session.channel === "browser" &&
+    !who.session.delegated_by &&
+    (who.session.scopes.includes("admin") ||
+      who.session.scopes.includes("organize"));
   const nav = [
     ["/", "home", "首页"],
     ["/projects", "folder", "我的项目"],
-    ["/assets", "grid", "资源库"],
+    ["/assets", "grid", "素材库"],
+    ["/migrations", "refresh", "迁移中心"],
+    ["/worksets", "folder", "工程工作集"],
     ...(canManageBackups(who)
-      ? [["/admin/backups", "backup", "备份管理"]]
+      ? [["/admin/backups", "backup", "备份与恢复"]]
       : []),
+    ...(canManageSystem ? [["/admin/system", "lock", "系统管理"]] : []),
   ];
   const section = pathname.startsWith("/projects")
     ? "/projects"
@@ -862,7 +738,13 @@ function Workspace({
       ? "/assets"
       : pathname.startsWith("/admin/backups")
         ? "/admin/backups"
-        : "/";
+        : pathname.startsWith("/admin/system")
+          ? "/admin/system"
+          : pathname.startsWith("/migrations")
+            ? "/migrations"
+            : pathname.startsWith("/worksets")
+              ? "/worksets"
+              : "/";
   return (
     <div className="app-shell">
       <a
@@ -939,12 +821,27 @@ function Workspace({
           )}
           {pathname === "/admin/backups" ? (
             canManageBackups(who) ? (
-              <BackupManagement expire={expire} />
+              <BackupsAndRecovery who={who} expire={expire} />
             ) : (
               <>
                 <Heading eyebrow="系统管理" title="备份管理" />
                 <p className="notice">
                   备份管理需要管理员身份与管理范围的浏览器会话。请退出后选择管理员登录。
+                </p>
+              </>
+            )
+          ) : pathname === "/migrations" ? (
+            <MigrationCenter who={who} expire={expire} route={route} />
+          ) : pathname === "/worksets" ? (
+            <WorksetManagement who={who} expire={expire} route={route} />
+          ) : pathname === "/admin/system" ? (
+            canManageSystem ? (
+              <SystemManagement who={who} expire={expire} route={route} />
+            ) : (
+              <>
+                <Heading eyebrow="系统管理" title="需要相应管理范围" />
+                <p className="notice">
+                  请明确选择管理或整理范围重新登录。各项操作仍由服务器核验当前角色和授权。
                 </p>
               </>
             )
@@ -960,14 +857,10 @@ function Workspace({
               expire={expire}
             />
           ) : pathname === "/assets" ? (
-            <>
-              <Heading eyebrow="工作台 / ASSETS" title="资源库">
-                搜索著录，找到所需的固定版本。
-              </Heading>
-              <Search route={route} expire={expire} />
-            </>
+            <AssetLibrary who={who} route={route} expire={expire} />
           ) : pathname.startsWith("/assets/") ? (
-            <AssetDetail
+            <AssetVersionView
+              who={who}
               assetID={pathname.slice(8)}
               route={route}
               expire={expire}
@@ -1002,6 +895,7 @@ function Login({
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [adminLogin, setAdminLogin] = useState(false);
+  const [managementLogin, setManagementLogin] = useState(false);
   const inFlight = useRef(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -1014,7 +908,12 @@ function Login({
       password,
       code,
       channel: "browser",
-      scopes: adminLogin ? ["self", "read", "admin"] : ["self", "read"],
+      scopes: [
+        "self",
+        "read",
+        ...(adminLogin ? ["admin"] : []),
+        ...(managementLogin ? ["ingest", "organize"] : []),
+      ],
     });
     setPassword("");
     setCode("");
@@ -1130,6 +1029,21 @@ function Login({
               ? "本次申请管理范围，服务器仍会核验管理员身份。"
               : "普通浏览会话只申请读取权限。"}
           </p>
+          <label className="admin-login-choice">
+            <input
+              type="checkbox"
+              checked={managementLogin}
+              onChange={(event) => setManagementLogin(event.target.checked)}
+              disabled={busy}
+            />
+            素材写入与整理（迁移、工作集档案和信息编辑）
+          </label>
+          {managementLogin && (
+            <p className="security-note">
+              本次另申请
+              ingest/organize；服务器仍逐项目核验角色，管理员身份不会自动授予素材权限。
+            </p>
+          )}
           <p className="setup-help">
             首次安装？<a href="/setup/">打开受保护的设置页</a>
             <small>

@@ -1,0 +1,37 @@
+name: r10-isolated-migration
+on:
+  push:
+    branches: [candidate/r10-migration-20261021]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  migrate-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify unchanged frozen product source
+        working-directory: source
+        run: python3 packaging/r10/verify_source.py --out "$RUNNER_TEMP/migration-source-proof.json"
+      - name: Download existing immutable artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39535413064 --repo "$GITHUB_REPOSITORY" --name lantai-r10-candidate-linux-amd64-3ad86ea10830676d5ef5d72286a02fd0d9d01c65 --dir "$RUNNER_TEMP/candidate"
+          gh run download 38677996246 --repo "$GITHUB_REPOSITORY" --name lantai-v0.1.0-rc.5-linux-amd64-d27a06fe0af55e205a19e8f95f0764167e217741 --dir "$RUNNER_TEMP/baseline"
+      - name: Verify guarded Compose migration and independent old-format recovery
+        run: python3 source/packaging/r10/test_migration.py --candidate "$RUNNER_TEMP/candidate" --baseline "$RUNNER_TEMP/baseline" --out "$RUNNER_TEMP/r10-migration-evidence"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: r10-isolated-migration-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/r10-migration-evidence/MIGRATION-RESULT.json
+            ${{ runner.temp }}/migration-source-proof.json
+          if-no-files-found: error
+          retention-days: 30

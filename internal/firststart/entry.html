@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lantai · 安装与恢复</title>
+<link rel="stylesheet" href="/setup/setup.css"><script src="/setup/entry.js" defer></script>
+<main>
+<h1>安装或恢复 Lantai</h1>
+<p>这是新目标的安装入口。完整恢复包已包含所需材料，不需要原设备或恢复口令。请仅使用自己信任的备份。</p>
+<form id="connect"><label>新设备安装引导码<input id="claim" type="password" autocomplete="off" required></label><p>使用此新设备的安装管理入口提供的引导码。它用于认领设备，无需长期保存。</p><button>连接新设备</button></form>
+<p id="status" role="status" aria-live="polite"></p>
+<section id="choices" hidden><button id="new-instance">创建新的空实例</button><button id="restore-instance">从完整备份恢复</button></section>
+<form id="create" hidden><h2>设置首个管理员</h2><label>用户名<input id="new-name" autocomplete="username" required></label><label>新口令<input id="new-password" type="password" autocomplete="new-password" minlength="12" required></label><label>重复口令<input id="new-repeat" type="password" autocomplete="new-password" minlength="12" required></label><button>继续新建</button></form>
+<form id="upload" hidden><h2>导入完整恢复包</h2><p>此文件包含敏感恢复材料。持有文件的人可读取和恢复数据；文件摘要不替代来源确认。</p><label>选择 .lantai 文件<input id="file" type="file" accept=".lantai" required></label><button>上传并校验</button></form>
+<section id="package" hidden><h2>确认恢复</h2><p id="package-summary"></p><details><summary>查看包标识和校验摘要</summary><pre id="package-info"></pre></details><p>请核对包声明的原实例和捕获点。业务配置随包恢复；地址、Origin、密钥目录和文件系统准入使用新目标设置，自动计划保持关闭。只有新空目标可以继续，不覆盖已有实例。</p><label class="check"><input id="target-confirm" type="checkbox">确认包来源可信，恢复到当前新目标</label><button id="restore-button">开始恢复</button></section>
+<form id="administrator" hidden><h2>重建恢复管理员</h2><p>旧密码、动态码、会话和机器凭据已失效。输入原管理员用户名并设置新的登录口令。</p><label>原管理员用户名<input id="admin-name" list="admin-names" autocomplete="username" required></label><datalist id="admin-names"></datalist><label>新登录口令<input id="admin-password" type="password" autocomplete="new-password" minlength="12" required></label><label>重复口令<input id="admin-repeat" type="password" autocomplete="new-password" minlength="12" required></label><button>设置新验证器</button></form>
+<section id="enroll" hidden><h2>保存新登录恢复码并设置验证器</h2><p>这是管理员登录设置，不是备份恢复口令。请先保存，再确认动态码。</p><code id="secret"></code><pre id="codes"></pre><form id="confirm"><label class="check"><input id="saved" type="checkbox" required>已保存登录恢复码</label><label>当前动态码<input id="otp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label><button>确认管理员</button></form></section>
+<section id="review" hidden><h2>恢复检查与投入使用</h2><p id="review-summary" role="status"></p><details><summary>查看技术核验记录</summary><pre id="review-info"></pre></details><p>core不能知道捕获后原设备发生的撤权、删除或外部副作用。请先处理已知变更；有疑问时保持隔离，不投入服务。</p><label class="check"><input id="known" type="checkbox">已核对并处理已知的捕获后变更</label><label class="check"><input id="point" type="checkbox">接受此备份为恢复点，理解捕获后未知变更可能未包含，且未被标为已对账</label><label class="check"><input id="offline" type="checkbox">原实例已停止对外写入，不会双机并行服务</label><button id="activate">完成恢复并启动</button></section>
+<section id="working" hidden><h2>正在恢复</h2><p>恢复期间业务保持关闭。取消会等待当前工作安全退出，之后可继续同一个恢复包。</p><button id="cancel-restore">取消恢复</button></section>
+<section id="complete" hidden><h2>已完成</h2><p>实例正在启动，旧身份不会恢复有效。</p><a href="/">打开 Lantai</a></section>
+</main></html>
