@@ -36,6 +36,13 @@ def child(config_path):
     os.setgid(config['gid'])
     os.setuid(config['uid'])
     os.chdir(ROOT / 'web')
+    # Prove positive and negative TLS behavior for every browser before the
+    # business suite. A broken trust environment must fail promptly, rather
+    # than spending a timeout on every unrelated business case.
+    preflight = subprocess.run(['npm', 'test', '--', '--grep', 'browser rejects',
+                                '--max-failures=1'], env=config['env'])
+    if preflight.returncode:
+        raise SystemExit(preflight.returncode)
     os.execvpe('npm', ['npm', 'test'], config['env'])
 
 
