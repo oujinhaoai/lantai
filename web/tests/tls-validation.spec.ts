@@ -9,6 +9,7 @@ for (const [name, certVariable, keyVariable] of [
 ]) {
   test(`browser rejects ${name} with TLS verification enabled`, async ({
     page,
+    context,
     baseURL,
   }) => {
     const certPath = process.env[certVariable];
@@ -17,6 +18,8 @@ for (const [name, certVariable, keyVariable] of [
       throw new Error(
         "Run the strict browser harness with its negative TLS fixtures.",
       );
+    await page.goto(baseURL!);
+    await expect(page.getByLabel("账户名称")).toBeVisible();
     const server = createServer(
       { cert: await readFile(certPath), key: await readFile(keyPath) },
       (_request, response) => response.end("TLS negative fixture"),
@@ -41,10 +44,17 @@ for (const [name, certVariable, keyVariable] of [
           request.end();
         }),
       ).rejects.toThrow(/certificate|hostname|altname|self.signed/i);
-      await expect(page.goto(target)).rejects.toThrow(
-        /certificate|SSL|TLS|CERT/i,
-      );
-      await page.goto(baseURL!);
+      // Chromium can commit its error page after goto has rejected. Keep that
+      // navigation on its own tab so it cannot interrupt the positive probe.
+      const rejectedPage = await context.newPage();
+      try {
+        await expect(rejectedPage.goto(target)).rejects.toThrow(
+          /certificate|SSL|TLS|CERT/i,
+        );
+      } finally {
+        await rejectedPage.close();
+      }
+      await page.reload();
       await expect(page.getByLabel("账户名称")).toBeVisible();
     } finally {
       server.closeAllConnections();
