@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -33,15 +34,12 @@ func (b *BackupControl) OpenPackage(ctx context.Context, id ids.ID, expected str
 		return nil, zero, backupmgmt.ErrUnavailable
 	}
 	name := operations.RecoveryPackagePath(filepath.Join(b.root, string(id)))
-	st, err := os.Lstat(name)
+	f, info, err := operations.OpenExportRecoveryPackage(ctx, name)
 	if err != nil {
-		return nil, zero, backupmgmt.ErrUnavailable
-	}
-	if !st.Mode().IsRegular() || st.Mode().Perm() != 0600 || !backupSingleLink(st) || !backupPrivateOwner(st) {
-		return nil, zero, backupmgmt.ErrUnavailable
-	}
-	f, err := os.Open(name)
-	if err != nil {
+		var access *operations.RecoveryPackageAccessError
+		if errors.As(err, &access) {
+			return nil, zero, &backupmgmt.PackageUnavailableError{Reason: access.Reason}
+		}
 		return nil, zero, backupmgmt.ErrUnavailable
 	}
 	good := false
@@ -50,16 +48,8 @@ func (b *BackupControl) OpenPackage(ctx context.Context, id ids.ID, expected str
 			_ = f.Close()
 		}
 	}()
-	after, err := f.Stat()
-	if err != nil || !os.SameFile(st, after) {
-		return nil, zero, backupmgmt.ErrUnavailable
-	}
-	info, err := operations.VerifyOpenRecoveryPackage(ctx, f)
-	if err != nil {
-		return nil, zero, backupmgmt.ErrUnavailable
-	}
 	if info.SHA256 != expected || info.Size != j.Package.Size || info.Manifest.PackageID != j.Package.ID || info.Manifest.BackupID != j.BackupID {
-		return nil, zero, backupmgmt.ErrUnavailable
+		return nil, zero, &backupmgmt.PackageUnavailableError{Reason: "backup_package_identity"}
 	}
 	if _, err = f.Seek(0, 0); err != nil {
 		return nil, zero, backupmgmt.ErrUnavailable

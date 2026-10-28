@@ -57,6 +57,10 @@ func (h *Handler) backupRoutes(m *http.ServeMux) {
 	h.route(m, "PUT /api/v1/admin/backups/schedule", false, h.backupPutSchedule)
 }
 func backupError(err error) error {
+	var artifact *backupmgmt.PackageUnavailableError
+	if errors.As(err, &artifact) {
+		return errcode.New(errcode.StorageUnavailable, "recovery package is unavailable for safe export; preserve the artifact for diagnosis").WithDetails(errcode.Detail{Reason: artifact.Reason})
+	}
 	switch {
 	case err == nil:
 		return nil

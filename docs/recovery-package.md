@@ -16,6 +16,10 @@ core 输出目录必须保持原备份根身份、服务属主、0700 目录与0
 
 任务依次执行排空、捕获/复制、快照校验、完整封包、整包回读校验和原子发布。全部成功且持久回执落盘才报告可恢复完成。失败/取消仍等待worker退出再恢复业务；重启只允许同一捕获点重试。新格式无加密nonce或口令状态，不引入加密续写风险。
 
+Linux/macOS 的完整包以同目录、不可覆盖的原子重命名发布，不再以临时文件硬链接发布；文件系统不支持此操作时明确失败，不退回覆盖写入。目录同步后重新打开最终文件，复验普通文件、服务属主、0600、单一硬链接、文件身份和完整内容；在线任务落盘 `complete` 前再次核对包与任务绑定。已有包的续传同样复验并补做目录同步，不自动删除未知链接或替换不同的包。其他平台保留原独占发布方式及各自的私有访问检查，须单独实测。
+
+`complete` 是当时生成和验证成功的历史记录，不保证文件此后未被外部修改。每次下载仍按同一安全条件检查，并将实际包 ID、备份 ID、大小和 SHA-256 与原完成记录匹配。`STORAGE_UNAVAILABLE` 的 `details.reason` 可区分 `backup_package_hardlinks`（硬链接计数异常）、`backup_package_permissions`、`backup_package_owner`、`backup_package_file_type`、`backup_package_path_unsafe`、`backup_package_changed`、`backup_package_integrity`、`backup_package_identity` 和 `backup_package_unavailable`；目录故障保持 `backup_unavailable`。计数异常本身不能证明实际第二链接或文件系统报告差异的来源；保留原包和现场元数据再调查，不放宽权限或删除未知目录项。
+
 ## 恢复
 
 新目标先完成自己的安装认领，不能凭首次访问抢占；不接受覆盖已有业务数据。上传只写私有隔离区，并执行长度/数量/路径/重复项/完整性/数据库/密钥绑定与兼容性检查。没有任意宿主路径API。

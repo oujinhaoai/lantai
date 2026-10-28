@@ -112,6 +112,18 @@ const errorNames: Record<string, string> = {
   cancelled: "管理员取消了任务。",
   timeout: "任务超时。请检查存储和在途操作后续传。",
   backup_failed: "备份或验证失败。请检查 core 日志和备份存储。",
+  backup_package_hardlinks:
+    "完整包的硬链接计数异常，未确认备份完成。请保留文件并核查额外链接或文件系统报告。",
+  backup_package_permissions:
+    "完整包或任务目录不满足私有权限要求，未确认备份完成。",
+  backup_package_owner: "完整包不属于服务账户，未确认备份完成。",
+  backup_package_file_type: "完整包不是普通文件，未确认备份完成。",
+  backup_package_path_unsafe: "完整包路径不满足安全约束，未确认备份完成。",
+  backup_package_changed: "完整包在最终校验期间发生变化，未确认备份完成。",
+  backup_package_integrity: "完整包最终内容校验失败，未确认备份完成。",
+  backup_package_identity:
+    "完整包与备份记录的身份、大小或摘要不一致，未确认备份完成。",
+  backup_package_unavailable: "无法读取最终完整包，未确认备份完成。",
   journal_write_failed: "任务记录写入失败。请检查 core 数据存储。",
   process_interrupted: "core 在任务完成前停止。任务不会自动续传。",
   not_configured: "尚未配置备份目录。请由部署管理员一次性挂载专用目录。",
@@ -740,7 +752,7 @@ export function BackupManagement({
                 <>
                   <p>
                     {overview.last_success.package
-                      ? "完整恢复包已生成并验证。"
+                      ? "完整恢复包在完成时已生成并验证。下载时会重新核验当前文件，保存后请核对大小和 SHA256。"
                       : "旧版数据快照；未包含独立恢复材料。"}
                   </p>
                   <code>{overview.last_success.id}</code>

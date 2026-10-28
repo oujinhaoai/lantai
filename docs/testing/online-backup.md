@@ -35,6 +35,15 @@ go test -race ./internal/application ./internal/operations ./cmd/lantai \
 
 定向套件使用临时合成实例、测试管理员和测试密钥。真实子进程强杀场景覆盖进程崩溃，不等同于断电、fsync 故障或 NAS 热拔盘。
 
+### 完整包发布与下载安全
+
+```sh
+go test -race -count=1 ./internal/operations ./internal/application \
+  -run '^(TestRecovery(Export|Publication|Publish|Existing)|TestBackup(PackageExport|DoesNotComplete)|TestRecoveryPackageHTTPDownload)'
+```
+
+覆盖不可覆盖发布及并发竞争、目录同步失败和续传、发布后与读取中的真实额外硬链接、符号链接、错误权限、篡改内容、包/备份身份及摘要/大小不符、重启后同一包的下载和新鲜授权。实际属主变更用例仅在具备 `chown` 能力的隔离 Linux 测试容器内运行，普通用户运行会明确跳过；不要为此修改真实备份的属主。模拟 `Nlink=2` 只能复现拒绝分支，不能据此认定某个 NAS 的第二链接或元数据语义来源。真实浏览器落盘哈希和目标存储发布行为仍须单独验证。
+
 ## 验证边界
 
 仓库完整检查命令为 `scripts/check.sh`；包含格式、依赖、vet、staticcheck、生成物、Python SDK、发布工具、全包 race、Go 构建及 Web 构建。最终测试结果与精确提交由随任务交付的日志确认，不以本页代替 CI。
