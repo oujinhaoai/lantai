@@ -123,7 +123,10 @@ test("administrator creates a real verified backup and persists the daily schedu
   await page.getByRole("button", { name: "刷新状态" }).click();
   await expect(
     page.getByRole("heading", { name: "上次成功" }).locator(".."),
-  ).toContainText("完整恢复包已生成并验证");
+  ).toContainText("完整恢复包在完成时已生成并验证");
+  await expect(
+    page.getByRole("heading", { name: "上次成功" }).locator(".."),
+  ).toContainText("下载时会重新核验当前文件");
   await expect(page.locator(".backup-history")).toContainText("已完成并验证");
   await page.getByLabel("每日时间", { exact: true }).fill("04:32");
   await page.getByLabel("IANA 时区").fill("Asia/Shanghai");
