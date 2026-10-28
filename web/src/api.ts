@@ -200,6 +200,29 @@ export const typeNames: Record<string, string> = {
 };
 export function message(e: unknown) {
   const code = e instanceof APIError ? e.code : "UNKNOWN";
+  if (e instanceof APIError && code === "STORAGE_UNAVAILABLE") {
+    const packageReasons: Record<string, string> = {
+      backup_package_hardlinks:
+        "完整包的硬链接计数异常，已拒绝下载。请保留原包，由部署管理员核查额外链接或文件系统报告；不要放宽权限或删除未知链接。",
+      backup_package_permissions:
+        "完整包的私有权限不符合要求，已拒绝下载。请保留原包并核查文件及任务目录权限。",
+      backup_package_owner:
+        "完整包不属于服务账户，已拒绝下载。请保留原包并由部署管理员核查属主。",
+      backup_package_file_type:
+        "完整包不是普通文件，已拒绝下载。请保留现场并核查符号链接或异常文件类型。",
+      backup_package_path_unsafe:
+        "完整包路径不符合安全约束，已拒绝下载。请保留现场并核查任务目录及链接。",
+      backup_package_changed:
+        "完整包在校验期间发生变化，已拒绝下载。请保留原包并核查外部修改。",
+      backup_package_integrity:
+        "完整包内容校验未通过，已拒绝下载。请保留原包并核查存储及备份证据。",
+      backup_package_identity:
+        "完整包与任务记录的标识、大小或摘要不一致，已拒绝下载。请保留原包和任务记录供核查。",
+      backup_package_unavailable:
+        "无法打开完整包，已拒绝下载。请核查该任务的包文件是否存在且可读取；备份完成记录不代表文件当前可下载。",
+    };
+    if (e.reason && packageReasons[e.reason]) return packageReasons[e.reason];
+  }
   const messages: Record<string, string> = {
     AUTH_REQUIRED: "请重新登录后继续。",
     TOKEN_EXPIRED: "会话已过期，请重新登录。",

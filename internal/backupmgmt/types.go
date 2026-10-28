@@ -22,6 +22,13 @@ var (
 	ErrScopeStale          = errors.New("backup control scope no longer matches the active attempt")
 )
 
+// PackageUnavailableError separates an unsafe or changed completed artifact
+// from a missing/unavailable backup directory. Reason is a fixed public code.
+type PackageUnavailableError struct{ Reason string }
+
+func (e *PackageUnavailableError) Error() string { return e.Reason }
+func (e *PackageUnavailableError) Unwrap() error { return ErrUnavailable }
+
 type Request struct {
 	Resume         ids.ID `json:"resume,omitempty"`
 	DrainSeconds   int    `json:"drain_seconds,omitempty"`

@@ -7,12 +7,15 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/httpauth"
 	"github.com/oujinhaoai/lantai/internal/identity/totp/totptest"
+	"github.com/oujinhaoai/lantai/internal/operations"
 )
 
 func TestRecoveryPackageHTTPDownloadRequiresBoundFreshApproval(t *testing.T) {
@@ -98,6 +101,28 @@ func TestRecoveryPackageHTTPDownloadRequiresBoundFreshApproval(t *testing.T) {
 	}
 	if status, raw, headers := get(admin, permit.Token, "", "bytes=0-63"); status != 206 || len(raw) != 64 || headers.Get("ETag") != `"`+j.Package.SHA256+`"` {
 		t.Fatalf("range %d %d %s", status, len(raw), headers.Get("ETag"))
+	}
+	file := operations.RecoveryPackagePath(filepath.Join(b.root, string(j.ID)))
+	if err := os.Link(file, file+".extra"); err != nil {
+		t.Fatal(err)
+	}
+	status, raw, _ = get(admin, permit.Token, "", "")
+	var failure struct {
+		Error struct {
+			Code    string `json:"code"`
+			Details []struct {
+				Reason string `json:"reason"`
+			} `json:"details"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &failure); err != nil || status != 503 || failure.Error.Code != "STORAGE_UNAVAILABLE" || len(failure.Error.Details) != 1 || failure.Error.Details[0].Reason != "backup_package_hardlinks" {
+		t.Fatalf("unsafe package diagnostic: %d %s", status, raw)
+	}
+	if err := os.Remove(file + ".extra"); err != nil {
+		t.Fatal(err)
+	}
+	if status, raw, _ := get(admin, permit.Token, "", ""); status != 200 || int64(len(raw)) != j.Package.Size {
+		t.Fatal("restored package download", status)
 	}
 	if status, _, _ := get(other, permit.Token, "", ""); status != 403 {
 		t.Fatal("download token crossed sessions", status)

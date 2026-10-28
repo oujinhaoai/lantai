@@ -69,6 +69,17 @@ func recoveryDigest(raw []byte) string {
 // internal capability provided by the identity owner; no secret path is taken
 // from HTTP input and the recovery material never enters the snapshot folder.
 func WriteRecoveryPackage(ctx context.Context, snapshot, target string, keyID ids.ID, writeKey func(io.Writer) error, checks ...func(context.Context) error) (RecoveryPackageInfo, error) {
+	return writeRecoveryPackage(ctx, snapshot, target, keyID, writeKey, recoveryPackageIO{publishRecoveryPackage, fsutil.SyncDir}, checks...)
+}
+
+// Per-call filesystem operations allow failure testing without process-global
+// hooks or any runtime configuration that could weaken publication.
+type recoveryPackageIO struct {
+	publish func(string, string) error
+	syncDir func(string) error
+}
+
+func writeRecoveryPackage(ctx context.Context, snapshot, target string, keyID ids.ID, writeKey func(io.Writer) error, disk recoveryPackageIO, checks ...func(context.Context) error) (RecoveryPackageInfo, error) {
 	var zero RecoveryPackageInfo
 	check := func() error {
 		if err := ctx.Err(); err != nil {
@@ -140,9 +151,31 @@ func WriteRecoveryPackage(ctx context.Context, snapshot, target string, keyID id
 		return zero, errors.New("recovery package: manifest too large")
 	}
 	if _, err = os.Lstat(target); err == nil {
-		old, e := VerifyRecoveryPackage(ctx, target)
-		if e == nil && old.Manifest.BackupID == m.BackupID && old.Manifest.KeyID == m.KeyID && old.Manifest.ManifestDigest == p.ManifestDigest && sameRecoveryFiles(old.Manifest.Files, p.Files) {
-			return old, nil
+		f, old, e := OpenExportRecoveryPackage(ctx, target)
+		if e != nil {
+			return zero, e
+		}
+		oldStat, e := f.Stat()
+		_ = f.Close()
+		if e != nil {
+			return zero, e
+		}
+		if old.Manifest.BackupID == m.BackupID && old.Manifest.KeyID == m.KeyID && old.Manifest.ManifestDigest == p.ManifestDigest && sameRecoveryFiles(old.Manifest.Files, p.Files) {
+			// A previous publication may have reached rename but not the
+			// directory durability boundary. Retry that boundary before success.
+			if err = disk.syncDir(filepath.Dir(target)); err != nil {
+				return zero, err
+			}
+			final, current, e := OpenExportRecoveryPackage(ctx, target)
+			if e != nil {
+				return zero, e
+			}
+			defer final.Close()
+			currentStat, e := final.Stat()
+			if e != nil || !os.SameFile(oldStat, currentStat) || current.SHA256 != old.SHA256 {
+				return zero, packageAccessError("changed")
+			}
+			return current, nil
 		}
 		return zero, errors.New("recovery package: output already exists with a different or invalid package")
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -213,25 +246,36 @@ func WriteRecoveryPackage(ctx context.Context, snapshot, target string, keyID id
 	if err = f.Close(); err != nil {
 		return zero, err
 	}
-	info, err := VerifyRecoveryPackage(ctx, temp)
+	verified, info, err := OpenExportRecoveryPackage(ctx, temp)
+	if err != nil {
+		return zero, err
+	}
+	tempInfo, err := verified.Stat()
+	_ = verified.Close()
 	if err != nil {
 		return zero, err
 	}
 	if err = check(); err != nil {
 		return zero, err
 	}
-	// Link is an atomic no-replace publication; an existing artifact is never
-	// silently overwritten. Remove the private staging link before returning.
-	if err = os.Link(temp, target); err != nil {
+	// Atomically publish without replacing any existing artifact. Linux and
+	// macOS use no-replace rename, so publication never creates a second link.
+	if err = disk.publish(temp, target); err != nil {
 		return zero, err
 	}
-	if err = os.Remove(temp); err != nil {
+	if err = disk.syncDir(filepath.Dir(target)); err != nil {
 		return zero, err
 	}
-	if err = fsutil.SyncDir(filepath.Dir(target)); err != nil {
+	final, published, err := OpenExportRecoveryPackage(ctx, target)
+	if err != nil {
 		return zero, err
 	}
-	return info, nil
+	defer final.Close()
+	finalInfo, err := final.Stat()
+	if err != nil || !os.SameFile(tempInfo, finalInfo) || published.SHA256 != info.SHA256 || published.Size != info.Size || published.Manifest.PackageID != info.Manifest.PackageID {
+		return zero, packageAccessError("changed")
+	}
+	return published, nil
 }
 
 func sameRecoveryFiles(a, b []RecoveryPackageFile) bool {

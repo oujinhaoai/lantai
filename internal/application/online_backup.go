@@ -525,10 +525,28 @@ func (b *BackupControl) execute(ctx context.Context, j BackupJob, req BackupRequ
 	}
 	b.reachTestBoundary("job.backing_up", j)
 	m, err = b.run(c, operations.BackupOptions{Destination: target, BackupID: j.BackupID, CheckDestination: func(context.Context) error { return b.checkDestination() }})
+	var access *operations.RecoveryPackageAccessError
 	if err == nil {
 		completed := j
 		completed.BackupID = m.BackupID
 		b.reachTestBoundary("job.worker.completed", completed)
+		// Confirm the installed artifact, not only the earlier temporary file,
+		// before the durable job can advertise success. Resume follows the same
+		// checks and must not bless an old unsafe package.
+		if p := m.RecoveryPackage; p != nil {
+			var f *os.File
+			var actual operations.RecoveryPackageInfo
+			f, actual, err = operations.OpenExportRecoveryPackage(c, operations.RecoveryPackagePath(target))
+			if err == nil {
+				_ = f.Close()
+				if actual.SHA256 != p.SHA256 || actual.Size != p.Size || actual.Manifest.PackageID != p.Manifest.PackageID || actual.Manifest.BackupID != m.BackupID {
+					err = &operations.RecoveryPackageAccessError{Reason: "backup_package_identity"}
+				}
+			}
+		}
+	}
+	if errors.As(err, &access) {
+		failureCode = access.Reason
 	}
 	if errors.Is(err, fs.ErrPermission) {
 		failureCode = "destination_permission_denied"
