@@ -120,7 +120,7 @@ func (c *Client) PrepareMigrationBatch(ctx context.Context, draft MigrationBatch
 			if !ids.ID(row.AssetID).Valid() || !ids.ID(row.VersionID).Valid() {
 				return empty, managementInvalid("partial import receipt identity")
 			}
-			response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+row.AssetID+"/versions/"+row.VersionID+"?view=full", nil, Options{})
+			response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+row.AssetID+"/versions/"+row.VersionID+"?view=full")
 			if err != nil {
 				return empty, err
 			}

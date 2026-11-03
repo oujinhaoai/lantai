@@ -83,7 +83,7 @@ func collaborationCommand(ctx context.Context, c *client.Client, command, action
 			if err != nil {
 				return client.Response{}, err
 			}
-			return c.Do(ctx, http.MethodGet, exact+"/rights", nil, client.Options{})
+			return c.ReadResourceJSON(ctx, exact+"/rights")
 		}
 	case "task", "flow", "run", "job":
 		base := map[string]string{"task": "tasks", "flow": "flows", "run": "task-runs", "job": "jobs"}[command]

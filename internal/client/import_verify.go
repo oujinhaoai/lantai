@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -164,7 +163,7 @@ func (c *Client) VerifyImport(ctx context.Context, plan ImportPlan, report Impor
 
 func (c *Client) importCheckManifest(ctx context.Context, item ImportAsset, result ImportResult) error {
 	endpoint := "/api/v1/assets/" + url.PathEscape(result.AssetID) + "/versions/" + url.PathEscape(result.VersionID) + "?view=full"
-	r, err := c.Do(ctx, http.MethodGet, endpoint, nil, Options{})
+	r, err := c.ReadResourceJSON(ctx, endpoint)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -156,7 +155,7 @@ func (c *Client) PrepareWorksetReturn(ctx context.Context, spec WorksetReturnSpe
 	if err != nil {
 		return out, err
 	}
-	exact, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+spec.Entry.AssetID+"/versions/"+spec.Entry.VersionID+"?view=full", nil, Options{})
+	exact, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+spec.Entry.AssetID+"/versions/"+spec.Entry.VersionID+"?view=full")
 	if err != nil {
 		return out, err
 	}
@@ -180,7 +179,7 @@ func (c *Client) PrepareWorksetReturn(ctx context.Context, spec WorksetReturnSpe
 	if err := json.Unmarshal(frozen.Manifest.Content, &content); err != nil {
 		return out, err
 	}
-	rightsResponse, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+spec.Entry.AssetID+"/versions/"+spec.Entry.VersionID+"/rights", nil, Options{})
+	rightsResponse, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+spec.Entry.AssetID+"/versions/"+spec.Entry.VersionID+"/rights")
 	if err != nil {
 		return out, err
 	}
@@ -222,7 +221,7 @@ func (c *Client) PrepareWorksetReturn(ctx context.Context, spec WorksetReturnSpe
 	if err := checkWorksetRoot(directory, root); err != nil {
 		return out, err
 	}
-	current, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+spec.Entry.AssetID, nil, Options{})
+	current, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+spec.Entry.AssetID+"?view=full")
 	if err != nil {
 		return out, err
 	}
@@ -352,7 +351,7 @@ func (c *Client) PrepareWorksetAdoption(ctx context.Context, in WorksetAdoption,
 	if p.InstanceID != instance {
 		return PreparedManagementRecord{}, errcode.New(errcode.RefMismatch, "return belongs to another instance")
 	}
-	response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+p.Entry.AssetID+"/versions/"+receipt.VersionId+"?view=full", nil, Options{})
+	response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+p.Entry.AssetID+"/versions/"+receipt.VersionId+"?view=full")
 	if err != nil {
 		return PreparedManagementRecord{}, err
 	}
@@ -421,7 +420,7 @@ func (c *Client) PrepareWorksetAdoption(ctx context.Context, in WorksetAdoption,
 		}
 	}
 	for _, version := range []string{p.Entry.VersionID, receipt.VersionId} {
-		response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+p.Entry.AssetID+"/versions/"+version+"/rights", nil, Options{})
+		response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+p.Entry.AssetID+"/versions/"+version+"/rights")
 		if err != nil {
 			return PreparedManagementRecord{}, err
 		}

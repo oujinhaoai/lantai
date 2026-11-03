@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -103,7 +102,7 @@ func (c *Client) derivationManifest(ctx context.Context, ref FixedVersionRef, in
 		return out, err
 	}
 	out.plan = plan
-	r, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+ref.AssetID+"/versions/"+ref.VersionID+"?view=full", nil, Options{})
+	r, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+ref.AssetID+"/versions/"+ref.VersionID+"?view=full")
 	if err != nil {
 		return out, err
 	}

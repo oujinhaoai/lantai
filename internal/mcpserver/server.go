@@ -202,7 +202,7 @@ func toolResult(response client.Response, e error) (*mcp.CallToolResult, error) 
 		return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: string(b)}}, StructuredContent: errcode.Envelope{Error: body}}, nil
 	}
 	if len(response.Body) > MaxResultBytes {
-		return toolResult(client.Response{}, errcode.New(errcode.QuotaExceeded, "result exceeds MCP limit; use a smaller page or retrieve the exact object through REST"))
+		return toolResult(client.Response{}, errcode.New(errcode.QuotaExceeded, "result exceeds MCP limit; use resource_read_chunk (kind asset, version or rights) for a full resource, resource_files for its manifest files, or a smaller list page"))
 	}
 	var value any
 	if e = json.Unmarshal(response.Body, &value); e != nil {
@@ -233,7 +233,7 @@ func toolResult(response client.Response, e error) (*mcp.CallToolResult, error) 
 	}
 	encoded, _ := json.Marshal(out)
 	if len(encoded) > MaxResultBytes {
-		return toolResult(client.Response{}, errcode.New(errcode.QuotaExceeded, "serialized result exceeds MCP limit; reduce page size or retrieve via REST"))
+		return toolResult(client.Response{}, errcode.New(errcode.QuotaExceeded, "serialized result exceeds MCP limit; use resource_read_chunk (kind asset, version or rights) for a full resource, resource_files for its manifest files, or a smaller list page"))
 	}
 	return out, nil
 }
@@ -477,7 +477,13 @@ func (a *adapter) readTools(has func(string) bool) {
 			if t.path == "assets" && !t.single && in.ExplicitCompletion {
 				q.Set("completion", "explicit")
 			}
-			out, e := a.c.Do(ctx, http.MethodGet, path+"?"+q.Encode(), nil, client.Options{})
+			var out client.Response
+			var e error
+			if t.single && t.path == "assets" && in.View == "full" {
+				out, e = a.c.ReadResourceJSON(ctx, path+"?view=full")
+			} else {
+				out, e = a.c.Do(ctx, http.MethodGet, path+"?"+q.Encode(), nil, client.Options{})
+			}
 
 			r, e := toolResult(out, e)
 			return r, nil, e

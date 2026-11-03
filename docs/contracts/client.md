@@ -163,3 +163,18 @@ CLI 不自行确认 HumanGrant。管理员显式完成三步：
 ## 限时下载链接
 
 `download-link` / `backups download-link` 与对应 stdio MCP 工具只返回下载描述符；GET 仍需要同一会话。整馆包链接复用管理员的精确包 HumanGrant，不签发证明或提升 Agent 权限。命令、响应、私有保存及下载方式见[下载链接](download-links.md)。
+
+`Client.ReadResourceJSON` 是完整资源分段/文件清单适配器的专用 GET 入口：只接受
+规范的准确 full asset/full version 或当前 rights 路径，成功响应硬预算为
+`6 × 16 MiB + 64 KiB`，用于覆盖默认 16 MiB manifest 的最坏 JSON 转义及固定外层。
+它不改变 `Client.Do`、写请求或错误响应的 8 MiB 限制，也不接受其它路径、额外
+query、编码路径、fragment 或跨 origin URL。对象超过预算明确失败；当前著录
+extra 没有全局大小保证。每个分段重新读取、授权并校验，详细完整性规则见
+[Agent 资源操作](agent-resources.md)。
+
+CLI `show --view full` / `metadata get`、MCP 准确资源 full/rights 以及客户端内部
+准确 manifest 和当前对象读取统一调用 `ReadResourceJSON`；普通 brief/list
+调用仍用 `Do`。MCP 输出仍严格限于完整序列化 64 KiB，大 whole 结果返回
+`QUOTA_EXCEEDED` 并明确指引 `resource_read_chunk` 或 `resource_files`，不把
+大资源的底层 8 MiB 读取失败当作分段结果。CLI full JSON 可以完整重定向；
+读取预算扩大不改变写请求、固定版本校验、原幂等键或每次实时授权。

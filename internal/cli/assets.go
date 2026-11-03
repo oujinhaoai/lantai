@@ -163,7 +163,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				saveErr = errors.New("asset: output parent changed during the operation")
 			}
 			if saveErr == nil {
-				if name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" || name == "recovery-evidence-prepare" {
+				if name == "metadata-plan" || name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" || name == "recovery-evidence-prepare" {
 					saveErr = output.WriteOriginal(append(raw, '\n'))
 				} else {
 					saveErr = output.Write(append(raw, '\n'))
@@ -210,7 +210,11 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 		}
 		defer c.Close()
 		if name == "metadata-plan" {
-			return c.PlanMetadataBatch(ctx, selection)
+			plan, err := c.PlanMetadataBatch(ctx, selection)
+			if err != nil {
+				return nil, err
+			}
+			return plan, nil
 		}
 		return c.ApplyMetadataBatch(ctx, plan, o.state)
 	case "dependencies":

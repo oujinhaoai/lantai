@@ -56,6 +56,45 @@ func batchWrite(t *testing.T, path string, value any) {
 	}
 }
 
+func TestBatchInputShapeFailsBeforeRemoteReadOrPublishing(t *testing.T) {
+	for _, name := range []string{"import_plan", "workset_plan", "workset_pull", "asset_derive"} {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			for _, dir := range []string{"inputs", "work", "reports", "artifacts"} {
+				if err := os.Mkdir(filepath.Join(root, dir), 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			batchWrite(t, filepath.Join(root, "inputs", "invalid.json"), map[string]any{"unknown_input_shape": "private-value-must-not-echo"})
+			var remote atomic.Int32
+			cs := batchTestSession(t, root, func(w http.ResponseWriter, r *http.Request) {
+				remote.Add(1)
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+			args := map[string]any{"input_file": "inputs/invalid.json", "directory": "work", "output_file": "reports/result.json"}
+			if name == "workset_pull" {
+				args["purpose"] = "archive_review"
+			}
+			if name == "asset_derive" {
+				args["artifact_file"] = "artifacts/result.json"
+			}
+			result, body := resourceCall(t, cs, name, args)
+			problem, _ := body["error"].(map[string]any)
+			if !result.IsError || problem["code"] != "SCHEMA_INVALID" || problem["recovery_action"] != "fix_request" {
+				t.Fatalf("invalid local shape needs input repair, not operation reconciliation: %v", body)
+			}
+			if strings.Contains(string(mustBatchJSON(t, body)), "private-value-must-not-echo") || remote.Load() != 0 {
+				t.Fatal("invalid local input leaked contents or reached remote", body, remote.Load())
+			}
+			for _, path := range []string{"reports/result.json", "artifacts/result.json"} {
+				if _, err := os.Stat(filepath.Join(root, path)); !os.IsNotExist(err) {
+					t.Fatal("invalid input published output", path, err)
+				}
+			}
+		})
+	}
+}
+
 func TestBatchPlanNoRemoteWritesOriginalResumeAndChangedSource(t *testing.T) {
 	root := t.TempDir()
 	for _, name := range []string{"source", "specs", "reports"} {

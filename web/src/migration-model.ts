@@ -7,6 +7,8 @@ import {
   identifierPattern,
   newPushState,
   preparePushInput,
+  parseManagedJSON,
+  pushJSON,
   sha256,
   validateManagedPath,
   validatePushInput,
@@ -61,6 +63,9 @@ export type MigrationWorkspace = {
   plan_digest: string;
   plan: MigrationDraft;
   inventory: InventoryFile[];
+  // Exact browser-generated Push bytes survive canonical management envelopes.
+  // Optional only for legacy exports, whose original hash still must validate.
+  push_json?: Record<string, string>;
   states: Record<string, PushState>;
   rows: Record<string, MigrationRow>;
 };
@@ -417,6 +422,7 @@ export async function freezeMigration({
   if (!preflight.browser_eligible)
     fail("所选批次超过浏览器明确预算，请导出本机助手作业。");
   const states: Record<string, PushState> = Object.create(null);
+  const originals: Record<string, string> = Object.create(null);
   const rows: Record<string, MigrationRow> = Object.create(null);
   for (const asset of frozen.assets) {
     asset.push = await preparePushInput({
@@ -425,10 +431,11 @@ export async function freezeMigration({
       signal,
       onProgress,
     });
+    originals[asset.key] = pushJSON(asset.push);
     states[asset.key] = await newPushState({ input: asset.push, origin });
     rows[asset.key] = { status: "not_attempted" };
   }
-  return {
+  const workspace: MigrationWorkspace = {
     schema: "lantai.browser-migration-state/v1",
     state_format: "lantai.browser-push-json/v1",
     origin: new URL(origin).origin,
@@ -438,9 +445,16 @@ export async function freezeMigration({
     plan_digest: `sha256:${await sha256(canonicalJSON(frozen))}`,
     plan: frozen,
     inventory,
+    push_json: originals,
     states,
     rows,
   };
+  if (
+    new TextEncoder().encode(JSON.stringify(workspace)).length >
+    8 * 1024 * 1024
+  )
+    fail("原状态包超过 8 MiB，请拆分明确批次。");
+  return workspace;
 }
 export async function importMigrationWorkspace(
   value: unknown,
@@ -462,10 +476,14 @@ export async function importMigrationWorkspace(
       "plan",
       "inventory",
       "states",
+      "push_json",
       "rows",
     ],
     "批次原状态包",
   );
+  // Also bound callers importing an already parsed object (not just file JSON).
+  if (new TextEncoder().encode(JSON.stringify(value)).length > 8 * 1024 * 1024)
+    fail("原状态包超过 8 MiB，请拆分明确批次。");
   const workspace = structuredClone(value) as unknown as MigrationWorkspace;
   if (
     workspace.schema !== "lantai.browser-migration-state/v1" ||
@@ -497,7 +515,33 @@ export async function importMigrationWorkspace(
     )
   )
     fail("原状态缺少分组或夹带其他状态；不要创建替代键。");
+  if (Object.hasOwn(workspace, "push_json")) {
+    if (
+      !record(workspace.push_json) ||
+      Object.keys(workspace.push_json).length !== names.length ||
+      names.some((name) => !Object.hasOwn(workspace.push_json!, name))
+    )
+      fail("原 Push JSON 缺少分组或夹带其他行，不能修复原状态。");
+  }
   for (const asset of workspace.plan.assets) {
+    if (workspace.push_json !== undefined) {
+      const raw = workspace.push_json[asset.key];
+      if (typeof raw !== "string") fail("原 Push JSON 必须为字符串。");
+      const original = parseManagedJSON(raw);
+      assertNoTransferSecrets(original);
+      validatePushInput(original as PushInput);
+      if ((await sha256(raw)) !== workspace.states[asset.key].request_hash)
+        fail("原 Push JSON 与原状态摘要不匹配，不能重算 hash 或换键。");
+      if (canonicalJSON(original) !== canonicalJSON(asset.push))
+        fail("原 Push JSON 与冻结计划语义不匹配。");
+      // Require the exact browser serializer, never convert a native RawMessage
+      // lexical request into browser state by reparsing/re-hashing it.
+      if (pushJSON(original as PushInput) !== raw)
+        fail(
+          "原 Push JSON 不是可无损恢复的浏览器词法，请保留原文件交本机助手。",
+        );
+      asset.push = original as PushInput;
+    }
     await validatePushState(asset.push, workspace.states[asset.key], origin);
     const row = workspace.rows[asset.key];
     if (!record(row)) fail("逐项回执状态无效。");
@@ -654,4 +698,96 @@ export async function bindImportDeviceResult({
     context.stopped === true &&
     /^([0-9a-f]{64})$/.test(context.workspace_binding);
   return { reference: structuredClone(reference), completed };
+}
+
+// A history projection is deliberately not a MigrationWorkspace: its captured
+// bytes may have lost lexical state and never authorize resume or a new Push.
+export type MigrationHistoryContext = {
+  viewer_origin: string;
+  project_id: string;
+  authorization: string;
+};
+export type MigrationArchiveHistory = {
+  context: MigrationHistoryContext;
+  original_origin: string;
+  instance_id: string;
+  project_id: string;
+  batch_id: string;
+  name: string;
+  group_count: number;
+  captured: unknown;
+};
+export function inspectMigrationArchiveHistory(
+  value: unknown,
+  context: MigrationHistoryContext,
+): MigrationArchiveHistory {
+  assertNoTransferSecrets(value);
+  if (!record(value)) fail("历史迁移档案无效。");
+  // Preserve captured hashes/keys/status verbatim; this is structural review,
+  // not validatePushState and not a claim that the old input can be resumed.
+  const raw = JSON.stringify(value);
+  if (new TextEncoder().encode(raw).length > 8 * 1024 * 1024)
+    fail("历史迁移档案超过 8 MiB。");
+  parseManagedJSON(raw);
+  const plan = validateMigrationDraft(value.plan);
+  if (
+    value.schema !== "lantai.browser-migration-state/v1" ||
+    value.state_format !== "lantai.browser-push-json/v1" ||
+    typeof value.origin !== "string" ||
+    !value.origin.startsWith("https://") ||
+    new URL(value.origin).origin !== value.origin ||
+    typeof value.instance_id !== "string" ||
+    !identifierPattern.test(value.instance_id) ||
+    typeof value.batch_id !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value.batch_id) ||
+    !record(value.states) ||
+    !record(value.rows)
+  )
+    fail("历史迁移档案缺少固定身份或原状态。");
+  const names = plan.assets.map((asset) => asset.key);
+  if (
+    Object.keys(value.states).length !== names.length ||
+    Object.keys(value.rows).length !== names.length ||
+    names.some(
+      (name) =>
+        !Object.hasOwn(value.states as object, name) ||
+        !Object.hasOwn(value.rows as object, name),
+    )
+  )
+    fail("历史迁移档案的分组与原状态不完整。");
+  if (Object.hasOwn(value, "push_json")) {
+    if (
+      !record(value.push_json) ||
+      Object.keys(value.push_json).length !== names.length
+    )
+      fail("历史原 Push JSON 分组无效。");
+    for (const name of names) {
+      const original = value.push_json[name];
+      if (typeof original !== "string") fail("历史原 Push JSON 必须为字符串。");
+      const parsed = parseManagedJSON(original);
+      assertNoTransferSecrets(parsed);
+      validatePushInput(parsed as PushInput);
+    }
+  }
+  return {
+    context: { ...context },
+    original_origin: value.origin,
+    instance_id: value.instance_id,
+    project_id: plan.project_id,
+    batch_id: value.batch_id,
+    name: plan.name,
+    group_count: plan.assets.length,
+    captured: structuredClone(value),
+  };
+}
+export function migrationHistoryMatchesContext(
+  history: MigrationArchiveHistory | undefined,
+  context: MigrationHistoryContext,
+): boolean {
+  return (
+    !!history &&
+    history.context.viewer_origin === context.viewer_origin &&
+    history.context.project_id === context.project_id &&
+    history.context.authorization === context.authorization
+  );
 }

@@ -25,6 +25,10 @@ personal scripts. Public CLI/API remain alternatives when the task permits.
 | Collaboration/lifecycle | `message`, `review`, `inbox`, `resync`, `trash`, `milestone`; corresponding installed tools | Current target/revision and actual core result; publication does not create approval |
 | Human-only backup/device/setup | Explicit owner handoff using current help | Qualified human's own session and exact approval; Agent cannot use shared factors or control identities |
 
+Complete JSON input examples for Push, fixed worksets, dependencies, derivations,
+conditional metadata and private records are in [inputs.md](inputs.md). Select
+the matching installed contract; examples do not grant rights or select material.
+
 Connection options for ordinary CLI are `--server ORIGIN --session-file FILE`
 and optionally `--ca-file PEM`. The session file is private and origin-bound.
 Use `--allow-http` only for an explicitly chosen loopback development fixture;

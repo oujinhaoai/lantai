@@ -79,7 +79,7 @@ func (c *Client) PrepareManagementRecord(ctx context.Context, spec ManagementRec
 		return out, err
 	}
 	if spec.AssetID != "" {
-		base, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+spec.AssetID+"/versions/"+spec.BaseVersionID+"?view=full", nil, Options{})
+		base, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+spec.AssetID+"/versions/"+spec.BaseVersionID+"?view=full")
 		if err != nil {
 			return out, err
 		}
@@ -325,7 +325,7 @@ func (c *Client) ReadManagementRecord(ctx context.Context, asset, version, direc
 		return out, err
 	}
 	endpoint := "/api/v1/assets/" + asset + "/versions/" + version
-	response, err := c.Do(ctx, http.MethodGet, endpoint+"?view=full", nil, Options{})
+	response, err := c.ReadResourceJSON(ctx, endpoint+"?view=full")
 	if err != nil {
 		return out, err
 	}

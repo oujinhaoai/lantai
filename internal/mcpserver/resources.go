@@ -137,7 +137,13 @@ func (a *adapter) resourceTools(has func(string) bool) {
 			if in.View != "brief" && in.View != "full" {
 				return readError("view must be brief or full")
 			}
-			out, err := a.c.Do(ctx, http.MethodGet, "/api/v1/assets/"+in.AssetID+"?view="+in.View, nil, client.Options{})
+			var out client.Response
+			var err error
+			if in.View == "full" {
+				out, err = a.c.ReadResourceJSON(ctx, "/api/v1/assets/"+in.AssetID+"?view=full")
+			} else {
+				out, err = a.c.Do(ctx, http.MethodGet, "/api/v1/assets/"+in.AssetID+"?view="+in.View, nil, client.Options{})
+			}
 			r, err := toolResult(out, err)
 			return r, nil, err
 		})
@@ -154,7 +160,7 @@ func (a *adapter) resourceTools(has func(string) bool) {
 			if in.Offset < 0 || in.Limit < 1 || in.Limit > 20 {
 				return readError("offset must be nonnegative and limit 1-20")
 			}
-			out, err := a.c.Do(ctx, http.MethodGet, path+"?view=full", nil, client.Options{})
+			out, err := a.c.ReadResourceJSON(ctx, path+"?view=full")
 			if err != nil {
 				r, e := toolResult(out, err)
 				return r, nil, e
@@ -227,7 +233,7 @@ func (a *adapter) resourceTools(has func(string) bool) {
 			default:
 				return readError("kind must be asset, version or rights")
 			}
-			out, err := a.c.Do(ctx, http.MethodGet, path, nil, client.Options{})
+			out, err := a.c.ReadResourceJSON(ctx, path)
 			if err != nil {
 				r, e := toolResult(out, err)
 				return r, nil, e
@@ -260,7 +266,7 @@ func (a *adapter) resourceTools(has func(string) bool) {
 			if err != nil {
 				return readError("exact asset/version ULIDs required")
 			}
-			out, err := a.c.Do(ctx, http.MethodGet, path+"/rights", nil, client.Options{})
+			out, err := a.c.ReadResourceJSON(ctx, path+"/rights")
 			r, err := toolResult(out, err)
 			return r, nil, err
 		})

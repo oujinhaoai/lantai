@@ -53,6 +53,9 @@ import {
   filesForAsset,
   freezeMigration,
   importMigrationWorkspace,
+  inspectMigrationArchiveHistory,
+  migrationHistoryMatchesContext,
+  type MigrationArchiveHistory,
   makeAssistantJob,
   nativeImportInput,
   preflightMigration,
@@ -140,6 +143,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsCursor, setProjectsCursor] = useState<string>();
   const [workspace, setWorkspace] = useState<MigrationWorkspace>();
+  const [history, setHistory] = useState<MigrationArchiveHistory>();
   const [verifications, setVerifications] = useState<
     Record<string, VerificationReceipt>
   >({});
@@ -203,6 +207,14 @@ export function MigrationCenter({ who, expire, route }: Props) {
   const mayAdmin =
     who.system_roles?.includes("admin") && who.session.scopes.includes("admin");
   const currentPlan = workspace?.plan ?? draft;
+  const historyContext = {
+    viewer_origin: location.origin,
+    project_id: currentPlan.project_id,
+    authorization: canonicalJSON(who),
+  };
+  const visibleHistory = migrationHistoryMatchesContext(history, historyContext)
+    ? history
+    : undefined;
   const inventory = files.map((file) => ({
     path: file.path,
     size: file.file.size,
@@ -307,6 +319,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
     value: MigrationDraft[K],
   ) => {
     if (locked) return;
+    setHistory(undefined);
     setDraft((old) => ({ ...old, [key]: value }));
     setAcknowledged(false);
     resetAssistant();
@@ -337,6 +350,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
       fail(new Error("所选来源存在重复相对路径，请分开明确来源根。"));
       return;
     }
+    setHistory(undefined);
     if (!workspace) resetAssistant();
     setFiles(mapped);
     setChosen([]);
@@ -459,6 +473,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
         onProgress: setProgress,
       });
       if (!signal.aborted) {
+        setHistory(undefined);
         setWorkspace(next);
         setStateSaved(false);
         setVerifications({});
@@ -602,6 +617,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
         : value;
     const next = await importMigrationWorkspace(payload, location.origin);
     resetAssistant();
+    setHistory(undefined);
     setWorkspace(next);
     setDraft(next.plan);
     setStateSaved(false);
@@ -633,9 +649,29 @@ export function MigrationCenter({ who, expire, route }: Props) {
       await restore(parseManagedJSON(await file.text()));
     });
   };
+  const restoreAuthorizedRecord = async (value: unknown) => {
+    const captured =
+      object(value) && value.schema === "lantai.migration-record/v1"
+        ? value.workspace
+        : undefined;
+    if (object(captured) && captured.origin !== location.origin) {
+      const projection = inspectMigrationArchiveHistory(
+        captured,
+        historyContext,
+      );
+      // History is an independent overlay: retain the active original state,
+      // selected File objects and mounted child operation checkpoints verbatim.
+      setHistory(projection);
+      setNotice(
+        "已按当前授权读取旧 origin 的历史迁移档案；仅供只读查看，不代表原状态可续办或当前核验通过。",
+      );
+    } else {
+      await restore(value);
+    }
+  };
   const loadRecord = () =>
     void execute(async (signal) => {
-      await restore(
+      await restoreAuthorizedRecord(
         await loadManagedRecord<unknown>(
           { asset_id: recordAsset.trim(), version_id: recordVersion.trim() },
           signal,
@@ -1045,8 +1081,8 @@ export function MigrationCenter({ who, expire, route }: Props) {
     (asset) => workspace.states[asset.key].result,
   );
 
-  return (
-    <div className="migration-center">
+  const activeContent = (
+    <>
       <header className="migration-heading">
         <p className="eyebrow">统一存储 / MIGRATION</p>
         <h1>迁移中心</h1>
@@ -1116,6 +1152,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
               disabled={locked}
               onChange={(event) => {
                 resetAssistant();
+                setHistory(undefined);
                 const id = event.target.value;
                 setDraft((old) => ({
                   ...old,
@@ -1696,6 +1733,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
                       );
                       if (files.length) preflightMigration(next, inventory);
                       resetAssistant();
+                      setHistory(undefined);
                       setDraft(next);
                       setAcknowledged(false);
                       setError(undefined);
@@ -2043,7 +2081,7 @@ export function MigrationCenter({ who, expire, route }: Props) {
                   disabled={busy || anyDevicePending}
                   onClick={() =>
                     void execute(async (signal) => {
-                      await restore(
+                      await restoreAuthorizedRecord(
                         await loadManagedRecord<unknown>(item, signal, {
                           kind: "migration",
                           projectID: currentPlan.project_id || undefined,
@@ -2214,7 +2252,10 @@ export function MigrationCenter({ who, expire, route }: Props) {
                   schema: "lantai.local-assistant-job/v1",
                   job_id: `migration-${assistantBatchID}-lookup`,
                   action: "import.plan",
-                  input: { schema: "lantai.asset-import-input/v1", assets: [] },
+                  input: {
+                    schema: "lantai.asset-import-input/v1",
+                    assets: [],
+                  },
                   directory: "source",
                   output: `results/${assistantBatchID}-lookup.json`,
                 }
@@ -2267,6 +2308,65 @@ export function MigrationCenter({ who, expire, route }: Props) {
           </>
         )}
       </section>
+    </>
+  );
+  return (
+    <div className="migration-center">
+      {visibleHistory && (
+        <section className="panel">
+          <h2>历史迁移档案（只读）</h2>
+          <p>
+            原服务器 <code>{visibleHistory.original_origin}</code> · 固定实例{" "}
+            <code>{visibleHistory.instance_id}</code>
+          </p>
+          <p>
+            {visibleHistory.name} · 批次 <code>{visibleHistory.batch_id}</code>{" "}
+            · {visibleHistory.group_count} 个素材分组
+          </p>
+          <p>
+            当前连接未改变。以下是捕获时的原 hash、键与状态；历史 unknown
+            保持未知。此展示不证明原状态有效、可续办或当前远端验证通过，不能执行、保存为新上传或派发到设备。请通过当前实例的素材库／工程工作集，按当前授权独立复核固定版本。
+          </p>
+          <details>
+            <summary>查看捕获的原计划与原状态（仅只读）</summary>
+            <textarea
+              readOnly
+              rows={12}
+              aria-label="历史迁移原状态（仅只读）"
+              value={JSON.stringify(visibleHistory.captured, null, 2)}
+            />
+          </details>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() =>
+              downloadManagedJSON(
+                `lantai-migration-${visibleHistory.batch_id}-history.json`,
+                visibleHistory.captured,
+              )
+            }
+          >
+            导出捕获的历史原状态
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setHistory(undefined);
+              setNotice("已清除历史迁移展示。");
+            }}
+          >
+            清除历史展示
+          </button>
+        </section>
+      )}
+      <div
+        hidden={!!visibleHistory}
+        inert={!!visibleHistory}
+        style={{ display: visibleHistory ? "none" : "contents" }}
+      >
+        {activeContent}
+      </div>
     </div>
   );
 }

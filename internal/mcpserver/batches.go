@@ -279,7 +279,10 @@ func (a *adapter) loadBatchPrivate(path string, value any) error {
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
-	return decoder.Decode(value)
+	if err := decoder.Decode(value); err != nil {
+		return errcode.New(errcode.SchemaInvalid, "local input has invalid types or unknown fields; use this operation's input recipe")
+	}
+	return nil
 }
 
 func (a *adapter) readBatchPrivate(path string) ([]byte, error) {

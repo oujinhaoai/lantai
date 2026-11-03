@@ -110,7 +110,7 @@ func (c *Client) PrepareRecoveryEvidence(ctx context.Context, spec RecoveryEvide
 		if entry.InstanceID != info.InstanceId || len(entry.Files) == 0 {
 			return empty, errcode.New(errcode.RefMismatch, "selected verification differs from recovery instance")
 		}
-		response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+entry.AssetID+"/versions/"+entry.VersionID+"?view=full", nil, Options{})
+		response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+entry.AssetID+"/versions/"+entry.VersionID+"?view=full")
 		if err != nil {
 			return empty, err
 		}

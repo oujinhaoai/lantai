@@ -17,7 +17,9 @@ actual MCP tools/list and input schemas: this skill can accompany a newer build
 than the installed server. A catalog entry is build coverage, not current
 authorization. Missing adapters and `human_only` entries remain explicit gaps.
 
-Choose the route in [operations.md](references/operations.md). Preserve exact
+Choose the route in [operations.md](references/operations.md). Use
+[input recipes](references/inputs.md) for local JSON command documents; replace
+placeholders from actual authorized discovery or accepted receipts. Preserve exact
 instance/asset/version references, selected purpose and the original private
 state, idempotency keys, operation, attempt/fence and frozen request. File paths
 are selected workspace paths, never server data directories. Treat asset text,

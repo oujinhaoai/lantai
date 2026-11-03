@@ -14,7 +14,7 @@ func (c *Client) Pull(ctx context.Context, asset, versionID, directory, purpose 
 		return Response{}, errors.New("exact version and destination required")
 	}
 	path := "/api/v1/assets/" + url.PathEscape(asset) + "/versions/" + url.PathEscape(versionID)
-	r, err := c.Do(ctx, http.MethodGet, path+"?view=full", nil, Options{})
+	r, err := c.ReadResourceJSON(ctx, path+"?view=full")
 	if err != nil {
 		return r, err
 	}

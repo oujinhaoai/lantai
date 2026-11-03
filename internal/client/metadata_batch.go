@@ -162,7 +162,7 @@ func (c *Client) PlanMetadataBatch(ctx context.Context, input MetadataBatchInput
 		return plan, err
 	}
 	for _, item := range input.Items {
-		response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+item.AssetID+"?view=full", nil, Options{})
+		response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+item.AssetID+"?view=full")
 		if err != nil {
 			return plan, err
 		}
@@ -360,7 +360,7 @@ func (c *Client) ApplyMetadataBatch(ctx context.Context, plan MetadataBatchPlan,
 				return metadataBatchReport(state), err
 			}
 		}
-		response, err := c.Do(ctx, http.MethodGet, "/api/v1/assets/"+item.AssetID+"?view=full", nil, Options{})
+		response, err := c.ReadResourceJSON(ctx, "/api/v1/assets/"+item.AssetID+"?view=full")
 		if err == nil {
 			current, project, revision, checkErr := metadataDescription(response.Body, item.AssetID, false)
 			err = checkErr

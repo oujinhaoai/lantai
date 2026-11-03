@@ -3,13 +3,18 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/oujinhaoai/lantai/internal/cli"
 	"github.com/oujinhaoai/lantai/internal/client"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/mcpserver"
 	"github.com/oujinhaoai/lantai/internal/storage"
@@ -102,4 +107,141 @@ func TestMetadataBatchCLIAndMCPPrivatePlansAndOriginalReplay(t *testing.T) {
 	}
 	call("metadata_batch_report_page", map[string]any{"file": "session.json"}, true)
 	call("metadata_batch_apply", map[string]any{"input_file": "mcp-plan.json", "output_file": "state.json", "state_file": "state.json"}, true)
+}
+
+func TestMetadataBatchCLIPlanFailureDoesNotPublishPartialPlan(t *testing.T) {
+	instance, principal, project, first, second := ids.New(), ids.New(), ids.New(), ids.New(), ids.New()
+	var failSecond atomic.Bool
+	failSecond.Store(true)
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/meta":
+			_ = json.NewEncoder(w).Encode(map[string]any{"instance_id": instance})
+		case "/api/v1/whoami":
+			_ = json.NewEncoder(w).Encode(map[string]any{"principal": map[string]any{"principal_id": principal}})
+		case "/api/v1/assets/" + string(first), "/api/v1/assets/" + string(second):
+			if strings.HasSuffix(r.URL.Path, string(second)) && failSecond.Load() {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"error":{"code":"STORAGE_UNAVAILABLE","message":"synthetic unavailable"}}`))
+				return
+			}
+			asset := strings.TrimPrefix(r.URL.Path, "/api/v1/assets/")
+			w.Header().Set("ETag", `"1"`)
+			_ = json.NewEncoder(w).Encode(map[string]any{"asset_id": asset, "description": map[string]any{"asset_id": asset, "project_id": project, "revision": 1}})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer remote.Close()
+	work := t.TempDir()
+	selection, plan, session := filepath.Join(work, "selection.json"), filepath.Join(work, "plan.json"), filepath.Join(work, "session.json")
+	if err := client.SaveState(session, map[string]any{"schema": "lantai.client-session/v1", "origin": remote.URL, "token": "synthetic-token"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.SaveState(selection, client.MetadataBatchInput{Schema: client.MetadataBatchInputSchema, Items: []client.MetadataBatchItem{{AssetID: string(first), Patch: json.RawMessage(`{"title":"first"}`)}, {AssetID: string(second), Patch: json.RawMessage(`{"title":"second"}`)}}}); err != nil {
+		t.Fatal(err)
+	}
+	run := func(wantSuccess bool) {
+		t.Helper()
+		var out, stderr bytes.Buffer
+		exit := cli.Run(t.Context(), []string{"asset", "metadata", "plan", "--input", selection, "--output", plan, "--server", remote.URL, "--allow-http", "--session-file", session}, &out, &stderr)
+		if (exit == 0) != wantSuccess {
+			t.Fatalf("CLI success=%v, want %v: %s", exit == 0, wantSuccess, stderr.String())
+		}
+	}
+	run(false)
+	if _, err := os.Stat(plan); !os.IsNotExist(err) {
+		t.Fatalf("failed planning published a partial plan: %v", err)
+	}
+	failSecond.Store(false)
+	run(true)
+	original, err := client.ReadPrivate(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var complete client.MetadataBatchPlan
+	if err := json.Unmarshal(original, &complete); err != nil || len(complete.Items) != 2 || complete.Digest == "" {
+		t.Fatal("recovered planning did not publish both rows", complete, err)
+	}
+	failSecond.Store(true)
+	run(false)
+	after, err := client.ReadPrivate(plan)
+	if err != nil || !bytes.Equal(original, after) {
+		t.Fatal("failed planning changed an existing original plan", err)
+	}
+	failSecond.Store(false)
+	run(true)
+}
+
+func TestMetadataBatchCLIPlanPreservesOriginalIntentAndState(t *testing.T) {
+	e := newEnv(t, storage.Config{}, transfer.Limits{})
+	_, agent := e.agent("metadata-plan-original@synthetic", identity.RoleOwner)
+	v := e.ingest(agent.Context, "metadata-plan-original/source", []byte("synthetic source"), *rightsOwned())
+	servers := assetRemoteServers(t, reopenApplication(t, e))
+	origin := "http://" + servers.Addresses.API
+	work := t.TempDir()
+	selection, plan, state, report, session := filepath.Join(work, "selection.json"), filepath.Join(work, "plan.json"), filepath.Join(work, "state.json"), filepath.Join(work, "report.json"), filepath.Join(work, "session.json")
+	if err := client.SaveState(session, map[string]any{"schema": "lantai.client-session/v1", "origin": origin, "token": agent.Token}); err != nil {
+		t.Fatal(err)
+	}
+	writeSelection := func(title string) {
+		t.Helper()
+		patch, err := json.Marshal(map[string]string{"title": title})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := client.SaveState(selection, client.MetadataBatchInput{Schema: client.MetadataBatchInputSchema, Items: []client.MetadataBatchItem{{AssetID: string(v.AssetID), Patch: patch}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(wantSuccess bool, args ...string) []byte {
+		t.Helper()
+		argv := append([]string{"asset", "metadata"}, args...)
+		argv = append(argv, "--server", origin, "--allow-http", "--session-file", session)
+		var out, stderr bytes.Buffer
+		exit := cli.Run(t.Context(), argv, &out, &stderr)
+		if (exit == 0) != wantSuccess {
+			t.Fatalf("CLI success=%v, want %v: %s", exit == 0, wantSuccess, stderr.String())
+		}
+		return out.Bytes()
+	}
+	read := func(path string) []byte {
+		t.Helper()
+		raw, err := client.ReadPrivate(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw
+	}
+	writeSelection("original intent")
+	run(true, "plan", "--input", selection, "--output", plan)
+	originalPlan := read(plan)
+	// The same frozen bytes can resume without replacing the reviewed plan.
+	run(true, "plan", "--input", selection, "--output", plan)
+	if !bytes.Equal(read(plan), originalPlan) {
+		t.Fatal("identical planning changed the original plan")
+	}
+	var accepted client.MetadataBatchReport
+	if err := json.Unmarshal(run(true, "apply", "--input", plan, "--state", state, "--output", report), &accepted); err != nil {
+		t.Fatal(err)
+	}
+	originalState := read(state)
+	for _, title := range []string{"different intent", "original intent"} {
+		// Both changed selection and unchanged selection at a newer remote
+		// revision must preserve the original plan and its retry identities.
+		writeSelection(title)
+		run(false, "plan", "--input", selection, "--output", plan)
+		if !bytes.Equal(read(plan), originalPlan) || !bytes.Equal(read(state), originalState) {
+			t.Fatal("replanning replaced the original plan or state")
+		}
+	}
+	var replay client.MetadataBatchReport
+	if err := json.Unmarshal(run(true, "apply", "--input", plan, "--state", state, "--output", report), &replay); err != nil {
+		t.Fatal(err)
+	}
+	if !accepted.Complete || !replay.Complete || !replay.CurrentRemoteVerified || replay.Results[0].AcceptedRevision != accepted.Results[0].AcceptedRevision || !bytes.Equal(read(state), originalState) {
+		t.Fatal("preserved original intent could not resume without another revision", accepted, replay)
+	}
 }

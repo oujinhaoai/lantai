@@ -342,7 +342,7 @@ func (c *Client) worksetInstance(ctx context.Context) (string, error) {
 func (c *Client) worksetManifest(ctx context.Context, e WorksetEntry, instanceID string) (WorksetPlannedEntry, error) {
 	out := WorksetPlannedEntry{WorksetEntry: e}
 	endpoint := "/api/v1/assets/" + e.AssetID + "/versions/" + e.VersionID + "?view=full"
-	r, err := c.Do(ctx, http.MethodGet, endpoint, nil, Options{})
+	r, err := c.ReadResourceJSON(ctx, endpoint)
 	if err != nil {
 		return out, err
 	}

@@ -173,7 +173,10 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 		return nil, err
 	}
 	var b migrationBatch
-	if json.Unmarshal(env.Payload, &b) != nil || b.Schema != "lantai.migration-batch/v1" || b.ProjectID != env.ProjectID || b.InstanceID != env.InstanceID || b.BatchID == "" || len(b.BatchID) > 128 || b.Revision < 1 {
+	if _, err := managementrecord.DecodeBatch(env.Payload); err != nil {
+		return nil, batchInvalid()
+	}
+	if json.Unmarshal(env.Payload, &b) != nil || b.ProjectID != env.ProjectID || b.InstanceID != env.InstanceID {
 		return nil, batchInvalid()
 	}
 	out := batchCheckView{Schema: "lantai.batch-check/v1", InstanceID: env.InstanceID, RecordRef: ref, BatchID: b.BatchID, Revision: b.Revision, CheckedAt: a.Instance.Clock().Now(), Acceptance: "blocked", IntendedPurpose: b.IntendedPurpose, Checks: []batchCheck{}, Assets: []batchAsset{}, Worksets: []batchRef{}, RecoveryRefs: []batchRef{}}
@@ -201,8 +204,9 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 	} else {
 		p, pv, pe := a.readBatchRecord(ctx, who, *b.PreviousRef, "migration", env.ProjectID)
 		var previous migrationBatch
+		_, contractErr := managementrecord.DecodeBatch(p.Payload)
 		next, ne := a.Ledger.AssetVersions(ctx, assetID, pv.Version.VersionNumber, 2)
-		recordOK = recordOK && pe == nil && ne == nil && len(next) == 1 && next[0].VersionID == versionID && json.Unmarshal(p.Payload, &previous) == nil && previous.Schema == b.Schema && previous.BatchID == b.BatchID && previous.ProjectID == b.ProjectID && previous.InstanceID == b.InstanceID && previous.Revision == b.Revision-1 && pv.Version.VersionNumber < record.Version.VersionNumber
+		recordOK = recordOK && pe == nil && contractErr == nil && ne == nil && len(next) == 1 && next[0].VersionID == versionID && json.Unmarshal(p.Payload, &previous) == nil && previous.Schema == b.Schema && previous.BatchID == b.BatchID && previous.ProjectID == b.ProjectID && previous.InstanceID == b.InstanceID && previous.Revision == b.Revision-1 && pv.Version.VersionNumber < record.Version.VersionNumber
 	}
 	members, _, me := a.Identity.Members(ctx, who, env.ProjectID)
 	ownerExists := false
@@ -212,8 +216,6 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 		}
 	}
 	recordOK = recordOK && me == nil && ownerExists && (b.Acceptance == "requested" || b.Acceptance == "not_requested")
-	stages := map[string]bool{"inventory": true, "ingest": true, "verification": true, "workset": true, "references": true, "recovery": true, "acceptance": true, "in_use": true, "rollback": true}
-	recordOK = recordOK && stages[b.Stage]
 	if recordOK {
 		check("record", "passed", "")
 	} else {

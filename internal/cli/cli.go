@@ -391,6 +391,9 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		if o.version != "" {
 			path += "/versions/" + segment(o.version)
 		}
+		if o.view == "full" {
+			return c.ReadResourceJSON(ctx, path+"?view=full")
+		}
 		return do(http.MethodGet, path+"?view="+url.QueryEscape(o.view), nil)
 	case "versions":
 		if !ids.ID(o.asset).Valid() {
@@ -405,7 +408,7 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		path := "/api/v1/assets/" + segment(o.asset)
 		switch action {
 		case "", "get":
-			return do(http.MethodGet, path+"?view=full", nil)
+			return c.ReadResourceJSON(ctx, path+"?view=full")
 		case "set":
 			if o.etag == "" || o.key == "" {
 				return client.Response{}, usage("metadata set requires --if-match and --idempotency-key")
