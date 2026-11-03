@@ -82,6 +82,8 @@ Collaboration MCP covers inbox acknowledgments, complete resync, review targets,
 
 New `asset metadata plan/apply` and matching MCP tools freeze each selected asset's original revision/patch, reuse conditional PATCH with independent stable keys, retain partial/conflict rows, and freshly verify current results. See [metadata batches](docs/contracts/metadata-batches.md) (Chinese).
 
+`asset dependencies` / MCP `dependency_analyze` provide bounded, hash-bound dependency candidates for explicitly selected OBJ/MTL/ComfyUI text. Unknown items remain unresolved and external contents are never loaded. See [selected dependency analysis](docs/contracts/selected-dependencies.md) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

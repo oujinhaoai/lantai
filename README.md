@@ -81,6 +81,8 @@ MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与�
 
 新增 `asset metadata plan/apply` 与对应 MCP 批量著录工具：逐资产冻结原 revision/patch，复用原条件 PATCH 和独立稳定 key，保留部分/冲突并重读核验当前结果；见[批量著录](docs/contracts/metadata-batches.md)。
 
+`asset dependencies` / MCP `dependency_analyze` 为明确选中的 OBJ/MTL/ComfyUI 文本提供有界、摘要绑定的依赖候选，保留未知项且不加载外部内容；见[选定依赖分析](docs/contracts/selected-dependencies.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

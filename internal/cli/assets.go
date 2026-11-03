@@ -21,6 +21,7 @@ import (
 const assetHelp = `素材管理（现有公共 API 与显式本地副本，不直接访问服务端数据）：
   asset metadata plan --input SELECTION.json --output PLAN
   asset metadata apply --input PLAN --state STATE_FILE --output REPORT
+  asset dependencies --input SELECTION.json --directory SOURCE --output REPORT
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
@@ -110,7 +111,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			}
 		}
 		var protected []string
-		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") {
+		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") || name == "dependencies" {
 			protected = []string{o.directory, o.state, o.destination}
 		} else if strings.HasPrefix(name, "workset-") {
 			protected = []string{o.directory}
@@ -204,6 +205,15 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 			return c.PlanMetadataBatch(ctx, selection)
 		}
 		return c.ApplyMetadataBatch(ctx, plan, o.state)
+	case "dependencies":
+		if o.directory == "" || o.output == "" {
+			return nil, usage("dependencies requires --directory SOURCE and --output REPORT")
+		}
+		var selection client.DependencySelection
+		if err := decodeAssetInput(o.input, &selection); err != nil {
+			return nil, err
+		}
+		return client.AnalyzeDependencyFiles(ctx, selection, o.directory)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`

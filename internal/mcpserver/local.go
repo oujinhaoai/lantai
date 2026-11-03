@@ -88,6 +88,8 @@ func (a *adapter) localTools() error {
 	a.workspace = root
 	a.workspaceIdentity = info
 	a.metadataBatchTools()
+
+	a.dependencyTools()
 	inputSchema, e := a.pushInputSchema()
 	if e != nil {
 		return e
