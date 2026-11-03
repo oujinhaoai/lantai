@@ -40,6 +40,16 @@
 			}
 		}
 	}
+	# Package integrity verification may take longer than a normal JSON request.
+	# Keep the same API upstream/authentication; stream without an API header limit.
+	@backupDownload path /api/v1/admin/backups/*/package /api/v1/admin/backups/*/download-request
+	handle @backupDownload {
+		reverse_proxy {$LANTAI_API_UPSTREAM:127.0.0.1:8080} {
+			transport http {
+				dial_timeout 5s
+			}
+		}
+	}
 	@api path /api/v1/*
 	handle @api {
 		reverse_proxy {$LANTAI_API_UPSTREAM:127.0.0.1:8080} {

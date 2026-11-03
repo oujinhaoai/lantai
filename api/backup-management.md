@@ -59,3 +59,9 @@
 先以 `identity.backup_export` 创建并验证 HumanGrant，命令为 `kind: download`、`job_id` 和精确 `package_sha256`，再调用 `POST /api/v1/admin/backups/{id}/download-request`。返回15分钟下载能力，同时给浏览器设置HttpOnly/Secure/SameSite=Strict Cookie。API客户端通过 `X-Lantai-Backup-Download` 头提交返回的短期token。`GET /api/v1/admin/backups/{id}/package` 仍要求同一有效管理员会话；支持Range、If-Range和稳定ETag，拒绝控制身份、跨会话能力和摘要不匹配。token不放入URL或浏览器持久存储。
 
 批准请求和下载均重新校验最终包，不将历史 `complete` 当作当前可下载保证。普通文件、私有访问、服务属主、单链接、打开后文件身份及包内容/完成记录绑定不满足时拒绝导出。仍返回 `STORAGE_UNAVAILABLE`，但使用 `details.reason=backup_package_*` 区分包本身的错误；具体原因及处置见[完整包安全与状态](../docs/recovery-package.md#容器与状态)。错误不包含宿主路径或恢复材料；`backup_package_hardlinks` 只表示计数异常，不自动断定底层文件系统或第二链接位置。
+
+响应同时返回 `url`（同源固定公共路径）、`method: GET`、`range: true`、`session_required: true`。URL 不含 token；客户端仍须携带原会话及下载授权头或浏览器 HttpOnly Cookie。CLI/MCP 的调用与私有下载描述符见[下载链接](../docs/contracts/download-links.md)。
+
+完整包在发送响应前全量回读校验。校验阶段不计入普通 JSON API 总期限或传输读写空闲期限；批准 JSON 仍受最初设置的固定读取期限约束，逐字节滴流不能续期。完整消费请求体后才取消网络读取期限，开始响应时恢复传输空闲期限；客户端断开仍取消校验 context。仅这些精确路径适用，普通 API 保持原期限。随仓库网关模板的备份下载路由也取消普通 API 的响应头等待上限；已有部署需同步升级网关模板。客户端只对精确的批准请求使用最长 24 小时的传输预算（可配置），正常 JSON 请求仍使用 API 预算。
+
+首次兑换批准时验证其会话和新鲜度。已成功执行批准的同内容、同键重放沿用既有身份幂等语义：同一人仍须有当前管理员权限，但不重新要求原批准在有效期内，可把新下载能力绑定到其当前正常会话。下载能力本身仍限时且不可跨会话使用；这不能作为已重新进行动态码验证的证据。

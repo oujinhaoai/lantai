@@ -923,8 +923,12 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [download_token, expires_at, package]
+                required: [download_token, expires_at, package, url, method, range, session_required]
                 properties:
+                  url: {type: string, description: Same-origin public package path; contains no token}
+                  method: {type: string, enum: [GET]}
+                  range: {type: boolean, const: true}
+                  session_required: {type: boolean, const: true}
                   download_token: {type: string}
                   expires_at: {type: string, format: date-time}
                   package: {$ref: '#/components/schemas/RecoveryPackage'}

@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset"}
+	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
 }
 func Help() string {
 	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
@@ -38,6 +38,8 @@ pull --purpose：archive_review（默认）| reference | production | generative
 ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
+下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE；backups overview/history/show/download-link。
+backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
 素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`
 }
@@ -53,7 +55,7 @@ type sessionFile struct {
 	Token  string `json:"token"`
 }
 type options struct {
-	caFile, secretFile                                                                                                                                                   string
+	filePath, caFile, secretFile                                                                                                                                         string
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
 	allowHTTP, json                                                                                                                                                      bool
 	limit                                                                                                                                                                int
@@ -134,7 +136,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -152,6 +154,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.state, "state", "", "private persistent transfer state")
 	f.StringVar(&o.key, "idempotency-key", "", "stable caller-saved idempotency key")
 	f.StringVar(&o.etag, "if-match", "", "quoted metadata revision ETag")
+	f.StringVar(&o.filePath, "path", "", "exact version file path")
 	f.StringVar(&o.asset, "asset", "", "asset id")
 	f.StringVar(&o.version, "version", "", "version id")
 	f.StringVar(&o.ref, "ref", "", "exact permanent lantai URI")
@@ -422,6 +425,10 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 			o.state = o.input + ".lantai-state.json"
 		}
 		return c.Push(ctx, in, o.directory, o.state, command == "upload")
+	case "download-link":
+		return c.FileDownloadLink(ctx, o.asset, o.version, o.filePath, o.purpose)
+	case "backups":
+		return backupsCommand(ctx, c, action, o)
 	case "pull":
 		return pull(ctx, c, o)
 	case "identity":

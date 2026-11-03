@@ -91,7 +91,8 @@ func (h *Handler) backupDownloadRequest(w http.ResponseWriter, r *http.Request, 
 	h.downloads[downloadHash(raw)] = backupDownload{who.PrincipalID, who.SessionID, id, p.SHA256, expires}
 	h.downloadMu.Unlock()
 	http.SetCookie(w, &http.Cookie{Name: downloadCookie(id), Value: raw, Path: "/api/v1/admin/backups/" + string(id) + "/package", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: 900})
-	return respond(w, 200, map[string]any{"download_token": raw, "expires_at": expires, "package": p})
+	return respond(w, 200, map[string]any{"download_token": raw, "expires_at": expires, "package": p,
+		"url": "/api/v1/admin/backups/" + string(id) + "/package", "method": "GET", "range": true, "session_required": true})
 }
 
 func (h *Handler) backupDownloadPackage(w http.ResponseWriter, r *http.Request, who authz.Context) error {

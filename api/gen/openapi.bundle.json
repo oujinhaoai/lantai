@@ -12768,14 +12768,36 @@
                       "format": "date-time",
                       "type": "string"
                     },
+                    "method": {
+                      "enum": [
+                        "GET"
+                      ],
+                      "type": "string"
+                    },
                     "package": {
                       "$ref": "#/components/schemas/RecoveryPackage"
+                    },
+                    "range": {
+                      "const": true,
+                      "type": "boolean"
+                    },
+                    "session_required": {
+                      "const": true,
+                      "type": "boolean"
+                    },
+                    "url": {
+                      "description": "Same-origin public package path; contains no token",
+                      "type": "string"
                     }
                   },
                   "required": [
                     "download_token",
                     "expires_at",
-                    "package"
+                    "package",
+                    "url",
+                    "method",
+                    "range",
+                    "session_required"
                   ],
                   "type": "object"
                 }

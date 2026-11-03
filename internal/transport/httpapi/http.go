@@ -117,6 +117,18 @@ func (h *Handler) middleware(next http.Handler, api bool) http.Handler {
 		controller := http.NewResponseController(w)
 		_ = controller.SetReadDeadline(time.Now().Add(readLimit))
 		_ = controller.SetWriteDeadline(time.Now().Add(writeLimit))
+		if api && backupPackageRequest(r) {
+			// Opening a recovery package verifies every byte before releasing it.
+			// This preparation is not a stalled transfer. Start the idle write
+			// deadline only once a response actually begins, including errors.
+			_ = controller.SetWriteDeadline(time.Time{})
+			if r.Body == nil || r.Body == http.NoBody || r.ContentLength == 0 {
+				_ = controller.SetReadDeadline(time.Time{})
+			} else {
+				r.Body = &preparationBody{ReadCloser: r.Body, controller: controller}
+			}
+			w = &idleWriter{ResponseWriter: w, controller: controller, timeout: h.cfg.TransferIdleTimeout}
+		}
 		id := r.Header.Get("X-Request-Id")
 		bad := id != "" && !requestIDRE.MatchString(id) || len(r.Header.Values("X-Request-Id")) > 1
 		if id == "" || bad {

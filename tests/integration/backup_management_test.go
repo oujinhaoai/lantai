@@ -343,14 +343,14 @@ func TestBackupManagementHTTPCancelResumeVerifiedRestore(t *testing.T) {
 	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, content)
 }
 
-func TestBackupManagementNotProjectedByRuntimeMCP(t *testing.T) {
+func TestBackupManagementMCPDownloadOnlyBoundary(t *testing.T) {
 	bin := buildConsistencyCLI(t)
 	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
 	_, machine := e.agent("backup-mcp@synthetic", "")
 	admin := e.login()
 	a := reopenApplication(t, e)
-	// Even when the real core advertises backup_management, it must not become
-	// an MCP tool, prompt or resource for either an Agent or an admin session.
+	// Only bounded backup read/download tools are projected. No start, cancel,
+	// schedule or approval-issuance tools may appear for any session.
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -400,7 +400,9 @@ func TestBackupManagementNotProjectedByRuntimeMCP(t *testing.T) {
 				if err != nil {
 					t.Fatal("runtime tools/list", err)
 				}
-				check("tools/list", tool)
+				if tool.Name != "backup_read" && tool.Name != "backup_download_link" {
+					check("tools/list", tool)
+				}
 				names = append(names, tool.Name)
 			}
 			if len(names) == 0 {
@@ -437,6 +439,10 @@ func TestBackupManagementNotProjectedByRuntimeMCP(t *testing.T) {
 			if err := json.Unmarshal(identityRaw, &identity); err != nil || identity.Principal.ID != session.principal || identity.Session.ID != session.session {
 				t.Fatalf("MCP lost the actual principal/session binding: %+v %v", identity, err)
 			}
+			read, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: "backup_read", Arguments: map[string]any{}})
+			if err != nil || read.IsError != (session.name == "agent") {
+				t.Fatalf("backup read must preserve human administrator boundary: %+v %v", read, err)
+			}
 			for _, name := range []string{"backup_start", "backup_resume", "backup_cancel", "backup_schedule"} {
 				out, err := h.mcp.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: map[string]any{}})
 				if err == nil && out != nil && !out.IsError {
@@ -447,7 +453,7 @@ func TestBackupManagementNotProjectedByRuntimeMCP(t *testing.T) {
 			if err != nil || len(history) != 0 {
 				t.Fatalf("rejected MCP calls created backup work: %+v %v", history, err)
 			}
-			t.Logf("actual stdio MCP negotiated %s; enumerated %d ordinary tools and no backup/approval tools, resources or prompts; privileged tool probes refused; tools=%v", h.mcp.InitializeResult().ProtocolVersion, len(names), names)
+			t.Logf("actual stdio MCP negotiated %s; enumerated %d tools; only backup read/download projected, no backup mutations or approval issuance; privileged tool probes refused; tools=%v", h.mcp.InitializeResult().ProtocolVersion, len(names), names)
 		})
 	}
 }

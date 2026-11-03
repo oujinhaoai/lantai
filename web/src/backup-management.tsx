@@ -267,6 +267,19 @@ export function BackupManagement({
   const [updated, setUpdated] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [downloadReady, setDownloadReady] = useState<{
+    url: string;
+    name: string;
+    expires: string;
+  }>();
+  useEffect(() => {
+    if (!downloadReady) return;
+    const timer = setTimeout(
+      () => setDownloadReady(undefined),
+      Math.max(0, Date.parse(downloadReady.expires) - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [downloadReady]);
   const [pending, setPending] = useState<Pending>();
   const [proofError, setProofError] = useState<unknown>();
   const [code, setCode] = useState("");
@@ -574,11 +587,14 @@ export function BackupManagement({
         if (alive.current) setPending({ ...submitted, grantID });
       }
       setCode("");
-      await request(submitted.path, {
-        method: submitted.method,
-        headers: { "Idempotency-Key": submitted.key },
-        body: JSON.stringify({ ...submitted.body, grant_id: grantID }),
-      });
+      const result = await request<{ url?: string; expires_at?: string }>(
+        submitted.path,
+        {
+          method: submitted.method,
+          headers: { "Idempotency-Key": submitted.key },
+          body: JSON.stringify({ ...submitted.body, grant_id: grantID }),
+        },
+      );
       if (alive.current) {
         dismissConfirmation(true);
         if (submitted.action === "identity.backup_schedule") {
@@ -587,8 +603,16 @@ export function BackupManagement({
           setNotice("每日计划已保存。下次运行时间以服务器返回为准。");
         } else if (submitted.action === "identity.backup_export") {
           const link = document.createElement("a");
-          link.href = `${root}/${encodeURIComponent(String(submitted.command.job_id))}/package`;
+          const expected = `${root}/${encodeURIComponent(String(submitted.command.job_id))}/package`;
+          link.href = result.url === expected ? result.url : expected;
           link.download = `lantai-${String(submitted.command.job_id)}.lantai`;
+          setDownloadReady({
+            url: expected,
+            name: link.download,
+            expires:
+              result.expires_at ||
+              new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          });
           document.body.append(link);
           link.click();
           link.remove();
@@ -686,6 +710,15 @@ export function BackupManagement({
         </p>
       )}
       {error ? <ErrorNotice error={error} /> : null}
+      {downloadReady && !restricted && (
+        <p className="notice">
+          <a href={downloadReady.url} download={downloadReady.name}>
+            再次下载已批准的完整恢复包
+          </a>{" "}
+          · 有效至 {date(downloadReady.expires)}
+          。若浏览器未开始下载，可在有效期内重试；过期后需重新验证。
+        </p>
+      )}
       {actionError ? <ErrorNotice error={actionError} /> : null}
       <p
         className={notice ? "notice" : "sr-only"}
