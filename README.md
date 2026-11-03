@@ -69,6 +69,8 @@ Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐�
 
 资源客户端补充项目/类型/成员发现、历史版本、准确文件清单分页、完整 JSON 分段读取，以及条件著录和当前 rights 的 MCP 适配；见[Agent 资源操作](docs/contracts/agent-resources.md)。
 
+MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客户端、显式工作区与原状态；完整计划/回执私有保存，`batch_report_page` 只返回有界元数据。上传状态、取消、去重检查与独立提交保留原上传和幂等键；见[批次工具](docs/contracts/agent-batches.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

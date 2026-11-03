@@ -205,36 +205,85 @@
         "description": "sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.",
         "properties": {
           "defaults": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "extra": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "profile": {
             "$ref": "#/components/schemas/AssetProfile"
           },
           "sensitivity": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "subjects": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
           },
           "summary": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
           },
           "title": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           }
         },
         "type": "object"
@@ -1037,13 +1086,27 @@
             "$ref": "#/components/schemas/ContentInput"
           },
           "describe": {
-            "$ref": "#/components/schemas/AssetPatch"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetPatch"
+              }
+            ]
           },
           "slug": {
             "type": "string"
           },
           "task": {
-            "$ref": "#/components/schemas/M2CatalogTaskBinding"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/M2CatalogTaskBinding"
+              }
+            ]
           }
         },
         "required": [
@@ -1326,42 +1389,70 @@
             "type": "array"
           },
           "metadata": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "producer": {
-            "$ref": "#/components/schemas/ProducerRef"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProducerRef"
+              }
+            ]
           },
           "rights": {
-            "$ref": "#/components/schemas/VersionManifestRights"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VersionManifestRightsInput"
+              }
+            ]
           },
           "uses": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "alias_generation": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
-                "asset_id": {
-                  "$ref": "#/components/schemas/Ulid"
-                },
-                "ref": {
-                  "type": "string"
-                },
-                "relation": {
-                  "type": "string"
-                },
-                "version_id": {
-                  "$ref": "#/components/schemas/Ulid"
-                }
+            "anyOf": [
+              {
+                "type": "null"
               },
-              "required": [
-                "relation"
-              ],
-              "type": "object"
-            },
-            "type": "array"
+              {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "alias_generation": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "asset_id": {
+                      "$ref": "#/components/schemas/Ulid"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "relation": {
+                      "type": "string"
+                    },
+                    "version_id": {
+                      "$ref": "#/components/schemas/Ulid"
+                    }
+                  },
+                  "required": [
+                    "relation"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            ]
           },
           "version_note": {
             "type": "string"
@@ -12012,36 +12103,22 @@
         "description": "提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。",
         "properties": {
           "digital_source_type": {
-            "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
-            "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$",
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsDigitalSourceType"
           },
           "license": {
-            "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsLicense"
           },
           "noai": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/VersionManifestRightsNoai"
           },
           "redistribute_raw": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/VersionManifestRightsRedistributeRaw"
           },
           "sensitivity": {
-            "enum": [
-              "normal",
-              "personal"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsSensitivity"
           },
           "usage": {
-            "enum": [
-              "production",
-              "reference",
-              "restricted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsUsage"
           }
         },
         "required": [
@@ -12052,6 +12129,68 @@
           "sensitivity"
         ],
         "type": "object"
+      },
+      "VersionManifestRightsDigitalSourceType": {
+        "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
+        "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$",
+        "type": "string"
+      },
+      "VersionManifestRightsInput": {
+        "additionalProperties": false,
+        "description": "Existing commit input semantics: omitted noai/redistribute_raw decode as false. Original JSON is preserved for resumable request hashes; the frozen manifest still requires both fields explicitly.",
+        "properties": {
+          "digital_source_type": {
+            "$ref": "#/components/schemas/VersionManifestRightsDigitalSourceType"
+          },
+          "license": {
+            "$ref": "#/components/schemas/VersionManifestRightsLicense"
+          },
+          "noai": {
+            "$ref": "#/components/schemas/VersionManifestRightsNoai"
+          },
+          "redistribute_raw": {
+            "$ref": "#/components/schemas/VersionManifestRightsRedistributeRaw"
+          },
+          "sensitivity": {
+            "$ref": "#/components/schemas/VersionManifestRightsSensitivity"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/VersionManifestRightsUsage"
+          }
+        },
+        "required": [
+          "usage",
+          "license",
+          "sensitivity"
+        ],
+        "type": "object"
+      },
+      "VersionManifestRightsLicense": {
+        "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "VersionManifestRightsNoai": {
+        "type": "boolean"
+      },
+      "VersionManifestRightsRedistributeRaw": {
+        "type": "boolean"
+      },
+      "VersionManifestRightsSensitivity": {
+        "enum": [
+          "normal",
+          "personal"
+        ],
+        "type": "string"
+      },
+      "VersionManifestRightsUsage": {
+        "enum": [
+          "production",
+          "reference",
+          "restricted"
+        ],
+        "type": "string"
       },
       "VersionManifestUse": {
         "additionalProperties": false,

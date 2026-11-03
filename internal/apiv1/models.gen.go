@@ -2312,13 +2312,11 @@ type CommitRequest struct {
 	AssetId *Ulid `json:"asset_id,omitempty"`
 
 	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
-	BaseVersionId *Ulid        `json:"base_version_id,omitempty"`
-	Content       ContentInput `json:"content"`
-
-	// Describe sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
-	Describe *AssetPatch           `json:"describe,omitempty"`
-	Slug     *string               `json:"slug,omitempty"`
-	Task     *M2CatalogTaskBinding `json:"task,omitempty"`
+	BaseVersionId *Ulid                 `json:"base_version_id,omitempty"`
+	Content       ContentInput          `json:"content"`
+	Describe      *AssetPatch           `json:"describe,omitempty"`
+	Slug          *string               `json:"slug,omitempty"`
+	Task          *M2CatalogTaskBinding `json:"task,omitempty"`
 }
 
 // CommitResult defines model for CommitResult.
@@ -2434,16 +2432,12 @@ type CompletedRestoreReceiptAcceptanceBasis string
 // ContentInput defines model for ContentInput.
 type ContentInput struct {
 	// AssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
-	AssetType VersionManifestAssetType `json:"asset_type"`
-	Files     []VersionManifestFile    `json:"files"`
-	Metadata  *map[string]interface{}  `json:"metadata,omitempty"`
-
-	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
-	Producer *ProducerRef `json:"producer,omitempty"`
-
-	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
-	Rights *VersionManifestRights `json:"rights,omitempty"`
-	Uses   *[]struct {
+	AssetType VersionManifestAssetType    `json:"asset_type"`
+	Files     []VersionManifestFile       `json:"files"`
+	Metadata  *map[string]interface{}     `json:"metadata,omitempty"`
+	Producer  *ProducerRef                `json:"producer,omitempty"`
+	Rights    *VersionManifestRightsInput `json:"rights,omitempty"`
+	Uses      *struct {
 		AliasGeneration *int `json:"alias_generation,omitempty"`
 
 		// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
@@ -6426,20 +6420,45 @@ type VersionManifestFileRole string
 // VersionManifestRights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
 type VersionManifestRights struct {
 	// DigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
-	DigitalSourceType *string `json:"digital_source_type,omitempty"`
+	DigitalSourceType *VersionManifestRightsDigitalSourceType `json:"digital_source_type,omitempty"`
 
 	// License SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
-	License         string                           `json:"license"`
-	Noai            bool                             `json:"noai"`
-	RedistributeRaw bool                             `json:"redistribute_raw"`
-	Sensitivity     VersionManifestRightsSensitivity `json:"sensitivity"`
-	Usage           VersionManifestRightsUsage       `json:"usage"`
+	License         VersionManifestRightsLicense         `json:"license"`
+	Noai            VersionManifestRightsNoai            `json:"noai"`
+	RedistributeRaw VersionManifestRightsRedistributeRaw `json:"redistribute_raw"`
+	Sensitivity     VersionManifestRightsSensitivity     `json:"sensitivity"`
+	Usage           VersionManifestRightsUsage           `json:"usage"`
 }
 
-// VersionManifestRightsSensitivity defines model for VersionManifestRights.Sensitivity.
+// VersionManifestRightsDigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
+type VersionManifestRightsDigitalSourceType = string
+
+// VersionManifestRightsInput Existing commit input semantics: omitted noai/redistribute_raw decode as false. Original JSON is preserved for resumable request hashes; the frozen manifest still requires both fields explicitly.
+type VersionManifestRightsInput struct {
+	// DigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
+	DigitalSourceType *VersionManifestRightsDigitalSourceType `json:"digital_source_type,omitempty"`
+
+	// License SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
+	License         VersionManifestRightsLicense          `json:"license"`
+	Noai            *VersionManifestRightsNoai            `json:"noai,omitempty"`
+	RedistributeRaw *VersionManifestRightsRedistributeRaw `json:"redistribute_raw,omitempty"`
+	Sensitivity     VersionManifestRightsSensitivity      `json:"sensitivity"`
+	Usage           VersionManifestRightsUsage            `json:"usage"`
+}
+
+// VersionManifestRightsLicense SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
+type VersionManifestRightsLicense = string
+
+// VersionManifestRightsNoai defines model for VersionManifestRightsNoai.
+type VersionManifestRightsNoai = bool
+
+// VersionManifestRightsRedistributeRaw defines model for VersionManifestRightsRedistributeRaw.
+type VersionManifestRightsRedistributeRaw = bool
+
+// VersionManifestRightsSensitivity defines model for VersionManifestRightsSensitivity.
 type VersionManifestRightsSensitivity string
 
-// VersionManifestRightsUsage defines model for VersionManifestRights.Usage.
+// VersionManifestRightsUsage defines model for VersionManifestRightsUsage.
 type VersionManifestRightsUsage string
 
 // VersionManifestUse defines model for VersionManifestUse.

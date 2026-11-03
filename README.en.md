@@ -70,6 +70,8 @@ Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists a
 
 Resource clients provide project/type/member discovery, version history, bounded exact file lists and full JSON chunks, plus MCP adapters for conditional metadata and current rights; see the [Agent resource contract](docs/contracts/agent-resources.md).
 
+MCP `import_*`, `workset_*`, and `references_*` batch tools reuse the original CLI clients, explicit workspace and recovery state. Full plans/receipts remain private; `batch_report_page` returns bounded metadata only. Upload status, cancellation, deduplication checks and standalone commit preserve the original upload and idempotency identities. See the [batch tool contract](docs/contracts/agent-batches.md) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

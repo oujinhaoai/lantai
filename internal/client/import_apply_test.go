@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -314,6 +315,10 @@ func TestImportApplyDescriptionPendingAndBatchFailureRemainVisible(t *testing.T)
 	failed, err := c2.ApplyImport(context.Background(), plan, root, importStateDir(t))
 	if err == nil || failed.Complete {
 		t.Fatal("failed batch treated as complete")
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.Body.Code != errcode.Forbidden {
+		t.Fatal("aggregate batch error lost the original remote denial", err)
 	}
 	for _, r := range failed.Results {
 		if r.Status != "failed" || r.ErrorCode != "FORBIDDEN" {
