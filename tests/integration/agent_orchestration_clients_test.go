@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
 	"github.com/oujinhaoai/lantai/internal/client"
+	ae "github.com/oujinhaoai/lantai/internal/contract/agentexec"
+	"github.com/oujinhaoai/lantai/internal/contract/execution"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/mcpserver"
@@ -19,6 +22,7 @@ import (
 	"github.com/oujinhaoai/lantai/internal/storage"
 	"github.com/oujinhaoai/lantai/internal/storage/transfer"
 	"github.com/oujinhaoai/lantai/internal/tasks"
+	"os"
 )
 
 func TestAgentOrchestrationClients(t *testing.T) {
@@ -34,6 +38,7 @@ func TestAgentOrchestrationClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	evidenceVersion := e.ingest(session.Context, "orchestration/reconciliation-evidence", []byte("synthetic controlled manual session stop evidence"), *rightsOwned())
 	app := reopenApplication(t, e)
 	cfg := app.Instance.Config()
 	cfg.Listen = operations.ListenConfig{API: "127.0.0.1:0", Transfer: "127.0.0.1:0", Operations: "127.0.0.1:0", Merged: true}
@@ -154,6 +159,57 @@ func TestAgentOrchestrationClients(t *testing.T) {
 	if hex.EncodeToString(sum[:]) != digest {
 		t.Fatal("record digest mismatch")
 	}
+	// A real manual TaskRun keeps the original task attempt/fence. Cancellation
+	// does not turn an unconfirmed stop into a safe replacement execution.
+	rawStart, err := os.ReadFile("../../schemas/examples/agent-execution/v1/agent-request/start.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var startFixture map[string]json.RawMessage
+	if err := json.Unmarshal(rawStart, &startFixture); err != nil {
+		t.Fatal(err)
+	}
+	var start ae.StartRequest
+	if err := json.Unmarshal(startFixture["document"], &start); err != nil {
+		t.Fatal(err)
+	}
+	start.OperationID, start.TaskRunID, start.BudgetID = ids.New(), ids.New(), ids.New()
+	start.Fence = view.Attempt.Fence
+	start.Fence.TaskID = view.Task.ID
+	start.Input = view.Task.Input
+	start.Activation = nil
+	start.Profile.ActivationSnapshot = ae.ActivationSnapshot{}
+	start.Profile.PlaybookRefs = []ids.PermanentRef{}
+	start.Profile.RequiredCapabilities = []string{"manual_session"}
+	start.ExecutionKey, _ = ae.ExecutionKey(start.TaskRunID, start.Fence.AttemptID)
+	start.RequestHash, _ = ae.RequestHash(start)
+	var run ax.Record
+	call("run_start", map[string]any{"idempotency_key": "original-manual-run", "request": start}, &run, false)
+	originalRun := run
+	cancelRun := ax.CancelRequest{Mutation: ax.Mutation{RunID: run.Run.ID, ExpectedRevision: run.Run.Revision, Fence: start.Fence}, Reason: "synthetic explicit cancellation", Mode: execution.CancelRevokeOnly}
+	call("run_cancel", map[string]any{"idempotency_key": "original-cancel-run", "request": cancelRun}, &run, false)
+	if run.Run.Termination.Confirmed || run.Run.State == execution.RunCancelled {
+		t.Fatal("unconfirmed manual execution was declared stopped", run.Run)
+	}
+	var cancelledReplay ax.Record
+	call("run_cancel", map[string]any{"idempotency_key": "original-cancel-run", "request": cancelRun}, &cancelledReplay, false)
+	if cancelledReplay.Run.ID != run.Run.ID || cancelledReplay.Run.Revision != run.Run.Revision {
+		t.Fatal("same cancel replaced run state")
+	}
+	reconcileRun := ax.ReconcileRequest{Mutation: ax.Mutation{RunID: run.Run.ID, ExpectedRevision: run.Run.Revision, Fence: start.Fence}, Stopped: false, EvidenceRefs: []ids.PermanentRef{evidenceVersion.Ref}, Reason: "synthetic stop still unknown"}
+	call("run_reconcile", map[string]any{"idempotency_key": "original-run-unknown", "request": reconcileRun}, &run, false)
+	if run.Run.Termination.Confirmed || run.Run.State == execution.RunCancelled {
+		t.Fatal("unknown manual side effect became stopped")
+	}
+	reconcileRun.ExpectedRevision = run.Run.Revision
+	reconcileRun.Stopped = true
+	reconcileRun.Reason = "synthetic manual session definitely stopped"
+	call("run_reconcile", map[string]any{"idempotency_key": "original-run-stopped", "request": reconcileRun}, &run, false)
+	if run.Run.State != execution.RunCancelled || !run.Run.Termination.Confirmed || run.Run.ID != originalRun.Run.ID || run.Run.CurrentAttemptID != originalRun.Run.CurrentAttemptID {
+		t.Fatal("manual cancellation lost original identity", run.Run)
+	}
+	call("run_cancel", map[string]any{"idempotency_key": "stale-run-mutation", "request": cancelRun}, nil, true)
+	read()
 	original := *view.Attempt
 	call("task_cancel", map[string]any{"idempotency_key": "original-cancel-task", "request": tasks.CancelRequest{TaskRef: tasks.TaskRef{ProjectID: e.project.ProjectID, TaskID: view.Task.ID, ExpectedRevision: view.Task.Revision}, Reason: "Synthetic explicit cancellation"}}, nil, false)
 	read()
