@@ -19,11 +19,11 @@
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | 驱动依赖 | BSD-3-Clause |
 | `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | JSON Schema 2020-12 校验 | Apache-2.0 |
 | `go.yaml.in/yaml/v3` | v3.0.5 | YAML 解析（按 JSON 数据模型解释） | Apache-2.0；移植自 libyaml 的部分为 MIT |
-| `golang.org/x/sync` | v0.23.0 | 可取消、公平的加权信号量（锁协调、口令计算并发上限） | BSD-3-Clause |
-| `golang.org/x/text` | v0.42.0 | schema 校验错误信息的本地化打印；口令、路径与说明文本的 Unicode NFC 规范化；路径冲突判定的完全大小写折叠（`cases.Fold`） | BSD-3-Clause |
+| `golang.org/x/sync` | v0.24.0 | 可取消、公平的加权信号量（锁协调、口令计算并发上限） | BSD-3-Clause |
+| `golang.org/x/text` | v0.43.0 | schema 校验错误信息的本地化打印；口令、路径与说明文本的 Unicode NFC 规范化；路径冲突判定的完全大小写折叠（`cases.Fold`） | BSD-3-Clause |
 | `golang.org/x/crypto` | v0.57.0 | 只用 `argon2`：口令的 Argon2id（RFC 9106）校验值 | BSD-3-Clause |
 | `golang.org/x/term` | v0.46.0 | 本机实例命令在终端读取口令时不回显 | BSD-3-Clause |
-| `golang.org/x/sys` | v0.48.0 | 数据根单实例锁（Unix `flock`、Windows `LockFileEx`）、磁盘余量与文件系统类别探测；驱动依赖 | BSD-3-Clause |
+| `golang.org/x/sys` | v0.49.0 | 数据根单实例锁（Unix `flock`、Windows `LockFileEx`）、磁盘余量与文件系统类别探测；驱动依赖 | BSD-3-Clause |
 
 新增 T07 依赖（2026-09-29 核对本地下载的指定版本发布包 LICENSE/go.mod；同时核对官方 [MCP v1.8.0 发布](https://github.com/modelcontextprotocol/go-sdk/releases/tag/v1.8.0)及 [runtime v1.7.0 发布](https://github.com/oapi-codegen/runtime/releases/tag/v1.7.0)）：
 
@@ -42,6 +42,12 @@
 MCP 不引入任何完整 Agent 平台。SDK 的其他 transport/认证能力不会因依赖存在自动启用。Python 客户端要求 ≥ 3.11、无运行时依赖；构建依赖 setuptools ≥ 68（MIT），项目测试直接从工作树导入。打包结果须保留仓库 GPL-3.0 许可证。
 
 发布二进制时须随附上述依赖的许可证与版权声明（BSD/MIT/Apache 均要求保留声明）。发布流程归 T08，届时从 `go.sum` 生成第三方声明，不在仓库预填 `NOTICE`。
+
+## 有界图片解码依赖（2026-11-03）
+
+新增 `golang.org/x/image v0.47.0`，仅使用 `webp` 解码选定的有限图片；PNG/JPEG 与 PNG 输出沿用标准库。Go 最低1.26.0，与本仓库1.26.10兼容；BSD-3-Clause，遵循既有二进制许可证保留流程。核对[官方包文档](https://pkg.go.dev/golang.org/x/image@v0.47.0/webp)、发布模块的go.mod与LICENSE、[官方许可证](https://go.googlesource.com/image/+/refs/tags/v0.47.0/LICENSE)。
+
+该模块图所需最低版本同时将x/text升为v0.43.0，最小版本选择将x/sync升为v0.24.0、x/sys升为v0.49.0；用途和BSD-3-Clause许可证保持，版本锁入go.mod/go.sum，需完整回归和CI。没有引入外部图片服务、原生解码进程或通用转码器。合成8×4红色WebP测试文件由隔离无头Chromium Canvas生成；运行时和CI读取已登记的合成字节，不依赖浏览器或ffmpeg。
 
 ## 开发工具（不链接进程序）
 

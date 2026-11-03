@@ -65,11 +65,14 @@
     },
     {
       "id": "assetDerivations",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "asset derive"
+      ],
+      "mcp": [
+        "asset_derive"
+      ],
       "skill": [],
-      "classification": "web_only",
-      "reason": "Bounded file comparison, preview derivation and workset TAR are web-only workflows."
+      "classification": "cli_mcp"
     },
     {
       "id": "assetFind",

@@ -174,10 +174,13 @@ func ValidateWorkset(in WorksetInput, directory string) error {
 // declared dependencies and existing files are verified before any write or
 // read grant. A partially built plan is returned on error for diagnosis only.
 func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory string) (WorksetPlan, error) {
+	return c.planWorkset(ctx, in, directory, MaxWorksetFiles, MaxWorksetBytes)
+}
+func (c *Client) planWorkset(ctx context.Context, in WorksetInput, directory string, maxFiles int, maxBytes int64) (WorksetPlan, error) {
 	if err := ValidateWorkset(in, directory); err != nil {
 		return WorksetPlan{}, err
 	}
-	p, err := c.InspectWorkset(ctx, in)
+	p, err := c.inspectWorkset(ctx, in, maxFiles, maxBytes)
 	if err != nil {
 		return p, err
 	}
@@ -197,6 +200,10 @@ func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory str
 // InspectWorkset validates the fixed remote manifests and declared entrypoints/
 // dependencies only. It neither opens a local destination nor obtains a grant.
 func (c *Client) InspectWorkset(ctx context.Context, in WorksetInput) (WorksetPlan, error) {
+	return c.inspectWorkset(ctx, in, MaxWorksetFiles, MaxWorksetBytes)
+}
+
+func (c *Client) inspectWorkset(ctx context.Context, in WorksetInput, maxFiles int, maxBytes int64) (WorksetPlan, error) {
 	if err := validateWorksetDefinition(in); err != nil {
 		return WorksetPlan{}, err
 	}
@@ -219,8 +226,8 @@ func (c *Client) InspectWorkset(ctx context.Context, in WorksetInput) (WorksetPl
 		}
 		for _, f := range entry.Files {
 			p.FileCount++
-			if p.FileCount > MaxWorksetFiles || f.Size > MaxWorksetBytes-p.TotalBytes {
-				return p, worksetInvalid("workset exceeds 10000 files or 1 TiB; split it into smaller worksets")
+			if p.FileCount > maxFiles || f.Size > maxBytes-p.TotalBytes {
+				return p, worksetInvalid("workset exceeds the selected file/byte budget; split it into smaller worksets")
 			}
 			p.TotalBytes += f.Size
 			paths = append(paths, f.Path)
@@ -247,7 +254,10 @@ func (c *Client) InspectWorkset(ctx context.Context, in WorksetInput) (WorksetPl
 // pinned os.Root for every entry. Existing different files are never replaced.
 // Repeating the same input safely verifies completed files and resumes partials.
 func (c *Client) PullWorkset(ctx context.Context, in WorksetInput, directory, purpose string) (WorksetReceipt, error) {
-	p, err := c.PlanWorkset(ctx, in, directory)
+	return c.pullWorkset(ctx, in, directory, purpose, MaxWorksetFiles, MaxWorksetBytes)
+}
+func (c *Client) pullWorkset(ctx context.Context, in WorksetInput, directory, purpose string, maxFiles int, maxBytes int64) (WorksetReceipt, error) {
+	p, err := c.planWorkset(ctx, in, directory, maxFiles, maxBytes)
 	r := WorksetReceipt(p)
 	r.Schema, r.State = WorksetReceiptSchema, "partial"
 	if err != nil {

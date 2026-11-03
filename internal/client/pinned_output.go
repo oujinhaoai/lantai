@@ -96,8 +96,16 @@ func (o *PinnedPrivateOutput) WriteOriginal(b []byte) error {
 	return o.write(b, false)
 }
 
+// WriteBinaryOriginal is exclusively for explicitly selected bounded artifacts.
+// JSON/state writers retain their existing8MiB limit and overwrite behavior.
+func (o *PinnedPrivateOutput) WriteBinaryOriginal(b []byte) error {
+	return o.writeBounded(b, false, 65<<20)
+}
 func (o *PinnedPrivateOutput) write(b []byte, replace bool) error {
-	if int64(len(b)) > MaxJSONBytes {
+	return o.writeBounded(b, replace, MaxJSONBytes)
+}
+func (o *PinnedPrivateOutput) writeBounded(b []byte, replace bool, limit int64) error {
+	if int64(len(b)) > limit {
 		return errors.New("client: local state exceeds size limit")
 	}
 	if err := o.check(); err != nil {

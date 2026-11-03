@@ -22,6 +22,7 @@ const assetHelp = `素材管理（现有公共 API 与显式本地副本，不�
   asset metadata plan --input SELECTION.json --output PLAN
   asset metadata apply --input PLAN --state STATE_FILE --output REPORT
   asset dependencies --input SELECTION.json --directory SOURCE --output REPORT
+  asset derive --input JSON --directory VERIFIED_FILES --artifact FILE --output RECEIPT
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
@@ -42,7 +43,7 @@ references 仅按显式映射创建独立笔记副本；rollback 另建原文副
 
 type assetOptions struct {
 	server, session, caFile, input, directory, state, output, report, destination, purpose string
-	postCutoverRefs                                                                        string
+	postCutoverRefs, artifact                                                              string
 	allowHTTP                                                                              bool
 	referencePlan                                                                          *client.ReferencePlan
 }
@@ -83,6 +84,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	f.StringVar(&o.report, "report", "", "prior import report")
 	f.StringVar(&o.destination, "destination", "", "independent verification destination")
 	f.StringVar(&o.purpose, "purpose", "archive_review", "read purpose")
+	f.StringVar(&o.artifact, "artifact", "", "explicit private derived artifact")
 	f.StringVar(&o.postCutoverRefs, "post-cutover-refs", "", "JSON/YAML array of fixed version references to retain")
 	if err := f.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -221,6 +223,8 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 		return client.AnalyzeDependencyFiles(ctx, selection, o.directory)
 	case "workset-list", "workset-open", "workset-record-prepare", "workset-record-save", "workset-return-prepare", "workset-return-apply", "workset-adopt-prepare":
 		return executeManagedWorkset(ctx, name, o)
+	case "derive":
+		return executeDerivation(ctx, o)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`
