@@ -67,11 +67,13 @@ M1-07 原生续做现有明确的[人审证据闭合路径](api/native-continuat
 
 Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐项列出实际入口、缺口与权限例外；见[操作目录](docs/contracts/agent-operations.md)。
 
-管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
-
 资源客户端补充项目/类型/成员发现、历史版本、准确文件清单分页、完整 JSON 分段读取，以及条件著录和当前 rights 的 MCP 适配；见[Agent 资源操作](docs/contracts/agent-resources.md)。
 
+真人管理员可通过远程 `backups start/resume/cancel/schedule-get/schedule-set` 操作原备份任务和每日计划；历史支持显式有界分页，MCP `backup_read` 可读取计划和历史。写操作仍要求原会话的精确批准，普通 Agent 仍被拒绝；见[备份远程客户端](docs/contracts/backup-clients.md)。
+
 MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客户端、显式工作区与原状态；完整计划/回执私有保存，`batch_report_page` 只返回有界元数据。上传状态、取消、去重检查与独立提交保留原上传和幂等键；见[批次工具](docs/contracts/agent-batches.md)。
+
+管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
 
 ## 要解决的问题
 

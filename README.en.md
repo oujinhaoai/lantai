@@ -68,11 +68,13 @@ Check results are validated against the complete wire contract before decoding, 
 
 Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
 
-Private management records and migration batches support CLI/MCP preparation, original-state saving, discovery, exact reads, explicit revisions and existing core checks. Unresolved imports and human witness requirements remain explicit; see the [management record contract](docs/contracts/management-records.md).
-
 Resource clients provide project/type/member discovery, version history, bounded exact file lists and full JSON chunks, plus MCP adapters for conditional metadata and current rights; see the [Agent resource contract](docs/contracts/agent-resources.md).
 
+Human administrators can use remote `backups start/resume/cancel/schedule-get/schedule-set` for original backup jobs and daily schedules. History supports opt-in bounded pages; MCP `backup_read` can read schedules and history. Writes still require exact approval in the original human session, and ordinary Agent sessions remain forbidden. See [backup clients](docs/contracts/backup-clients.md) (Chinese).
+
 MCP `import_*`, `workset_*`, and `references_*` batch tools reuse the original CLI clients, explicit workspace and recovery state. Full plans/receipts remain private; `batch_report_page` returns bounded metadata only. Upload status, cancellation, deduplication checks and standalone commit preserve the original upload and idempotency identities. See the [batch tool contract](docs/contracts/agent-batches.md) (Chinese).
+
+Private management records and migration batches support CLI/MCP preparation, original-state saving, discovery, exact reads, explicit revisions and existing core checks. Unresolved imports and human witness requirements remain explicit; see the [management record contract](docs/contracts/management-records.md).
 
 ## What Lantai is for
 
