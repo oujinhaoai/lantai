@@ -88,6 +88,8 @@ CLI/MCP provide private fixed-workset record discovery, save/reopen, original-st
 
 CLI/MCP [bounded derivations](docs/contracts/asset-derivations.md) provide fixed-version comparison, PNG/JPEG/WebP thumbnails and PNG proxies, limited OBJ structure/wireframes and Unicode workset TAR. Current source authority and actual bytes are rechecked; artifacts and full receipts stay private, with no purpose fallback.
 
+[Recovery CLI clients](docs/contracts/recovery-clients.md) reuse the existing installation claim, human factors and HumanOnly instance read. Selected-version evidence combines actual core receipts with downloaded-file checks; reopening a captured record never restores current verification.
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

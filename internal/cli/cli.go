@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management", "milestone"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management", "milestone", "recovery", "instance"}
 }
 func Help() string {
 	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | versions | pull | metadata get/set | search | operation
@@ -47,6 +47,7 @@ backups history --explicit-completion --limit 20 --cursor JOB；逐页直到 com
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
 管理档案：management prepare/save/revise/list/read/check/batch-create/batch-revise；prepare/batch-create --input SPEC --output PRIVATE_PLAN；save --input PRIVATE_PLAN --directory DIR --state ORIGINAL_STATE。batch-revise 另需原 --asset/--version 及核验 --directory。
 素材管理：asset profile/find | asset metadata plan/apply | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
+恢复：recovery --help；instance show（原本人管理员权限）；asset recovery-evidence prepare/save/open。
 详见 docs/contracts/client.md。`
 }
 
@@ -72,6 +73,9 @@ type options struct {
 // Run receives the command name as args[0]. It never calls os.Exit, making
 // cancellation and output ownership explicit for the executable and tests.
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "recovery" {
+		return runRecovery(ctx, args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "asset" {
 		return runAssets(ctx, args[1:], stdout, stderr)
 	}
@@ -144,7 +148,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management", "milestone":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management", "milestone", "instance":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -461,6 +465,11 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Push(ctx, in, o.directory, o.state, command == "upload")
 	case "download-link":
 		return c.FileDownloadLink(ctx, o.asset, o.version, o.filePath, o.purpose)
+	case "instance":
+		if action != "" && action != "show" {
+			return client.Response{}, usage("instance show required")
+		}
+		return c.Do(ctx, http.MethodGet, "/api/v1/admin/instance", nil, client.Options{})
 	case "backups":
 		return backupsCommand(ctx, c, action, o)
 	case "pull":

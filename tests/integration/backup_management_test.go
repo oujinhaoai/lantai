@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base32"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptrace"
@@ -17,6 +18,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/oujinhaoai/lantai/internal/application"
 	"github.com/oujinhaoai/lantai/internal/backupmgmt"
+	"github.com/oujinhaoai/lantai/internal/client"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
 	"github.com/oujinhaoai/lantai/internal/identity"
@@ -237,6 +239,8 @@ func holdBackupBusinessRequest(t *testing.T, browser backupBrowser) func() {
 func TestBackupManagementHTTPCancelResumeVerifiedRestore(t *testing.T) {
 	ctx := t.Context()
 	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	// Saving a config record requires an explicit project role as well as admin scope.
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
 	e.setRole(e.admin.Context.PrincipalID, identity.RoleViewer, true)
 	principal, agentSession := e.agent("resume-backup@synthetic", identity.RoleContributor)
 	principal, err := e.id.GetPrincipal(ctx, e.login().Context, principal.ID)
@@ -340,7 +344,7 @@ func TestBackupManagementHTTPCancelResumeVerifiedRestore(t *testing.T) {
 	if err := a.Close(ctx); err != nil {
 		t.Fatal(err)
 	}
-	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, content)
+	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, content, true)
 }
 
 func TestBackupManagementMCPDownloadOnlyBoundary(t *testing.T) {
@@ -464,6 +468,8 @@ func TestBackupManagementMCPDownloadOnlyBoundary(t *testing.T) {
 func TestBackupManagementHTTPToVerifiedIsolatedRestore(t *testing.T) {
 	ctx := t.Context()
 	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	// Saving a config record requires an explicit project role as well as admin scope.
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
 	e.setRole(e.admin.Context.PrincipalID, identity.RoleViewer, true)
 	principal, agentSession := e.agent("backup-management@synthetic", identity.RoleContributor)
 	principal, err := e.id.GetPrincipal(ctx, e.login().Context, principal.ID)
@@ -621,10 +627,10 @@ func TestBackupManagementHTTPToVerifiedIsolatedRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, body)
+	assertManagedBackupRestores(t, e, archive, manifest, oldKey, agentSession, credential.Secret, oldGrant.URL, version.AssetID, version.VersionID, body, true)
 }
 
-func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest operations.BackupManifest, oldKey *masterkey.Key, oldSession identity.IssuedSession, oldCredential, oldReadURL string, asset, version ids.ID, content []byte) {
+func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest operations.BackupManifest, oldKey *masterkey.Key, oldSession identity.IssuedSession, oldCredential, oldReadURL string, asset, version ids.ID, content []byte, canSaveRecord bool) {
 	t.Helper()
 	ctx := t.Context()
 	target := filepath.Join(t.TempDir(), "restored")
@@ -695,7 +701,7 @@ func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest 
 	if _, err := restored.Identity.Login(ctx, identity.LoginRequest{Name: "ada", Password: adminPassword, Code: totp.Code(e.secret, totp.Counter(e.clk.Now())), Channel: identity.ChannelCLI, Source: "192.0.2.20"}); err == nil {
 		t.Fatal("archived administrator factor survived restoration")
 	}
-	login, err := restored.Identity.Login(ctx, identity.LoginRequest{Name: "ada", Password: newPassword, Code: totp.Code(newSecret, totp.Counter(e.clk.Now())), Channel: identity.ChannelCLI, Source: "192.0.2.21"})
+	login, err := restored.Identity.Login(ctx, identity.LoginRequest{Name: "ada", Password: newPassword, Code: totp.Code(newSecret, totp.Counter(e.clk.Now())), Channel: identity.ChannelCLI, Source: "192.0.2.21", Scopes: []identity.Scope{identity.ScopeRead, identity.ScopeAdmin, identity.ScopeIngest, identity.ScopeOrganize}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -707,7 +713,7 @@ func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest 
 	if err != nil {
 		t.Fatal(err)
 	}
-	servers := remoteServers(t, restored, false)
+	servers := assetRemoteServers(t, restored)
 	download := func(path string) (int, []byte) {
 		t.Helper()
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+servers.Addresses.Transfer+path, nil)
@@ -747,5 +753,74 @@ func assertManagedBackupRestores(t *testing.T, e *env, archive string, manifest 
 	if completed.RunID != review.RunID || completed.BackupID != review.BackupID || completed.ManifestDigest != review.ManifestDigest || completed.RecoveryEpoch != review.RecoveryEpoch || completed.EvidenceDigest != review.EvidenceDigest || completed.UnknownAfterCapture {
 		t.Fatalf("completed management receipt lost its fixed restore basis: %+v", completed)
 	}
+	// The client uses the real accepted core receipt plus newly downloaded
+	// selected bytes, never caller-supplied success booleans or cached proof.
+	recoveryClient, err := client.New(client.Config{BaseURL: "http://" + servers.Addresses.API, SessionToken: login.Token, AllowHTTP: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer recoveryClient.Close()
+	evidenceRoot, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected := client.RecoveryEvidenceSpec{ProjectID: string(e.project.ProjectID), Title: "Synthetic selected recovery evidence", RunID: string(completed.RunID), Purpose: "archive_review", Workset: client.WorksetInput{Schema: client.WorksetSchema, Entries: []client.WorksetEntry{{AssetID: string(asset), VersionID: string(version), Destination: "selected"}}}}
+	prepared, err := recoveryClient.PrepareRecoveryEvidence(ctx, selected, evidenceRoot)
+	if err != nil {
+		t.Fatal("prepare current recovery evidence", err)
+	}
+	var captured client.RecoveryEvidence
+	if err := json.Unmarshal(prepared.Spec.Payload, &captured); err != nil {
+		t.Fatal(err)
+	}
+	if captured.Scope != "explicit_selected_versions_only" || captured.SourceRetirementAuthorized || captured.NativeSoftwareContinuationVerified || captured.UnknownAfterCaptureRemainsUnknown || len(captured.Verifications) != 1 || !captured.Verifications[0].CurrentRemoteVerified || captured.Restore.RunId != string(completed.RunID) {
+		t.Fatal("recovery evidence broadened its basis", captured)
+	}
+	selectedBytes, err := os.ReadFile(filepath.Join(evidenceRoot, "selected/content.txt"))
+	if err != nil || !bytes.Equal(selectedBytes, content) {
+		t.Fatal("recovery evidence did not read actual bytes", err)
+	}
+	recordRoot, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := recoveryClient.SaveManagementRecord(ctx, prepared, recordRoot, filepath.Join(recordRoot, "../selected-recovery.state.json"))
+	if !canSaveRecord {
+		var denied *client.APIError
+		if !errors.As(err, &denied) || denied.Status != http.StatusForbidden || denied.Body.Code != "FORBIDDEN" {
+			t.Fatal("viewer acquired permission to save a recovery config record", err)
+		}
+	} else {
+		if err != nil {
+			t.Fatal("save captured recovery record", err)
+		}
+		var saved struct {
+			AssetID   string `json:"asset_id"`
+			VersionID string `json:"version_id"`
+		}
+		if err := response.Decode(&saved); err != nil {
+			t.Fatal(err)
+		}
+		readRoot, err := filepath.EvalSymlinks(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, reopened, err := recoveryClient.ReadRecoveryEvidence(ctx, saved.AssetID, saved.VersionID, readRoot)
+		if err != nil || reopened.Restore != captured.Restore {
+			t.Fatal("saved recovery record differs", err)
+		}
+	}
+	changed := selected
+	changed.RunID = string(ids.New())
+	if _, err := recoveryClient.PrepareRecoveryEvidence(ctx, changed, evidenceRoot); err == nil {
+		t.Fatal("invented restore receipt accepted")
+	}
+	if err := os.WriteFile(filepath.Join(evidenceRoot, "selected/content.txt"), []byte("changed local verification bytes"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := recoveryClient.PrepareRecoveryEvidence(ctx, selected, evidenceRoot); err == nil {
+		t.Fatal("changed downloaded bytes accepted from old evidence")
+	}
+
 	t.Logf("empty-directory restore reconciled with a new administrator; old credentials/capability refused; rebuilt index and %d source bytes match SHA256", len(content))
 }

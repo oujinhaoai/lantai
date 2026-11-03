@@ -190,6 +190,6 @@ func TestDownloadLinksCLIAndMCPToIsolatedRestore(t *testing.T) {
 	if err = a.Close(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	assertManagedBackupRestores(t, e, snapshot, manifest, key, machine, credential.Secret, oldRead.URL, v.AssetID, v.VersionID, content)
+	assertManagedBackupRestores(t, e, snapshot, manifest, key, machine, credential.Secret, oldRead.URL, v.AssetID, v.VersionID, content, false)
 	t.Logf("CLI and actual stdio MCP: file and complete package downloads verified; repeated GET and Range accepted, unauthenticated/wrong-session/invalid-permit refused; downloaded backup restored, credentials rotated, admin rebuilt, index and %d source bytes verified; job=%s sha256=%s", len(content), j.ID, j.Package.SHA256)
 }

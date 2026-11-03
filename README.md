@@ -87,6 +87,8 @@ CLI/MCP 已提供私人固定工作集记录的列举、保存/重开、原状�
 
 固定版本比较、PNG/JPEG/WebP缩略图与PNG代理、受限OBJ结构/线框和Unicode工作集TAR已有CLI/MCP[有界派生入口](docs/contracts/asset-derivations.md)；实际源授权与字节重验，产物和完整回执私有保存，拒绝后不自动换用途。
 
+新目标恢复控制和恢复后所选版本证据已有[CLI入口](docs/contracts/recovery-clients.md)，复用原安装认领、本人因素和HumanOnly实例读取；证据来自真实核心回执及实际逐文件检查，历史重开不恢复当前通过结论。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

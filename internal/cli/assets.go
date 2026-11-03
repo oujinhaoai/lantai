@@ -23,6 +23,7 @@ const assetHelp = `素材管理（现有公共 API 与显式本地副本，不�
   asset metadata apply --input PLAN --state STATE_FILE --output REPORT
   asset dependencies --input SELECTION.json --directory SOURCE --output REPORT
   asset derive --input JSON --directory VERIFIED_FILES --artifact FILE --output RECEIPT
+  asset recovery-evidence prepare|save|open --input JSON --directory DIR --output FILE [--state FILE]
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
@@ -55,7 +56,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	name := args[0]
 	args = args[1:]
-	if name == "workset" || name == "import" || name == "references" || name == "metadata" {
+	if name == "workset" || name == "import" || name == "references" || name == "metadata" || name == "recovery-evidence" {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
 			fmt.Fprint(stdout, assetHelp)
 			return 0
@@ -116,7 +117,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		var protected []string
 		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") || name == "dependencies" {
 			protected = []string{o.directory, o.state, o.destination}
-		} else if strings.HasPrefix(name, "workset-") {
+		} else if strings.HasPrefix(name, "workset-") || strings.HasPrefix(name, "recovery-evidence-") {
 			protected = []string{o.directory, o.state}
 		}
 		if o.referencePlan != nil {
@@ -162,7 +163,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				saveErr = errors.New("asset: output parent changed during the operation")
 			}
 			if saveErr == nil {
-				if name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" {
+				if name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" || name == "recovery-evidence-prepare" {
 					saveErr = output.WriteOriginal(append(raw, '\n'))
 				} else {
 					saveErr = output.Write(append(raw, '\n'))
@@ -225,6 +226,8 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 		return executeManagedWorkset(ctx, name, o)
 	case "derive":
 		return executeDerivation(ctx, o)
+	case "recovery-evidence-prepare", "recovery-evidence-save", "recovery-evidence-open":
+		return executeRecoveryEvidence(ctx, name, o)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`

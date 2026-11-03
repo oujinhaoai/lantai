@@ -108,9 +108,8 @@ func DecodeWorkset(r io.Reader) (WorksetInput, error) {
 	return in, nil
 }
 
-// ValidateWorkset performs local preflight only. It creates no directory and
-// sends no request. Destination roots and all existing descendants must not be
-// symlinks; each entry owns a distinct, non-overlapping relative directory.
+// validateWorksetDefinition checks IDs and relative path relationships only.
+// It neither opens a destination directory nor obtains transfer grants.
 func validateWorksetDefinition(in WorksetInput) error {
 	if in.Schema != WorksetSchema || len(in.Entries) == 0 || len(in.Entries) > MaxWorksetEntries {
 		return worksetInvalid("workset schema and 1..1000 entries are required")
@@ -153,6 +152,8 @@ func validateWorksetDefinition(in WorksetInput) error {
 	return nil
 }
 
+// ValidateWorkset adds local directory/link preflight without creating files
+// or obtaining transfer grants. Each entry owns one disjoint relative directory.
 func ValidateWorkset(in WorksetInput, directory string) error {
 	if err := validateWorksetDefinition(in); err != nil {
 		return err
