@@ -1799,6 +1799,51 @@ func (e VersionManifestUseRelation) Valid() bool {
 	}
 }
 
+// Defines values for ApproveBackupDownload200JSONResponseBodyMethod.
+const (
+	ApproveBackupDownload200JSONResponseBodyMethodGET ApproveBackupDownload200JSONResponseBodyMethod = "GET"
+)
+
+// Valid indicates whether the value is a known member of the ApproveBackupDownload200JSONResponseBodyMethod enum.
+func (e ApproveBackupDownload200JSONResponseBodyMethod) Valid() bool {
+	switch e {
+	case ApproveBackupDownload200JSONResponseBodyMethodGET:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ApproveBackupDownload200JSONResponseBodyRange.
+const (
+	ApproveBackupDownload200JSONResponseBodyRangeTrue ApproveBackupDownload200JSONResponseBodyRange = true
+)
+
+// Valid indicates whether the value is a known member of the ApproveBackupDownload200JSONResponseBodyRange enum.
+func (e ApproveBackupDownload200JSONResponseBodyRange) Valid() bool {
+	switch e {
+	case ApproveBackupDownload200JSONResponseBodyRangeTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ApproveBackupDownload200JSONResponseBodySessionRequired.
+const (
+	ApproveBackupDownload200JSONResponseBodySessionRequiredTrue ApproveBackupDownload200JSONResponseBodySessionRequired = true
+)
+
+// Valid indicates whether the value is a known member of the ApproveBackupDownload200JSONResponseBodySessionRequired enum.
+func (e ApproveBackupDownload200JSONResponseBodySessionRequired) Valid() bool {
+	switch e {
+	case ApproveBackupDownload200JSONResponseBodySessionRequiredTrue:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchAssetsParamsView.
 const (
 	SearchAssetsParamsViewBrief SearchAssetsParamsView = "brief"
@@ -6503,6 +6548,15 @@ type ApproveBackupDownloadParams struct {
 	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
+
+// ApproveBackupDownload200JSONResponseBodyMethod defines parameters for ApproveBackupDownload.
+type ApproveBackupDownload200JSONResponseBodyMethod string
+
+// ApproveBackupDownload200JSONResponseBodyRange defines parameters for ApproveBackupDownload.
+type ApproveBackupDownload200JSONResponseBodyRange bool
+
+// ApproveBackupDownload200JSONResponseBodySessionRequired defines parameters for ApproveBackupDownload.
+type ApproveBackupDownload200JSONResponseBodySessionRequired bool
 
 // DownloadBackupPackageParams defines parameters for DownloadBackupPackage.
 type DownloadBackupPackageParams struct {

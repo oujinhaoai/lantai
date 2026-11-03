@@ -1,5 +1,5 @@
-// Package client 是 M1 REST 与文件传输客户端。两个独立连接池隔离普通接口
-// 和长时间流式传输；所有业务与授权判定均由服务端完成。
+// Package client 是 M1 REST 与文件传输客户端。独立连接池隔离普通接口、
+// 长时间流式传输和完整包批准的长校验；所有业务与授权判定均由服务端完成。
 package client
 
 import (
@@ -39,6 +39,7 @@ type Client struct {
 	base     *url.URL
 	api      *http.Client
 	transfer *http.Client
+	recovery *http.Client
 	mu       sync.RWMutex
 	token    string
 }
@@ -93,7 +94,9 @@ func New(c Config) (*Client, error) {
 		return t
 	}
 	redirect := func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return &Client{base: u, token: c.SessionToken, api: &http.Client{Transport: transport(16), Timeout: c.APITimeout, CheckRedirect: redirect}, transfer: &http.Client{Transport: transport(c.TransferConnections), Timeout: c.TransferTimeout, CheckRedirect: redirect}}, nil
+	recoveryTransport := transport(2)
+	recoveryTransport.ResponseHeaderTimeout = 0 // full package verification precedes headers
+	return &Client{base: u, token: c.SessionToken, api: &http.Client{Transport: transport(16), Timeout: c.APITimeout, CheckRedirect: redirect}, transfer: &http.Client{Transport: transport(c.TransferConnections), Timeout: c.TransferTimeout, CheckRedirect: redirect}, recovery: &http.Client{Transport: recoveryTransport, Timeout: c.TransferTimeout, CheckRedirect: redirect}}, nil
 }
 func checkToken(token string) error {
 	if strings.ContainsAny(token, "\r\n\x00") {
@@ -111,7 +114,11 @@ func (c *Client) SetSessionToken(token string) error {
 	return nil
 }
 func (c *Client) Origin() string { return c.base.Scheme + "://" + c.base.Host }
-func (c *Client) Close()         { c.api.CloseIdleConnections(); c.transfer.CloseIdleConnections() }
+func (c *Client) Close() {
+	c.api.CloseIdleConnections()
+	c.transfer.CloseIdleConnections()
+	c.recovery.CloseIdleConnections()
+}
 func (c *Client) authorize(r *http.Request) {
 	c.mu.RLock()
 	token := c.token
@@ -195,7 +202,11 @@ func (c *Client) Do(ctx context.Context, method, path string, body any, opts Opt
 	if opts.IfMatch != "" {
 		req.Header.Set("If-Match", opts.IfMatch)
 	}
-	res, err := c.api.Do(req)
+	pool := c.api
+	if backupLinkRequest(method, rel.Path) && rel.RawPath == "" {
+		pool = c.recovery
+	}
+	res, err := pool.Do(req)
 	if err != nil {
 		return Response{}, safeNetworkError(ctx, err)
 	}

@@ -26,6 +26,24 @@ type idleBody struct {
 	timeout    time.Duration
 }
 
+// Once the bounded approval body is consumed, package verification performs no
+// network reads. A read deadline on net/http's background reader would cancel
+// an otherwise active verification, even when the write deadline is cleared.
+type preparationBody struct {
+	io.ReadCloser
+	controller *http.ResponseController
+}
+
+func (b *preparationBody) Read(p []byte) (int, error) {
+	// Keep the initial absolute deadline while decoding the approval JSON;
+	// incremental body progress must not extend this bounded request forever.
+	n, err := b.ReadCloser.Read(p)
+	if err == io.EOF {
+		_ = b.controller.SetReadDeadline(time.Time{})
+	}
+	return n, err
+}
+
 func (b *idleBody) Read(p []byte) (int, error) {
 	_ = b.controller.SetReadDeadline(time.Now().Add(b.timeout))
 	return b.ReadCloser.Read(p)

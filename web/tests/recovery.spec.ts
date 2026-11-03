@@ -51,6 +51,12 @@ test("complete backup downloads and restores through the new-target wizard", asy
   const completed = page.waitForEvent("download");
   await approve();
   const download = await completed;
+  await expect(
+    page.getByRole("link", { name: "再次下载已批准的完整恢复包" }),
+  ).toHaveAttribute(
+    "href",
+    `/api/v1/admin/backups/${history.items[0].id}/package`,
+  );
   expect(await download.failure()).toBeNull();
   expect(download.url()).not.toContain("?");
   const path = await download.path();

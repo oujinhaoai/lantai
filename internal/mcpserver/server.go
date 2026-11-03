@@ -1,5 +1,5 @@
 // Package mcpserver is a stdio client of the public REST API. It has no access
-// to core services, database handles, HumanGrant, or shell execution.
+// to core services, database handles, HumanGrant issuance, or shell execution.
 package mcpserver
 
 import (
@@ -77,6 +77,9 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 		return false
 	}
 	a.readTools(has)
+	if e = a.downloadTools(has); e != nil {
+		return nil, e
+	}
 	writes := []struct{ name, path, cap, description string }{
 		{"task_claim", "tasks/claim", "tasks", "Claim an existing authorized task seat; returns the server lease and fence."},
 		{"task_renew", "tasks/renew", "tasks", "Renew the same current task attempt with its expected revision and fence."},

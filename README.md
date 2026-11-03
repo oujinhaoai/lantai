@@ -16,6 +16,8 @@ Lantai 管理图像、视频、音频、配置、文档，以及 3D 模型、动
 
 T05/T06 的 M1 交付为任务、流程与执行协议、状态判定、静态接口桩和正反例；T05 的 M2 任务与流程已作为内部服务实现（见下文）。T07 提供真实 REST 与薄 CLI：经会话完成项目/类型查询、可恢复上传与幂等提交、精确版本调阅/下载、条件著录更新、查询和 operation 状态。`lantai serve` 静态组装真实模块，提供分开的 API/传输内部监听、开发 merged 模式及仅本机运维端点；JSON 与文件传输采用独立连接池。
 
+远程 CLI 的 `download-link` 与 `backups download-link`、stdio MCP 的 `resource_download_link` 与 `backup_download_link` 可获取限时下载描述符（URL、摘要、大小、有效期及必要请求头）；下载仍绑定原会话，整馆备份另须本人管理员的精确包批准。使用与边界见[下载链接](docs/contracts/download-links.md)。
+
 T08 已提供共同备份与空目录恢复：四个权威库和可变文件（包括仍保留的回收站版本及证据）在同一维护屏障捕获，持久 backup pin 保护原件复制，中断可续跑；恢复提升代际、撤销旧凭据、轮换主密钥，完成新管理员设置、索引重建及本机对账后才允许启动。`backup`、`backup-verify`、`restore`、`restore-complete`、`fsck`、`recover`、`reindex` 与既有 `init`、`migrate`、`doctor`、`recover-admin`、`serve` 构成本机命令；新升级要求完整备份。已提供单 HTTPS 网关、容器/systemd 通用模板、本机健康/就绪/指标与脱敏访问日志。T09 已实现统一清单和官方内置静态登记，可核验包及核心发布来源。
 
 开发分支新增管理员网页备份管理、持久每日计划和[运行中互斥备份](docs/online-backup.md)：部署时一次性挂载私有备份目录，之后由管理员网页、认证 API、每日计划和 `backup-online` 共用 core 协调器，排空业务请求及后台写入，备份和验证全程暂停业务。支持状态、取消和重启后的显式续传；普通会话在复制中到期时可重新严格认证，取得仅限当前备份查询/取消的短期控制身份；此能力不属于已发布 rc.4，尚未完成 NAS 验收。
