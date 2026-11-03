@@ -167,4 +167,3 @@ lantai/
 ## 许可证
 
 本项目使用 [GNU GPL v3](LICENSE)。
-
