@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management", "milestone"}
 }
 func Help() string {
 	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | versions | pull | metadata get/set | search | operation
@@ -35,6 +35,7 @@ show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory
 pull --purpose：archive_review（默认）| reference | production | generative_input | raw_export；用途须经服务端权利与授权校验。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
 协作命令：task | flow | run | job | node | message | review | rights | evidence | trash | human | context | events | resync | inbox。
+里程碑：milestone list/set/progress --project ID；set --input REQUEST --idempotency-key KEY；progress --id MILESTONE。
 扩展：plugin import/list/enablements/probe/commands（启停经 human prepare 的 extension_enable/extension_disable）；
 ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
@@ -61,6 +62,8 @@ type sessionFile struct {
 }
 type options struct {
 	output, recordKind, filePath, caFile, secretFile                                                                                                                     string
+	pagination, expectedSHA256                                                                                                                                           string
+	offset, maxBytes                                                                                                                                                     int
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
 	explicitCompletion, allowHTTP, json                                                                                                                                  bool
 	limit                                                                                                                                                                int
@@ -141,7 +144,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management", "milestone":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -175,7 +178,15 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.cursor, "cursor", "", "opaque pagination cursor")
 	f.StringVar(&o.view, "view", "brief", "brief or full")
 	f.StringVar(&o.purpose, "purpose", "archive_review", "read purpose")
-	f.IntVar(&o.limit, "limit", 50, "page size")
+	defaultLimit := 50
+	if command == "milestone" || command == "plugin" {
+		defaultLimit = 10
+	}
+	f.IntVar(&o.limit, "limit", defaultLimit, "page size")
+	f.StringVar(&o.pagination, "pagination", "", "explicit item pages or chunk byte pages for milestone/plugin discovery")
+	f.IntVar(&o.offset, "offset", 0, "snapshot item offset, or raw byte offset for pagination=chunk")
+	f.IntVar(&o.maxBytes, "max-bytes", 4096, "snapshot chunk budget 1-8192")
+	f.StringVar(&o.expectedSHA256, "expected-sha256", "", "original full snapshot SHA256 required for continuation")
 	f.StringVar(&o.credentials, "credentials-file", "", "private login JSON file")
 	f.StringVar(&o.tokenFile, "token-file", "", "private long-lived credential file")
 	f.StringVar(&o.secretFile, "secret-file", "", "private output for one-time identity secrets")
@@ -303,7 +314,7 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 	case "capabilities":
 		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(min(o.limit, 20))}}
 		return do(http.MethodGet, "/api/v1/capabilities?"+q.Encode(), nil)
-	case "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
+	case "task", "flow", "run", "job", "node", "message", "review", "milestone", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
 		return collaborationCommand(ctx, c, command, action, o)
 	case "plugin":
 		return pluginCommand(ctx, c, action, o)

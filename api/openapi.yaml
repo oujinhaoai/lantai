@@ -2401,19 +2401,45 @@ paths:
   /api/v1/extensions/packages:
     get:
       operationId: getExtensionsPackages
+      parameters:
+        - in: query
+          name: pagination
+          description: Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+          schema: {type: string, enum: [explicit, chunk]}
+        - in: query
+          name: offset
+          schema: {type: integer, minimum: 0, default: 0}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+        - in: query
+          name: max_bytes
+          schema: {type: integer, minimum: 1, maximum: 8192, default: 4096}
+        - in: query
+          name: expected_sha256
+          description: Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
       responses:
         "200":
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/M2ExtensionsPackageView'
-                    type: array
-                required:
-                  - items
-                type: object
+                oneOf:
+                  - $ref: '#/components/schemas/CollaborationSnapshotChunk'
+                  -
+                    properties:
+                      sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+                      offset: {type: integer, minimum: 0}
+                      total_items: {type: integer, minimum: 0}
+                      next_offset: {type: integer, minimum: 0}
+                      complete: {type: boolean}
+                      items:
+                        items:
+                          $ref: '#/components/schemas/M2ExtensionsPackageView'
+                        type: array
+                    required:
+                      - items
+                    type: object
           description: 已导入包及其当前台账审定事实；导入不等于获准或启用。
         default:
           $ref: '#/components/responses/Error'
@@ -2446,20 +2472,46 @@ paths:
   /api/v1/extensions/enablements:
     get:
       operationId: getExtensionsEnablements
+      parameters:
+        - in: query
+          name: pagination
+          description: Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+          schema: {type: string, enum: [explicit, chunk]}
+        - in: query
+          name: offset
+          schema: {type: integer, minimum: 0, default: 0}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+        - in: query
+          name: max_bytes
+          schema: {type: integer, minimum: 1, maximum: 8192, default: 4096}
+        - in: query
+          name: expected_sha256
+          description: Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
       description: 启用意图、运行激活、熔断和拒绝原因诊断；启停本身经 /api/v1/human 的 extension_enable / extension_disable。
       responses:
         "200":
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/M2ExtensionsEnablementView'
-                    type: array
-                required:
-                  - items
-                type: object
+                oneOf:
+                  - $ref: '#/components/schemas/CollaborationSnapshotChunk'
+                  -
+                    properties:
+                      sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+                      offset: {type: integer, minimum: 0}
+                      total_items: {type: integer, minimum: 0}
+                      next_offset: {type: integer, minimum: 0}
+                      complete: {type: boolean}
+                      items:
+                        items:
+                          $ref: '#/components/schemas/M2ExtensionsEnablementView'
+                        type: array
+                    required:
+                      - items
+                    type: object
           description: 诊断视图，不授予任何能力。
         default:
           $ref: '#/components/responses/Error'
@@ -2491,20 +2543,46 @@ paths:
   /api/v1/extensions/commands:
     get:
       operationId: getExtensionsCommands
+      parameters:
+        - in: query
+          name: pagination
+          description: Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+          schema: {type: string, enum: [explicit, chunk]}
+        - in: query
+          name: offset
+          schema: {type: integer, minimum: 0, default: 0}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+        - in: query
+          name: max_bytes
+          schema: {type: integer, minimum: 1, maximum: 8192, default: 4096}
+        - in: query
+          name: expected_sha256
+          description: Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
       description: 当前主体可见的已启用本机 cli.command；本机仍须显式安装并核验入口摘要，不下发令牌或人审能力。
       responses:
         "200":
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/M2ExtensionsCLICommand'
-                    type: array
-                required:
-                  - items
-                type: object
+                oneOf:
+                  - $ref: '#/components/schemas/CollaborationSnapshotChunk'
+                  -
+                    properties:
+                      sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+                      offset: {type: integer, minimum: 0}
+                      total_items: {type: integer, minimum: 0}
+                      next_offset: {type: integer, minimum: 0}
+                      complete: {type: boolean}
+                      items:
+                        items:
+                          $ref: '#/components/schemas/M2ExtensionsCLICommand'
+                        type: array
+                    required:
+                      - items
+                    type: object
           description: 已启用命令的元数据。
         default:
           $ref: '#/components/responses/Error'
@@ -2801,6 +2879,23 @@ paths:
       summary: 读取当前项目里程碑配置
       tags: [collaboration]
       parameters:
+        - in: query
+          name: pagination
+          description: Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+          schema: {type: string, enum: [explicit, chunk]}
+        - in: query
+          name: offset
+          schema: {type: integer, minimum: 0, default: 0}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+        - in: query
+          name: max_bytes
+          schema: {type: integer, minimum: 1, maximum: 8192, default: 4096}
+        - in: query
+          name: expected_sha256
+          description: Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
         - in: path
           name: project_id
           required: true
@@ -2812,7 +2907,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MilestonePage'
+                oneOf:
+                  - $ref: '#/components/schemas/MilestonePage'
+                  - $ref: '#/components/schemas/CollaborationSnapshotChunk'
         default:
           $ref: '#/components/responses/Error'
     post:
@@ -4711,10 +4808,27 @@ components:
         result:
           $ref: '#/components/schemas/Milestone'
       required: [operation_id, replayed, result]
+    CollaborationSnapshotChunk:
+      type: object
+      additionalProperties: false
+      required: [encoding, data, sha256, offset, total_bytes, complete]
+      properties:
+        encoding: {type: string, enum: [base64]}
+        data: {type: string, maxLength: 10924}
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        offset: {type: integer, minimum: 0}
+        total_bytes: {type: integer, minimum: 0}
+        next_offset: {type: integer, minimum: 0}
+        complete: {type: boolean}
     MilestonePage:
       type: object
       additionalProperties: false
       properties:
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        offset: {type: integer, minimum: 0}
+        total_items: {type: integer, minimum: 0}
+        next_offset: {type: integer, minimum: 0}
+        complete: {type: boolean}
         items:
           type: array
           items:

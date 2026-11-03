@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/oujinhaoai/lantai/internal/client"
+	"github.com/oujinhaoai/lantai/internal/contract/ids"
 )
 
 // The fixed route table exposes installed core services. It cannot dispatch
@@ -24,6 +25,36 @@ var collaborationPosts = map[string]string{
 }
 
 func collaborationCommand(ctx context.Context, c *client.Client, command, action string, o options) (client.Response, error) {
+	if command == "milestone" {
+		if !ids.ID(o.project).Valid() {
+			return client.Response{}, usage("--project ULID is required")
+		}
+		path := "/api/v1/projects/" + o.project + "/milestones"
+		switch action {
+		case "", "list":
+			query, err := snapshotQuery(o)
+			if err != nil {
+				return client.Response{}, err
+			}
+			return c.Do(ctx, http.MethodGet, path+query, nil, client.Options{})
+		case "progress":
+			if !ids.ID(o.id).Valid() {
+				return client.Response{}, usage("--id milestone ULID is required")
+			}
+			return c.Do(ctx, http.MethodGet, path+"/"+o.id+"/progress", nil, client.Options{})
+		case "set":
+			if o.key == "" {
+				return client.Response{}, usage("--idempotency-key is required; preserve it for retries")
+			}
+			body, err := input(o.input)
+			if err != nil {
+				return client.Response{}, err
+			}
+			return c.Do(ctx, http.MethodPost, path, body, client.Options{IdempotencyKey: o.key})
+		default:
+			return client.Response{}, usage("milestone requires list, set or progress")
+		}
+	}
 	if path, ok := collaborationPosts[command+"/"+action]; ok {
 		body, e := input(o.input)
 		if e != nil {
@@ -118,4 +149,26 @@ func collaborationCommand(ctx context.Context, c *client.Client, command, action
 		return client.Response{}, usage("unsupported " + strings.TrimSpace(command+" "+action) + " action or missing --id")
 	}
 	return c.Do(ctx, http.MethodGet, "/api/v1/"+path+"?"+q.Encode(), nil, client.Options{})
+}
+
+func snapshotQuery(o options) (string, error) {
+	if o.pagination == "" {
+		return "", nil
+	}
+	if o.pagination != "explicit" && o.pagination != "chunk" || o.offset < 0 || o.offset > 0 && o.expectedSHA256 == "" {
+		return "", usage("pagination requires explicit/chunk, nonnegative offset and original digest for continuation")
+	}
+	q := url.Values{"pagination": {o.pagination}, "offset": {fmt.Sprint(o.offset)}, "expected_sha256": {o.expectedSHA256}}
+	if o.pagination == "explicit" {
+		if o.limit < 1 || o.limit > 20 {
+			return "", usage("snapshot limit must be 1-20")
+		}
+		q.Set("limit", fmt.Sprint(o.limit))
+	} else {
+		if o.maxBytes < 1 || o.maxBytes > 8192 {
+			return "", usage("snapshot max-bytes must be 1-8192")
+		}
+		q.Set("max_bytes", fmt.Sprint(o.maxBytes))
+	}
+	return "?" + q.Encode(), nil
 }

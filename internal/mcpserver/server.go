@@ -101,6 +101,9 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 			}
 		}
 	}
+	if e = a.collaborationTools(has); e != nil {
+		return nil, e
+	}
 	if e = a.orchestrationTools(has); e != nil {
 		return nil, e
 	}

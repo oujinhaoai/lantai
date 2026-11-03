@@ -154,7 +154,7 @@ func validateOperations(ops []api.AgentOperation, spec map[string]any, roots, to
 func TestAgentOperationRegisteredAdapters(t *testing.T) {
 	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"api_version":"v1","capabilities":["agent_operation_catalog","sessions","projects","asset_types","uploads","commit_version","exact_read","read_grants","conditional_metadata","search","operation_status","backup_management","tasks","manual_flows","manual_cli_execution","official_check_jobs","review_evidence","human_review","effective_context","discussions","filtered_events","inbox","milestones","lifecycle","current_version_rights","management_batch_checks"]}`))
+		_, _ = w.Write([]byte(`{"api_version":"v1","capabilities":["agent_operation_catalog","sessions","projects","asset_types","uploads","commit_version","exact_read","read_grants","conditional_metadata","search","operation_status","backup_management","tasks","manual_flows","manual_cli_execution","official_check_jobs","review_evidence","human_review","effective_context","discussions","filtered_events","inbox","milestones","lifecycle","current_version_rights","management_batch_checks","extension_governance","extension_cli_commands"]}`))
 	}))
 	defer remote.Close()
 	c, err := client.New(client.Config{BaseURL: remote.URL, AllowHTTP: true})

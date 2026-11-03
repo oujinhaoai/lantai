@@ -78,6 +78,8 @@ Private management records and migration batches support CLI/MCP preparation, or
 
 MCP adds task management, explicit Flow dispatch, Run cancellation/reconciliation, Job operations and bounded record reads under existing authority and human-input rules; see the [Agent orchestration contract](docs/contracts/agent-orchestration.md).
 
+Collaboration MCP covers inbox acknowledgments, complete resync, review targets, publication after an effective review, ordinary recycle/restore and milestones. CLI/MCP milestone and extension discovery supports bounded pages/chunks while retaining human governance; see the [collaboration contract](docs/contracts/agent-collaboration.md).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

@@ -44,6 +44,6 @@ func listEndpoint[O any](fn func(context.Context, authz.Context) ([]O, error)) e
 		if e != nil {
 			return e
 		}
-		return respond(w, 200, map[string]any{"items": out})
+		return respondSnapshot(w, r, out)
 	}
 }

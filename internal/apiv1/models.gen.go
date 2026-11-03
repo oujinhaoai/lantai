@@ -206,6 +206,21 @@ func (e BlobStatusPageItemsStatus) Valid() bool {
 	}
 }
 
+// Defines values for CollaborationSnapshotChunkEncoding.
+const (
+	CollaborationSnapshotChunkEncodingBase64 CollaborationSnapshotChunkEncoding = "base64"
+)
+
+// Valid indicates whether the value is a known member of the CollaborationSnapshotChunkEncoding enum.
+func (e CollaborationSnapshotChunkEncoding) Valid() bool {
+	switch e {
+	case CollaborationSnapshotChunkEncodingBase64:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CommonV1ExecutionCancelMode.
 const (
 	CommonV1ExecutionCancelModeCooperative CommonV1ExecutionCancelMode = "cooperative"
@@ -1997,6 +2012,60 @@ func (e ListAgentOperations200JSONResponseBodyItemsClassification) Valid() bool 
 	}
 }
 
+// Defines values for GetExtensionsCommandsParamsPagination.
+const (
+	GetExtensionsCommandsParamsPaginationChunk    GetExtensionsCommandsParamsPagination = "chunk"
+	GetExtensionsCommandsParamsPaginationExplicit GetExtensionsCommandsParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsCommandsParamsPagination enum.
+func (e GetExtensionsCommandsParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsCommandsParamsPaginationChunk:
+		return true
+	case GetExtensionsCommandsParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetExtensionsEnablementsParamsPagination.
+const (
+	GetExtensionsEnablementsParamsPaginationChunk    GetExtensionsEnablementsParamsPagination = "chunk"
+	GetExtensionsEnablementsParamsPaginationExplicit GetExtensionsEnablementsParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsEnablementsParamsPagination enum.
+func (e GetExtensionsEnablementsParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsEnablementsParamsPaginationChunk:
+		return true
+	case GetExtensionsEnablementsParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetExtensionsPackagesParamsPagination.
+const (
+	GetExtensionsPackagesParamsPaginationChunk    GetExtensionsPackagesParamsPagination = "chunk"
+	GetExtensionsPackagesParamsPaginationExplicit GetExtensionsPackagesParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsPackagesParamsPagination enum.
+func (e GetExtensionsPackagesParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsPackagesParamsPaginationChunk:
+		return true
+	case GetExtensionsPackagesParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListProjectsParamsView.
 const (
 	ListProjectsParamsViewBrief ListProjectsParamsView = "brief"
@@ -2027,6 +2096,24 @@ func (e GetProjectParamsView) Valid() bool {
 	case GetProjectParamsViewBrief:
 		return true
 	case GetProjectParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListMilestonesParamsPagination.
+const (
+	ListMilestonesParamsPaginationChunk    ListMilestonesParamsPagination = "chunk"
+	ListMilestonesParamsPaginationExplicit ListMilestonesParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the ListMilestonesParamsPagination enum.
+func (e ListMilestonesParamsPagination) Valid() bool {
+	switch e {
+	case ListMilestonesParamsPaginationChunk:
+		return true
+	case ListMilestonesParamsPaginationExplicit:
 		return true
 	default:
 		return false
@@ -2345,6 +2432,20 @@ type CheckBlobsRequest struct {
 type CodeRequest struct {
 	Code *string `json:"code,omitempty"`
 }
+
+// CollaborationSnapshotChunk defines model for CollaborationSnapshotChunk.
+type CollaborationSnapshotChunk struct {
+	Complete   bool                               `json:"complete"`
+	Data       string                             `json:"data"`
+	Encoding   CollaborationSnapshotChunkEncoding `json:"encoding"`
+	NextOffset *int                               `json:"next_offset,omitempty"`
+	Offset     int                                `json:"offset"`
+	Sha256     string                             `json:"sha256"`
+	TotalBytes int                                `json:"total_bytes"`
+}
+
+// CollaborationSnapshotChunkEncoding defines model for CollaborationSnapshotChunk.Encoding.
+type CollaborationSnapshotChunkEncoding string
 
 // CommandType 命令类型，<module>.<command>，例如 ledger.commit_version。
 type CommandType = string
@@ -5852,7 +5953,12 @@ type Milestone struct {
 
 // MilestonePage defines model for MilestonePage.
 type MilestonePage struct {
-	Items []Milestone `json:"items"`
+	Complete   *bool       `json:"complete,omitempty"`
+	Items      []Milestone `json:"items"`
+	NextOffset *int        `json:"next_offset,omitempty"`
+	Offset     *int        `json:"offset,omitempty"`
+	Sha256     *string     `json:"sha256,omitempty"`
+	TotalItems *int        `json:"total_items,omitempty"`
 }
 
 // MilestoneProgress defines model for MilestoneProgress.
@@ -6925,6 +7031,96 @@ type PostEvidenceParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// GetExtensionsCommandsParams defines parameters for GetExtensionsCommands.
+type GetExtensionsCommandsParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsCommandsParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                   `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                   `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsCommandsParamsPagination defines parameters for GetExtensionsCommands.
+type GetExtensionsCommandsParamsPagination string
+
+// GetExtensionsCommands200JSONResponseBody1 defines parameters for GetExtensionsCommands.
+type GetExtensionsCommands200JSONResponseBody1 struct {
+	Complete   *bool                    `json:"complete,omitempty"`
+	Items      []M2ExtensionsCLICommand `json:"items"`
+	NextOffset *int                     `json:"next_offset,omitempty"`
+	Offset     *int                     `json:"offset,omitempty"`
+	Sha256     *string                  `json:"sha256,omitempty"`
+	TotalItems *int                     `json:"total_items,omitempty"`
+}
+
+// GetExtensionsCommands200JSONResponseBody defines parameters for GetExtensionsCommands.
+type GetExtensionsCommands200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetExtensionsEnablementsParams defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablementsParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsEnablementsParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                      `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                      `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                      `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsEnablementsParamsPagination defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablementsParamsPagination string
+
+// GetExtensionsEnablements200JSONResponseBody1 defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablements200JSONResponseBody1 struct {
+	Complete   *bool                        `json:"complete,omitempty"`
+	Items      []M2ExtensionsEnablementView `json:"items"`
+	NextOffset *int                         `json:"next_offset,omitempty"`
+	Offset     *int                         `json:"offset,omitempty"`
+	Sha256     *string                      `json:"sha256,omitempty"`
+	TotalItems *int                         `json:"total_items,omitempty"`
+}
+
+// GetExtensionsEnablements200JSONResponseBody defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablements200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetExtensionsPackagesParams defines parameters for GetExtensionsPackages.
+type GetExtensionsPackagesParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsPackagesParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                   `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                   `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsPackagesParamsPagination defines parameters for GetExtensionsPackages.
+type GetExtensionsPackagesParamsPagination string
+
+// GetExtensionsPackages200JSONResponseBody1 defines parameters for GetExtensionsPackages.
+type GetExtensionsPackages200JSONResponseBody1 struct {
+	Complete   *bool                     `json:"complete,omitempty"`
+	Items      []M2ExtensionsPackageView `json:"items"`
+	NextOffset *int                      `json:"next_offset,omitempty"`
+	Offset     *int                      `json:"offset,omitempty"`
+	Sha256     *string                   `json:"sha256,omitempty"`
+	TotalItems *int                      `json:"total_items,omitempty"`
+}
+
+// GetExtensionsPackages200JSONResponseBody defines parameters for GetExtensionsPackages.
+type GetExtensionsPackages200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // PostExtensionsPackagesParams defines parameters for PostExtensionsPackages.
 type PostExtensionsPackagesParams struct {
 	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
@@ -7184,6 +7380,26 @@ type GetProjectParams struct {
 
 // GetProjectParamsView defines parameters for GetProject.
 type GetProjectParamsView string
+
+// ListMilestonesParams defines parameters for ListMilestones.
+type ListMilestonesParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *ListMilestonesParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                            `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                            `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                            `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// ListMilestonesParamsPagination defines parameters for ListMilestones.
+type ListMilestonesParamsPagination string
+
+// ListMilestones200JSONResponseBody defines parameters for ListMilestones.
+type ListMilestones200JSONResponseBody struct {
+	union json.RawMessage
+}
 
 // PutMilestoneParams defines parameters for PutMilestone.
 type PutMilestoneParams struct {
@@ -8069,6 +8285,254 @@ func (t GetBackupHistory200JSONResponseBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *GetBackupHistory200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsCommands200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsCommands200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsCommands200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsCommands200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsCommands200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsCommands200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsCommands200JSONResponseBody1 returns the union data inside the GetExtensionsCommands200JSONResponseBody as a GetExtensionsCommands200JSONResponseBody1
+func (t GetExtensionsCommands200JSONResponseBody) AsGetExtensionsCommands200JSONResponseBody1() (GetExtensionsCommands200JSONResponseBody1, error) {
+	var body GetExtensionsCommands200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsCommands200JSONResponseBody1 overwrites any union data inside the GetExtensionsCommands200JSONResponseBody as the provided GetExtensionsCommands200JSONResponseBody1
+func (t *GetExtensionsCommands200JSONResponseBody) FromGetExtensionsCommands200JSONResponseBody1(v GetExtensionsCommands200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsCommands200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsCommands200JSONResponseBody, using the provided GetExtensionsCommands200JSONResponseBody1
+func (t *GetExtensionsCommands200JSONResponseBody) MergeGetExtensionsCommands200JSONResponseBody1(v GetExtensionsCommands200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsCommands200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsCommands200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsEnablements200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsEnablements200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsEnablements200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsEnablements200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsEnablements200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsEnablements200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsEnablements200JSONResponseBody1 returns the union data inside the GetExtensionsEnablements200JSONResponseBody as a GetExtensionsEnablements200JSONResponseBody1
+func (t GetExtensionsEnablements200JSONResponseBody) AsGetExtensionsEnablements200JSONResponseBody1() (GetExtensionsEnablements200JSONResponseBody1, error) {
+	var body GetExtensionsEnablements200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsEnablements200JSONResponseBody1 overwrites any union data inside the GetExtensionsEnablements200JSONResponseBody as the provided GetExtensionsEnablements200JSONResponseBody1
+func (t *GetExtensionsEnablements200JSONResponseBody) FromGetExtensionsEnablements200JSONResponseBody1(v GetExtensionsEnablements200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsEnablements200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsEnablements200JSONResponseBody, using the provided GetExtensionsEnablements200JSONResponseBody1
+func (t *GetExtensionsEnablements200JSONResponseBody) MergeGetExtensionsEnablements200JSONResponseBody1(v GetExtensionsEnablements200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsEnablements200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsEnablements200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsPackages200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsPackages200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsPackages200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsPackages200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsPackages200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsPackages200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsPackages200JSONResponseBody1 returns the union data inside the GetExtensionsPackages200JSONResponseBody as a GetExtensionsPackages200JSONResponseBody1
+func (t GetExtensionsPackages200JSONResponseBody) AsGetExtensionsPackages200JSONResponseBody1() (GetExtensionsPackages200JSONResponseBody1, error) {
+	var body GetExtensionsPackages200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsPackages200JSONResponseBody1 overwrites any union data inside the GetExtensionsPackages200JSONResponseBody as the provided GetExtensionsPackages200JSONResponseBody1
+func (t *GetExtensionsPackages200JSONResponseBody) FromGetExtensionsPackages200JSONResponseBody1(v GetExtensionsPackages200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsPackages200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsPackages200JSONResponseBody, using the provided GetExtensionsPackages200JSONResponseBody1
+func (t *GetExtensionsPackages200JSONResponseBody) MergeGetExtensionsPackages200JSONResponseBody1(v GetExtensionsPackages200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsPackages200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsPackages200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMilestonePage returns the union data inside the ListMilestones200JSONResponseBody as a MilestonePage
+func (t ListMilestones200JSONResponseBody) AsMilestonePage() (MilestonePage, error) {
+	var body MilestonePage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMilestonePage overwrites any union data inside the ListMilestones200JSONResponseBody as the provided MilestonePage
+func (t *ListMilestones200JSONResponseBody) FromMilestonePage(v MilestonePage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMilestonePage performs a merge with any union data inside the ListMilestones200JSONResponseBody, using the provided MilestonePage
+func (t *ListMilestones200JSONResponseBody) MergeMilestonePage(v MilestonePage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the ListMilestones200JSONResponseBody as a CollaborationSnapshotChunk
+func (t ListMilestones200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the ListMilestones200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *ListMilestones200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the ListMilestones200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *ListMilestones200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListMilestones200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListMilestones200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

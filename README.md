@@ -77,6 +77,8 @@ MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客�
 
 MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与有界记录读取；权限和真人输入边界沿用原领域规则，见[Agent 编排适配](docs/contracts/agent-orchestration.md)。
 
+协作 MCP 覆盖收件箱已读、完整重同步、审定目标、有效审定后发布、普通回收/恢复及里程碑；CLI/MCP 里程碑和扩展发现支持有界分页/分段，现行人类治理边界保持，见[协作适配](docs/contracts/agent-collaboration.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
