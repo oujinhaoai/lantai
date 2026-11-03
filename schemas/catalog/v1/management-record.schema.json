@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/management-record.schema.json",
+  "title": "lantai.management-record/v1",
+  "description": "Immutable private config-record envelope. Payload also requires the recursive depth/credential guard in x-management-rules; this annotation does not grant authority or replace domain validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "instance_id", "project_id", "payload"],
+  "properties": {
+    "schema": {"const": "lantai.management-record/v1"},
+    "kind": {"type": "string", "enum": ["migration", "workset", "recovery", "assistant"]},
+    "instance_id": {"$ref": "../../common/v1/defs.schema.json#/$defs/ulid"},
+    "project_id": {"$ref": "../../common/v1/defs.schema.json#/$defs/ulid"},
+    "payload": {}
+  },
+  "x-management-rules": {
+    "max_record_bytes": 2097152,
+    "max_payload_depth": 64,
+    "max_title_utf16_units": 200,
+    "forbidden_fields": ["password", "password_hash", "secret_hash", "totp_secret", "totp_uri", "recovery_codes", "master_key", "csrf_token", "csrf", "session_token", "access_token", "refresh_token", "authorization", "part_url_template", "read_grant_url", "download_token", "grant_id", "token"]
+  }
+}
