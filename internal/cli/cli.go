@@ -46,7 +46,7 @@ backups history --explicit-completion --limit 20 --cursor JOB；逐页直到 com
 下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE。
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
 管理档案：management prepare/save/revise/list/read/check/batch-create/batch-revise；prepare/batch-create --input SPEC --output PRIVATE_PLAN；save --input PRIVATE_PLAN --directory DIR --state ORIGINAL_STATE。batch-revise 另需原 --asset/--version 及核验 --directory。
-素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
+素材管理：asset profile/find | asset metadata plan/apply | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`
 }
 

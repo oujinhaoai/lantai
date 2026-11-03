@@ -80,6 +80,8 @@ MCP adds task management, explicit Flow dispatch, Run cancellation/reconciliatio
 
 Collaboration MCP covers inbox acknowledgments, complete resync, review targets, publication after an effective review, ordinary recycle/restore and milestones. CLI/MCP milestone and extension discovery supports bounded pages/chunks while retaining human governance; see the [collaboration contract](docs/contracts/agent-collaboration.md).
 
+New `asset metadata plan/apply` and matching MCP tools freeze each selected asset's original revision/patch, reuse conditional PATCH with independent stable keys, retain partial/conflict rows, and freshly verify current results. See [metadata batches](docs/contracts/metadata-batches.md) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

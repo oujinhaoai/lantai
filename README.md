@@ -79,6 +79,8 @@ MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与�
 
 协作 MCP 覆盖收件箱已读、完整重同步、审定目标、有效审定后发布、普通回收/恢复及里程碑；CLI/MCP 里程碑和扩展发现支持有界分页/分段，现行人类治理边界保持，见[协作适配](docs/contracts/agent-collaboration.md)。
 
+新增 `asset metadata plan/apply` 与对应 MCP 批量著录工具：逐资产冻结原 revision/patch，复用原条件 PATCH 和独立稳定 key，保留部分/冲突并重读核验当前结果；见[批量著录](docs/contracts/metadata-batches.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
