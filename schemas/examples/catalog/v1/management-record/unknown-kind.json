@@ -1,0 +1,21 @@
+{
+  "schema": "lantai.management-record/v1",
+  "valid": false,
+  "expect": [
+    {
+      "pointer": "/kind",
+      "keyword": "enum"
+    }
+  ],
+  "document": {
+    "schema": "lantai.management-record/v1",
+    "kind": "shell",
+    "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+    "payload": {
+      "original_commit_key": "saved-key",
+      "pending": true
+    }
+  },
+  "description": "Undeclared management record kind is rejected"
+}

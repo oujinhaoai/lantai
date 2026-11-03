@@ -66,6 +66,32 @@ The first-party device channel uses an independent human CLI session limited to 
 
 Check results are validated against the complete wire contract before decoding, and public evidence wrappers retain the exact execution source. Normal draining lets admitted calls finish; completed checks used for a new review or publication still require current enablement and probe qualification. Historical evidence remains readable.
 
+Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
+
+Resource clients provide project/type/member discovery, version history, bounded exact file lists and full JSON chunks, plus MCP adapters for conditional metadata and current rights; see the [Agent resource contract](docs/contracts/agent-resources.md).
+
+Human administrators can use remote `backups start/resume/cancel/schedule-get/schedule-set` for original backup jobs and daily schedules. History supports opt-in bounded pages; MCP `backup_read` can read schedules and history. Writes still require exact approval in the original human session, and ordinary Agent sessions remain forbidden. See [backup clients](docs/contracts/backup-clients.md) (Chinese).
+
+MCP `import_*`, `workset_*`, and `references_*` batch tools reuse the original CLI clients, explicit workspace and recovery state. Full plans/receipts remain private; `batch_report_page` returns bounded metadata only. Upload status, cancellation, deduplication checks and standalone commit preserve the original upload and idempotency identities. See the [batch tool contract](docs/contracts/agent-batches.md) (Chinese).
+
+Private management records and migration batches support CLI/MCP preparation, original-state saving, discovery, exact reads, explicit revisions and existing core checks. Unresolved imports and human witness requirements remain explicit; see the [management record contract](docs/contracts/management-records.md).
+
+MCP adds task management, explicit Flow dispatch, Run cancellation/reconciliation, Job operations and bounded record reads under existing authority and human-input rules; see the [Agent orchestration contract](docs/contracts/agent-orchestration.md).
+
+Collaboration MCP covers inbox acknowledgments, complete resync, review targets, publication after an effective review, ordinary recycle/restore and milestones. CLI/MCP milestone and extension discovery supports bounded pages/chunks while retaining human governance; see the [collaboration contract](docs/contracts/agent-collaboration.md).
+
+New `asset metadata plan/apply` and matching MCP tools freeze each selected asset's original revision/patch, reuse conditional PATCH with independent stable keys, retain partial/conflict rows, and freshly verify current results. See [metadata batches](docs/contracts/metadata-batches.md) (Chinese).
+
+`asset dependencies` / MCP `dependency_analyze` provide bounded, hash-bound dependency candidates for explicitly selected OBJ/MTL/ComfyUI text. Unknown items remain unresolved and external contents are never loaded. See [selected dependency analysis](docs/contracts/selected-dependencies.md) (Chinese).
+
+CLI/MCP provide private fixed-workset record discovery, save/reopen, original-state return and explicit adoption. Existing references stay pinned; actual core receipts and current purposes are checked before preparing a new record. See the [workset contract](docs/contracts/workset.md#私人工作集记录与明确返库) (Chinese).
+
+CLI/MCP [bounded derivations](docs/contracts/asset-derivations.md) provide fixed-version comparison, PNG/JPEG/WebP thumbnails and PNG proxies, limited OBJ structure/wireframes and Unicode workset TAR. Current source authority and actual bytes are rechecked; artifacts and full receipts stay private, with no purpose fallback.
+
+[Recovery CLI clients](docs/contracts/recovery-clients.md) reuse the existing installation claim, human factors and HumanOnly instance read. Selected-version evidence combines actual core receipts with downloaded-file checks; reopening a captured record never restores current verification.
+
+The distributable [Lantai operation skill](sdk/skills/lantai-operations/SKILL.md) guides discovery, operations and reconciliation through the installed CLI/MCP. [Installation and validation](docs/contracts/operation-skill.md) distinguish protocol tests from actual client runs. The [human handoff assessment](docs/design/agent-human-handoff.md) is design only; existing HumanOnly and approval boundaries remain.
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

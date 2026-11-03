@@ -456,3 +456,173 @@ test("device apply and verify preserve exact private original plan/report refs a
   assert.equal(verify.state, "state/original");
   assert.equal(verify.destination, "verified/original");
 });
+
+test("canonical management archival preserves the original browser Push hash and keys", async () => {
+  const { workspace } = await frozen();
+  const archived = JSON.parse(canonicalJSON(workspace));
+  const restored = await importMigrationWorkspace(archived, origin);
+  assert.equal(
+    restored.states.reference.request_hash,
+    workspace.states.reference.request_hash,
+  );
+  assert.equal(
+    restored.states.reference.create_key,
+    workspace.states.reference.create_key,
+  );
+  assert.equal(
+    restored.states.reference.commit_key,
+    workspace.states.reference.commit_key,
+  );
+  assert.equal(
+    JSON.stringify(restored.plan.assets[0].push.content.rights),
+    JSON.stringify(workspace.plan.assets[0].push.content.rights),
+  );
+});
+
+test("archived migration rejects missing, changed or foreign lexical bindings without repairing keys", async () => {
+  const { workspace } = await frozen();
+  const originalStates = structuredClone(workspace.states);
+  const archived = () =>
+    JSON.parse(canonicalJSON(workspace)) as typeof workspace;
+  const missing = archived();
+  missing.push_json = {};
+  await assert.rejects(
+    () => importMigrationWorkspace(missing, origin),
+    /缺少分组/,
+  );
+  const extra = archived();
+  extra.push_json!.foreign = extra.push_json!.reference;
+  await assert.rejects(
+    () => importMigrationWorkspace(extra, origin),
+    /夹带其他行/,
+  );
+  const notString = archived();
+  (notString.push_json as unknown as Record<string, unknown>).reference = {};
+  await assert.rejects(
+    () => importMigrationWorkspace(notString, origin),
+    /字符串/,
+  );
+  const changed = archived();
+  changed.push_json!.reference += " ";
+  await assert.rejects(() => importMigrationWorkspace(changed, origin), /摘要/);
+  const changedHash = archived();
+  changedHash.states.reference.request_hash = "0".repeat(64);
+  await assert.rejects(
+    () => importMigrationWorkspace(changedHash, origin),
+    /摘要/,
+  );
+  const semantic = archived();
+  semantic.plan.assets[0].push.content.rights!.license = "LicenseRef-Changed";
+  semantic.plan_digest = `sha256:${await sha256(canonicalJSON(semantic.plan))}`;
+  await assert.rejects(
+    () => importMigrationWorkspace(semantic, origin),
+    /语义/,
+  );
+  const secret = archived();
+  const parsed = JSON.parse(secret.push_json!.reference);
+  parsed.content.metadata = { token: "synthetic-credential-marker" };
+  secret.push_json!.reference = JSON.stringify(parsed);
+  secret.states.reference.request_hash = await sha256(
+    secret.push_json!.reference,
+  );
+  await assert.rejects(() => importMigrationWorkspace(secret, origin), /凭据/);
+  const native = archived();
+  native.push_json!.reference = native.push_json!.reference.replace(
+    '"size":12',
+    '"size":12.0',
+  );
+  native.states.reference.request_hash = await sha256(
+    native.push_json!.reference,
+  );
+  await assert.rejects(
+    () => importMigrationWorkspace(native, origin),
+    /浏览器词法/,
+  );
+  const oversized = archived();
+  oversized.push_json!.reference = " ".repeat(8 * 1024 * 1024);
+  await assert.rejects(
+    () => importMigrationWorkspace(oversized, origin),
+    /8 MiB/,
+  );
+  assert.equal(canonicalJSON(workspace.states), canonicalJSON(originalStates));
+});
+
+test("legacy browser exports retain original validation and cannot recover lost lexical order", async () => {
+  const { workspace } = await frozen();
+  delete workspace.push_json;
+  const states = structuredClone(workspace.states);
+  const restored = await importMigrationWorkspace(workspace, origin);
+  assert.deepEqual(restored.states, states);
+  await assert.rejects(
+    () =>
+      importMigrationWorkspace(JSON.parse(canonicalJSON(workspace)), origin),
+    /摘要/,
+  );
+  assert.equal(canonicalJSON(workspace.states), canonicalJSON(states));
+});
+
+test("restored foreign-origin records project only readonly captured history and never activate resume", async () => {
+  const { inspectMigrationArchiveHistory, migrationHistoryMatchesContext } =
+    await import("../src/migration-model");
+  const { workspace } = await frozen();
+  workspace.rows.reference.status = "unknown";
+  delete workspace.push_json; // A legacy archive may have lost Raw object order.
+  const captured = JSON.parse(canonicalJSON(workspace));
+  const context = {
+    viewer_origin: "https://restored.example",
+    project_id: "",
+    authorization: "current-session-and-roles",
+  };
+  await assert.rejects(
+    () => importMigrationWorkspace(captured, context.viewer_origin),
+    /origin/,
+  );
+  await assert.rejects(
+    () => importMigrationWorkspace(captured, origin),
+    /摘要/,
+  );
+  const view = inspectMigrationArchiveHistory(captured, context);
+  assert.equal(view.original_origin, origin);
+  assert.equal("states" in view, false);
+  assert.equal("plan" in view, false);
+  assert.equal(canonicalJSON(view.captured), canonicalJSON(captured));
+  assert.equal(
+    (view.captured as typeof workspace).rows.reference.status,
+    "unknown",
+  );
+  assert.equal(
+    (view.captured as typeof workspace).states.reference.request_hash,
+    workspace.states.reference.request_hash,
+  );
+  assert.equal(migrationHistoryMatchesContext(view, context), true);
+  for (const changed of [
+    { ...context, viewer_origin: origin },
+    { ...context, project_id: project },
+    { ...context, authorization: "another-session-or-roles" },
+  ])
+    assert.equal(migrationHistoryMatchesContext(view, changed), false);
+  assert.equal(migrationHistoryMatchesContext(undefined, context), false);
+  await assert.rejects(() =>
+    importMigrationWorkspace(view, context.viewer_origin),
+  );
+  const bad = structuredClone(captured);
+  bad.plan.assets[0].push.content.metadata = { token: "synthetic-marker" };
+  assert.throws(() => inspectMigrationArchiveHistory(bad, context), /凭据/);
+  const missing = structuredClone(captured);
+  delete missing.states.reference;
+  assert.throws(
+    () => inspectMigrationArchiveHistory(missing, context),
+    /不完整/,
+  );
+});
+
+test("freeze refuses an original lexical archive larger than the existing workspace budget", async () => {
+  const { plan, files } = await frozen();
+  plan.assets[0].push.content.metadata = {
+    extra: { text: "x".repeat(4 * 1024 * 1024) },
+  };
+  await assert.rejects(
+    () => freezeMigration({ plan, files, instanceID: instance, origin }),
+    /8 MiB/,
+  );
+});

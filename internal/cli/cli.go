@@ -23,24 +23,31 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management", "milestone", "recovery", "instance"}
 }
 func Help() string {
-	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
+	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | versions | pull | metadata get/set | search | operation
 公共参数：--server HTTPS_ORIGIN --session-file FILE [--ca-file PEM] [--json] [--allow-http（仅loopback开发）]
 凭据：LANTAI_SESSION_TOKEN 或私有会话文件；login --credentials-file FILE；session exchange --token-file FILE 或 LANTAI_TOKEN。
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
+versions --asset ID [--cursor CURSOR --limit N]；rights show --asset ID --version ID；rights evidence --input JSON --idempotency-key KEY。
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
 pull --purpose：archive_review（默认）| reference | production | generative_input | raw_export；用途须经服务端权利与授权校验。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
 协作命令：task | flow | run | job | node | message | review | rights | evidence | trash | human | context | events | resync | inbox。
+里程碑：milestone list/set/progress --project ID；set --input REQUEST --idempotency-key KEY；progress --id MILESTONE。
 扩展：plugin import/list/enablements/probe/commands（启停经 human prepare 的 extension_enable/extension_disable）；
 ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
-下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE；backups overview/history/show/download-link。
+备份：backups overview/history/show/start/resume/cancel/schedule-get/schedule-set/download-link；保持本人管理员权限。
+backups start/resume/schedule-set --input APPROVAL.json --idempotency-key KEY；resume/cancel/show 还须 --id 原任务。
+backups history --explicit-completion --limit 20 --cursor JOB；逐页直到 complete。
+下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE。
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
-素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
+管理档案：management prepare/save/revise/list/read/check/batch-create/batch-revise；prepare/batch-create --input SPEC --output PRIVATE_PLAN；save --input PRIVATE_PLAN --directory DIR --state ORIGINAL_STATE。batch-revise 另需原 --asset/--version 及核验 --directory。
+素材管理：asset profile/find | asset metadata plan/apply | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
+恢复：recovery --help；instance show（原本人管理员权限）；asset recovery-evidence prepare/save/open。
 详见 docs/contracts/client.md。`
 }
 
@@ -55,15 +62,20 @@ type sessionFile struct {
 	Token  string `json:"token"`
 }
 type options struct {
-	filePath, caFile, secretFile                                                                                                                                         string
+	output, recordKind, filePath, caFile, secretFile                                                                                                                     string
+	pagination, expectedSHA256                                                                                                                                           string
+	offset, maxBytes                                                                                                                                                     int
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
-	allowHTTP, json                                                                                                                                                      bool
+	explicitCompletion, allowHTTP, json                                                                                                                                  bool
 	limit                                                                                                                                                                int
 }
 
 // Run receives the command name as args[0]. It never calls os.Exit, making
 // cancellation and output ownership explicit for the executable and tests.
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "recovery" {
+		return runRecovery(ctx, args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "asset" {
 		return runAssets(ctx, args[1:], stdout, stderr)
 	}
@@ -136,7 +148,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management", "milestone", "instance":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -148,7 +160,10 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.session, "session-file", os.Getenv("LANTAI_SESSION"), "private session file")
 	f.StringVar(&o.caFile, "ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	f.BoolVar(&o.allowHTTP, "allow-http", false, "allow loopback HTTP for development")
+	f.BoolVar(&o.explicitCompletion, "explicit-completion", false, "request complete/truncated search page fields")
 	f.BoolVar(&o.json, "json", false, "stable JSON output (default)")
+	f.StringVar(&o.output, "output", "", "private output document")
+	f.StringVar(&o.recordKind, "kind", "", "management record kind")
 	f.StringVar(&o.input, "input", "", "JSON/YAML request document")
 	f.StringVar(&o.directory, "directory", "", "local working copy directory")
 	f.StringVar(&o.state, "state", "", "private persistent transfer state")
@@ -167,7 +182,15 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.cursor, "cursor", "", "opaque pagination cursor")
 	f.StringVar(&o.view, "view", "brief", "brief or full")
 	f.StringVar(&o.purpose, "purpose", "archive_review", "read purpose")
-	f.IntVar(&o.limit, "limit", 50, "page size")
+	defaultLimit := 50
+	if command == "milestone" || command == "plugin" {
+		defaultLimit = 10
+	}
+	f.IntVar(&o.limit, "limit", defaultLimit, "page size")
+	f.StringVar(&o.pagination, "pagination", "", "explicit item pages or chunk byte pages for milestone/plugin discovery")
+	f.IntVar(&o.offset, "offset", 0, "snapshot item offset, or raw byte offset for pagination=chunk")
+	f.IntVar(&o.maxBytes, "max-bytes", 4096, "snapshot chunk budget 1-8192")
+	f.StringVar(&o.expectedSHA256, "expected-sha256", "", "original full snapshot SHA256 required for continuation")
 	f.StringVar(&o.credentials, "credentials-file", "", "private login JSON file")
 	f.StringVar(&o.tokenFile, "token-file", "", "private long-lived credential file")
 	f.StringVar(&o.secretFile, "secret-file", "", "private output for one-time identity secrets")
@@ -188,7 +211,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 		return client.Response{}, usage(err.Error())
 	}
 	defer c.Close()
-	if command != "meta" && command != "login" && !(command == "session" && (action == "exchange" || action == "setup")) {
+	if command != "capabilities" && command != "meta" && command != "login" && !(command == "session" && (action == "exchange" || action == "setup")) {
 		token := os.Getenv("LANTAI_SESSION_TOKEN")
 		if token == "" && o.session != "" {
 			var saved sessionFile
@@ -290,7 +313,12 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Do(ctx, method, path, body, opts)
 	}
 	switch command {
-	case "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
+	case "management":
+		return managementCommand(ctx, c, action, o)
+	case "capabilities":
+		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(min(o.limit, 20))}}
+		return do(http.MethodGet, "/api/v1/capabilities?"+q.Encode(), nil)
+	case "task", "flow", "run", "job", "node", "message", "review", "milestone", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
 		return collaborationCommand(ctx, c, command, action, o)
 	case "plugin":
 		return pluginCommand(ctx, c, action, o)
@@ -320,6 +348,7 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		case "", "list":
 			q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}, "view": {o.view}}
 			return do(http.MethodGet, "/api/v1/projects?"+q.Encode(), nil)
+
 		case "show":
 			if err := needed(o.name, "--name project key is required"); err != nil {
 				return client.Response{}, err
@@ -345,6 +374,9 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return do(http.MethodGet, path, nil)
 	case "search":
 		q := url.Values{"q": {o.query}, "project_id": {o.project}, "asset_type": {o.assetType}, "cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}, "view": {o.view}}
+		if o.explicitCompletion {
+			q.Set("completion", "explicit")
+		}
 		return do(http.MethodGet, "/api/v1/assets?"+q.Encode(), nil)
 	case "operation":
 		if err := needed(o.id, "--id is required"); err != nil {
@@ -359,7 +391,16 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		if o.version != "" {
 			path += "/versions/" + segment(o.version)
 		}
+		if o.view == "full" {
+			return c.ReadResourceJSON(ctx, path+"?view=full")
+		}
 		return do(http.MethodGet, path+"?view="+url.QueryEscape(o.view), nil)
+	case "versions":
+		if !ids.ID(o.asset).Valid() {
+			return client.Response{}, usage("--asset ULID is required")
+		}
+		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}}
+		return do(http.MethodGet, "/api/v1/assets/"+o.asset+"/versions?"+q.Encode(), nil)
 	case "metadata":
 		if o.asset == "" {
 			return client.Response{}, usage("--asset is required")
@@ -367,7 +408,7 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		path := "/api/v1/assets/" + segment(o.asset)
 		switch action {
 		case "", "get":
-			return do(http.MethodGet, path+"?view=full", nil)
+			return c.ReadResourceJSON(ctx, path+"?view=full")
 		case "set":
 			if o.etag == "" || o.key == "" {
 				return client.Response{}, usage("metadata set requires --if-match and --idempotency-key")
@@ -427,6 +468,11 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Push(ctx, in, o.directory, o.state, command == "upload")
 	case "download-link":
 		return c.FileDownloadLink(ctx, o.asset, o.version, o.filePath, o.purpose)
+	case "instance":
+		if action != "" && action != "show" {
+			return client.Response{}, usage("instance show required")
+		}
+		return c.Do(ctx, http.MethodGet, "/api/v1/admin/instance", nil, client.Options{})
 	case "backups":
 		return backupsCommand(ctx, c, action, o)
 	case "pull":

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/oujinhaoai/lantai/internal/contract/managementrecord"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/oujinhaoai/lantai/internal/catalog"
@@ -63,11 +66,11 @@ func TestManagementBatchReferencesRequireOriginalCoreJobs(t *testing.T) {
 		jobs = append(jobs, map[string]any{"job_id": f.jobs[action].ID, "action": action})
 	}
 	batch := map[string]any{
-		"schema": "lantai.migration-batch/v1", "batch_id": "synthetic-device-batch", "revision": 1, "instance_id": f.env.inst.InstanceID(), "project_id": f.env.project.ProjectID, "owner_id": f.browser.Context.PrincipalID,
-		"last_action": map[string]any{"actor_id": f.browser.Context.PrincipalID, "at": f.env.clk.Now(), "action": "verify_reference_rollback"}, "stage": "rollback", "acceptance": "requested", "source_retained": true, "reference_scope": "selected_notes", "intended_purpose": "archive_review",
-		"import_summary": map[string]int{"planned": 1, "committed": 1},
+		"schema": "lantai.migration-batch/v1", "title": "Synthetic migration batch", "batch_id": "synthetic-device-batch", "revision": 1, "instance_id": f.env.inst.InstanceID(), "project_id": f.env.project.ProjectID, "owner_id": f.browser.Context.PrincipalID,
+		"last_action": map[string]any{"actor_id": f.browser.Context.PrincipalID, "at": f.env.clk.Now(), "action": "verify_reference_rollback", "note": "Synthetic current evidence review"}, "stage": "rollback", "acceptance": "requested", "source_retained": true, "reference_scope": "selected_notes", "intended_purpose": "archive_review",
+		"import_summary": map[string]int{"planned": 1, "committed": 1, "description_pending": 0, "failed": 0, "unknown": 0, "not_attempted": 0},
 		"evidence":       map[string]any{"assets": []any{map[string]any{"key": "sample", "asset_id": fixed.AssetID, "version_id": fixed.VersionID, "manifest_digest": v.Version.ManifestDigest, "status": "committed"}}, "worksets": []any{}, "verifications": []any{}, "recovery": []any{}, "reference_jobs": jobs},
-		"checklist":      map[string]bool{},
+		"checklist":      map[string]bool{"excluded_backed_up": false, "working_inputs_backed_up": false, "entrypoints_opened": false, "new_results_captured": false, "fallback_ready": false, "selected_notes_reviewed": false},
 	}
 	check := func(record catalog.VersionResult) map[string]string {
 		t.Helper()
@@ -115,7 +118,7 @@ func TestManagementBatchReferencesRequireOriginalCoreJobs(t *testing.T) {
 }
 
 // The server recomputes the current fixed content. Client-created receipts and
-// complete/accepted fields cannot override missing restore/native evidence.
+// saved checkboxes cannot override missing restore/native evidence.
 func TestManagementBatchAcceptanceCurrentEvidenceAndRevocation(t *testing.T) {
 	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
 	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
@@ -136,12 +139,11 @@ func TestManagementBatchAcceptanceCurrentEvidenceAndRevocation(t *testing.T) {
 	verificationPayload := map[string]any{"schema": "lantai.migration-verification-record/v1", "batch_id": "synthetic-batch", "instance_id": e.inst.InstanceID(), "project_id": e.project.ProjectID, "verifications": []any{receipt}}
 	verification := saveBatchTestRecord(t, e, who.Context, "migration", verificationPayload, nil)
 	batch := map[string]any{
-		"schema": "lantai.migration-batch/v1", "batch_id": "synthetic-batch", "revision": 1, "instance_id": e.inst.InstanceID(), "project_id": e.project.ProjectID, "owner_id": who.Context.PrincipalID,
-		"last_action": map[string]any{"actor_id": who.Context.PrincipalID, "at": e.clk.Now(), "action": "request_acceptance"}, "stage": "acceptance", "acceptance": "requested", "source_retained": true, "reference_scope": "none", "intended_purpose": "archive_review",
+		"schema": "lantai.migration-batch/v1", "title": "Synthetic migration batch", "batch_id": "synthetic-batch", "revision": 1, "instance_id": e.inst.InstanceID(), "project_id": e.project.ProjectID, "owner_id": who.Context.PrincipalID,
+		"last_action": map[string]any{"actor_id": who.Context.PrincipalID, "at": e.clk.Now(), "action": "request_acceptance", "note": "Synthetic current evidence review"}, "stage": "acceptance", "acceptance": "requested", "source_retained": true, "reference_scope": "none", "intended_purpose": "archive_review",
 		"import_summary": map[string]any{"planned": 1, "committed": 1, "description_pending": 0, "failed": 0, "unknown": 0, "not_attempted": 0},
 		"evidence":       map[string]any{"assets": []any{map[string]any{"key": "synthetic", "asset_id": asset.AssetID, "version_id": asset.VersionID, "manifest_digest": asset.ManifestDigest, "status": "committed"}}, "worksets": []any{ref(workset)}, "verifications": []any{ref(verification)}, "recovery": []any{}, "reference_jobs": []any{}},
 		"checklist":      map[string]bool{"excluded_backed_up": true, "working_inputs_backed_up": true, "entrypoints_opened": true, "new_results_captured": true, "fallback_ready": true, "selected_notes_reviewed": true},
-		"complete":       true, "accepted": true,
 	}
 	first := saveBatchTestRecord(t, e, who.Context, "migration", batch, nil)
 	if current, cause := a.Catalog.GetAsset(t.Context(), who.Context, first.AssetID); cause != nil {
@@ -200,6 +202,7 @@ func TestManagementBatchAcceptanceCurrentEvidenceAndRevocation(t *testing.T) {
 	badVerification := saveBatchTestRecord(t, e, who.Context, "migration", verificationPayload, nil)
 	batch["evidence"].(map[string]any)["verifications"] = []any{ref(badVerification)}
 	batch["import_summary"].(map[string]any)["unknown"] = 1
+	batch["import_summary"].(map[string]any)["planned"] = 2
 	batch["revision"] = 3
 	batch["previous_ref"] = ref(second)
 	third := saveBatchTestRecord(t, e, who.Context, "migration", batch, &second)
@@ -241,5 +244,96 @@ func TestManagementBatchAcceptanceCurrentEvidenceAndRevocation(t *testing.T) {
 	}
 	if got := post(who.Token); got != 401 {
 		t.Fatalf("session revocation did not deny batch: %d", got)
+	}
+}
+
+// The same shared payload contract applies to current acceptance and its exact
+// predecessor. Historical bytes stay readable, but cannot establish continuity.
+func TestManagementBatchSharedContractCurrentAndPredecessor(t *testing.T) {
+	e := newEnv(t, storage.Config{MinFreeBytes: 1 << 20}, transfer.Limits{})
+	e.setRole(e.admin.Context.PrincipalID, identity.RoleOwner, true)
+	a := reopenApplication(t, e)
+	who := e.login()
+	valid := func() map[string]any {
+		raw, err := os.ReadFile("../../schemas/examples/catalog/v1/migration-batch/valid.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var example struct {
+			Document map[string]any `json:"document"`
+		}
+		if err := json.Unmarshal(raw, &example); err != nil {
+			t.Fatal(err)
+		}
+		b := example.Document
+		b["instance_id"], b["project_id"], b["owner_id"] = e.inst.InstanceID(), e.project.ProjectID, who.Context.PrincipalID
+		b["last_action"].(map[string]any)["actor_id"] = who.Context.PrincipalID
+		b["last_action"].(map[string]any)["at"] = e.clk.Now()
+		return b
+	}
+	checkRecord := func(v catalog.VersionResult) (string, error) {
+		raw, err := a.CheckManagementBatch(t.Context(), who.Context, v.AssetID, v.VersionID)
+		if err != nil {
+			return "", err
+		}
+		var out struct {
+			Checks []struct{ Key, Status string } `json:"checks"`
+		}
+		if err := json.Unmarshal(raw, &out); err != nil {
+			t.Fatal(err)
+		}
+		for _, row := range out.Checks {
+			if row.Key == "record" {
+				return row.Status, nil
+			}
+		}
+		t.Fatal("missing record check")
+		return "", nil
+	}
+	good := valid()
+	raw, _ := json.Marshal(good)
+	if _, err := managementrecord.DecodeBatch(raw); err != nil {
+		t.Fatal(err)
+	}
+	first := saveBatchTestRecord(t, e, who.Context, "migration", good, nil)
+	if status, err := checkRecord(first); err != nil || status != "passed" {
+		t.Fatalf("valid batch record: %s %v", status, err)
+	}
+	nextGood := valid()
+	nextGood["revision"] = 2
+	nextGood["previous_ref"] = map[string]any{"asset_id": first.AssetID, "version_id": first.VersionID}
+	second := saveBatchTestRecord(t, e, who.Context, "migration", nextGood, &first)
+	if status, err := checkRecord(second); err != nil || status != "passed" {
+		t.Fatalf("valid predecessor continuity: %s %v", status, err)
+	}
+	cases := []struct {
+		name   string
+		mutate func(map[string]any)
+	}{
+		{"missing_title", func(b map[string]any) { delete(b, "title") }},
+		{"missing_note", func(b map[string]any) { delete(b["last_action"].(map[string]any), "note") }},
+		{"unknown_completion_claim", func(b map[string]any) { b["complete"], b["accepted"] = true, true }},
+		{"utf16_title", func(b map[string]any) { b["title"] = strings.Repeat("😀", 101) }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := valid()
+			tc.mutate(b)
+			raw, _ := json.Marshal(b)
+			if _, err := managementrecord.DecodeBatch(raw); err == nil {
+				t.Fatal("negative fixture passes shared contract")
+			}
+			prior := saveBatchTestRecord(t, e, who.Context, "migration", b, nil)
+			if status, err := checkRecord(prior); err == nil {
+				t.Errorf("invalid current batch accepted: %s", status)
+			}
+			next := valid()
+			next["revision"] = 2
+			next["previous_ref"] = map[string]any{"asset_id": prior.AssetID, "version_id": prior.VersionID}
+			current := saveBatchTestRecord(t, e, who.Context, "migration", next, &prior)
+			if status, err := checkRecord(current); err != nil || status != "failed" {
+				t.Errorf("invalid predecessor established continuity: %s %v", status, err)
+			}
+		})
 	}
 }

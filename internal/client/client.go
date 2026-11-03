@@ -158,6 +158,10 @@ func (e *APIError) Error() string { return string(e.Body.Code) + ": " + e.Body.M
 
 // Do 只访问公共 /api/v1/ 入口。写请求不自动重试；调用方保存幂等键并显式续办。
 func (c *Client) Do(ctx context.Context, method, path string, body any, opts Options) (Response, error) {
+	return c.do(ctx, method, path, body, opts, MaxJSONBytes)
+}
+
+func (c *Client) do(ctx context.Context, method, path string, body any, opts Options, responseLimit int64) (Response, error) {
 	rel, err := url.Parse(path)
 	if err != nil || rel.IsAbs() || rel.Host != "" || !strings.HasPrefix(rel.Path, "/api/v1/") || rel.Fragment != "" {
 		return Response{}, errors.New("client: invalid API path")
@@ -211,12 +215,18 @@ func (c *Client) Do(ctx context.Context, method, path string, body any, opts Opt
 		return Response{}, safeNetworkError(ctx, err)
 	}
 	defer res.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(res.Body, MaxJSONBytes+1))
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		responseLimit = MaxJSONBytes
+	}
+	data, err := io.ReadAll(io.LimitReader(res.Body, responseLimit+1))
 	if err != nil {
 		return Response{}, safeNetworkError(ctx, err)
 	}
-	if int64(len(data)) > MaxJSONBytes {
-		return Response{}, errors.New("client: JSON response exceeds 8 MiB")
+	if int64(len(data)) > responseLimit {
+		if responseLimit == MaxJSONBytes {
+			return Response{}, errors.New("client: JSON response exceeds 8 MiB")
+		}
+		return Response{}, fmt.Errorf("client: JSON response exceeds %d byte limit", responseLimit)
 	}
 	out := Response{Status: res.StatusCode, Body: data, ETag: res.Header.Get("ETag"), RequestID: res.Header.Get("X-Request-ID")}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {

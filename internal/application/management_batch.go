@@ -12,10 +12,10 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog/pathrule"
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
-	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/managementrecord"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/operations"
 )
@@ -27,13 +27,8 @@ type batchRef struct {
 	AssetID   ids.ID `json:"asset_id"`
 	VersionID ids.ID `json:"version_id"`
 }
-type batchEnvelope struct {
-	Schema     string          `json:"schema"`
-	Kind       string          `json:"kind"`
-	InstanceID ids.ID          `json:"instance_id"`
-	ProjectID  ids.ID          `json:"project_id"`
-	Payload    json.RawMessage `json:"payload"`
-}
+type batchEnvelope = managementrecord.Envelope
+
 type batchAsset struct {
 	batchRef
 	Key            string        `json:"key"`
@@ -156,7 +151,8 @@ func (a *App) readBatchRecord(ctx context.Context, who authz.Context, ref batchR
 		return env, v, err
 	}
 	b := files["record.json"]
-	if canonjson.Validate(b) != nil || json.Unmarshal(b, &env) != nil || env.Schema != "lantai.management-record/v1" || env.Kind != kind || env.InstanceID != a.Instance.InstanceID() || env.ProjectID != v.Version.ProjectID {
+	env, err = managementrecord.Decode(b)
+	if err != nil || env.Kind != kind || env.InstanceID != a.Instance.InstanceID() || env.ProjectID != v.Version.ProjectID {
 		return env, v, batchInvalid()
 	}
 	return env, v, nil
@@ -177,7 +173,10 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 		return nil, err
 	}
 	var b migrationBatch
-	if json.Unmarshal(env.Payload, &b) != nil || b.Schema != "lantai.migration-batch/v1" || b.ProjectID != env.ProjectID || b.InstanceID != env.InstanceID || b.BatchID == "" || len(b.BatchID) > 128 || b.Revision < 1 {
+	if _, err := managementrecord.DecodeBatch(env.Payload); err != nil {
+		return nil, batchInvalid()
+	}
+	if json.Unmarshal(env.Payload, &b) != nil || b.ProjectID != env.ProjectID || b.InstanceID != env.InstanceID {
 		return nil, batchInvalid()
 	}
 	out := batchCheckView{Schema: "lantai.batch-check/v1", InstanceID: env.InstanceID, RecordRef: ref, BatchID: b.BatchID, Revision: b.Revision, CheckedAt: a.Instance.Clock().Now(), Acceptance: "blocked", IntendedPurpose: b.IntendedPurpose, Checks: []batchCheck{}, Assets: []batchAsset{}, Worksets: []batchRef{}, RecoveryRefs: []batchRef{}}
@@ -205,8 +204,9 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 	} else {
 		p, pv, pe := a.readBatchRecord(ctx, who, *b.PreviousRef, "migration", env.ProjectID)
 		var previous migrationBatch
+		_, contractErr := managementrecord.DecodeBatch(p.Payload)
 		next, ne := a.Ledger.AssetVersions(ctx, assetID, pv.Version.VersionNumber, 2)
-		recordOK = recordOK && pe == nil && ne == nil && len(next) == 1 && next[0].VersionID == versionID && json.Unmarshal(p.Payload, &previous) == nil && previous.Schema == b.Schema && previous.BatchID == b.BatchID && previous.ProjectID == b.ProjectID && previous.InstanceID == b.InstanceID && previous.Revision == b.Revision-1 && pv.Version.VersionNumber < record.Version.VersionNumber
+		recordOK = recordOK && pe == nil && contractErr == nil && ne == nil && len(next) == 1 && next[0].VersionID == versionID && json.Unmarshal(p.Payload, &previous) == nil && previous.Schema == b.Schema && previous.BatchID == b.BatchID && previous.ProjectID == b.ProjectID && previous.InstanceID == b.InstanceID && previous.Revision == b.Revision-1 && pv.Version.VersionNumber < record.Version.VersionNumber
 	}
 	members, _, me := a.Identity.Members(ctx, who, env.ProjectID)
 	ownerExists := false
@@ -216,8 +216,6 @@ func (a *App) CheckManagementBatch(ctx context.Context, who authz.Context, asset
 		}
 	}
 	recordOK = recordOK && me == nil && ownerExists && (b.Acceptance == "requested" || b.Acceptance == "not_requested")
-	stages := map[string]bool{"inventory": true, "ingest": true, "verification": true, "workset": true, "references": true, "recovery": true, "acceptance": true, "in_use": true, "rollback": true}
-	recordOK = recordOK && stages[b.Stage]
 	if recordOK {
 		check("record", "passed", "")
 	} else {

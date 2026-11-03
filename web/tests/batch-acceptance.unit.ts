@@ -15,6 +15,18 @@ import {
 } from "../src/batch-acceptance-model";
 import { canonicalJSON, sha256 } from "../src/managed-transfer";
 import type { MigrationWorkspace } from "../src/migration-model";
+import sharedBatch from "../../schemas/examples/catalog/v1/migration-batch/valid.json" with { type: "json" };
+import clientReadyBatch from "../../schemas/examples/catalog/v1/migration-batch/client-ready.json" with { type: "json" };
+import missingPreviousBatch from "../../schemas/examples/catalog/v1/migration-batch/missing-predecessor.json" with { type: "json" };
+
+test("shared migration schema examples agree with the web payload validator", () => {
+  assert.deepEqual(
+    validateMigrationBatch(sharedBatch.document),
+    sharedBatch.document,
+  );
+  assert.throws(() => validateMigrationBatch(clientReadyBatch.document));
+  assert.throws(() => validateMigrationBatch(missingPreviousBatch.document));
+});
 const id = (n: number) =>
   `01J000000000000000000000${String(n).padStart(2, "0")}`;
 const ref = (n: number) => ({ asset_id: id(n), version_id: id(n + 1) });

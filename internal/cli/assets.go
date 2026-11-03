@@ -19,9 +19,15 @@ import (
 )
 
 const assetHelp = `素材管理（现有公共 API 与显式本地副本，不直接访问服务端数据）：
+  asset metadata plan --input SELECTION.json --output PLAN
+  asset metadata apply --input PLAN --state STATE_FILE --output REPORT
+  asset dependencies --input SELECTION.json --directory SOURCE --output REPORT
+  asset derive --input JSON --directory VERIFIED_FILES --artifact FILE --output RECEIPT
+  asset recovery-evidence prepare|save|open --input JSON --directory DIR --output FILE [--state FILE]
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
+  asset workset list|open|record-prepare|record-save|return-prepare|return-apply|adopt-prepare --input JSON [--directory DIR --state FILE --output FILE]
   asset import plan --input INPUT --directory SOURCE --output PLAN
   asset import apply --input PLAN --directory SOURCE --state STATE_DIR --output REPORT
   asset import verify --input PLAN --report REPORT --directory SOURCE --state STATE_DIR --destination VERIFY_DIR
@@ -38,7 +44,7 @@ references 仅按显式映射创建独立笔记副本；rollback 另建原文副
 
 type assetOptions struct {
 	server, session, caFile, input, directory, state, output, report, destination, purpose string
-	postCutoverRefs                                                                        string
+	postCutoverRefs, artifact                                                              string
 	allowHTTP                                                                              bool
 	referencePlan                                                                          *client.ReferencePlan
 }
@@ -50,7 +56,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	name := args[0]
 	args = args[1:]
-	if name == "workset" || name == "import" || name == "references" {
+	if name == "workset" || name == "import" || name == "references" || name == "metadata" || name == "recovery-evidence" {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
 			fmt.Fprint(stdout, assetHelp)
 			return 0
@@ -79,6 +85,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	f.StringVar(&o.report, "report", "", "prior import report")
 	f.StringVar(&o.destination, "destination", "", "independent verification destination")
 	f.StringVar(&o.purpose, "purpose", "archive_review", "read purpose")
+	f.StringVar(&o.artifact, "artifact", "", "explicit private derived artifact")
 	f.StringVar(&o.postCutoverRefs, "post-cutover-refs", "", "JSON/YAML array of fixed version references to retain")
 	if err := f.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -108,10 +115,10 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			}
 		}
 		var protected []string
-		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") {
+		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") || name == "dependencies" {
 			protected = []string{o.directory, o.state, o.destination}
-		} else if strings.HasPrefix(name, "workset-") {
-			protected = []string{o.directory}
+		} else if strings.HasPrefix(name, "workset-") || strings.HasPrefix(name, "recovery-evidence-") {
+			protected = []string{o.directory, o.state}
 		}
 		if o.referencePlan != nil {
 			protected = append(protected, o.referencePlan.SourceRoot)
@@ -156,7 +163,11 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				saveErr = errors.New("asset: output parent changed during the operation")
 			}
 			if saveErr == nil {
-				saveErr = output.Write(append(raw, '\n'))
+				if name == "metadata-plan" || name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" || name == "recovery-evidence-prepare" {
+					saveErr = output.WriteOriginal(append(raw, '\n'))
+				} else {
+					saveErr = output.Write(append(raw, '\n'))
+				}
 			}
 			if saveErr != nil {
 				fmt.Fprintln(stderr, "asset: result could not be saved; retain the original state before retrying")
@@ -175,6 +186,52 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 func executeAsset(ctx context.Context, name string, o assetOptions) (any, error) {
 	switch name {
+	case "metadata-plan", "metadata-apply":
+		if o.output == "" {
+			return nil, usage("metadata batch requires --output")
+		}
+		var selection client.MetadataBatchInput
+		var plan client.MetadataBatchPlan
+		if name == "metadata-plan" {
+			if err := decodeAssetInput(o.input, &selection); err != nil {
+				return nil, err
+			}
+		} else {
+			if o.state == "" {
+				return nil, usage("metadata apply requires original --state file")
+			}
+			if err := decodeAssetInput(o.input, &plan); err != nil {
+				return nil, err
+			}
+		}
+		c, err := assetClient(o)
+		if err != nil {
+			return nil, err
+		}
+		defer c.Close()
+		if name == "metadata-plan" {
+			plan, err := c.PlanMetadataBatch(ctx, selection)
+			if err != nil {
+				return nil, err
+			}
+			return plan, nil
+		}
+		return c.ApplyMetadataBatch(ctx, plan, o.state)
+	case "dependencies":
+		if o.directory == "" || o.output == "" {
+			return nil, usage("dependencies requires --directory SOURCE and --output REPORT")
+		}
+		var selection client.DependencySelection
+		if err := decodeAssetInput(o.input, &selection); err != nil {
+			return nil, err
+		}
+		return client.AnalyzeDependencyFiles(ctx, selection, o.directory)
+	case "workset-list", "workset-open", "workset-record-prepare", "workset-record-save", "workset-return-prepare", "workset-return-apply", "workset-adopt-prepare":
+		return executeManagedWorkset(ctx, name, o)
+	case "derive":
+		return executeDerivation(ctx, o)
+	case "recovery-evidence-prepare", "recovery-evidence-save", "recovery-evidence-open":
+		return executeRecoveryEvidence(ctx, name, o)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`

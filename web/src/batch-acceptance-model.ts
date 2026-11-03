@@ -6,25 +6,26 @@ import {
 } from "./managed-transfer";
 import type { ManagedRecordRef } from "./managed-records";
 import type { MigrationWorkspace } from "./migration-model";
+import batchContract from "../../schemas/catalog/v1/migration-batch.schema.json" with { type: "json" };
 
-export const batchPurposes = [
-  "archive_review",
-  "reference",
-  "production",
-  "generative_input",
-  "raw_export",
-] as const;
-export const batchStages = [
-  "inventory",
-  "ingest",
-  "verification",
-  "workset",
-  "references",
-  "recovery",
-  "acceptance",
-  "in_use",
-  "rollback",
-] as const;
+export const batchPurposes = batchContract.properties.intended_purpose.enum as (
+  | "archive_review"
+  | "reference"
+  | "production"
+  | "generative_input"
+  | "raw_export"
+)[];
+export const batchStages = batchContract.properties.stage.enum as (
+  | "inventory"
+  | "ingest"
+  | "verification"
+  | "workset"
+  | "references"
+  | "recovery"
+  | "acceptance"
+  | "in_use"
+  | "rollback"
+)[];
 export type BatchStage = (typeof batchStages)[number];
 export type BatchAsset = ManagedRecordRef & {
   key: string;

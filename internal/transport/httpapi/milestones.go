@@ -22,7 +22,7 @@ func (h *Handler) milestoneRoutes(m *http.ServeMux) {
 		if err != nil {
 			return err
 		}
-		return respond(w, 200, map[string]any{"items": items})
+		return respondSnapshot(w, r, items)
 	})
 	h.route(m, "POST /api/v1/projects/{project_id}/milestones", false, func(w http.ResponseWriter, r *http.Request, who authz.Context) error {
 		project, err := pathID(r, "project_id")

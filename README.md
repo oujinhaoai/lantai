@@ -65,6 +65,32 @@ M1-07 原生续做现有明确的[人审证据闭合路径](api/native-continuat
 
 检查结果先验证完整原始协议，公开检查证据包装保留精确执行来源。正常排空允许在途调用收尾；已完成检查用于新的人审或发布时，仍要求当前启用与探测资格，历史证据保持可读。
 
+Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐项列出实际入口、缺口与权限例外；见[操作目录](docs/contracts/agent-operations.md)。
+
+资源客户端补充项目/类型/成员发现、历史版本、准确文件清单分页、完整 JSON 分段读取，以及条件著录和当前 rights 的 MCP 适配；见[Agent 资源操作](docs/contracts/agent-resources.md)。
+
+真人管理员可通过远程 `backups start/resume/cancel/schedule-get/schedule-set` 操作原备份任务和每日计划；历史支持显式有界分页，MCP `backup_read` 可读取计划和历史。写操作仍要求原会话的精确批准，普通 Agent 仍被拒绝；见[备份远程客户端](docs/contracts/backup-clients.md)。
+
+MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客户端、显式工作区与原状态；完整计划/回执私有保存，`batch_report_page` 只返回有界元数据。上传状态、取消、去重检查与独立提交保留原上传和幂等键；见[批次工具](docs/contracts/agent-batches.md)。
+
+管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
+
+MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与有界记录读取；权限和真人输入边界沿用原领域规则，见[Agent 编排适配](docs/contracts/agent-orchestration.md)。
+
+协作 MCP 覆盖收件箱已读、完整重同步、审定目标、有效审定后发布、普通回收/恢复及里程碑；CLI/MCP 里程碑和扩展发现支持有界分页/分段，现行人类治理边界保持，见[协作适配](docs/contracts/agent-collaboration.md)。
+
+新增 `asset metadata plan/apply` 与对应 MCP 批量著录工具：逐资产冻结原 revision/patch，复用原条件 PATCH 和独立稳定 key，保留部分/冲突并重读核验当前结果；见[批量著录](docs/contracts/metadata-batches.md)。
+
+`asset dependencies` / MCP `dependency_analyze` 为明确选中的 OBJ/MTL/ComfyUI 文本提供有界、摘要绑定的依赖候选，保留未知项且不加载外部内容；见[选定依赖分析](docs/contracts/selected-dependencies.md)。
+
+CLI/MCP 已提供私人固定工作集记录的列举、保存/重开、原状态返库和显式采纳；旧引用保持固定，实际核心回执与当前用途复验后才准备新记录，见[工作集契约](docs/contracts/workset.md#私人工作集记录与明确返库)。
+
+固定版本比较、PNG/JPEG/WebP缩略图与PNG代理、受限OBJ结构/线框和Unicode工作集TAR已有CLI/MCP[有界派生入口](docs/contracts/asset-derivations.md)；实际源授权与字节重验，产物和完整回执私有保存，拒绝后不自动换用途。
+
+新目标恢复控制和恢复后所选版本证据已有[CLI入口](docs/contracts/recovery-clients.md)，复用原安装认领、本人因素和HumanOnly实例读取；证据来自真实核心回执及实际逐文件检查，历史重开不恢复当前通过结论。
+
+使用方可加载仓库内的 [Lantai 操作 skill](sdk/skills/lantai-operations/SKILL.md)，按已安装 CLI/MCP 完成发现、操作和原状态对账；[安装与验证](docs/contracts/operation-skill.md)区分协议测试与真实客户端实测。[真人接棒评估](docs/design/agent-human-handoff.md)仅为设计，HumanOnly 与原批准边界保持。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

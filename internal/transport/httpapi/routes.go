@@ -32,6 +32,7 @@ func (h *Handler) routes(m *http.ServeMux) {
 	h.adminViewRoutes(m)
 	h.deviceRoutes(m)
 	h.route(m, "GET /api/v1/meta", true, h.meta)
+	h.route(m, "GET /api/v1/capabilities", true, h.agentOperations)
 	h.route(m, "POST /api/v1/sessions/exchange", true, h.exchange)
 	h.route(m, "POST /api/v1/sessions/login", true, h.login)
 	h.route(m, "GET /api/v1/whoami", false, h.whoami)
@@ -57,10 +58,13 @@ func (h *Handler) routes(m *http.ServeMux) {
 
 func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) error {
 	stage := "M1"
-	capabilities := []string{"sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "structured_asset_profile", "search", "operation_status"}
+	capabilities := []string{"agent_operation_catalog", "sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "structured_asset_profile", "search", "explicit_search_completion", "operation_status"}
 	unsupported := []string{"managed_runner", "third_party_web_ui", "resident_extension_services", "automatic_triggers", "federation"}
+	if h.deps.Milestones != nil || h.deps.Extensions != nil {
+		capabilities = append(capabilities, "bounded_collaboration_snapshots")
+	}
 	if h.deps.Backups != nil {
-		capabilities = append(capabilities, "backup_management")
+		capabilities = append(capabilities, "backup_management", "bounded_backup_history")
 	}
 	if h.deps.Tasks != nil {
 		stage = "M2"
@@ -472,11 +476,25 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request, who authz.Conte
 		return err
 	}
 	q := r.URL.Query()
+	completion := q.Get("completion")
+	if completion != "" && completion != "explicit" {
+		return invalid("completion must be explicit or omitted")
+	}
 	v, err := h.deps.Query.Search(r.Context(), query.SearchRequest{Who: who, Limit: n, Cursor: q.Get("cursor"), Filter: query.Filter{ProjectID: ids.ID(q.Get("project_id")), Text: q.Get("q"), AssetType: manifest.AssetType(q.Get("asset_type")), Tags: q["tag"]}})
 	if err != nil {
 		return err
 	}
-	return respond(w, 200, v)
+	out := struct {
+		query.Page
+		Complete  *bool `json:"complete,omitempty"`
+		Truncated *bool `json:"truncated,omitempty"`
+	}{Page: v}
+	if completion == "explicit" {
+		complete, truncated := v.NextCursor == "", false
+		out.Complete = &complete
+		out.Truncated = &truncated
+	}
+	return respond(w, 200, out)
 }
 func (h *Handler) operation(w http.ResponseWriter, r *http.Request, who authz.Context) error {
 	id, err := pathID(r, "operation_id")

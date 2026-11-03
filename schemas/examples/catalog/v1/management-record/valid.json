@@ -1,0 +1,15 @@
+{
+  "schema": "lantai.management-record/v1",
+  "valid": true,
+  "document": {
+    "schema": "lantai.management-record/v1",
+    "kind": "migration",
+    "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+    "payload": {
+      "original_commit_key": "saved-key",
+      "pending": true
+    }
+  },
+  "description": "Private management record envelope with preserved operation keys"
+}

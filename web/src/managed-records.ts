@@ -1,3 +1,4 @@
+import recordDefinition from "../../schemas/catalog/v1/management-record.schema.json" with { type: "json" };
 import { api, type Item } from "./api";
 import {
   canonicalJSON,
@@ -47,15 +48,10 @@ export type ManagedRecordOptions = {
   checkpoint?: (state: PushState) => Promise<void>;
   prepared?: PreparedManagedRecord;
 };
-const kinds: ManagedRecordKind[] = [
-  "migration",
-  "workset",
-  "recovery",
-  "assistant",
-];
-const maxRecordBytes = 2 * 1024 * 1024;
-const forbidden =
-  /^(?:password|password_hash|secret_hash|totp_secret|totp_uri|recovery_codes|master_key|csrf_token|csrf|session_token|access_token|refresh_token|authorization|part_url_template|read_grant_url|download_token|grant_id|token)$/i;
+const kinds = recordDefinition.properties.kind.enum as ManagedRecordKind[];
+const recordRules = recordDefinition["x-management-rules"];
+const maxRecordBytes = recordRules.max_record_bytes;
+const forbidden = new Set(recordRules.forbidden_fields);
 
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -63,12 +59,13 @@ function object(value: unknown): value is Record<string, unknown> {
 // Original idempotency keys and operation IDs are private work data, not bearer
 // credentials. Preserve them; never archive authentication or transfer grants.
 export function assertRecordPayload(value: unknown, depth = 0): void {
-  if (depth > 64) throw new Error("档案嵌套超过限制。");
+  if (depth > recordRules.max_payload_depth)
+    throw new Error("档案嵌套超过限制。");
   if (Array.isArray(value)) {
     for (const item of value) assertRecordPayload(item, depth + 1);
   } else if (object(value)) {
     for (const [key, item] of Object.entries(value)) {
-      if (forbidden.test(key))
+      if (forbidden.has(key.toLowerCase()))
         throw new Error(`档案不能包含凭据或短时授权字段：${key}`);
       assertRecordPayload(item, depth + 1);
     }
@@ -91,7 +88,7 @@ export async function prepareManagedRecord(
   )
     throw new Error("请选择合法项目和记录类型。");
   const title = options.title.trim();
-  if (!title || title.length > 200)
+  if (!title || title.length > recordRules.max_title_utf16_units)
     throw new Error("记录标题应为 1–200 个字符。");
   if (
     !!options.assetID !== !!options.baseVersionID ||

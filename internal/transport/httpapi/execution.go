@@ -5,9 +5,12 @@ import (
 	"net/http"
 
 	ax "github.com/oujinhaoai/lantai/internal/agent_execution"
+	ae "github.com/oujinhaoai/lantai/internal/contract/agentexec"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/jobs"
 	"github.com/oujinhaoai/lantai/internal/tasks"
+	"github.com/oujinhaoai/lantai/internal/workflow"
 )
 
 // commandEndpoint only decodes the public request and delegates to its owner.
@@ -42,7 +45,7 @@ func readEndpoint[O any](fn func(context.Context, authz.Context, ids.ID) (O, err
 		return respond(w, 200, out)
 	}
 }
-func pageEndpoint[O any](fn func(context.Context, authz.Context, ids.ID, ids.ID, int) ([]O, error), filter string) endpoint {
+func pageEndpoint[O any](fn func(context.Context, authz.Context, ids.ID, ids.ID, int) ([]O, error), filter string, itemID func(O) ids.ID) endpoint {
 	return func(w http.ResponseWriter, r *http.Request, who authz.Context) error {
 		id := ids.ID(r.URL.Query().Get(filter))
 		after := ids.ID(r.URL.Query().Get("after"))
@@ -57,14 +60,18 @@ func pageEndpoint[O any](fn func(context.Context, authz.Context, ids.ID, ids.ID,
 		if e != nil {
 			return e
 		}
-		return respond(w, 200, map[string]any{"items": out})
+		page := map[string]any{"items": out, "complete": len(out) < n}
+		if len(out) == n {
+			page["next_cursor"] = itemID(out[len(out)-1])
+		}
+		return respond(w, 200, page)
 	}
 }
 func (h *Handler) executionRoutes(m *http.ServeMux) {
 	if s := h.deps.Tasks; s != nil {
 		h.route(m, "GET /api/v1/tasks", false, pageEndpoint(func(ctx context.Context, w authz.Context, p, a ids.ID, n int) ([]tasks.Task, error) {
 			return s.List(ctx, w, p, a, n, false)
-		}, "project_id"))
+		}, "project_id", func(v tasks.Task) ids.ID { return v.ID }))
 		h.route(m, "GET /api/v1/tasks/{id}", false, readEndpoint(s.Task))
 		h.route(m, "GET /api/v1/tasks/{id}/attempts", false, readEndpoint(s.Attempts))
 		h.route(m, "POST /api/v1/tasks", false, commandEndpoint(h, s.Create))
@@ -82,7 +89,7 @@ func (h *Handler) executionRoutes(m *http.ServeMux) {
 		h.route(m, "POST /api/v1/tasks/rework", false, commandEndpoint(h, s.Rework))
 	}
 	if s := h.deps.Flows; s != nil {
-		h.route(m, "GET /api/v1/flows", false, pageEndpoint(s.List, "project_id"))
+		h.route(m, "GET /api/v1/flows", false, pageEndpoint(s.List, "project_id", func(v workflow.Flow) ids.ID { return v.ID }))
 		h.route(m, "GET /api/v1/flows/{id}", false, readEndpoint(s.Flow))
 		h.route(m, "POST /api/v1/flows", false, commandEndpoint(h, s.Start))
 		h.route(m, "POST /api/v1/flows/pause", false, commandEndpoint(h, s.Pause))
@@ -96,7 +103,7 @@ func (h *Handler) executionRoutes(m *http.ServeMux) {
 		h.route(m, "GET /api/v1/task-runs/capabilities", false, func(w http.ResponseWriter, r *http.Request, _ authz.Context) error {
 			return respond(w, 200, ax.Capabilities())
 		})
-		h.route(m, "GET /api/v1/task-runs", false, pageEndpoint(s.List, "task_id"))
+		h.route(m, "GET /api/v1/task-runs", false, pageEndpoint(s.List, "task_id", func(v ae.TaskRun) ids.ID { return v.ID }))
 		h.route(m, "GET /api/v1/task-runs/{id}", false, readEndpoint(s.Read))
 		h.route(m, "POST /api/v1/task-runs", false, commandEndpoint(h, s.Start))
 		h.route(m, "POST /api/v1/task-runs/progress", false, commandEndpoint(h, s.Progress))
@@ -110,7 +117,7 @@ func (h *Handler) executionRoutes(m *http.ServeMux) {
 		h.route(m, "POST /api/v1/task-runs/seal", false, commandEndpoint(h, s.Seal))
 	}
 	if s := h.deps.Jobs; s != nil {
-		h.route(m, "GET /api/v1/jobs", false, pageEndpoint(s.List, "project_id"))
+		h.route(m, "GET /api/v1/jobs", false, pageEndpoint(s.List, "project_id", func(v jobs.Job) ids.ID { return v.ID }))
 		h.route(m, "GET /api/v1/jobs/{id}", false, readEndpoint(s.Read))
 		h.route(m, "POST /api/v1/jobs/run", false, commandEndpoint(h, s.Run))
 		h.route(m, "POST /api/v1/jobs/cancel", false, commandEndpoint(h, s.Cancel))

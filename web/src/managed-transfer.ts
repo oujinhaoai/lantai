@@ -600,7 +600,7 @@ export async function preparePushInput({
 
 // Match Go's ordered PushInput/ContentInput structs and encoding/json escaping.
 // Raw object member order is retained in the exported browser-generated input.
-function pushJSON(input: PushInput) {
+export function pushJSON(input: PushInput) {
   const content = input.content;
   const ordered = {
     ...(input.task !== undefined ? { task: input.task } : {}),

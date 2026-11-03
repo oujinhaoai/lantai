@@ -99,7 +99,7 @@ func TestManagementNativeContinuationRealReviewHTTPS(t *testing.T) {
 	ws := saveBatchTestRecord(t, f.env, f.maker, "workset", map[string]any{"schema": "lantai.managed-workset/v1", "input": map[string]any{"schema": "lantai.client-workset/v1", "entries": []any{map[string]any{"asset_id": first.AssetID, "version_id": first.VersionID, "destination": "scene"}}, "entrypoints": []string{"scene/model.obj"}}}, nil)
 	epoch, _ := f.inst.RecoveryEpoch(ctx)
 	payload := map[string]any{"schema": "lantai.native-continuation/v1", "instance_id": f.inst.InstanceID(), "project_id": f.project.ProjectID, "batch_id": "native-protocol", "recovery_epoch": epoch, "workset_ref": ref(ws), "intended_purpose": "archive_review", "evidence_basis": "human_attested", "operator_id": f.maker.PrincipalID, "application": map[string]string{"name": "SyntheticProtocolFixture", "version": "1", "platform": "linux/amd64; no DCC process executed"}, "started_at": started, "finished_at": finished, "entrypoints": []string{"scene/model.obj"}, "returns": []any{map[string]any{"base": ref(first), "result": ref(next), "manifest_digest": next.ManifestDigest}}, "supporting_evidence": []any{map[string]any{"asset_id": support.AssetID, "version_id": support.VersionID, "key": "protocol-notes", "manifest_digest": support.ManifestDigest, "status": "committed"}}, "outcome": "completed", "unresolved": []string{}}
-	batch := map[string]any{"schema": "lantai.migration-batch/v1", "batch_id": "native-protocol", "revision": 1, "instance_id": f.inst.InstanceID(), "project_id": f.project.ProjectID, "owner_id": f.owner.PrincipalID, "last_action": map[string]any{"actor_id": f.owner.PrincipalID, "at": f.clk.Now(), "action": "request_acceptance"}, "stage": "acceptance", "acceptance": "requested", "source_retained": true, "reference_scope": "none", "intended_purpose": "archive_review", "import_summary": map[string]int{"planned": 1, "committed": 1, "description_pending": 0, "failed": 0, "unknown": 0, "not_attempted": 0}, "evidence": map[string]any{"assets": []any{map[string]any{"asset_id": first.AssetID, "version_id": first.VersionID, "key": "model", "manifest_digest": first.ManifestDigest, "status": "committed"}}, "worksets": []any{ref(ws)}, "verifications": []any{}, "recovery": []any{}, "reference_jobs": []any{}}, "checklist": map[string]bool{}}
+	batch := map[string]any{"schema": "lantai.migration-batch/v1", "title": "Synthetic migration batch", "batch_id": "native-protocol", "revision": 1, "instance_id": f.inst.InstanceID(), "project_id": f.project.ProjectID, "owner_id": f.owner.PrincipalID, "last_action": map[string]any{"actor_id": f.owner.PrincipalID, "at": f.clk.Now(), "action": "request_acceptance", "note": "Synthetic current evidence review"}, "stage": "acceptance", "acceptance": "requested", "source_retained": true, "reference_scope": "none", "intended_purpose": "archive_review", "import_summary": map[string]int{"planned": 1, "committed": 1, "description_pending": 0, "failed": 0, "unknown": 0, "not_attempted": 0}, "evidence": map[string]any{"assets": []any{map[string]any{"asset_id": first.AssetID, "version_id": first.VersionID, "key": "model", "manifest_digest": first.ManifestDigest, "status": "committed"}}, "worksets": []any{ref(ws)}, "verifications": []any{}, "recovery": []any{}, "reference_jobs": []any{}}, "checklist": map[string]bool{"excluded_backed_up": false, "working_inputs_backed_up": false, "entrypoints_opened": false, "new_results_captured": false, "fallback_ready": false, "selected_notes_reviewed": false}}
 	// The actual protected HTTPS listener, with its explicit CA and hostname check.
 	front, _, _ := recordsHTTPS(t, f.app)
 	client := front.Client()
@@ -111,6 +111,9 @@ func TestManagementNativeContinuationRealReviewHTTPS(t *testing.T) {
 	check := func(native []any) (string, string) {
 		t.Helper()
 		batch["last_action"].(map[string]any)["at"] = f.clk.Now()
+		if native == nil {
+			native = []any{}
+		}
 		batch["evidence"].(map[string]any)["native_continuations"] = native
 		if !readOnlyCheck {
 			lastRecord = saveBatchTestRecord(t, f.env, f.login().Context, "migration", batch, nil)
@@ -126,6 +129,16 @@ func TestManagementNativeContinuationRealReviewHTTPS(t *testing.T) {
 		}
 		defer response.Body.Close()
 		raw, _ := io.ReadAll(response.Body)
+		if response.StatusCode == 422 {
+			var rejected struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+			if json.Unmarshal(raw, &rejected) == nil && rejected.Error.Code == "SCHEMA_INVALID" {
+				return "schema_invalid", rejected.Error.Code
+			}
+		}
 		if response.StatusCode != 200 {
 			t.Fatalf("batch status %d: %s", response.StatusCode, raw)
 		}
@@ -169,7 +182,8 @@ func TestManagementNativeContinuationRealReviewHTTPS(t *testing.T) {
 	f.sudo(&identity.SetPolicy{ProjectID: f.project.ProjectID, Key: "review.allow_self_human", Value: json.RawMessage(`false`)})
 	require("passed", ref(report))
 	f.sudo(&identity.SetPolicy{ProjectID: f.project.ProjectID, Key: "review.allow_self_human", Value: json.RawMessage(`true`), ExpectedRevision: 1})
-	require("failed", ref(report), ref(report))
+	// Duplicate evidence references are rejected by the shared payload schema.
+	require("schema_invalid", ref(report), ref(report))
 	// Authenticated, genuinely reviewed but wrong-bound reports still fail.
 	for _, bad := range []string{"epoch", "batch", "operator", "entrypoint", "return_hash", "unchanged_return", "unresolved", "machine_claim", "unknown_field", "renamed_return", "deleted_entrypoint"} {
 		t.Run(bad, func(t *testing.T) {

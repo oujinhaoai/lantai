@@ -86,6 +86,21 @@ func (e BackupControlSessionCapabilities) Valid() bool {
 	}
 }
 
+// Defines values for BackupHistoryPageTruncated.
+const (
+	BackupHistoryPageTruncatedFalse BackupHistoryPageTruncated = false
+)
+
+// Valid indicates whether the value is a known member of the BackupHistoryPageTruncated enum.
+func (e BackupHistoryPageTruncated) Valid() bool {
+	switch e {
+	case BackupHistoryPageTruncatedFalse:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BackupJobSource.
 const (
 	BackupJobSourceLocal    BackupJobSource = "local"
@@ -185,6 +200,21 @@ func (e BlobStatusPageItemsStatus) Valid() bool {
 	case BlobStatusPageItemsStatusGranted:
 		return true
 	case BlobStatusPageItemsStatusUploadRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CollaborationSnapshotChunkEncoding.
+const (
+	CollaborationSnapshotChunkEncodingBase64 CollaborationSnapshotChunkEncoding = "base64"
+)
+
+// Valid indicates whether the value is a known member of the CollaborationSnapshotChunkEncoding enum.
+func (e CollaborationSnapshotChunkEncoding) Valid() bool {
+	switch e {
+	case CollaborationSnapshotChunkEncodingBase64:
 		return true
 	default:
 		return false
@@ -1799,6 +1829,21 @@ func (e VersionManifestUseRelation) Valid() bool {
 	}
 }
 
+// Defines values for GetBackupHistoryParamsCompletion.
+const (
+	GetBackupHistoryParamsCompletionExplicit GetBackupHistoryParamsCompletion = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetBackupHistoryParamsCompletion enum.
+func (e GetBackupHistoryParamsCompletion) Valid() bool {
+	switch e {
+	case GetBackupHistoryParamsCompletionExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ApproveBackupDownload200JSONResponseBodyMethod.
 const (
 	ApproveBackupDownload200JSONResponseBodyMethodGET ApproveBackupDownload200JSONResponseBodyMethod = "GET"
@@ -1838,6 +1883,21 @@ const (
 func (e ApproveBackupDownload200JSONResponseBodySessionRequired) Valid() bool {
 	switch e {
 	case ApproveBackupDownload200JSONResponseBodySessionRequiredTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchAssetsParamsCompletion.
+const (
+	SearchAssetsParamsCompletionExplicit SearchAssetsParamsCompletion = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the SearchAssetsParamsCompletion enum.
+func (e SearchAssetsParamsCompletion) Valid() bool {
+	switch e {
+	case SearchAssetsParamsCompletionExplicit:
 		return true
 	default:
 		return false
@@ -1898,6 +1958,114 @@ func (e GetVersionParamsView) Valid() bool {
 	}
 }
 
+// Defines values for ListAgentOperations200JSONResponseBodyContract.
+const (
+	ListAgentOperations200JSONResponseBodyContractLantaiAgentOperationsv1 ListAgentOperations200JSONResponseBodyContract = "lantai.agent-operations/v1"
+)
+
+// Valid indicates whether the value is a known member of the ListAgentOperations200JSONResponseBodyContract enum.
+func (e ListAgentOperations200JSONResponseBodyContract) Valid() bool {
+	switch e {
+	case ListAgentOperations200JSONResponseBodyContractLantaiAgentOperationsv1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListAgentOperations200JSONResponseBodyItemsClassification.
+const (
+	ListAgentOperations200JSONResponseBodyItemsClassificationApiOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "api_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationCliMcp        ListAgentOperations200JSONResponseBodyItemsClassification = "cli_mcp"
+	ListAgentOperations200JSONResponseBodyItemsClassificationCliOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "cli_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationHumanOnly     ListAgentOperations200JSONResponseBodyItemsClassification = "human_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationLocalOnly     ListAgentOperations200JSONResponseBodyItemsClassification = "local_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationMcpOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "mcp_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationNotApplicable ListAgentOperations200JSONResponseBodyItemsClassification = "not_applicable"
+	ListAgentOperations200JSONResponseBodyItemsClassificationUnimplemented ListAgentOperations200JSONResponseBodyItemsClassification = "unimplemented"
+	ListAgentOperations200JSONResponseBodyItemsClassificationWebOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "web_only"
+)
+
+// Valid indicates whether the value is a known member of the ListAgentOperations200JSONResponseBodyItemsClassification enum.
+func (e ListAgentOperations200JSONResponseBodyItemsClassification) Valid() bool {
+	switch e {
+	case ListAgentOperations200JSONResponseBodyItemsClassificationApiOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationCliMcp:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationCliOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationHumanOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationLocalOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationMcpOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationNotApplicable:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationUnimplemented:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationWebOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetExtensionsCommandsParamsPagination.
+const (
+	GetExtensionsCommandsParamsPaginationChunk    GetExtensionsCommandsParamsPagination = "chunk"
+	GetExtensionsCommandsParamsPaginationExplicit GetExtensionsCommandsParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsCommandsParamsPagination enum.
+func (e GetExtensionsCommandsParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsCommandsParamsPaginationChunk:
+		return true
+	case GetExtensionsCommandsParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetExtensionsEnablementsParamsPagination.
+const (
+	GetExtensionsEnablementsParamsPaginationChunk    GetExtensionsEnablementsParamsPagination = "chunk"
+	GetExtensionsEnablementsParamsPaginationExplicit GetExtensionsEnablementsParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsEnablementsParamsPagination enum.
+func (e GetExtensionsEnablementsParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsEnablementsParamsPaginationChunk:
+		return true
+	case GetExtensionsEnablementsParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetExtensionsPackagesParamsPagination.
+const (
+	GetExtensionsPackagesParamsPaginationChunk    GetExtensionsPackagesParamsPagination = "chunk"
+	GetExtensionsPackagesParamsPaginationExplicit GetExtensionsPackagesParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetExtensionsPackagesParamsPagination enum.
+func (e GetExtensionsPackagesParamsPagination) Valid() bool {
+	switch e {
+	case GetExtensionsPackagesParamsPaginationChunk:
+		return true
+	case GetExtensionsPackagesParamsPaginationExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListProjectsParamsView.
 const (
 	ListProjectsParamsViewBrief ListProjectsParamsView = "brief"
@@ -1928,6 +2096,24 @@ func (e GetProjectParamsView) Valid() bool {
 	case GetProjectParamsViewBrief:
 		return true
 	case GetProjectParamsViewFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListMilestonesParamsPagination.
+const (
+	ListMilestonesParamsPaginationChunk    ListMilestonesParamsPagination = "chunk"
+	ListMilestonesParamsPaginationExplicit ListMilestonesParamsPagination = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the ListMilestonesParamsPagination enum.
+func (e ListMilestonesParamsPagination) Valid() bool {
+	switch e {
+	case ListMilestonesParamsPaginationChunk:
+		return true
+	case ListMilestonesParamsPaginationExplicit:
 		return true
 	default:
 		return false
@@ -2044,6 +2230,19 @@ type BackupControlSessionCapabilities string
 type BackupHistory struct {
 	Items []BackupJob `json:"items"`
 }
+
+// BackupHistoryPage defines model for BackupHistoryPage.
+type BackupHistoryPage struct {
+	Complete bool        `json:"complete"`
+	Items    []BackupJob `json:"items"`
+
+	// NextCursor 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	NextCursor *Ulid                      `json:"next_cursor,omitempty"`
+	Truncated  BackupHistoryPageTruncated `json:"truncated"`
+}
+
+// BackupHistoryPageTruncated defines model for BackupHistoryPage.Truncated.
+type BackupHistoryPageTruncated bool
 
 // BackupJob defines model for BackupJob.
 type BackupJob struct {
@@ -2234,6 +2433,20 @@ type CodeRequest struct {
 	Code *string `json:"code,omitempty"`
 }
 
+// CollaborationSnapshotChunk defines model for CollaborationSnapshotChunk.
+type CollaborationSnapshotChunk struct {
+	Complete   bool                               `json:"complete"`
+	Data       string                             `json:"data"`
+	Encoding   CollaborationSnapshotChunkEncoding `json:"encoding"`
+	NextOffset *int                               `json:"next_offset,omitempty"`
+	Offset     int                                `json:"offset"`
+	Sha256     string                             `json:"sha256"`
+	TotalBytes int                                `json:"total_bytes"`
+}
+
+// CollaborationSnapshotChunkEncoding defines model for CollaborationSnapshotChunk.Encoding.
+type CollaborationSnapshotChunkEncoding string
+
 // CommandType 命令类型，<module>.<command>，例如 ledger.commit_version。
 type CommandType = string
 
@@ -2243,13 +2456,11 @@ type CommitRequest struct {
 	AssetId *Ulid `json:"asset_id,omitempty"`
 
 	// BaseVersionId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
-	BaseVersionId *Ulid        `json:"base_version_id,omitempty"`
-	Content       ContentInput `json:"content"`
-
-	// Describe sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.
-	Describe *AssetPatch           `json:"describe,omitempty"`
-	Slug     *string               `json:"slug,omitempty"`
-	Task     *M2CatalogTaskBinding `json:"task,omitempty"`
+	BaseVersionId *Ulid                 `json:"base_version_id,omitempty"`
+	Content       ContentInput          `json:"content"`
+	Describe      *AssetPatch           `json:"describe,omitempty"`
+	Slug          *string               `json:"slug,omitempty"`
+	Task          *M2CatalogTaskBinding `json:"task,omitempty"`
 }
 
 // CommitResult defines model for CommitResult.
@@ -2365,16 +2576,12 @@ type CompletedRestoreReceiptAcceptanceBasis string
 // ContentInput defines model for ContentInput.
 type ContentInput struct {
 	// AssetType 资产类型说“它是什么”；文件格式另由文件本身决定。
-	AssetType VersionManifestAssetType `json:"asset_type"`
-	Files     []VersionManifestFile    `json:"files"`
-	Metadata  *map[string]interface{}  `json:"metadata,omitempty"`
-
-	// Producer 产物与证据的生产者身份：扩展 ID、版本、包摘要及信任来源；内置组件为 builtin_release。
-	Producer *ProducerRef `json:"producer,omitempty"`
-
-	// Rights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
-	Rights *VersionManifestRights `json:"rights,omitempty"`
-	Uses   *[]struct {
+	AssetType VersionManifestAssetType    `json:"asset_type"`
+	Files     []VersionManifestFile       `json:"files"`
+	Metadata  *map[string]interface{}     `json:"metadata,omitempty"`
+	Producer  *ProducerRef                `json:"producer,omitempty"`
+	Rights    *VersionManifestRightsInput `json:"rights,omitempty"`
+	Uses      *struct {
 		AliasGeneration *int `json:"alias_generation,omitempty"`
 
 		// AssetId 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
@@ -5746,7 +5953,12 @@ type Milestone struct {
 
 // MilestonePage defines model for MilestonePage.
 type MilestonePage struct {
-	Items []Milestone `json:"items"`
+	Complete   *bool       `json:"complete,omitempty"`
+	Items      []Milestone `json:"items"`
+	NextOffset *int        `json:"next_offset,omitempty"`
+	Offset     *int        `json:"offset,omitempty"`
+	Sha256     *string     `json:"sha256,omitempty"`
+	TotalItems *int        `json:"total_items,omitempty"`
 }
 
 // MilestoneProgress defines model for MilestoneProgress.
@@ -5998,6 +6210,8 @@ type QueryItem struct {
 
 // QueryPage Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.
 type QueryPage struct {
+	// Complete Present only for completion=explicit; true exactly when no next_cursor remains.
+	Complete   *bool       `json:"complete,omitempty"`
 	Items      []QueryItem `json:"items"`
 	NextCursor *string     `json:"next_cursor,omitempty"`
 	State      struct {
@@ -6005,6 +6219,9 @@ type QueryPage struct {
 		HighWater    int `json:"high_water"`
 		RebuildStart int `json:"rebuild_start"`
 	} `json:"state"`
+
+	// Truncated Present only for completion=explicit; false means this bounded page is complete, not that the whole scope has ended.
+	Truncated *bool `json:"truncated,omitempty"`
 }
 
 // ReadGrant defines model for ReadGrant.
@@ -6352,20 +6569,45 @@ type VersionManifestFileRole string
 // VersionManifestRights 提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。
 type VersionManifestRights struct {
 	// DigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
-	DigitalSourceType *string `json:"digital_source_type,omitempty"`
+	DigitalSourceType *VersionManifestRightsDigitalSourceType `json:"digital_source_type,omitempty"`
 
 	// License SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
-	License         string                           `json:"license"`
-	Noai            bool                             `json:"noai"`
-	RedistributeRaw bool                             `json:"redistribute_raw"`
-	Sensitivity     VersionManifestRightsSensitivity `json:"sensitivity"`
-	Usage           VersionManifestRightsUsage       `json:"usage"`
+	License         VersionManifestRightsLicense         `json:"license"`
+	Noai            VersionManifestRightsNoai            `json:"noai"`
+	RedistributeRaw VersionManifestRightsRedistributeRaw `json:"redistribute_raw"`
+	Sensitivity     VersionManifestRightsSensitivity     `json:"sensitivity"`
+	Usage           VersionManifestRightsUsage           `json:"usage"`
 }
 
-// VersionManifestRightsSensitivity defines model for VersionManifestRights.Sensitivity.
+// VersionManifestRightsDigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
+type VersionManifestRightsDigitalSourceType = string
+
+// VersionManifestRightsInput Existing commit input semantics: omitted noai/redistribute_raw decode as false. Original JSON is preserved for resumable request hashes; the frozen manifest still requires both fields explicitly.
+type VersionManifestRightsInput struct {
+	// DigitalSourceType IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。
+	DigitalSourceType *VersionManifestRightsDigitalSourceType `json:"digital_source_type,omitempty"`
+
+	// License SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
+	License         VersionManifestRightsLicense          `json:"license"`
+	Noai            *VersionManifestRightsNoai            `json:"noai,omitempty"`
+	RedistributeRaw *VersionManifestRightsRedistributeRaw `json:"redistribute_raw,omitempty"`
+	Sensitivity     VersionManifestRightsSensitivity      `json:"sensitivity"`
+	Usage           VersionManifestRightsUsage            `json:"usage"`
+}
+
+// VersionManifestRightsLicense SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。
+type VersionManifestRightsLicense = string
+
+// VersionManifestRightsNoai defines model for VersionManifestRightsNoai.
+type VersionManifestRightsNoai = bool
+
+// VersionManifestRightsRedistributeRaw defines model for VersionManifestRightsRedistributeRaw.
+type VersionManifestRightsRedistributeRaw = bool
+
+// VersionManifestRightsSensitivity defines model for VersionManifestRightsSensitivity.
 type VersionManifestRightsSensitivity string
 
-// VersionManifestRightsUsage defines model for VersionManifestRights.Usage.
+// VersionManifestRightsUsage defines model for VersionManifestRightsUsage.
 type VersionManifestRightsUsage string
 
 // VersionManifestUse defines model for VersionManifestUse.
@@ -6504,8 +6746,23 @@ type CreateBackupControlSessionParams struct {
 
 // GetBackupHistoryParams defines parameters for GetBackupHistory.
 type GetBackupHistoryParams struct {
+	// Completion Opt-in bounded live pages; default retains legacy items-only history.
+	Completion *GetBackupHistoryParamsCompletion `form:"completion,omitempty" json:"completion,omitempty"`
+	Limit      *int                              `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Original last job ID from next_cursor. Missing identity returns CURSOR_EXPIRED.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetBackupHistoryParamsCompletion defines parameters for GetBackupHistory.
+type GetBackupHistoryParamsCompletion string
+
+// GetBackupHistory200JSONResponseBody defines parameters for GetBackupHistory.
+type GetBackupHistory200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // GetBackupScheduleParams defines parameters for GetBackupSchedule.
@@ -6583,12 +6840,14 @@ type GetInstanceManagementInfoParams struct {
 
 // SearchAssetsParams defines parameters for SearchAssets.
 type SearchAssetsParams struct {
-	View      *SearchAssetsParamsView   `form:"view,omitempty" json:"view,omitempty"`
-	Limit     *int                      `form:"limit,omitempty" json:"limit,omitempty"`
-	Cursor    *string                   `form:"cursor,omitempty" json:"cursor,omitempty"`
-	Q         *string                   `form:"q,omitempty" json:"q,omitempty"`
-	ProjectId *Ulid                     `form:"project_id,omitempty" json:"project_id,omitempty"`
-	AssetType *VersionManifestAssetType `form:"asset_type,omitempty" json:"asset_type,omitempty"`
+	// Completion Explicit completeness fields are opt-in to preserve existing v1 strict decoders.
+	Completion *SearchAssetsParamsCompletion `form:"completion,omitempty" json:"completion,omitempty"`
+	View       *SearchAssetsParamsView       `form:"view,omitempty" json:"view,omitempty"`
+	Limit      *int                          `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor     *string                       `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Q          *string                       `form:"q,omitempty" json:"q,omitempty"`
+	ProjectId  *Ulid                         `form:"project_id,omitempty" json:"project_id,omitempty"`
+	AssetType  *VersionManifestAssetType     `form:"asset_type,omitempty" json:"asset_type,omitempty"`
 
 	// Tag 可重复的精确AND标签；NFC、去首尾空白、大小写敏感。最多64项，每项64个Unicode字符，拒绝空/控制字符。规范集合绑定原查询游标，空页有cursor须继续；非当前浏览器页局部过滤。
 	Tag *[]string `form:"tag,omitempty" json:"tag,omitempty"`
@@ -6596,6 +6855,9 @@ type SearchAssetsParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// SearchAssetsParamsCompletion defines parameters for SearchAssets.
+type SearchAssetsParamsCompletion string
 
 // SearchAssetsParamsView defines parameters for SearchAssets.
 type SearchAssetsParamsView string
@@ -6649,6 +6911,18 @@ type IssueReadGrantParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// ListAgentOperationsParams defines parameters for ListAgentOperations.
+type ListAgentOperationsParams struct {
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListAgentOperations200JSONResponseBodyContract defines parameters for ListAgentOperations.
+type ListAgentOperations200JSONResponseBodyContract string
+
+// ListAgentOperations200JSONResponseBodyItemsClassification defines parameters for ListAgentOperations.
+type ListAgentOperations200JSONResponseBodyItemsClassification string
 
 // GetContextParams defines parameters for GetContext.
 type GetContextParams struct {
@@ -6755,6 +7029,96 @@ type PostEvidenceParams struct {
 	// IdempotencyKey 幂等键，作用域为 (身份, 项目, 命令类型)。同键同摘要返回原结果或进行中的
 	// 202；同键不同摘要 409 IDEMPOTENCY_CONFLICT。新的业务意图必须使用新键。
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// GetExtensionsCommandsParams defines parameters for GetExtensionsCommands.
+type GetExtensionsCommandsParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsCommandsParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                   `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                   `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsCommandsParamsPagination defines parameters for GetExtensionsCommands.
+type GetExtensionsCommandsParamsPagination string
+
+// GetExtensionsCommands200JSONResponseBody1 defines parameters for GetExtensionsCommands.
+type GetExtensionsCommands200JSONResponseBody1 struct {
+	Complete   *bool                    `json:"complete,omitempty"`
+	Items      []M2ExtensionsCLICommand `json:"items"`
+	NextOffset *int                     `json:"next_offset,omitempty"`
+	Offset     *int                     `json:"offset,omitempty"`
+	Sha256     *string                  `json:"sha256,omitempty"`
+	TotalItems *int                     `json:"total_items,omitempty"`
+}
+
+// GetExtensionsCommands200JSONResponseBody defines parameters for GetExtensionsCommands.
+type GetExtensionsCommands200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetExtensionsEnablementsParams defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablementsParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsEnablementsParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                      `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                      `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                      `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsEnablementsParamsPagination defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablementsParamsPagination string
+
+// GetExtensionsEnablements200JSONResponseBody1 defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablements200JSONResponseBody1 struct {
+	Complete   *bool                        `json:"complete,omitempty"`
+	Items      []M2ExtensionsEnablementView `json:"items"`
+	NextOffset *int                         `json:"next_offset,omitempty"`
+	Offset     *int                         `json:"offset,omitempty"`
+	Sha256     *string                      `json:"sha256,omitempty"`
+	TotalItems *int                         `json:"total_items,omitempty"`
+}
+
+// GetExtensionsEnablements200JSONResponseBody defines parameters for GetExtensionsEnablements.
+type GetExtensionsEnablements200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetExtensionsPackagesParams defines parameters for GetExtensionsPackages.
+type GetExtensionsPackagesParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *GetExtensionsPackagesParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                                   `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                                   `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// GetExtensionsPackagesParamsPagination defines parameters for GetExtensionsPackages.
+type GetExtensionsPackagesParamsPagination string
+
+// GetExtensionsPackages200JSONResponseBody1 defines parameters for GetExtensionsPackages.
+type GetExtensionsPackages200JSONResponseBody1 struct {
+	Complete   *bool                     `json:"complete,omitempty"`
+	Items      []M2ExtensionsPackageView `json:"items"`
+	NextOffset *int                      `json:"next_offset,omitempty"`
+	Offset     *int                      `json:"offset,omitempty"`
+	Sha256     *string                   `json:"sha256,omitempty"`
+	TotalItems *int                      `json:"total_items,omitempty"`
+}
+
+// GetExtensionsPackages200JSONResponseBody defines parameters for GetExtensionsPackages.
+type GetExtensionsPackages200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // PostExtensionsPackagesParams defines parameters for PostExtensionsPackages.
@@ -7016,6 +7380,26 @@ type GetProjectParams struct {
 
 // GetProjectParamsView defines parameters for GetProject.
 type GetProjectParamsView string
+
+// ListMilestonesParams defines parameters for ListMilestones.
+type ListMilestonesParams struct {
+	// Pagination Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.
+	Pagination *ListMilestonesParamsPagination `form:"pagination,omitempty" json:"pagination,omitempty"`
+	Offset     *int                            `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit      *int                            `form:"limit,omitempty" json:"limit,omitempty"`
+	MaxBytes   *int                            `form:"max_bytes,omitempty" json:"max_bytes,omitempty"`
+
+	// ExpectedSha256 Required for nonzero offset; changed snapshots require replacing prior pages/chunks.
+	ExpectedSha256 *string `form:"expected_sha256,omitempty" json:"expected_sha256,omitempty"`
+}
+
+// ListMilestonesParamsPagination defines parameters for ListMilestones.
+type ListMilestonesParamsPagination string
+
+// ListMilestones200JSONResponseBody defines parameters for ListMilestones.
+type ListMilestones200JSONResponseBody struct {
+	union json.RawMessage
+}
 
 // PutMilestoneParams defines parameters for PutMilestone.
 type PutMilestoneParams struct {
@@ -7839,6 +8223,316 @@ func (t LantaiAgentResponseV1) MarshalJSON() ([]byte, error) {
 }
 
 func (t *LantaiAgentResponseV1) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBackupHistory returns the union data inside the GetBackupHistory200JSONResponseBody as a BackupHistory
+func (t GetBackupHistory200JSONResponseBody) AsBackupHistory() (BackupHistory, error) {
+	var body BackupHistory
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBackupHistory overwrites any union data inside the GetBackupHistory200JSONResponseBody as the provided BackupHistory
+func (t *GetBackupHistory200JSONResponseBody) FromBackupHistory(v BackupHistory) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBackupHistory performs a merge with any union data inside the GetBackupHistory200JSONResponseBody, using the provided BackupHistory
+func (t *GetBackupHistory200JSONResponseBody) MergeBackupHistory(v BackupHistory) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBackupHistoryPage returns the union data inside the GetBackupHistory200JSONResponseBody as a BackupHistoryPage
+func (t GetBackupHistory200JSONResponseBody) AsBackupHistoryPage() (BackupHistoryPage, error) {
+	var body BackupHistoryPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBackupHistoryPage overwrites any union data inside the GetBackupHistory200JSONResponseBody as the provided BackupHistoryPage
+func (t *GetBackupHistory200JSONResponseBody) FromBackupHistoryPage(v BackupHistoryPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBackupHistoryPage performs a merge with any union data inside the GetBackupHistory200JSONResponseBody, using the provided BackupHistoryPage
+func (t *GetBackupHistory200JSONResponseBody) MergeBackupHistoryPage(v BackupHistoryPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetBackupHistory200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetBackupHistory200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsCommands200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsCommands200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsCommands200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsCommands200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsCommands200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsCommands200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsCommands200JSONResponseBody1 returns the union data inside the GetExtensionsCommands200JSONResponseBody as a GetExtensionsCommands200JSONResponseBody1
+func (t GetExtensionsCommands200JSONResponseBody) AsGetExtensionsCommands200JSONResponseBody1() (GetExtensionsCommands200JSONResponseBody1, error) {
+	var body GetExtensionsCommands200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsCommands200JSONResponseBody1 overwrites any union data inside the GetExtensionsCommands200JSONResponseBody as the provided GetExtensionsCommands200JSONResponseBody1
+func (t *GetExtensionsCommands200JSONResponseBody) FromGetExtensionsCommands200JSONResponseBody1(v GetExtensionsCommands200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsCommands200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsCommands200JSONResponseBody, using the provided GetExtensionsCommands200JSONResponseBody1
+func (t *GetExtensionsCommands200JSONResponseBody) MergeGetExtensionsCommands200JSONResponseBody1(v GetExtensionsCommands200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsCommands200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsCommands200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsEnablements200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsEnablements200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsEnablements200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsEnablements200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsEnablements200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsEnablements200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsEnablements200JSONResponseBody1 returns the union data inside the GetExtensionsEnablements200JSONResponseBody as a GetExtensionsEnablements200JSONResponseBody1
+func (t GetExtensionsEnablements200JSONResponseBody) AsGetExtensionsEnablements200JSONResponseBody1() (GetExtensionsEnablements200JSONResponseBody1, error) {
+	var body GetExtensionsEnablements200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsEnablements200JSONResponseBody1 overwrites any union data inside the GetExtensionsEnablements200JSONResponseBody as the provided GetExtensionsEnablements200JSONResponseBody1
+func (t *GetExtensionsEnablements200JSONResponseBody) FromGetExtensionsEnablements200JSONResponseBody1(v GetExtensionsEnablements200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsEnablements200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsEnablements200JSONResponseBody, using the provided GetExtensionsEnablements200JSONResponseBody1
+func (t *GetExtensionsEnablements200JSONResponseBody) MergeGetExtensionsEnablements200JSONResponseBody1(v GetExtensionsEnablements200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsEnablements200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsEnablements200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the GetExtensionsPackages200JSONResponseBody as a CollaborationSnapshotChunk
+func (t GetExtensionsPackages200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the GetExtensionsPackages200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *GetExtensionsPackages200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the GetExtensionsPackages200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *GetExtensionsPackages200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetExtensionsPackages200JSONResponseBody1 returns the union data inside the GetExtensionsPackages200JSONResponseBody as a GetExtensionsPackages200JSONResponseBody1
+func (t GetExtensionsPackages200JSONResponseBody) AsGetExtensionsPackages200JSONResponseBody1() (GetExtensionsPackages200JSONResponseBody1, error) {
+	var body GetExtensionsPackages200JSONResponseBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetExtensionsPackages200JSONResponseBody1 overwrites any union data inside the GetExtensionsPackages200JSONResponseBody as the provided GetExtensionsPackages200JSONResponseBody1
+func (t *GetExtensionsPackages200JSONResponseBody) FromGetExtensionsPackages200JSONResponseBody1(v GetExtensionsPackages200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetExtensionsPackages200JSONResponseBody1 performs a merge with any union data inside the GetExtensionsPackages200JSONResponseBody, using the provided GetExtensionsPackages200JSONResponseBody1
+func (t *GetExtensionsPackages200JSONResponseBody) MergeGetExtensionsPackages200JSONResponseBody1(v GetExtensionsPackages200JSONResponseBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetExtensionsPackages200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetExtensionsPackages200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMilestonePage returns the union data inside the ListMilestones200JSONResponseBody as a MilestonePage
+func (t ListMilestones200JSONResponseBody) AsMilestonePage() (MilestonePage, error) {
+	var body MilestonePage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMilestonePage overwrites any union data inside the ListMilestones200JSONResponseBody as the provided MilestonePage
+func (t *ListMilestones200JSONResponseBody) FromMilestonePage(v MilestonePage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMilestonePage performs a merge with any union data inside the ListMilestones200JSONResponseBody, using the provided MilestonePage
+func (t *ListMilestones200JSONResponseBody) MergeMilestonePage(v MilestonePage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCollaborationSnapshotChunk returns the union data inside the ListMilestones200JSONResponseBody as a CollaborationSnapshotChunk
+func (t ListMilestones200JSONResponseBody) AsCollaborationSnapshotChunk() (CollaborationSnapshotChunk, error) {
+	var body CollaborationSnapshotChunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCollaborationSnapshotChunk overwrites any union data inside the ListMilestones200JSONResponseBody as the provided CollaborationSnapshotChunk
+func (t *ListMilestones200JSONResponseBody) FromCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCollaborationSnapshotChunk performs a merge with any union data inside the ListMilestones200JSONResponseBody, using the provided CollaborationSnapshotChunk
+func (t *ListMilestones200JSONResponseBody) MergeCollaborationSnapshotChunk(v CollaborationSnapshotChunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListMilestones200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListMilestones200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lantai 操作"
+  short_description: "通过正式 CLI/MCP 操作固定版本、验证字节并恢复原状态"
+  default_prompt: "Use $lantai-operations to complete the authorized Lantai task and verify its exact receipts."

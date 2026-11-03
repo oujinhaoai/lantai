@@ -409,7 +409,7 @@ func TestOpenAPIRoutesHaveHandlers(t *testing.T) {
 		t.Fatal(err)
 	}
 	paths := doc.(map[string]any)["paths"].(map[string]any)
-	public := map[string]bool{"/api/v1/meta": true, "/api/v1/sessions/exchange": true, "/api/v1/sessions/login": true, "/api/v1/sessions/setup": true}
+	public := map[string]bool{"/api/v1/meta": true, "/api/v1/capabilities": true, "/api/v1/sessions/exchange": true, "/api/v1/sessions/login": true, "/api/v1/sessions/setup": true}
 	for path, v := range paths {
 		if !strings.HasPrefix(path, "/api/") || public[path] {
 			continue

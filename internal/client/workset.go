@@ -108,10 +108,9 @@ func DecodeWorkset(r io.Reader) (WorksetInput, error) {
 	return in, nil
 }
 
-// ValidateWorkset performs local preflight only. It creates no directory and
-// sends no request. Destination roots and all existing descendants must not be
-// symlinks; each entry owns a distinct, non-overlapping relative directory.
-func ValidateWorkset(in WorksetInput, directory string) error {
+// validateWorksetDefinition checks IDs and relative path relationships only.
+// It neither opens a destination directory nor obtains transfer grants.
+func validateWorksetDefinition(in WorksetInput) error {
 	if in.Schema != WorksetSchema || len(in.Entries) == 0 || len(in.Entries) > MaxWorksetEntries {
 		return worksetInvalid("workset schema and 1..1000 entries are required")
 	}
@@ -150,13 +149,22 @@ func ValidateWorkset(in WorksetInput, directory string) error {
 			}
 		}
 	}
+	return nil
+}
+
+// ValidateWorkset adds local directory/link preflight without creating files
+// or obtaining transfer grants. Each entry owns one disjoint relative directory.
+func ValidateWorkset(in WorksetInput, directory string) error {
+	if err := validateWorksetDefinition(in); err != nil {
+		return err
+	}
 	root, err := openWorksetRoot(directory, false)
 	if err != nil || root == nil {
 		return err
 	}
 	defer root.Close()
-	for _, p := range destinations {
-		if err = checkWorksetTarget(root, p, true); err != nil {
+	for _, e := range in.Entries {
+		if err = checkWorksetTarget(root, e.Destination, true); err != nil {
 			return err
 		}
 	}
@@ -167,7 +175,37 @@ func ValidateWorkset(in WorksetInput, directory string) error {
 // declared dependencies and existing files are verified before any write or
 // read grant. A partially built plan is returned on error for diagnosis only.
 func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory string) (WorksetPlan, error) {
+	return c.planWorkset(ctx, in, directory, MaxWorksetFiles, MaxWorksetBytes)
+}
+func (c *Client) planWorkset(ctx context.Context, in WorksetInput, directory string, maxFiles int, maxBytes int64) (WorksetPlan, error) {
 	if err := ValidateWorkset(in, directory); err != nil {
+		return WorksetPlan{}, err
+	}
+	p, err := c.inspectWorkset(ctx, in, maxFiles, maxBytes)
+	if err != nil {
+		return p, err
+	}
+	root, err := openWorksetRoot(directory, false)
+	if err != nil {
+		return p, err
+	}
+	if root != nil {
+		defer root.Close()
+		if err = checkWorksetFiles(ctx, root, &p); err != nil {
+			return p, err
+		}
+	}
+	return p, nil
+}
+
+// InspectWorkset validates the fixed remote manifests and declared entrypoints/
+// dependencies only. It neither opens a local destination nor obtains a grant.
+func (c *Client) InspectWorkset(ctx context.Context, in WorksetInput) (WorksetPlan, error) {
+	return c.inspectWorkset(ctx, in, MaxWorksetFiles, MaxWorksetBytes)
+}
+
+func (c *Client) inspectWorkset(ctx context.Context, in WorksetInput, maxFiles int, maxBytes int64) (WorksetPlan, error) {
+	if err := validateWorksetDefinition(in); err != nil {
 		return WorksetPlan{}, err
 	}
 	raw, _ := json.Marshal(in)
@@ -189,8 +227,8 @@ func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory str
 		}
 		for _, f := range entry.Files {
 			p.FileCount++
-			if p.FileCount > MaxWorksetFiles || f.Size > MaxWorksetBytes-p.TotalBytes {
-				return p, worksetInvalid("workset exceeds 10000 files or 1 TiB; split it into smaller worksets")
+			if p.FileCount > maxFiles || f.Size > maxBytes-p.TotalBytes {
+				return p, worksetInvalid("workset exceeds the selected file/byte budget; split it into smaller worksets")
 			}
 			p.TotalBytes += f.Size
 			paths = append(paths, f.Path)
@@ -202,16 +240,6 @@ func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory str
 	}
 	if err = checkWorksetDependencies(in, paths); err != nil {
 		return p, err
-	}
-	root, err := openWorksetRoot(directory, false)
-	if err != nil {
-		return p, err
-	}
-	if root != nil {
-		defer root.Close()
-		if err = checkWorksetFiles(ctx, root, &p); err != nil {
-			return p, err
-		}
 	}
 	encoded, err := json.Marshal(p)
 	// A completed receipt uses a longer schema/state and "verified" for each
@@ -227,7 +255,10 @@ func (c *Client) PlanWorkset(ctx context.Context, in WorksetInput, directory str
 // pinned os.Root for every entry. Existing different files are never replaced.
 // Repeating the same input safely verifies completed files and resumes partials.
 func (c *Client) PullWorkset(ctx context.Context, in WorksetInput, directory, purpose string) (WorksetReceipt, error) {
-	p, err := c.PlanWorkset(ctx, in, directory)
+	return c.pullWorkset(ctx, in, directory, purpose, MaxWorksetFiles, MaxWorksetBytes)
+}
+func (c *Client) pullWorkset(ctx context.Context, in WorksetInput, directory, purpose string, maxFiles int, maxBytes int64) (WorksetReceipt, error) {
+	p, err := c.planWorkset(ctx, in, directory, maxFiles, maxBytes)
 	r := WorksetReceipt(p)
 	r.Schema, r.State = WorksetReceiptSchema, "partial"
 	if err != nil {
@@ -311,7 +342,7 @@ func (c *Client) worksetInstance(ctx context.Context) (string, error) {
 func (c *Client) worksetManifest(ctx context.Context, e WorksetEntry, instanceID string) (WorksetPlannedEntry, error) {
 	out := WorksetPlannedEntry{WorksetEntry: e}
 	endpoint := "/api/v1/assets/" + e.AssetID + "/versions/" + e.VersionID + "?view=full"
-	r, err := c.Do(ctx, http.MethodGet, endpoint, nil, Options{})
+	r, err := c.ReadResourceJSON(ctx, endpoint)
 	if err != nil {
 		return out, err
 	}

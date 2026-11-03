@@ -5,7 +5,7 @@ import "slices"
 // pushInputSchema projects the public commit contract into the local workflow.
 // RawMessage is wire JSON, not []byte: Go reflection would advertise it as a
 // byte array. Keep all domain fields and references from the embedded OpenAPI,
-// adapting only local file hashing and the server's optional-input semantics.
+// adapting only the local project selection and computable file hashes/sizes.
 func (a *adapter) pushInputSchema() (map[string]any, error) {
 	input, err := a.localSchema(map[string]any{
 		"type": "object", "additionalProperties": false,
@@ -31,25 +31,6 @@ func (a *adapter) pushInputSchema() (map[string]any, error) {
 	props := file["properties"].(map[string]any)
 	props["sha256"] = map[string]any{"anyOf": []any{props["sha256"], map[string]any{"const": ""}}}
 
-	// The input decoder defaults omitted booleans to false; the stored manifest
-	// requires them explicitly. Do not insert defaults into the request because
-	// its original JSON participates in the resumable state digest.
-	rights := defs["VersionManifestRights"].(map[string]any)
-	omitRequired(rights, "noai", "redistribute_raw")
-
-	// Optional pointer/raw JSON inputs accept null just like REST decoding.
-	// Omitted/null rights are resolved by the domain for an existing asset, and
-	// rejected by the domain when creating an asset without declared rights.
-	nullable := func(props map[string]any, names ...string) {
-		for _, name := range names {
-			props[name] = map[string]any{"anyOf": []any{props[name], map[string]any{"type": "null"}}}
-		}
-	}
-	nullable(commit["properties"].(map[string]any), "task", "describe")
-	patch := defs["AssetPatch"].(map[string]any)
-	nullable(patch["properties"].(map[string]any), "title", "summary", "tags", "subjects", "extra", "sensitivity", "defaults")
-	content := defs["ContentInput"].(map[string]any)
-	nullable(content["properties"].(map[string]any), "rights", "metadata", "producer", "uses")
 	return input, nil
 }
 

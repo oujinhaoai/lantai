@@ -189,7 +189,7 @@ func TestMetaNeedsNoSessionAndPullRejectsGrantMismatch(t *testing.T) {
 			respond(w, map[string]any{"manifest": map[string]any{"content": map[string]any{"files": []client.InputFile{{Path: "a", SHA256: strings.Repeat("a", 64), Size: 3}}}}})
 		}
 	})
-	if code, _, err := invoke(t, url, "pull", "--asset", "asset1", "--version", "version1", "--directory", t.TempDir()); code != 3 || !strings.Contains(err, "read grant") {
+	if code, _, err := invoke(t, url, "pull", "--asset", "01ARZ3NDEKTSV4RRFFQ69G5FAV", "--version", "01ARZ3NDEKTSV4RRFFQ69G5FAW", "--directory", t.TempDir()); code != 3 || !strings.Contains(err, "read grant") {
 		t.Fatalf("pull=%d %s", code, err)
 	}
 }
@@ -207,8 +207,22 @@ func TestBusinessMetadataIsNotRedactedAsCredential(t *testing.T) {
 	url := serve(t, func(w http.ResponseWriter, r *http.Request) {
 		respond(w, map[string]any{"description": map[string]any{"extra": map[string]string{"code": "catalog-code", "url": "https://reference.example/item"}}})
 	})
-	code, out, err := invoke(t, url, "show", "--asset", "asset1", "--view", "full")
+	code, out, err := invoke(t, url, "show", "--asset", "01ARZ3NDEKTSV4RRFFQ69G5FAV", "--view", "full")
 	if code != 0 || !strings.Contains(out, "catalog-code") || !strings.Contains(out, "reference.example") {
 		t.Fatalf("metadata changed: %d %s %s", code, out, err)
+	}
+}
+
+func TestSearchExplicitCompletionFlag(t *testing.T) {
+	t.Setenv("LANTAI_SESSION_TOKEN", "synthetic-session")
+	server := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/assets" || r.URL.Query().Get("completion") != "explicit" {
+			t.Errorf("explicit mode not sent: %s", r.URL)
+		}
+		respond(w, map[string]any{"items": []any{}, "complete": true, "truncated": false})
+	})
+	code, out, stderr := invoke(t, server, "search", "--explicit-completion")
+	if code != 0 || !strings.Contains(out, `"complete":true`) {
+		t.Fatal(code, out, stderr)
 	}
 }

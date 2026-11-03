@@ -140,6 +140,8 @@ type assetSearchState struct {
 }
 
 type assetSearchPage struct {
+	Complete   *bool             `json:"complete,omitempty"`
+	Truncated  *bool             `json:"truncated,omitempty"`
 	Items      []json.RawMessage `json:"items"`
 	NextCursor string            `json:"next_cursor,omitempty"`
 	State      *assetSearchState `json:"state"`
@@ -275,4 +277,27 @@ func incompleteAssetFind(result AssetFindResult, reason string) (AssetFindResult
 // String makes budget diagnostics useful without including filters or paths.
 func (r AssetFindResult) String() string {
 	return fmt.Sprintf("asset search: complete=%t truncated=%t pages=%d scanned=%d results=%d restarts=%d", r.Complete, r.Truncated, r.Pages, r.Scanned, len(r.Items), r.Restarts)
+}
+
+// AssetSearchQuery projects the same exact tag/profile normalization used by
+// FindAssets into one server-authorized page. The server binds all tags to its
+// opaque cursor; cursor expiration requires replacing the entire visible scope.
+func AssetSearchQuery(filter AssetFilter, cursor string, limit int) (url.Values, error) {
+	f, tags, err := normalizeAssetFilter(filter)
+	if err != nil {
+		return nil, err
+	}
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("client: page limit must be 1-100")
+	}
+	q := url.Values{"view": {"brief"}, "limit": {strconv.Itoa(limit)}}
+	for k, v := range map[string]string{"project_id": f.ProjectID, "asset_type": f.AssetType, "q": f.Text, "cursor": cursor} {
+		if v != "" {
+			q.Set(k, v)
+		}
+	}
+	for _, tag := range tags {
+		q.Add("tag", tag)
+	}
+	return q, nil
 }

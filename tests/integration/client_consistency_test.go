@@ -228,11 +228,35 @@ func newConsistencyClient(t *testing.T, bin, origin, token string) *consistencyC
 		t.Fatal(err)
 	}
 	for _, tool := range page.Tools {
-		if strings.Contains(tool.Name, "human") || strings.Contains(tool.Name, "trash") || strings.Contains(tool.Name, "shell") || strings.Contains(tool.Name, "token") || strings.Contains(tool.Name, "enable") {
+		assertOrdinaryMCPTool(t, tool)
+	}
+	return h
+}
+
+// First-party ordinary lifecycle commands and read-only enablement discovery
+// are explicit exceptions. Human governance mutations remain absent.
+func assertOrdinaryMCPTool(t *testing.T, tool *mcp.Tool) {
+	t.Helper()
+	switch tool.Name {
+	case "trash_preview", "trash_read", "extension_enablements":
+		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
+			t.Fatal("discovery/preview lost read-only contract", tool.Name)
+		}
+		return
+	case "trash_own", "trash_restore":
+		if tool.Annotations == nil || tool.Annotations.ReadOnlyHint {
+			t.Fatal("ordinary mutation mislabeled read-only", tool.Name)
+		}
+		return
+	}
+	for _, word := range []string{"human", "trash", "shell", "token", "enable", "disable", "purge", "hold", "approve"} {
+		if strings.Contains(tool.Name, word) {
 			t.Fatal("sensitive tool projected", tool.Name)
 		}
 	}
-	return h
+	if tool.Name == "run_answer" {
+		t.Fatal("human run input projected", tool.Name)
+	}
 }
 
 func (h *consistencyClient) connectMCP(t *testing.T, extra ...string) *mcp.ClientSession {

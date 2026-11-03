@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/oujinhaoai/lantai/internal/application"
+	"github.com/oujinhaoai/lantai/internal/client"
 	"github.com/oujinhaoai/lantai/internal/contract/clock"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/identity/masterkey"
@@ -126,12 +128,30 @@ func TestEntryCompletePackageRecoveryWithoutOriginalDevice(t *testing.T) {
 	if w := entryCall(t, e, "/setup/recovery/upload", raw, false); w.Code != 401 {
 		t.Fatalf("unclaimed upload: %d", w.Code)
 	}
-	if w := entryCall(t, e, "/setup/recovery/upload", raw, true); w.Code != 200 {
-		t.Fatalf("upload: %d %s", w.Code, w.Body.String())
+	controller := entryRecoveryClient(t, e)
+	packageFile := filepath.Join(packDir, "selected-package.lantai")
+	if err := client.WritePrivate(packageFile, raw); err != nil {
+		t.Fatal(err)
 	}
-	if w := entryCall(t, e, "/setup/recovery/restore", map[string]any{"package_sha256": e.state.Package.SHA256, "confirm_new_target": true}, true); w.Code != 200 {
-		t.Fatalf("restore: %d %s", w.Code, w.Body.String())
+	// The real package can exceed ordinary JSON limits; transfer remains streamed.
+	hash, _, err := client.HashRecoveryPackage(ctx, packageFile)
+	if err != nil {
+		t.Fatal(err)
 	}
+	if _, err := controller.Upload(ctx, packageFile, hash); err != nil {
+		t.Fatal(err)
+	}
+	status, err := controller.Status(ctx)
+	if err != nil || !bytes.Contains(status.Body, []byte(hash)) {
+		t.Fatal("package binding missing", err)
+	}
+	if _, err := controller.Check(ctx); err == nil {
+		t.Fatal("checks bypassed administrator factors")
+	}
+	if _, err := controller.Restore(ctx, client.RecoveryRestoreInput{PackageSHA256: hash, ConfirmNewTarget: true}); err != nil {
+		t.Fatal(err)
+	}
+
 	e.wg.Wait()
 	if e.state.Phase != "administrator" {
 		t.Fatalf("restore phase: %+v", e.state)
@@ -171,21 +191,25 @@ func TestEntryCompletePackageRecoveryWithoutOriginalDevice(t *testing.T) {
 	if err != nil || e.state.Phase != "review" {
 		t.Fatal("review restart failed", err)
 	}
-	w = entryCall(t, e, "/setup/recovery/review", map[string]any{}, true)
-	if w.Code != 200 {
-		t.Fatalf("review: %d %s", w.Code, w.Body.String())
+	controller = entryRecoveryClient(t, e)
+	checked, err := controller.Check(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
 	var review recoveryReview
-	if err = json.Unmarshal(w.Body.Bytes(), &review); err != nil || !review.AutomaticChecksPassed || len(review.Unknown) != 3 {
-		t.Fatal("invalid core review", err, w.Body.String())
+	if err := checked.Decode(&review); err != nil || !review.AutomaticChecksPassed || len(review.Unknown) != 3 {
+		t.Fatal("invalid core review", err)
 	}
-	if w = entryCall(t, e, "/setup/recovery/complete", map[string]any{"review_id": review.ID, "known_changes_reviewed": false, "source_offline": true, "activate": true}, true); w.Code != 409 {
+	if _, err := controller.Complete(ctx, client.RecoveryCompleteInput{ReviewID: string(review.ID), KnownChangesReviewed: false, SourceOffline: true, Activate: true, AcceptRecoveryPoint: true}); err == nil {
 		t.Fatal("unreviewed changes accepted")
 	}
-	w = entryCall(t, e, "/setup/recovery/complete", map[string]any{"review_id": review.ID, "known_changes_reviewed": true, "accept_recovery_point": true, "source_offline": true, "activate": true}, true)
-	if w.Code != 200 {
-		t.Fatalf("complete: %d %s", w.Code, w.Body.String())
+	if _, err := controller.Complete(ctx, client.RecoveryCompleteInput{ReviewID: string(review.ID), KnownChangesReviewed: true, SourceOffline: true, Activate: true, AcceptRecoveryPoint: true}); err != nil {
+		t.Fatal(err)
 	}
+	if _, err := controller.Status(ctx); err == nil {
+		t.Fatal("completed installation claim remained active")
+	}
+
 	if got := entryCall(t, e, "/setup/recovery/review", map[string]any{}, true); got.Code != 401 {
 		t.Fatal("completed claim still authorized", got.Code)
 	}
@@ -388,4 +412,20 @@ func TestEntryCancelTimeoutFailureAndResume(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Only synthetic first-start tests use a temporary HTTPS listener and CA.
+// Production TLS, claim and factor admission code is unchanged.
+func entryRecoveryClient(t *testing.T, e *Entry) *client.RecoveryControl {
+	t.Helper()
+	server := httptest.NewTLSServer(e)
+	t.Cleanup(server.Close)
+	e.cfg.HTTP.AllowedOrigins = append(e.cfg.HTTP.AllowedOrigins, server.URL)
+	config := server.Client().Transport.(*http.Transport).TLSClientConfig.Clone()
+	controller, err := client.NewRecoveryControl(client.Config{BaseURL: server.URL, TLSConfig: config}, e.code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(controller.Close)
+	return controller
 }

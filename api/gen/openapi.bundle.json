@@ -205,36 +205,85 @@
         "description": "sensitivity/defaults are recognized but rejected by the ordinary metadata command with FIELD_REQUIRES_SPECIAL_COMMAND.",
         "properties": {
           "defaults": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "extra": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "profile": {
             "$ref": "#/components/schemas/AssetProfile"
           },
           "sensitivity": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "subjects": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
           },
           "summary": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
           },
           "title": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
           }
         },
         "type": "object"
@@ -491,6 +540,34 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "BackupHistoryPage": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BackupJob"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "truncated": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "complete",
+          "truncated"
         ],
         "type": "object"
       },
@@ -1019,6 +1096,49 @@
         ],
         "type": "object"
       },
+      "CollaborationSnapshotChunk": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "data": {
+            "maxLength": 10924,
+            "type": "string"
+          },
+          "encoding": {
+            "enum": [
+              "base64"
+            ],
+            "type": "string"
+          },
+          "next_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "total_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "encoding",
+          "data",
+          "sha256",
+          "offset",
+          "total_bytes",
+          "complete"
+        ],
+        "type": "object"
+      },
       "CommandType": {
         "description": "命令类型，<module>.<command>，例如 ledger.commit_version。",
         "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
@@ -1037,13 +1157,27 @@
             "$ref": "#/components/schemas/ContentInput"
           },
           "describe": {
-            "$ref": "#/components/schemas/AssetPatch"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetPatch"
+              }
+            ]
           },
           "slug": {
             "type": "string"
           },
           "task": {
-            "$ref": "#/components/schemas/M2CatalogTaskBinding"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/M2CatalogTaskBinding"
+              }
+            ]
           }
         },
         "required": [
@@ -1326,42 +1460,70 @@
             "type": "array"
           },
           "metadata": {
-            "additionalProperties": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
           },
           "producer": {
-            "$ref": "#/components/schemas/ProducerRef"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProducerRef"
+              }
+            ]
           },
           "rights": {
-            "$ref": "#/components/schemas/VersionManifestRights"
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VersionManifestRightsInput"
+              }
+            ]
           },
           "uses": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "alias_generation": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
-                "asset_id": {
-                  "$ref": "#/components/schemas/Ulid"
-                },
-                "ref": {
-                  "type": "string"
-                },
-                "relation": {
-                  "type": "string"
-                },
-                "version_id": {
-                  "$ref": "#/components/schemas/Ulid"
-                }
+            "anyOf": [
+              {
+                "type": "null"
               },
-              "required": [
-                "relation"
-              ],
-              "type": "object"
-            },
-            "type": "array"
+              {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "alias_generation": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "asset_id": {
+                      "$ref": "#/components/schemas/Ulid"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "relation": {
+                      "type": "string"
+                    },
+                    "version_id": {
+                      "$ref": "#/components/schemas/Ulid"
+                    }
+                  },
+                  "required": [
+                    "relation"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            ]
           },
           "version_note": {
             "type": "string"
@@ -10526,11 +10688,30 @@
       "MilestonePage": {
         "additionalProperties": false,
         "properties": {
+          "complete": {
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/Milestone"
             },
             "type": "array"
+          },
+          "next_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "total_items": {
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -11139,6 +11320,10 @@
         "additionalProperties": false,
         "description": "Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.",
         "properties": {
+          "complete": {
+            "description": "Present only for completion=explicit; true exactly when no next_cursor remains.",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/QueryItem"
@@ -11170,6 +11355,10 @@
               "rebuild_start"
             ],
             "type": "object"
+          },
+          "truncated": {
+            "description": "Present only for completion=explicit; false means this bounded page is complete, not that the whole scope has ended.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -12004,36 +12193,22 @@
         "description": "提交时声明的许可快照。解除或降低限制只能经专门命令；有效限制由 provenance 按证据与依赖计算。",
         "properties": {
           "digital_source_type": {
-            "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
-            "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$",
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsDigitalSourceType"
           },
           "license": {
-            "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsLicense"
           },
           "noai": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/VersionManifestRightsNoai"
           },
           "redistribute_raw": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/VersionManifestRightsRedistributeRaw"
           },
           "sensitivity": {
-            "enum": [
-              "normal",
-              "personal"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsSensitivity"
           },
           "usage": {
-            "enum": [
-              "production",
-              "reference",
-              "restricted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/VersionManifestRightsUsage"
           }
         },
         "required": [
@@ -12044,6 +12219,68 @@
           "sensitivity"
         ],
         "type": "object"
+      },
+      "VersionManifestRightsDigitalSourceType": {
+        "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
+        "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$",
+        "type": "string"
+      },
+      "VersionManifestRightsInput": {
+        "additionalProperties": false,
+        "description": "Existing commit input semantics: omitted noai/redistribute_raw decode as false. Original JSON is preserved for resumable request hashes; the frozen manifest still requires both fields explicitly.",
+        "properties": {
+          "digital_source_type": {
+            "$ref": "#/components/schemas/VersionManifestRightsDigitalSourceType"
+          },
+          "license": {
+            "$ref": "#/components/schemas/VersionManifestRightsLicense"
+          },
+          "noai": {
+            "$ref": "#/components/schemas/VersionManifestRightsNoai"
+          },
+          "redistribute_raw": {
+            "$ref": "#/components/schemas/VersionManifestRightsRedistributeRaw"
+          },
+          "sensitivity": {
+            "$ref": "#/components/schemas/VersionManifestRightsSensitivity"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/VersionManifestRightsUsage"
+          }
+        },
+        "required": [
+          "usage",
+          "license",
+          "sensitivity"
+        ],
+        "type": "object"
+      },
+      "VersionManifestRightsLicense": {
+        "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "VersionManifestRightsNoai": {
+        "type": "boolean"
+      },
+      "VersionManifestRightsRedistributeRaw": {
+        "type": "boolean"
+      },
+      "VersionManifestRightsSensitivity": {
+        "enum": [
+          "normal",
+          "personal"
+        ],
+        "type": "string"
+      },
+      "VersionManifestRightsUsage": {
+        "enum": [
+          "production",
+          "reference",
+          "restricted"
+        ],
+        "type": "string"
       },
       "VersionManifestUse": {
         "additionalProperties": false,
@@ -12490,6 +12727,35 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "description": "Opt-in bounded live pages; default retains legacy items-only history.",
+            "in": "query",
+            "name": "completion",
+            "schema": {
+              "enum": [
+                "explicit"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Original last job ID from next_cursor. Missing identity returns CURSOR_EXPIRED.",
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12497,7 +12763,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BackupHistory"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BackupHistory"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BackupHistoryPage"
+                    }
+                  ]
                 }
               }
             },
@@ -12966,6 +13239,17 @@
         "operationId": "searchAssets",
         "parameters": [
           {
+            "description": "Explicit completeness fields are opt-in to preserve existing v1 strict decoders.",
+            "in": "query",
+            "name": "completion",
+            "schema": {
+              "enum": [
+                "explicit"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "view",
             "required": false,
@@ -13360,6 +13644,134 @@
           }
         },
         "summary": "固定版本的当前有效权利与用途判定"
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "operationId": "listAgentOperations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 1024,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "catalog_sha256": {
+                      "pattern": "^[a-f0-9]{64}$",
+                      "type": "string"
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "contract": {
+                      "enum": [
+                        "lantai.agent-operations/v1"
+                      ],
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "classification": {
+                            "enum": [
+                              "cli_mcp",
+                              "cli_only",
+                              "mcp_only",
+                              "api_only",
+                              "web_only",
+                              "unimplemented",
+                              "human_only",
+                              "local_only",
+                              "not_applicable"
+                            ],
+                            "type": "string"
+                          },
+                          "cli": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "mcp": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "route": {
+                            "type": "string"
+                          },
+                          "skill": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "cli",
+                          "mcp",
+                          "skill",
+                          "classification"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "contract",
+                    "catalog_sha256",
+                    "items",
+                    "complete"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bounded build metadata; not a permission grant or a claim of test completion"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "List reviewed Agent operation adapters and explicit coverage gaps"
       }
     },
     "/api/v1/context": {
@@ -14162,23 +14574,101 @@
       "get": {
         "description": "当前主体可见的已启用本机 cli.command；本机仍须显式安装并核验入口摘要，不下发令牌或人审能力。",
         "operationId": "getExtensionsCommands",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsCLICommand"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsCLICommand"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -14198,23 +14688,101 @@
       "get": {
         "description": "启用意图、运行激活、熔断和拒绝原因诊断；启停本身经 /api/v1/human 的 extension_enable / extension_disable。",
         "operationId": "getExtensionsEnablements",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsEnablementView"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsEnablementView"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -14268,23 +14836,101 @@
     "/api/v1/extensions/packages": {
       "get": {
         "operationId": "getExtensionsPackages",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsPackageView"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsPackageView"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -14376,15 +15022,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiFlowV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -15404,15 +16058,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/M2JobsJob"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -16038,6 +16700,56 @@
         "operationId": "listMilestones",
         "parameters": [
           {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "project_id",
             "required": true,
@@ -16051,7 +16763,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MilestonePage"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MilestonePage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    }
+                  ]
                 }
               }
             },
@@ -16603,15 +17322,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiTaskRunV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -17113,15 +17840,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiTaskV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
