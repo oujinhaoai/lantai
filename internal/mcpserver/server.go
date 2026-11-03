@@ -160,6 +160,7 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 			return nil, e
 		}
 		a.batchTools(has)
+		a.derivationTools(has)
 	}
 	a.managementTools(has)
 	if c.ExtensionsRegistry != "" && has("extension_cli_commands") {

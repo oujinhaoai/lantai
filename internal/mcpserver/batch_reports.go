@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/oujinhaoai/lantai/internal/assettools"
 	"github.com/oujinhaoai/lantai/internal/client"
 	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
@@ -18,7 +19,7 @@ func batchTextHash(text string) string {
 }
 
 func (a *adapter) batchReportTool() {
-	mcp.AddTool(a.s, &mcp.Tool{Name: "batch_report_page", Description: "Read bounded metadata rows/files/edits/issues from an exact private batch receipt. Continue with offset and original expected_sha256. Only known import/workset/reference schemas are readable; source roots, complete notes, transfer grants and credentials are excluded. This is a saved local observation, never current remote authorization or proof; recorded verification flags are explicitly historical.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
+	mcp.AddTool(a.s, &mcp.Tool{Name: "batch_report_page", Description: "Read bounded metadata rows/files/edits/issues from an exact private batch receipt. Continue with offset and original expected_sha256. Only known import/workset/reference/derivation/comparison/OBJ schemas are readable; source roots, complete notes, transfer grants and credentials are excluded. This is a saved local observation, never current remote authorization or proof; recorded verification flags are explicitly historical.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
 		File           string `json:"file"`
 		Section        string `json:"section,omitempty"`
 		Key            string `json:"key,omitempty"`
@@ -94,6 +95,64 @@ func batchReportRows(raw []byte, section, key string) ([]any, map[string]any, er
 		return nil, nil, errcode.New(errcode.SchemaInvalid, "unknown receipt schema, section or selected row key")
 	}
 	switch header.Schema {
+	case "lantai.version-file-comparison/v1":
+		if key != "" {
+			return invalid()
+		}
+		var comparison client.VersionComparison
+		if err := json.Unmarshal(raw, &comparison); err != nil {
+			return nil, nil, err
+		}
+		if section == "rows" {
+			for _, row := range comparison.Files {
+				rows = append(rows, row)
+			}
+		} else if section == "fields" {
+			for _, row := range comparison.Fields {
+				before, _ := canonjson.Canonicalize(row.Before)
+				after, _ := canonjson.Canonicalize(row.After)
+				rows = append(rows, map[string]any{"field": row.Field, "changed": row.Changed, "before_sha256": batchTextHash(string(before)), "after_sha256": batchTextHash(string(after)), "before_bytes": len(row.Before), "after_bytes": len(row.After)})
+			}
+		} else {
+			return invalid()
+		}
+	case "lantai.obj-structure/v1":
+		if key != "" {
+			return invalid()
+		}
+		var object assettools.Wireframe
+		if err := json.Unmarshal(raw, &object); err != nil {
+			return nil, nil, err
+		}
+		meta["vertices"], meta["edges"], meta["faces"], meta["material_libraries"], meta["material_libraries_truncated"] = len(object.Vertices), len(object.Edges), object.Faces, len(object.MaterialLibraries), object.MaterialLibrariesTruncated
+		switch section {
+		case "rows":
+			rows = append(rows, map[string]any{"vertices": len(object.Vertices), "edges": len(object.Edges), "faces": object.Faces})
+		case "vertices":
+			for _, point := range object.Vertices {
+				rows = append(rows, point)
+			}
+		case "edges":
+			for _, edge := range object.Edges {
+				rows = append(rows, edge)
+			}
+		default:
+			return invalid()
+		}
+
+	case client.DerivationReceiptSchema:
+		if section != "rows" || key != "" {
+			return invalid()
+		}
+		var receipt client.DerivationReceipt
+		if err := json.Unmarshal(raw, &receipt); err != nil {
+			return nil, nil, err
+		}
+		meta["tool"], meta["action"], meta["purpose"], meta["artifact"], meta["current_remote_verified"] = receipt.Tool, receipt.Action, receipt.Purpose, receipt.Artifact, receipt.CurrentRemoteVerified
+		for _, proof := range receipt.Inputs {
+			rows = append(rows, proof)
+		}
+
 	case client.ImportPlanSchema:
 		var plan client.ImportPlan
 		if err := json.Unmarshal(raw, &plan); err != nil {

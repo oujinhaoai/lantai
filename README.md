@@ -75,6 +75,8 @@ MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客�
 
 管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
 
+固定版本比较、PNG/JPEG/WebP缩略图与PNG代理、受限OBJ结构/线框和Unicode工作集TAR已有CLI/MCP[有界派生入口](docs/contracts/asset-derivations.md)；实际源授权与字节重验，产物和完整回执私有保存，拒绝后不自动换用途。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

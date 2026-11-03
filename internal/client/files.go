@@ -120,7 +120,7 @@ func hashFile(ctx context.Context, f *os.File) (string, int64, error) {
 		return "", 0, errors.New("client: input must be a regular file")
 	}
 	hash := sha256.New()
-	n, err := io.CopyBuffer(hash, contextReader{ctx, f}, make([]byte, 256<<10))
+	n, err := io.CopyBuffer(hash, io.LimitReader(contextReader{ctx, f}, st.Size()), make([]byte, 256<<10))
 	if err != nil {
 		return "", n, err
 	}
