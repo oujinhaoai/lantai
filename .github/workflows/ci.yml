@@ -78,7 +78,7 @@ jobs:
         include:
           - { os: ubuntu-latest, timeout: 20m }
           - { os: macos-latest, timeout: 20m }
-          - { os: windows-latest, timeout: 30m }
+          - { os: windows-latest, timeout: 45m }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,8 +91,8 @@ jobs:
         if: runner.os == 'Windows'
         run: go test -count=1 -run 'TestWindows|TestPinned|TestAssistantCLIInspect|TestAssistantWorkerPolicy|TestAssistantWorkerLocalResult|TestRecoveryPackageRoundTrip|TestExclusiveConcurrent|TestManagementInfo|TestReferencePinned|TestWorksetRootAndDescendant|TestImportApplyPinnedState' ./cmd/lantai ./internal/client ./internal/localassistant ./internal/operations ./internal/platform/fsutil
       - name: go test
-        # Windows 托管 runner 的真实实例矩阵可超过 20 分钟累计执行；
-        # 按平台限制整个测试包，不修改用例断言或性能验收阈值。
+        # 合并后的 Windows 集成包触发 30m 累计看门狗时，当前用例仅运行 6 秒。
+        # 保留有限的 45m 单包预算，不修改单用例断言、取消或性能验收阈值。
         run: go test -timeout=${{ matrix.timeout }} -count=1 ./...
       - name: sqlite capability report
         shell: bash
