@@ -277,8 +277,12 @@ func TestDownloadRejectsUnsafeAndUnhonoredRange(t *testing.T) {
 		}
 	}
 	meta, _ := json.Marshal(downloadState{Origin: c.Origin(), SHA256: sha("abc"), Size: 3})
-	_ = os.WriteFile(filepath.Join(dir, "a.lantai-download.json"), meta, 0600)
-	_ = os.WriteFile(filepath.Join(dir, "a.lantai-part"), []byte("a"), 0600)
+	if err := WritePrivate(filepath.Join(dir, "a.lantai-download.json"), meta); err != nil {
+		t.Fatal(err)
+	}
+	if err := WritePrivate(filepath.Join(dir, "a.lantai-part"), []byte("a")); err != nil {
+		t.Fatal(err)
+	}
 	if err := c.Download(context.Background(), DownloadGrant{URL: "/xfer/a", SHA256: sha("abc"), Size: 3}, dir, "a"); err == nil {
 		t.Fatal("ignored range accepted")
 	}

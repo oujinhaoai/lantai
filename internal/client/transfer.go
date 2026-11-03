@@ -154,6 +154,10 @@ func (c *Client) downloadRoot(ctx context.Context, g DownloadGrant, root *os.Roo
 		if err != nil {
 			return err
 		}
+		if err := checkPinnedOutputPrivate(mf); err != nil {
+			_ = mf.Close()
+			return err
+		}
 		raw, err := io.ReadAll(io.LimitReader(mf, MaxJSONBytes+1))
 		mf.Close()
 		if err != nil || int64(len(raw)) > MaxJSONBytes {
@@ -171,7 +175,7 @@ func (c *Client) downloadRoot(ctx context.Context, g DownloadGrant, root *os.Roo
 			return err
 		}
 		raw, _ := json.Marshal(wanted)
-		mf, err := root.OpenFile(meta, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		mf, err := createPinnedOutputTemp(root, meta)
 		if err != nil {
 			return err
 		}
@@ -192,7 +196,7 @@ func (c *Client) downloadRoot(ctx context.Context, g DownloadGrant, root *os.Roo
 	var f *os.File
 	st, err := root.Lstat(part)
 	if errors.Is(err, os.ErrNotExist) {
-		f, err = root.OpenFile(part, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+		f, err = createPinnedOutputTemp(root, part)
 	} else if err == nil {
 		if !st.Mode().IsRegular() {
 			return errors.New("client: partial file must be regular")
@@ -210,6 +214,9 @@ func (c *Client) downloadRoot(ctx context.Context, g DownloadGrant, root *os.Roo
 		return err
 	}
 	defer f.Close()
+	if err := checkPinnedOutputPrivate(f); err != nil {
+		return err
+	}
 	st, err = f.Stat()
 	if err != nil {
 		return err
