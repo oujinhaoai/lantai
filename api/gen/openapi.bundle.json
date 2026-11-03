@@ -11139,6 +11139,10 @@
         "additionalProperties": false,
         "description": "Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.",
         "properties": {
+          "complete": {
+            "description": "Present only for completion=explicit; true exactly when no next_cursor remains.",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/QueryItem"
@@ -11170,6 +11174,10 @@
               "rebuild_start"
             ],
             "type": "object"
+          },
+          "truncated": {
+            "description": "Present only for completion=explicit; false means this bounded page is complete, not that the whole scope has ended.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -12965,6 +12973,17 @@
       "get": {
         "operationId": "searchAssets",
         "parameters": [
+          {
+            "description": "Explicit completeness fields are opt-in to preserve existing v1 strict decoders.",
+            "in": "query",
+            "name": "completion",
+            "schema": {
+              "enum": [
+                "explicit"
+              ],
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "view",

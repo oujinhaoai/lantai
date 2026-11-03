@@ -23,13 +23,14 @@ import (
 )
 
 func Names() []string {
-	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "versions", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
 }
 func Help() string {
-	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
+	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | versions | pull | metadata get/set | search | operation
 公共参数：--server HTTPS_ORIGIN --session-file FILE [--ca-file PEM] [--json] [--allow-http（仅loopback开发）]
 凭据：LANTAI_SESSION_TOKEN 或私有会话文件；login --credentials-file FILE；session exchange --token-file FILE 或 LANTAI_TOKEN。
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
+versions --asset ID [--cursor CURSOR --limit N]；rights show --asset ID --version ID；rights evidence --input JSON --idempotency-key KEY。
 show/pull --asset ID --version ID（或 --ref lantai://...）；pull --directory DIR。
 pull --purpose：archive_review（默认）| reference | production | generative_input | raw_export；用途须经服务端权利与授权校验。
 项目创建、commit、metadata set 必须显式 --idempotency-key KEY；metadata set 还需 --if-match '"REVISION"'。
@@ -57,7 +58,7 @@ type sessionFile struct {
 type options struct {
 	filePath, caFile, secretFile                                                                                                                                         string
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
-	allowHTTP, json                                                                                                                                                      bool
+	explicitCompletion, allowHTTP, json                                                                                                                                  bool
 	limit                                                                                                                                                                int
 }
 
@@ -148,6 +149,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.session, "session-file", os.Getenv("LANTAI_SESSION"), "private session file")
 	f.StringVar(&o.caFile, "ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	f.BoolVar(&o.allowHTTP, "allow-http", false, "allow loopback HTTP for development")
+	f.BoolVar(&o.explicitCompletion, "explicit-completion", false, "request complete/truncated search page fields")
 	f.BoolVar(&o.json, "json", false, "stable JSON output (default)")
 	f.StringVar(&o.input, "input", "", "JSON/YAML request document")
 	f.StringVar(&o.directory, "directory", "", "local working copy directory")
@@ -323,6 +325,7 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		case "", "list":
 			q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}, "view": {o.view}}
 			return do(http.MethodGet, "/api/v1/projects?"+q.Encode(), nil)
+
 		case "show":
 			if err := needed(o.name, "--name project key is required"); err != nil {
 				return client.Response{}, err
@@ -348,6 +351,9 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return do(http.MethodGet, path, nil)
 	case "search":
 		q := url.Values{"q": {o.query}, "project_id": {o.project}, "asset_type": {o.assetType}, "cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}, "view": {o.view}}
+		if o.explicitCompletion {
+			q.Set("completion", "explicit")
+		}
 		return do(http.MethodGet, "/api/v1/assets?"+q.Encode(), nil)
 	case "operation":
 		if err := needed(o.id, "--id is required"); err != nil {
@@ -363,6 +369,12 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 			path += "/versions/" + segment(o.version)
 		}
 		return do(http.MethodGet, path+"?view="+url.QueryEscape(o.view), nil)
+	case "versions":
+		if !ids.ID(o.asset).Valid() {
+			return client.Response{}, usage("--asset ULID is required")
+		}
+		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(o.limit)}}
+		return do(http.MethodGet, "/api/v1/assets/"+o.asset+"/versions?"+q.Encode(), nil)
 	case "metadata":
 		if o.asset == "" {
 			return client.Response{}, usage("--asset is required")

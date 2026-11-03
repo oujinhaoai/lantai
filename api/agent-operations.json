@@ -23,11 +23,14 @@
     {
       "id": "appendRightsEvidence",
       "route": "POST /api/v1/rights/evidence",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "rights evidence"
+      ],
+      "mcp": [
+        "rights_evidence"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "approveBackupDownload",
@@ -343,10 +346,12 @@
       "cli": [
         "show"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_current",
+        "resource_read_chunk"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getAssetType",
@@ -354,10 +359,11 @@
       "cli": [
         "types"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_types"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getBackupControlSession",
@@ -610,10 +616,11 @@
       "cli": [
         "project show"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getProjectMembers",
@@ -621,10 +628,11 @@
       "cli": [
         "identity members"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_members"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getResync",
@@ -748,7 +756,9 @@
         "show"
       ],
       "mcp": [
-        "resource_read"
+        "resource_read",
+        "resource_files",
+        "resource_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -756,11 +766,15 @@
     {
       "id": "getVersionRights",
       "route": "GET /api/v1/assets/{asset_id}/versions/{version_id}/rights",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "rights show"
+      ],
+      "mcp": [
+        "rights_read",
+        "resource_read_chunk"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "heartbeatDeviceJob",
@@ -838,11 +852,14 @@
     {
       "id": "listAssetVersions",
       "route": "GET /api/v1/assets/{asset_id}/versions",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "versions"
+      ],
+      "mcp": [
+        "resource_versions"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "listDeviceJobs",
@@ -895,10 +912,11 @@
       "cli": [
         "project list"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_list"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "listTypes",
@@ -906,10 +924,11 @@
       "cli": [
         "types"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_types"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "localMaintenance",
@@ -952,10 +971,11 @@
       "cli": [
         "metadata set"
       ],
-      "mcp": [],
+      "mcp": [
+        "metadata_set"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "pollDevice",
@@ -1216,10 +1236,11 @@
       "cli": [
         "rights assert"
       ],
-      "mcp": [],
+      "mcp": [
+        "rights_assert"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postRightsCancel",
@@ -1227,10 +1248,11 @@
       "cli": [
         "rights cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "rights_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTaskRuns",

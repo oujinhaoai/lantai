@@ -68,6 +68,8 @@ Check results are validated against the complete wire contract before decoding, 
 
 Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
 
+Resource clients provide project/type/member discovery, version history, bounded exact file lists and full JSON chunks, plus MCP adapters for conditional metadata and current rights; see the [Agent resource contract](docs/contracts/agent-resources.md).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

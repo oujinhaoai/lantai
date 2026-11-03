@@ -1844,6 +1844,21 @@ func (e ApproveBackupDownload200JSONResponseBodySessionRequired) Valid() bool {
 	}
 }
 
+// Defines values for SearchAssetsParamsCompletion.
+const (
+	SearchAssetsParamsCompletionExplicit SearchAssetsParamsCompletion = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the SearchAssetsParamsCompletion enum.
+func (e SearchAssetsParamsCompletion) Valid() bool {
+	switch e {
+	case SearchAssetsParamsCompletionExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchAssetsParamsView.
 const (
 	SearchAssetsParamsViewBrief SearchAssetsParamsView = "brief"
@@ -6052,6 +6067,8 @@ type QueryItem struct {
 
 // QueryPage Both views return the security-filtered catalog projection. Full does not expand files/uses; use exact reads for the frozen manifest.
 type QueryPage struct {
+	// Complete Present only for completion=explicit; true exactly when no next_cursor remains.
+	Complete   *bool       `json:"complete,omitempty"`
 	Items      []QueryItem `json:"items"`
 	NextCursor *string     `json:"next_cursor,omitempty"`
 	State      struct {
@@ -6059,6 +6076,9 @@ type QueryPage struct {
 		HighWater    int `json:"high_water"`
 		RebuildStart int `json:"rebuild_start"`
 	} `json:"state"`
+
+	// Truncated Present only for completion=explicit; false means this bounded page is complete, not that the whole scope has ended.
+	Truncated *bool `json:"truncated,omitempty"`
 }
 
 // ReadGrant defines model for ReadGrant.
@@ -6637,12 +6657,14 @@ type GetInstanceManagementInfoParams struct {
 
 // SearchAssetsParams defines parameters for SearchAssets.
 type SearchAssetsParams struct {
-	View      *SearchAssetsParamsView   `form:"view,omitempty" json:"view,omitempty"`
-	Limit     *int                      `form:"limit,omitempty" json:"limit,omitempty"`
-	Cursor    *string                   `form:"cursor,omitempty" json:"cursor,omitempty"`
-	Q         *string                   `form:"q,omitempty" json:"q,omitempty"`
-	ProjectId *Ulid                     `form:"project_id,omitempty" json:"project_id,omitempty"`
-	AssetType *VersionManifestAssetType `form:"asset_type,omitempty" json:"asset_type,omitempty"`
+	// Completion Explicit completeness fields are opt-in to preserve existing v1 strict decoders.
+	Completion *SearchAssetsParamsCompletion `form:"completion,omitempty" json:"completion,omitempty"`
+	View       *SearchAssetsParamsView       `form:"view,omitempty" json:"view,omitempty"`
+	Limit      *int                          `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor     *string                       `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Q          *string                       `form:"q,omitempty" json:"q,omitempty"`
+	ProjectId  *Ulid                         `form:"project_id,omitempty" json:"project_id,omitempty"`
+	AssetType  *VersionManifestAssetType     `form:"asset_type,omitempty" json:"asset_type,omitempty"`
 
 	// Tag 可重复的精确AND标签；NFC、去首尾空白、大小写敏感。最多64项，每项64个Unicode字符，拒绝空/控制字符。规范集合绑定原查询游标，空页有cursor须继续；非当前浏览器页局部过滤。
 	Tag *[]string `form:"tag,omitempty" json:"tag,omitempty"`
@@ -6650,6 +6672,9 @@ type SearchAssetsParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// SearchAssetsParamsCompletion defines parameters for SearchAssets.
+type SearchAssetsParamsCompletion string
 
 // SearchAssetsParamsView defines parameters for SearchAssets.
 type SearchAssetsParamsView string
