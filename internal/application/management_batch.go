@@ -12,10 +12,10 @@ import (
 	"github.com/oujinhaoai/lantai/internal/catalog/pathrule"
 	"github.com/oujinhaoai/lantai/internal/commands"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
-	"github.com/oujinhaoai/lantai/internal/contract/canonjson"
 	"github.com/oujinhaoai/lantai/internal/contract/digest"
 	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 	"github.com/oujinhaoai/lantai/internal/contract/ids"
+	"github.com/oujinhaoai/lantai/internal/contract/managementrecord"
 	"github.com/oujinhaoai/lantai/internal/identity"
 	"github.com/oujinhaoai/lantai/internal/operations"
 )
@@ -27,13 +27,8 @@ type batchRef struct {
 	AssetID   ids.ID `json:"asset_id"`
 	VersionID ids.ID `json:"version_id"`
 }
-type batchEnvelope struct {
-	Schema     string          `json:"schema"`
-	Kind       string          `json:"kind"`
-	InstanceID ids.ID          `json:"instance_id"`
-	ProjectID  ids.ID          `json:"project_id"`
-	Payload    json.RawMessage `json:"payload"`
-}
+type batchEnvelope = managementrecord.Envelope
+
 type batchAsset struct {
 	batchRef
 	Key            string        `json:"key"`
@@ -156,7 +151,8 @@ func (a *App) readBatchRecord(ctx context.Context, who authz.Context, ref batchR
 		return env, v, err
 	}
 	b := files["record.json"]
-	if canonjson.Validate(b) != nil || json.Unmarshal(b, &env) != nil || env.Schema != "lantai.management-record/v1" || env.Kind != kind || env.InstanceID != a.Instance.InstanceID() || env.ProjectID != v.Version.ProjectID {
+	env, err = managementrecord.Decode(b)
+	if err != nil || env.Kind != kind || env.InstanceID != a.Instance.InstanceID() || env.ProjectID != v.Version.ProjectID {
 		return env, v, batchInvalid()
 	}
 	return env, v, nil

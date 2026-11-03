@@ -1,0 +1,54 @@
+{
+  "schema": "lantai.migration-batch/v1",
+  "valid": false,
+  "description": "Revision requires original fixed predecessor",
+  "document": {
+    "schema": "lantai.migration-batch/v1",
+    "batch_id": "synthetic-batch-1",
+    "revision": 2,
+    "project_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "instance_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "title": "Synthetic batch",
+    "owner_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "last_action": {
+      "actor_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "at": "2026-11-03T00:00:00.000Z",
+      "action": "create",
+      "note": "Original source is retained; no acceptance claim."
+    },
+    "stage": "inventory",
+    "acceptance": "not_requested",
+    "source_retained": true,
+    "intended_purpose": "production",
+    "reference_scope": "none",
+    "import_summary": {
+      "planned": 3,
+      "committed": 0,
+      "description_pending": 1,
+      "failed": 0,
+      "unknown": 1,
+      "not_attempted": 1
+    },
+    "evidence": {
+      "assets": [],
+      "worksets": [],
+      "verifications": [],
+      "recovery": [],
+      "reference_jobs": []
+    },
+    "checklist": {
+      "excluded_backed_up": false,
+      "working_inputs_backed_up": false,
+      "entrypoints_opened": false,
+      "new_results_captured": false,
+      "fallback_ready": false,
+      "selected_notes_reviewed": false
+    }
+  },
+  "expect": [
+    {
+      "pointer": "",
+      "keyword": "required"
+    }
+  ]
+}

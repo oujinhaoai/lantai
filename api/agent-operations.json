@@ -142,11 +142,14 @@
     {
       "id": "checkManagementBatch",
       "route": "POST /api/v1/management/batches/check",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "management check"
+      ],
+      "mcp": [
+        "management_check"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "checkUploadBlobs",
@@ -977,11 +980,36 @@
     },
     {
       "id": "managementRecords",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "management prepare",
+        "management save",
+        "management revise",
+        "management list",
+        "management read"
+      ],
+      "mcp": [
+        "management_prepare",
+        "management_save",
+        "management_revise",
+        "management_list",
+        "management_read",
+        "management_read_chunk"
+      ],
       "skill": [],
-      "classification": "web_only",
-      "reason": "Prepare/save/reopen/revise high-level management envelopes currently requires the web workflow."
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "migrationBatchPlan",
+      "cli": [
+        "management batch-create",
+        "management batch-revise"
+      ],
+      "mcp": [
+        "management_batch_create",
+        "management_batch_revise"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
     },
     {
       "id": "patchAssetMetadata",
