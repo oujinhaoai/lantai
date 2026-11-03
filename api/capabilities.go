@@ -1,9 +1,14 @@
 package api
 
 import (
+	"bytes"
+	"crypto/sha256"
 	_ "embed"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"sort"
 )
 
@@ -14,6 +19,13 @@ import (
 var AgentOperations []byte
 
 const AgentOperationsContract = "lantai.agent-operations/v1"
+
+var ErrAgentOperationCursorExpired = errors.New("capability catalog changed; restart the inventory")
+
+type agentOperationCursor struct {
+	CatalogSHA256 string `json:"catalog_sha256"`
+	After         string `json:"after"`
+}
 
 type AgentOperation struct {
 	ID             string   `json:"id"`
@@ -26,15 +38,16 @@ type AgentOperation struct {
 }
 
 type AgentOperationPage struct {
-	Contract   string           `json:"contract"`
-	Items      []AgentOperation `json:"items"`
-	NextCursor string           `json:"next_cursor,omitempty"`
-	Complete   bool             `json:"complete"`
+	Contract      string           `json:"contract"`
+	CatalogSHA256 string           `json:"catalog_sha256"`
+	Items         []AgentOperation `json:"items"`
+	NextCursor    string           `json:"next_cursor,omitempty"`
+	Complete      bool             `json:"complete"`
 }
 
-// AgentOperationList is a stable, bounded build inventory. Its cursor is the
-// last operation ID, not a grant, a project identifier or a data query cursor.
-func AgentOperationList(after string, limit int) (AgentOperationPage, error) {
+// AgentOperationList is a bounded build inventory. Its opaque cursor binds the
+// last operation ID to the exact catalog digest; it conveys no authorization.
+func AgentOperationList(cursor string, limit int) (AgentOperationPage, error) {
 	var doc struct {
 		Contract   string           `json:"contract"`
 		Operations []AgentOperation `json:"operations"`
@@ -45,6 +58,31 @@ func AgentOperationList(after string, limit int) (AgentOperationPage, error) {
 	if doc.Contract != AgentOperationsContract || limit < 1 || limit > 20 {
 		return AgentOperationPage{}, errors.New("invalid capability page")
 	}
+	digest := sha256.Sum256(AgentOperations)
+	catalogSHA256 := hex.EncodeToString(digest[:])
+	after := ""
+	if cursor != "" {
+		if len(cursor) > 1024 {
+			return AgentOperationPage{}, errors.New("invalid capability cursor")
+		}
+		raw, err := base64.RawURLEncoding.Strict().DecodeString(cursor)
+		if err != nil {
+			return AgentOperationPage{}, errors.New("invalid capability cursor")
+		}
+		var c agentOperationCursor
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&c); err != nil || c.After == "" || len(c.CatalogSHA256) != 64 {
+			return AgentOperationPage{}, errors.New("invalid capability cursor")
+		}
+		if err := dec.Decode(new(any)); err != io.EOF {
+			return AgentOperationPage{}, errors.New("invalid capability cursor")
+		}
+		if c.CatalogSHA256 != catalogSHA256 {
+			return AgentOperationPage{}, ErrAgentOperationCursorExpired
+		}
+		after = c.After
+	}
 	start := 0
 	if after != "" {
 		start = sort.Search(len(doc.Operations), func(i int) bool { return doc.Operations[i].ID >= after })
@@ -54,9 +92,13 @@ func AgentOperationList(after string, limit int) (AgentOperationPage, error) {
 		start++
 	}
 	end := min(start+limit, len(doc.Operations))
-	out := AgentOperationPage{Contract: doc.Contract, Items: doc.Operations[start:end], Complete: end == len(doc.Operations)}
+	out := AgentOperationPage{Contract: doc.Contract, CatalogSHA256: catalogSHA256, Items: doc.Operations[start:end], Complete: end == len(doc.Operations)}
 	if !out.Complete {
-		out.NextCursor = doc.Operations[end-1].ID
+		raw, err := json.Marshal(agentOperationCursor{CatalogSHA256: catalogSHA256, After: doc.Operations[end-1].ID})
+		if err != nil {
+			return AgentOperationPage{}, err
+		}
+		out.NextCursor = base64.RawURLEncoding.EncodeToString(raw)
 	}
 	return out, nil
 }
