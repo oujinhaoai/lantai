@@ -16,9 +16,11 @@
       "id": "agentSkill",
       "cli": [],
       "mcp": [],
-      "skill": [],
-      "classification": "unimplemented",
-      "reason": "An official operation/recovery skill has not been delivered."
+      "skill": [
+        "sdk/skills/lantai-operations"
+      ],
+      "classification": "local_only",
+      "reason": "Distributable operating guidance. Discover actual installed tools and current authority; loading a skill does not install adapters or grant permissions."
     },
     {
       "id": "appendRightsEvidence",

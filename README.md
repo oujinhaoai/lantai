@@ -89,6 +89,8 @@ CLI/MCP 已提供私人固定工作集记录的列举、保存/重开、原状�
 
 新目标恢复控制和恢复后所选版本证据已有[CLI入口](docs/contracts/recovery-clients.md)，复用原安装认领、本人因素和HumanOnly实例读取；证据来自真实核心回执及实际逐文件检查，历史重开不恢复当前通过结论。
 
+使用方可加载仓库内的 [Lantai 操作 skill](sdk/skills/lantai-operations/SKILL.md)，按已安装 CLI/MCP 完成发现、操作和原状态对账；[安装与验证](docs/contracts/operation-skill.md)区分协议测试与真实客户端实测。[真人接棒评估](docs/design/agent-human-handoff.md)仅为设计，HumanOnly 与原批准边界保持。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

@@ -90,6 +90,8 @@ CLI/MCP [bounded derivations](docs/contracts/asset-derivations.md) provide fixed
 
 [Recovery CLI clients](docs/contracts/recovery-clients.md) reuse the existing installation claim, human factors and HumanOnly instance read. Selected-version evidence combines actual core receipts with downloaded-file checks; reopening a captured record never restores current verification.
 
+The distributable [Lantai operation skill](sdk/skills/lantai-operations/SKILL.md) guides discovery, operations and reconciliation through the installed CLI/MCP. [Installation and validation](docs/contracts/operation-skill.md) distinguish protocol tests from actual client runs. The [human handoff assessment](docs/design/agent-human-handoff.md) is design only; existing HumanOnly and approval boundaries remain.
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.
