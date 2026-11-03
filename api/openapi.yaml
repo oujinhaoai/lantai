@@ -790,13 +790,26 @@ paths:
         维护期仍可读取状态及取消；也接受严格绑定当前备份的 backupControlCookie。实时核验身份、撤权和角色，不续期、不写身份库。
       parameters:
         - $ref: '#/components/parameters/RequestID'
+        - in: query
+          name: completion
+          schema: {type: string, enum: [explicit]}
+          description: Opt-in bounded live pages; default retains legacy items-only history.
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 20, default: 20}
+        - in: query
+          name: cursor
+          schema: {type: string}
+          description: Original last job ID from next_cursor. Missing identity returns CURSOR_EXPIRED.
       responses:
         '200':
           description: 成功（任务响应只有 complete 才表示备份完成）
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BackupHistory'
+                oneOf:
+                  - $ref: '#/components/schemas/BackupHistory'
+                  - $ref: '#/components/schemas/BackupHistoryPage'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/admin/backups/schedule:
@@ -4577,6 +4590,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BackupJob'
+    BackupHistoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, complete, truncated]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BackupJob'
+        complete: {type: boolean}
+        truncated: {type: boolean, const: false}
+        next_cursor:
+          $ref: '../schemas/common/v1/defs.schema.json#/$defs/ulid'
     BackupOverview:
       type: object
       additionalProperties: false

@@ -70,6 +70,8 @@ Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists a
 
 Resource clients provide project/type/member discovery, version history, bounded exact file lists and full JSON chunks, plus MCP adapters for conditional metadata and current rights; see the [Agent resource contract](docs/contracts/agent-resources.md).
 
+Human administrators can use remote `backups start/resume/cancel/schedule-get/schedule-set` for original backup jobs and daily schedules. History supports opt-in bounded pages; MCP `backup_read` can read schedules and history. Writes still require exact approval in the original human session, and ordinary Agent sessions remain forbidden. See [backup clients](docs/contracts/backup-clients.md) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

@@ -494,6 +494,34 @@
         ],
         "type": "object"
       },
+      "BackupHistoryPage": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BackupJob"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "next_cursor": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "truncated": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "complete",
+          "truncated"
+        ],
+        "type": "object"
+      },
       "BackupJob": {
         "additionalProperties": false,
         "properties": {
@@ -12498,6 +12526,35 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestID"
+          },
+          {
+            "description": "Opt-in bounded live pages; default retains legacy items-only history.",
+            "in": "query",
+            "name": "completion",
+            "schema": {
+              "enum": [
+                "explicit"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Original last job ID from next_cursor. Missing identity returns CURSOR_EXPIRED.",
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12505,7 +12562,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BackupHistory"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BackupHistory"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BackupHistoryPage"
+                    }
+                  ]
                 }
               }
             },

@@ -39,7 +39,10 @@ pull --purpose：archive_review（默认）| reference | production | generative
 ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | ext run <plugin-id> <command> --registry FILE --output DIR [--input-file F] [--arg A]。
 写命令用 --input JSON/YAML --idempotency-key KEY；列表用 --project ID --cursor ID --limit N；run list 用 --id TASK_ID。
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
-下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE；backups overview/history/show/download-link。
+备份：backups overview/history/show/start/resume/cancel/schedule-get/schedule-set/download-link；保持本人管理员权限。
+backups start/resume/schedule-set --input APPROVAL.json --idempotency-key KEY；resume/cancel/show 还须 --id 原任务。
+backups history --explicit-completion --limit 20 --cursor JOB；逐页直到 complete。
+下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE。
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
 素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`

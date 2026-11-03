@@ -102,7 +102,9 @@
     {
       "id": "cancelBackup",
       "route": "POST /api/v1/admin/backups/{id}/cancel",
-      "cli": [],
+      "cli": [
+        "backups cancel"
+      ],
       "mcp": [],
       "skill": [],
       "classification": "human_only",
@@ -380,7 +382,9 @@
       "cli": [
         "backups history"
       ],
-      "mcp": [],
+      "mcp": [
+        "backup_read"
+      ],
       "skill": [],
       "classification": "human_only",
       "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
@@ -414,8 +418,12 @@
     {
       "id": "getBackupSchedule",
       "route": "GET /api/v1/admin/backups/schedule",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "backups schedule-get"
+      ],
+      "mcp": [
+        "backup_read"
+      ],
       "skill": [],
       "classification": "human_only",
       "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
@@ -1637,7 +1645,9 @@
     {
       "id": "resumeBackup",
       "route": "POST /api/v1/admin/backups/{id}/resume",
-      "cli": [],
+      "cli": [
+        "backups resume"
+      ],
       "mcp": [],
       "skill": [],
       "classification": "human_only",
@@ -1655,7 +1665,9 @@
     {
       "id": "saveBackupSchedule",
       "route": "PUT /api/v1/admin/backups/schedule",
-      "cli": [],
+      "cli": [
+        "backups schedule-set"
+      ],
       "mcp": [],
       "skill": [],
       "classification": "human_only",
@@ -1687,7 +1699,9 @@
     {
       "id": "startBackup",
       "route": "POST /api/v1/admin/backups",
-      "cli": [],
+      "cli": [
+        "backups start"
+      ],
       "mcp": [],
       "skill": [],
       "classification": "human_only",

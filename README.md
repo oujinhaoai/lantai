@@ -69,6 +69,8 @@ Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐�
 
 资源客户端补充项目/类型/成员发现、历史版本、准确文件清单分页、完整 JSON 分段读取，以及条件著录和当前 rights 的 MCP 适配；见[Agent 资源操作](docs/contracts/agent-resources.md)。
 
+真人管理员可通过远程 `backups start/resume/cancel/schedule-get/schedule-set` 操作原备份任务和每日计划；历史支持显式有界分页，MCP `backup_read` 可读取计划和历史。写操作仍要求原会话的精确批准，普通 Agent 仍被拒绝；见[备份远程客户端](docs/contracts/backup-clients.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
