@@ -169,3 +169,36 @@ func TestBatchWorkspaceReplacementRejectsBeforeInputOrOutput(t *testing.T) {
 		t.Fatal("replacement received output", err)
 	}
 }
+
+// filepath.Rel uses native Windows separators. Only internally derived paths
+// are converted; backslashes supplied as tool input remain invalid.
+func TestBatchPrivateNativePathsKeepToolPathBoundary(t *testing.T) {
+	root := t.TempDir()
+	root, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nested := filepath.Join(root, "selected", "nested")
+	if err := os.MkdirAll(nested, 0700); err != nil {
+		t.Fatal(err)
+	}
+	input := filepath.Join(nested, "input.json")
+	batchWrite(t, input, map[string]string{"selected": "fixed"})
+	info, err := os.Stat(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &adapter{workspace: root, workspaceIdentity: info}
+	if got, err := a.workspaceStoredDirectory(nested); err != nil || got != nested {
+		t.Fatal(got, err)
+	}
+	var value map[string]string
+	if err := a.loadBatchPrivate(input, &value); err != nil || value["selected"] != "fixed" {
+		t.Fatal(value, err)
+	}
+	for _, bad := range []string{`selected\nested\input.json`, "../outside.json", input} {
+		if _, err := a.localPath(bad, false); err == nil {
+			t.Fatalf("accepted non-tool path %q", bad)
+		}
+	}
+}

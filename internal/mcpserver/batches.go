@@ -264,7 +264,9 @@ func (a *adapter) workspaceStoredDirectory(absolute string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return a.localDirectory(rel)
+	// Relative tool paths use slash separators on every platform. This value
+	// comes from filepath.Rel, not from untrusted tool input.
+	return a.localDirectory(filepath.ToSlash(rel))
 }
 
 func (a *adapter) loadBatchPrivate(path string, value any) error {
@@ -285,7 +287,7 @@ func (a *adapter) readBatchPrivate(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := a.localPath(relative, false); err != nil {
+	if _, err := a.localPath(filepath.ToSlash(relative), false); err != nil {
 		return nil, err
 	}
 	root, err := os.OpenRoot(a.workspace)
