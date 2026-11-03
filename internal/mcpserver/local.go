@@ -86,6 +86,7 @@ func (a *adapter) localTools() error {
 		return errors.New("mcp: existing workspace directory required")
 	}
 	a.workspace = root
+	a.workspaceIdentity = info
 	inputSchema, e := a.pushInputSchema()
 	if e != nil {
 		return e

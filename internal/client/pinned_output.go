@@ -1,11 +1,14 @@
 package client
 
 import (
+	"bytes"
 	"crypto/rand"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 )
 
 // PinnedPrivateOutput publishes one bounded private JSON document through a
@@ -84,6 +87,16 @@ func (o *PinnedPrivateOutput) check() error {
 }
 
 func (o *PinnedPrivateOutput) Write(b []byte) error {
+	return o.write(b, true)
+}
+
+// WriteOriginal publishes an immutable plan. An existing private byte-identical
+// file may resume; a different file is never replaced, even by concurrent calls.
+func (o *PinnedPrivateOutput) WriteOriginal(b []byte) error {
+	return o.write(b, false)
+}
+
+func (o *PinnedPrivateOutput) write(b []byte, replace bool) error {
 	if int64(len(b)) > MaxJSONBytes {
 		return errors.New("client: local state exceeds size limit")
 	}
@@ -133,8 +146,16 @@ func (o *PinnedPrivateOutput) Write(b []byte) error {
 	if err = o.check(); err != nil {
 		return err
 	}
-	if err = o.root.Rename(name, o.name); err != nil {
-		return err
+	if replace {
+		if err = o.root.Rename(name, o.name); err != nil {
+			return err
+		}
+	} else {
+		if err = o.root.Link(name, o.name); errors.Is(err, os.ErrExist) {
+			return o.checkOriginal(b)
+		} else if err != nil {
+			return err
+		}
 	}
 	current, err = o.root.Lstat(o.name)
 	if err != nil || !current.Mode().IsRegular() || !os.SameFile(opened, current) {
@@ -144,4 +165,63 @@ func (o *PinnedPrivateOutput) Write(b []byte) error {
 		return err
 	}
 	return checkWorksetRoot(o.parent, o.root)
+}
+
+func (o *PinnedPrivateOutput) checkOriginal(want []byte) error {
+	if err := o.check(); err != nil {
+		return err
+	}
+	st, err := o.root.Lstat(o.name)
+	if err != nil {
+		return err
+	}
+	f, err := o.root.Open(o.name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil || !os.SameFile(st, opened) || !opened.Mode().IsRegular() {
+		return errcode.New(errcode.PathConflict, "original plan changed while opening")
+	}
+	if err := checkPinnedOutputPrivate(f); err != nil {
+		return err
+	}
+	got, err := io.ReadAll(io.LimitReader(f, int64(len(want))+1))
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(got, want) {
+		return errcode.New(errcode.PathConflict, "existing original plan differs; preserve original input and state")
+	}
+	current, err := o.root.Lstat(o.name)
+	if err != nil || !os.SameFile(opened, current) {
+		return errcode.New(errcode.PathConflict, "original plan replaced during comparison")
+	}
+	if err := syncPinnedOutputDirectory(o.root); err != nil {
+		return err
+	}
+	return checkWorksetRoot(o.parent, o.root)
+}
+
+// OpenBatchPrivateOutput reuses the existing canonical path identity and pinned
+// publication, excluding every original source/state/working-copy root first.
+func OpenBatchPrivateOutput(path string, protectedRoots ...string) (*PinnedPrivateOutput, error) {
+	physical, err := importAbsolute(path)
+	if err != nil {
+		return nil, err
+	}
+	for _, root := range protectedRoots {
+		if root == "" {
+			continue
+		}
+		canonical, err := importAbsolute(root)
+		if err != nil {
+			return nil, err
+		}
+		if err := importDisjoint(physical, canonical); err != nil {
+			return nil, errcode.New(errcode.PathConflict, "batch output overlaps original source, state or working copy")
+		}
+	}
+	return OpenPinnedPrivateOutput(physical)
 }

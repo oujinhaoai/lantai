@@ -209,38 +209,86 @@
       ],
       "properties": {
         "usage": {
-          "type": "string",
-          "enum": [
-            "production",
-            "reference",
-            "restricted"
-          ]
+          "$ref": "#/$defs/rights_usage"
         },
         "license": {
-          "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
+          "$ref": "#/$defs/rights_license"
         },
         "redistribute_raw": {
-          "type": "boolean"
+          "$ref": "#/$defs/rights_redistribute_raw"
         },
         "noai": {
-          "type": "boolean"
+          "$ref": "#/$defs/rights_noai"
         },
         "digital_source_type": {
-          "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
-          "type": "string",
-          "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$"
+          "$ref": "#/$defs/rights_digital_source_type"
         },
         "sensitivity": {
-          "type": "string",
-          "enum": [
-            "normal",
-            "personal"
-          ]
+          "$ref": "#/$defs/rights_sensitivity"
         }
       }
+    },
+    "rights_input": {
+      "description": "Existing commit input semantics: omitted noai/redistribute_raw decode as false. Original JSON is preserved for resumable request hashes; the frozen manifest still requires both fields explicitly.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usage",
+        "license",
+        "sensitivity"
+      ],
+      "properties": {
+        "usage": {
+          "$ref": "#/$defs/rights_usage"
+        },
+        "license": {
+          "$ref": "#/$defs/rights_license"
+        },
+        "redistribute_raw": {
+          "$ref": "#/$defs/rights_redistribute_raw"
+        },
+        "noai": {
+          "$ref": "#/$defs/rights_noai"
+        },
+        "digital_source_type": {
+          "$ref": "#/$defs/rights_digital_source_type"
+        },
+        "sensitivity": {
+          "$ref": "#/$defs/rights_sensitivity"
+        }
+      }
+    },
+    "rights_usage": {
+      "type": "string",
+      "enum": [
+        "production",
+        "reference",
+        "restricted"
+      ]
+    },
+    "rights_license": {
+      "description": "SPDX 许可表达式；自定义条款用 LicenseRef-…。只作声明与证据索引，不自动推导法律兼容性。",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "rights_redistribute_raw": {
+      "type": "boolean"
+    },
+    "rights_noai": {
+      "type": "boolean"
+    },
+    "rights_digital_source_type": {
+      "description": "IPTC 数字来源类型，例如 trainedAlgorithmicMedia、digitalCapture。",
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,63}$"
+    },
+    "rights_sensitivity": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "personal"
+      ]
     }
   }
 }

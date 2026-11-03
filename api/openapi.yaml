@@ -4782,25 +4782,46 @@ components:
         profile:
           $ref: ../schemas/catalog/v1/asset-profile.schema.json
         defaults:
-          additionalProperties: true
-          type: object
+          anyOf:
+            - type: 'null'
+            -
+              additionalProperties: true
+              type: object
         extra:
-          additionalProperties: true
-          type: object
+          anyOf:
+            - type: 'null'
+            -
+              additionalProperties: true
+              type: object
         sensitivity:
-          type: string
+          anyOf:
+            - type: 'null'
+            -
+              type: string
         subjects:
-          items:
-            type: string
-          type: array
+          anyOf:
+            - type: 'null'
+            -
+              items:
+                type: string
+              type: array
         summary:
-          type: string
+          anyOf:
+            - type: 'null'
+            -
+              type: string
         tags:
-          items:
-            type: string
-          type: array
+          anyOf:
+            - type: 'null'
+            -
+              items:
+                type: string
+              type: array
         title:
-          type: string
+          anyOf:
+            - type: 'null'
+            -
+              type: string
       type: object
     AssetView:
       additionalProperties: false
@@ -4954,7 +4975,10 @@ components:
       additionalProperties: false
       properties:
         task:
-          $ref: '#/components/schemas/M2CatalogTaskBinding'
+          anyOf:
+            - type: 'null'
+            -
+              $ref: '#/components/schemas/M2CatalogTaskBinding'
         asset_id:
           $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
         base_version_id:
@@ -4962,7 +4986,10 @@ components:
         content:
           $ref: '#/components/schemas/ContentInput'
         describe:
-          $ref: '#/components/schemas/AssetPatch'
+          anyOf:
+            - type: 'null'
+            -
+              $ref: '#/components/schemas/AssetPatch'
         slug:
           type: string
       required:
@@ -5023,31 +5050,43 @@ components:
             $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/file
           type: array
         metadata:
-          additionalProperties: true
-          type: object
+          anyOf:
+            - type: 'null'
+            -
+              additionalProperties: true
+              type: object
         producer:
-          $ref: ../schemas/common/v1/defs.schema.json#/$defs/producer_ref
+          anyOf:
+            - type: 'null'
+            -
+              $ref: ../schemas/common/v1/defs.schema.json#/$defs/producer_ref
         rights:
-          $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/rights
+          anyOf:
+            - type: 'null'
+            -
+              $ref: ../schemas/catalog/v1/manifest.schema.json#/$defs/rights_input
         uses:
-          items:
-            additionalProperties: false
-            properties:
-              alias_generation:
-                minimum: 1
-                type: integer
-              asset_id:
-                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
-              ref:
-                type: string
-              relation:
-                type: string
-              version_id:
-                $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
-            required:
-              - relation
-            type: object
-          type: array
+          anyOf:
+            - type: 'null'
+            -
+              items:
+                additionalProperties: false
+                properties:
+                  alias_generation:
+                    minimum: 1
+                    type: integer
+                  asset_id:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+                  ref:
+                    type: string
+                  relation:
+                    type: string
+                  version_id:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
+                required:
+                  - relation
+                type: object
+              type: array
         version_note:
           type: string
       required:

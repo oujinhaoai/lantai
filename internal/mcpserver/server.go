@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
@@ -40,11 +41,12 @@ type Config struct {
 	ExtensionsRegistry string
 }
 type adapter struct {
-	c          *client.Client
-	s          *mcp.Server
-	schema     map[string]any
-	workspace  string
-	instanceID ids.ID
+	c                 *client.Client
+	s                 *mcp.Server
+	schema            map[string]any
+	workspace         string
+	instanceID        ids.ID
+	workspaceIdentity os.FileInfo
 }
 
 func New(ctx context.Context, c Config) (*mcp.Server, error) {
@@ -80,6 +82,9 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 	}
 	a.readTools(has)
 	a.resourceTools(has)
+	if e = a.uploadControlTools(has); e != nil {
+		return nil, e
+	}
 	if has("conditional_metadata") {
 		if e = a.commandTool("metadata_set", "assets/{asset_id}/metadata", "Conditionally revise current asset description/profile with exact quoted revision ETag and a caller-saved key. Unknown extra fields remain unchanged unless explicitly replaced; conflicts require rereading and explicit intent. This cannot change security defaults or frozen version content.", http.MethodPatch, []string{"asset_id"}, true); e != nil {
 			return nil, e
@@ -154,6 +159,7 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 		if e = a.localTools(); e != nil {
 			return nil, e
 		}
+		a.batchTools(has)
 	}
 	if c.ExtensionsRegistry != "" && has("extension_cli_commands") {
 		if e = a.extensionTools(ctx, c.ExtensionsRegistry); e != nil {
