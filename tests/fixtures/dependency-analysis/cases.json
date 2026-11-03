@@ -1,0 +1,186 @@
+[
+  {
+    "name": "mesh-chain",
+    "sources": [
+      {
+        "path": "scene/mesh.obj",
+        "text": "mtllib body.mtl\nv 0 0 0\n"
+      },
+      {
+        "path": "scene/body.mtl",
+        "text": "newmtl body\nmap_Kd -o 0 1 2 \"textures/hero albedo.png\"\n"
+      }
+    ],
+    "expected": [
+      {
+        "format": "obj",
+        "references": [
+          "scene/body.mtl"
+        ],
+        "notice_count": 0,
+        "complete": true,
+        "sha256": "65190fdb33ba33f0515a896d07c032cbf8d0c68b164771970637baf6fe0663d0"
+      },
+      {
+        "format": "mtl",
+        "references": [
+          "scene/textures/hero albedo.png"
+        ],
+        "notice_count": 0,
+        "complete": true,
+        "sha256": "d8936f5093bb59dfa46cb9bde54fac8db67d00230b7d4f7cfdf13cd720fc9efe"
+      }
+    ],
+    "complete": true
+  },
+  {
+    "name": "unresolved-statements",
+    "sources": [
+      {
+        "path": "mesh.obj",
+        "text": "call ignored.py\nmtllib ../outside.mtl\n"
+      },
+      {
+        "path": "body.mtl",
+        "text": "map_Kd -vendor 1 texture.png\n"
+      }
+    ],
+    "expected": [
+      {
+        "format": "obj",
+        "references": [],
+        "notice_count": 2,
+        "complete": false,
+        "sha256": "789009fc77dc8af8577cb134d8b8d921dbc292606892d830ccc7cab6724978bf"
+      },
+      {
+        "format": "mtl",
+        "references": [],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "7b5f907f331715678f9ad059a4b3af6f88578cf4715d9ed155f18ea28c1321fc"
+      }
+    ],
+    "complete": false
+  },
+  {
+    "name": "comfy-api-root",
+    "sources": [
+      {
+        "path": "graph.json",
+        "text": "{\"1\":{\"class_type\":\"LoadImage\",\"inputs\":{\"image\":\"hero.png\"}},\"2\":{\"class_type\":\"CheckpointLoaderSimple\",\"inputs\":{\"ckpt_name\":\"weights.bin\"}}}"
+      }
+    ],
+    "comfy_input_root": "inputs",
+    "expected": [
+      {
+        "format": "comfy-api",
+        "references": [
+          "inputs/hero.png"
+        ],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "a644989af318fef92bd3a6ea3c61377c4f20fffa5b531d2facd5df06ab02fa36"
+      }
+    ],
+    "complete": false
+  },
+  {
+    "name": "comfy-ui-unmapped",
+    "sources": [
+      {
+        "path": "graph.json",
+        "text": "{\"nodes\":[{\"type\":\"LoadImage\",\"widgets_values\":[\"hero.png\"]},{\"type\":\"SaveImage\"}]}"
+      }
+    ],
+    "expected": [
+      {
+        "format": "comfy-ui",
+        "references": [],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "d56c675d52b1a91231de87a8e255e591115b77238ea23baa78a79d3128461513"
+      }
+    ],
+    "complete": false
+  },
+  {
+    "name": "duplicate-json",
+    "sources": [
+      {
+        "path": "graph.json",
+        "text": "{\"1\":{},\"1\":{}}"
+      }
+    ],
+    "expected": [
+      {
+        "format": "unsupported",
+        "references": [],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "e90f2faac61f8f1e7879b61935afbdb5ed594691afb253a9c166ec7cfe4fdf68"
+      }
+    ],
+    "complete": false
+  },
+  {
+    "name": "unsupported-native",
+    "sources": [
+      {
+        "path": "scene.blend",
+        "text": "BLENDER_SYNTHETIC"
+      }
+    ],
+    "expected": [
+      {
+        "format": "unsupported",
+        "references": [],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "4974e0b43f29c3402f496134bdbb6697814795a03147fea25e736abf1b13c070"
+      }
+    ],
+    "complete": false
+  },
+  {
+    "name": "comfy-api-explicit-dot",
+    "sources": [
+      {
+        "path": "nested/graph.json",
+        "text": "{\"1\":{\"class_type\":\"LoadImage\",\"inputs\":{\"image\":\"hero.png\"}}}"
+      }
+    ],
+    "comfy_input_root": ".",
+    "expected": [
+      {
+        "format": "comfy-api",
+        "references": [
+          "hero.png"
+        ],
+        "notice_count": 0,
+        "complete": true,
+        "sha256": "ef4c6ea767d1cef982bfcfa2dc38f6bf4dd45ba1d6342894952b708016e77f21"
+      }
+    ],
+    "complete": true
+  },
+  {
+    "name": "non-js-space-control-path",
+    "sources": [
+      {
+        "path": "mesh.obj",
+        "text": "mtllib materialname.mtl\n"
+      }
+    ],
+    "expected": [
+      {
+        "format": "obj",
+        "references": [],
+        "notice_count": 1,
+        "complete": false,
+        "sha256": "664d5080fff86f480b25ab604168df95673cc65641cf9c4842e7dcc1bc9f866d"
+      }
+    ],
+    "complete": false
+  }
+]

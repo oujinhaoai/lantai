@@ -269,11 +269,14 @@
     },
     {
       "id": "dependencyAnalysis",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "asset dependencies"
+      ],
+      "mcp": [
+        "dependency_analyze"
+      ],
       "skill": [],
-      "classification": "web_only",
-      "reason": "Selected bounded OBJ/MTL/ComfyUI analysis is currently implemented in the web client."
+      "classification": "cli_mcp"
     },
     {
       "id": "displayControls",

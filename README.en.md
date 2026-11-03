@@ -72,6 +72,8 @@ Resource clients provide project/type/member discovery, version history, bounded
 
 MCP `import_*`, `workset_*`, and `references_*` batch tools reuse the original CLI clients, explicit workspace and recovery state. Full plans/receipts remain private; `batch_report_page` returns bounded metadata only. Upload status, cancellation, deduplication checks and standalone commit preserve the original upload and idempotency identities. See the [batch tool contract](docs/contracts/agent-batches.md) (Chinese).
 
+`asset dependencies` / MCP `dependency_analyze` provide bounded, hash-bound dependency candidates for explicitly selected OBJ/MTL/ComfyUI text. Unknown items remain unresolved and external contents are never loaded. See [selected dependency analysis](docs/contracts/selected-dependencies.md) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.
