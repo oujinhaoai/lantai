@@ -101,6 +101,9 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 			}
 		}
 	}
+	if e = a.orchestrationTools(has); e != nil {
+		return nil, e
+	}
 	if e = a.downloadTools(has); e != nil {
 		return nil, e
 	}
@@ -263,7 +266,7 @@ func (a *adapter) commandTool(name, path, description, method string, pathParame
 	if e != nil {
 		return e
 	}
-	a.s.AddTool(&mcp.Tool{Name: name, Description: description, InputSchema: input, Annotations: &mcp.ToolAnnotations{IdempotentHint: true}}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	a.s.AddTool(&mcp.Tool{Name: name, Description: description, InputSchema: input, Annotations: &mcp.ToolAnnotations{IdempotentHint: path != "flows/dispatch"}}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		if len(req.Params.Arguments) > MaxRequestBytes {
 			return toolResult(client.Response{}, errcode.New(errcode.SchemaInvalid, "MCP request exceeds size limit"))
 		}
@@ -411,7 +414,7 @@ func (a *adapter) readTools(has func(string) bool) {
 	for _, t := range []struct {
 		name, path, cap string
 		single          bool
-	}{{"whoami", "whoami", "sessions", false}, {"message_read", "messages", "discussions", false}, {"resource_search", "assets", "search", false}, {"resource_read", "assets", "exact_read", true}, {"task_list", "tasks", "tasks", false}, {"task_read", "tasks", "tasks", true}, {"flow_read", "flows", "manual_flows", true}, {"run_list", "task-runs", "manual_cli_execution", false}, {"run_read", "task-runs", "manual_cli_execution", true}, {"job_read", "jobs", "official_check_jobs", true}, {"context_read", "context", "effective_context", false}, {"inbox_read", "inbox", "inbox", false}, {"events_read", "events", "filtered_events", false}, {"operation_read", "operations", "operation_status", true}} {
+	}{{"whoami", "whoami", "sessions", false}, {"message_read", "messages", "discussions", false}, {"resource_search", "assets", "search", false}, {"resource_read", "assets", "exact_read", true}, {"task_list", "tasks", "tasks", false}, {"task_read", "tasks", "tasks", true}, {"flow_read", "flows", "manual_flows", true}, {"run_list", "task-runs", "manual_cli_execution", false}, {"run_read", "task-runs", "manual_cli_execution", true}, {"job_read", "jobs", "official_check_jobs", true}, {"job_list", "jobs", "official_check_jobs", false}, {"flow_list", "flows", "manual_flows", false}, {"run_capabilities", "task-runs/capabilities", "manual_cli_execution", false}, {"context_read", "context", "effective_context", false}, {"inbox_read", "inbox", "inbox", false}, {"events_read", "events", "filtered_events", false}, {"operation_read", "operations", "operation_status", true}} {
 		if !has(t.cap) {
 			continue
 		}

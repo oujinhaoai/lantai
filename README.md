@@ -75,6 +75,8 @@ MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客�
 
 管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
 
+MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与有界记录读取；权限和真人输入边界沿用原领域规则，见[Agent 编排适配](docs/contracts/agent-orchestration.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
