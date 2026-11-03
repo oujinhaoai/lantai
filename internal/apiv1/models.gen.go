@@ -1898,6 +1898,60 @@ func (e GetVersionParamsView) Valid() bool {
 	}
 }
 
+// Defines values for ListAgentOperations200JSONResponseBodyContract.
+const (
+	ListAgentOperations200JSONResponseBodyContractLantaiAgentOperationsv1 ListAgentOperations200JSONResponseBodyContract = "lantai.agent-operations/v1"
+)
+
+// Valid indicates whether the value is a known member of the ListAgentOperations200JSONResponseBodyContract enum.
+func (e ListAgentOperations200JSONResponseBodyContract) Valid() bool {
+	switch e {
+	case ListAgentOperations200JSONResponseBodyContractLantaiAgentOperationsv1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListAgentOperations200JSONResponseBodyItemsClassification.
+const (
+	ListAgentOperations200JSONResponseBodyItemsClassificationApiOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "api_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationCliMcp        ListAgentOperations200JSONResponseBodyItemsClassification = "cli_mcp"
+	ListAgentOperations200JSONResponseBodyItemsClassificationCliOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "cli_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationHumanOnly     ListAgentOperations200JSONResponseBodyItemsClassification = "human_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationLocalOnly     ListAgentOperations200JSONResponseBodyItemsClassification = "local_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationMcpOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "mcp_only"
+	ListAgentOperations200JSONResponseBodyItemsClassificationNotApplicable ListAgentOperations200JSONResponseBodyItemsClassification = "not_applicable"
+	ListAgentOperations200JSONResponseBodyItemsClassificationUnimplemented ListAgentOperations200JSONResponseBodyItemsClassification = "unimplemented"
+	ListAgentOperations200JSONResponseBodyItemsClassificationWebOnly       ListAgentOperations200JSONResponseBodyItemsClassification = "web_only"
+)
+
+// Valid indicates whether the value is a known member of the ListAgentOperations200JSONResponseBodyItemsClassification enum.
+func (e ListAgentOperations200JSONResponseBodyItemsClassification) Valid() bool {
+	switch e {
+	case ListAgentOperations200JSONResponseBodyItemsClassificationApiOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationCliMcp:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationCliOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationHumanOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationLocalOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationMcpOnly:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationNotApplicable:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationUnimplemented:
+		return true
+	case ListAgentOperations200JSONResponseBodyItemsClassificationWebOnly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListProjectsParamsView.
 const (
 	ListProjectsParamsViewBrief ListProjectsParamsView = "brief"
@@ -6649,6 +6703,18 @@ type IssueReadGrantParams struct {
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
 }
+
+// ListAgentOperationsParams defines parameters for ListAgentOperations.
+type ListAgentOperationsParams struct {
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListAgentOperations200JSONResponseBodyContract defines parameters for ListAgentOperations.
+type ListAgentOperations200JSONResponseBodyContract string
+
+// ListAgentOperations200JSONResponseBodyItemsClassification defines parameters for ListAgentOperations.
+type ListAgentOperations200JSONResponseBodyItemsClassification string
 
 // GetContextParams defines parameters for GetContext.
 type GetContextParams struct {

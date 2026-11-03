@@ -23,10 +23,10 @@ import (
 )
 
 func Names() []string {
-	return []string{"meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
 }
 func Help() string {
-	return `远程命令：meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
+	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
 公共参数：--server HTTPS_ORIGIN --session-file FILE [--ca-file PEM] [--json] [--allow-http（仅loopback开发）]
 凭据：LANTAI_SESSION_TOKEN 或私有会话文件；login --credentials-file FILE；session exchange --token-file FILE 或 LANTAI_TOKEN。
 push/upload --input MANIFEST [--directory DIR] [--state FILE]；恢复必须复用同一state。
@@ -188,7 +188,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 		return client.Response{}, usage(err.Error())
 	}
 	defer c.Close()
-	if command != "meta" && command != "login" && !(command == "session" && (action == "exchange" || action == "setup")) {
+	if command != "capabilities" && command != "meta" && command != "login" && !(command == "session" && (action == "exchange" || action == "setup")) {
 		token := os.Getenv("LANTAI_SESSION_TOKEN")
 		if token == "" && o.session != "" {
 			var saved sessionFile
@@ -290,6 +290,9 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Do(ctx, method, path, body, opts)
 	}
 	switch command {
+	case "capabilities":
+		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(min(o.limit, 20))}}
+		return do(http.MethodGet, "/api/v1/capabilities?"+q.Encode(), nil)
 	case "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox":
 		return collaborationCommand(ctx, c, command, action, o)
 	case "plugin":

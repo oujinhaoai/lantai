@@ -66,6 +66,8 @@ The first-party device channel uses an independent human CLI session limited to 
 
 Check results are validated against the complete wire contract before decoding, and public evidence wrappers retain the exact execution source. Normal draining lets admitted calls finish; completed checks used for a new review or publication still require current enablement and probe qualification. Historical evidence remains readable.
 
+Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.
@@ -166,3 +168,4 @@ The public repository accepts general-purpose code, documentation, configuration
 ## License
 
 Lantai is licensed under the [GNU GPL v3](LICENSE).
+

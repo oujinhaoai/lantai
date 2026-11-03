@@ -29,6 +29,50 @@ tags:
       中给出，客户端不自行拼接；每个请求仍须带本人的会话凭据，并按服务端认定的档位
       （交互/批量）排队准入。见 docs/contracts/storage.md。
 paths:
+  /api/v1/capabilities:
+    get:
+      operationId: listAgentOperations
+      summary: List reviewed Agent operation adapters and explicit coverage gaps
+      security: []
+      parameters:
+      - in: query
+        name: cursor
+        schema: {type: string, maxLength: 128}
+      - in: query
+        name: limit
+        schema: {type: integer, minimum: 1, maximum: 20, default: 10}
+      responses:
+        '200':
+          description: Bounded build metadata; not a permission grant or a claim of test completion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [contract, items, complete]
+                additionalProperties: false
+                properties:
+                  contract: {type: string, enum: [lantai.agent-operations/v1]}
+                  next_cursor: {type: string}
+                  complete: {type: boolean}
+                  items:
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, cli, mcp, skill, classification]
+                      properties:
+                        id: {type: string}
+                        route: {type: string}
+                        cli: {type: array, items: {type: string}}
+                        mcp: {type: array, items: {type: string}}
+                        skill: {type: array, items: {type: string}}
+                        classification:
+                          type: string
+                          enum: [cli_mcp, cli_only, mcp_only, api_only, web_only, unimplemented, human_only, local_only, not_applicable]
+                        reason: {type: string}
+        '422':
+          $ref: '#/components/responses/Error'
   # BEGIN FIRST PARTY DEVICE PATHS
   /api/v1/devices/claims:
     post:

@@ -330,6 +330,23 @@ type ReadArgs struct {
 }
 
 func (a *adapter) readTools(has func(string) bool) {
+	if has("agent_operation_catalog") {
+		mcp.AddTool(a.s, &mcp.Tool{Name: "capability_list", Description: "Page the reviewed API/CLI/MCP operation inventory and explicit gaps/exceptions. This is build metadata, not a permission grant. Follow next_cursor until complete; installed services are separately advertised by meta.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
+			After string `json:"after,omitempty"`
+			Limit int    `json:"limit,omitempty"`
+		}) (*mcp.CallToolResult, any, error) {
+			if in.Limit == 0 {
+				in.Limit = 10
+			}
+			if in.Limit < 1 || in.Limit > 20 {
+				return readError("capability limit must be 1-20")
+			}
+			q := url.Values{"cursor": {in.After}, "limit": {fmt.Sprint(in.Limit)}}
+			out, err := a.c.Do(ctx, http.MethodGet, "/api/v1/capabilities?"+q.Encode(), nil, client.Options{})
+			r, err := toolResult(out, err)
+			return r, nil, err
+		})
+	}
 	for _, t := range []struct {
 		name, path, cap string
 		single          bool

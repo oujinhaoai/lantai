@@ -13362,6 +13362,126 @@
         "summary": "固定版本的当前有效权利与用途判定"
       }
     },
+    "/api/v1/capabilities": {
+      "get": {
+        "operationId": "listAgentOperations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "contract": {
+                      "enum": [
+                        "lantai.agent-operations/v1"
+                      ],
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "classification": {
+                            "enum": [
+                              "cli_mcp",
+                              "cli_only",
+                              "mcp_only",
+                              "api_only",
+                              "web_only",
+                              "unimplemented",
+                              "human_only",
+                              "local_only",
+                              "not_applicable"
+                            ],
+                            "type": "string"
+                          },
+                          "cli": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "mcp": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "route": {
+                            "type": "string"
+                          },
+                          "skill": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "cli",
+                          "mcp",
+                          "skill",
+                          "classification"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "contract",
+                    "items",
+                    "complete"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bounded build metadata; not a permission grant or a claim of test completion"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "List reviewed Agent operation adapters and explicit coverage gaps"
+      }
+    },
     "/api/v1/context": {
       "get": {
         "operationId": "getContext",

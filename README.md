@@ -65,6 +65,8 @@ M1-07 原生续做现有明确的[人审证据闭合路径](api/native-continuat
 
 检查结果先验证完整原始协议，公开检查证据包装保留精确执行来源。正常排空允许在途调用收尾；已完成检查用于新的人审或发布时，仍要求当前启用与探测资格，历史证据保持可读。
 
+Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐项列出实际入口、缺口与权限例外；见[操作目录](docs/contracts/agent-operations.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
@@ -165,3 +167,4 @@ lantai/
 ## 许可证
 
 本项目使用 [GNU GPL v3](LICENSE)。
+

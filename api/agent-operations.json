@@ -1,0 +1,1737 @@
+{
+  "contract": "lantai.agent-operations/v1",
+  "max_page_size": 20,
+  "mcp_serialized_result_bytes": 65536,
+  "operations": [
+    {
+      "id": "acceptDeviceJobResult",
+      "route": "POST /api/v1/devices/{device_id}/jobs/{job_id}/result",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "agentSkill",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "unimplemented",
+      "reason": "An official operation/recovery skill has not been delivered."
+    },
+    {
+      "id": "appendRightsEvidence",
+      "route": "POST /api/v1/rights/evidence",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "approveBackupDownload",
+      "route": "POST /api/v1/admin/backups/{id}/download-request",
+      "cli": [
+        "backups download-link"
+      ],
+      "mcp": [
+        "backup_download_link"
+      ],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "approveDevice",
+      "route": "POST /api/v1/devices/{device_id}/approve",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "approveDeviceJob",
+      "route": "POST /api/v1/devices/{device_id}/jobs/{job_id}/approve",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "assetDerivations",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "web_only",
+      "reason": "Bounded file comparison, preview derivation and workset TAR are web-only workflows."
+    },
+    {
+      "id": "assetFind",
+      "cli": [
+        "asset find"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Authorized multi-page exact tag/profile intersection; no specialized MCP adapter yet."
+    },
+    {
+      "id": "assetProfile",
+      "cli": [
+        "asset profile"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Local profile normalization; current metadata is changed only with conditional metadata commands."
+    },
+    {
+      "id": "bulkMetadata",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "unimplemented",
+      "reason": "Conditional bulk metadata planning and per-item receipts are not implemented."
+    },
+    {
+      "id": "cancelBackup",
+      "route": "POST /api/v1/admin/backups/{id}/cancel",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "cancelDeviceJob",
+      "route": "POST /api/v1/devices/{device_id}/jobs/{job_id}/cancel",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "cancelUpload",
+      "route": "DELETE /api/v1/uploads/{upload_id}",
+      "cli": [
+        "upload cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "checkManagementBatch",
+      "route": "POST /api/v1/management/batches/check",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "checkUploadBlobs",
+      "route": "POST /api/v1/uploads/{upload_id}/check",
+      "cli": [
+        "upload check"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "claimDevice",
+      "route": "POST /api/v1/devices/claims",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "commitUpload",
+      "route": "POST /api/v1/uploads/{upload_id}/commit",
+      "cli": [
+        "commit"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "completeUploadFile",
+      "route": "POST /api/v1/uploads/{upload_id}/files/{sha256}/complete",
+      "cli": [
+        "push"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "confirmFactor",
+      "route": "POST /api/v1/identity/factor/confirm",
+      "cli": [
+        "identity confirm"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "createBackupControlSession",
+      "route": "POST /api/v1/admin/backups/control-session",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "createDeviceJob",
+      "route": "POST /api/v1/devices/{device_id}/jobs",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "createIdentityChallenge",
+      "route": "POST /api/v1/identity/challenges",
+      "cli": [
+        "identity challenge"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "createProject",
+      "route": "POST /api/v1/projects",
+      "cli": [
+        "project create"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "createUpload",
+      "route": "POST /api/v1/uploads",
+      "cli": [
+        "push"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "deleteBackupControlSession",
+      "route": "DELETE /api/v1/admin/backups/control-session",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "dependencyAnalysis",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "web_only",
+      "reason": "Selected bounded OBJ/MTL/ComfyUI analysis is currently implemented in the web client."
+    },
+    {
+      "id": "displayControls",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "not_applicable",
+      "reason": "Human playback controls and Markdown presentation styles have no Agent operation equivalent."
+    },
+    {
+      "id": "downloadBackupPackage",
+      "route": "GET /api/v1/admin/backups/{id}/package",
+      "cli": [
+        "backups download-link"
+      ],
+      "mcp": [
+        "backup_download_link"
+      ],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "endCurrentSession",
+      "route": "DELETE /api/v1/sessions/current",
+      "cli": [
+        "session end"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "enrollFactor",
+      "route": "POST /api/v1/identity/factor/enroll",
+      "cli": [
+        "identity enroll"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "exchangeSession",
+      "route": "POST /api/v1/sessions/exchange",
+      "cli": [
+        "session exchange"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "executeIdentityCommand",
+      "route": "POST /api/v1/identity/commands",
+      "cli": [
+        "identity execute"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "extensionLocal",
+      "cli": [
+        "ext install",
+        "ext list",
+        "ext remove",
+        "ext run"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Explicit trusted local registry; dynamic MCP projection is registered only for enabled packages."
+    },
+    {
+      "id": "getAsset",
+      "route": "GET /api/v1/assets/{asset_id}",
+      "cli": [
+        "show"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getAssetType",
+      "route": "GET /api/v1/types/{type}",
+      "cli": [
+        "types"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getBackupControlSession",
+      "route": "GET /api/v1/admin/backups/control-session",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getBackupHistory",
+      "route": "GET /api/v1/admin/backups/history",
+      "cli": [
+        "backups history"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getBackupJob",
+      "route": "GET /api/v1/admin/backups/{id}",
+      "cli": [
+        "backups show"
+      ],
+      "mcp": [
+        "backup_read"
+      ],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getBackupOverview",
+      "route": "GET /api/v1/admin/backups",
+      "cli": [
+        "backups overview"
+      ],
+      "mcp": [
+        "backup_read"
+      ],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getBackupSchedule",
+      "route": "GET /api/v1/admin/backups/schedule",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getContext",
+      "route": "GET /api/v1/context",
+      "cli": [
+        "context show"
+      ],
+      "mcp": [
+        "context_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getEvents",
+      "route": "GET /api/v1/events",
+      "cli": [
+        "events list"
+      ],
+      "mcp": [
+        "events_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getExtensionsCommands",
+      "route": "GET /api/v1/extensions/commands",
+      "cli": [
+        "plugin commands"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getExtensionsEnablements",
+      "route": "GET /api/v1/extensions/enablements",
+      "cli": [
+        "plugin enablements"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "getExtensionsPackages",
+      "route": "GET /api/v1/extensions/packages",
+      "cli": [
+        "plugin list"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "getFlows",
+      "route": "GET /api/v1/flows",
+      "cli": [
+        "flow list"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getFlowsId",
+      "route": "GET /api/v1/flows/{id}",
+      "cli": [
+        "flow show"
+      ],
+      "mcp": [
+        "flow_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getHumanGrantsId",
+      "route": "GET /api/v1/human/grants/{id}",
+      "cli": [
+        "human items"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getInbox",
+      "route": "GET /api/v1/inbox",
+      "cli": [
+        "inbox list"
+      ],
+      "mcp": [
+        "inbox_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getInstanceManagementInfo",
+      "route": "GET /api/v1/admin/instance",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "getJobs",
+      "route": "GET /api/v1/jobs",
+      "cli": [
+        "job list"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getJobsId",
+      "route": "GET /api/v1/jobs/{id}",
+      "cli": [
+        "job show"
+      ],
+      "mcp": [
+        "job_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getMessages",
+      "route": "GET /api/v1/messages",
+      "cli": [
+        "message list"
+      ],
+      "mcp": [
+        "message_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getMeta",
+      "route": "GET /api/v1/meta",
+      "cli": [
+        "meta"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getMilestoneProgress",
+      "route": "GET /api/v1/projects/{project_id}/milestones/{id}/progress",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "getOperation",
+      "route": "GET /api/v1/operations/{operation_id}",
+      "cli": [
+        "operation"
+      ],
+      "mcp": [
+        "operation_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getPrincipal",
+      "route": "GET /api/v1/identity/principals/{principal_id}",
+      "cli": [
+        "identity principal"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "getProject",
+      "route": "GET /api/v1/projects/{key}",
+      "cli": [
+        "project show"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getProjectMembers",
+      "route": "GET /api/v1/identity/projects/{project_id}/members",
+      "cli": [
+        "identity members"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getResync",
+      "route": "GET /api/v1/resync",
+      "cli": [
+        "resync list"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getReviewTargetsId",
+      "route": "GET /api/v1/review-targets/{id}",
+      "cli": [
+        "review show"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getTaskRuns",
+      "route": "GET /api/v1/task-runs",
+      "cli": [
+        "run list"
+      ],
+      "mcp": [
+        "run_list"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getTaskRunsCapabilities",
+      "route": "GET /api/v1/task-runs/capabilities",
+      "cli": [
+        "run capabilities"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getTaskRunsId",
+      "route": "GET /api/v1/task-runs/{id}",
+      "cli": [
+        "run show"
+      ],
+      "mcp": [
+        "run_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getTasks",
+      "route": "GET /api/v1/tasks",
+      "cli": [
+        "task list"
+      ],
+      "mcp": [
+        "task_list"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getTasksId",
+      "route": "GET /api/v1/tasks/{id}",
+      "cli": [
+        "task show"
+      ],
+      "mcp": [
+        "task_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getTasksIdAttempts",
+      "route": "GET /api/v1/tasks/{id}/attempts",
+      "cli": [
+        "task attempts"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getTrashId",
+      "route": "GET /api/v1/trash/{id}",
+      "cli": [
+        "trash show"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "getUpload",
+      "route": "GET /api/v1/uploads/{upload_id}",
+      "cli": [
+        "upload status"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getVersion",
+      "route": "GET /api/v1/assets/{asset_id}/versions/{version_id}",
+      "cli": [
+        "show"
+      ],
+      "mcp": [
+        "resource_read"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "getVersionRights",
+      "route": "GET /api/v1/assets/{asset_id}/versions/{version_id}/rights",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "heartbeatDeviceJob",
+      "route": "POST /api/v1/devices/{device_id}/jobs/{job_id}/heartbeat",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "importApply",
+      "cli": [
+        "asset import apply"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Persistent import execution; preserve state and idempotency keys."
+    },
+    {
+      "id": "importPlan",
+      "cli": [
+        "asset import plan"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Local plan creation without upload."
+    },
+    {
+      "id": "importVerify",
+      "cli": [
+        "asset import verify"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Current-authorized byte verification of recorded imports."
+    },
+    {
+      "id": "inspectDeviceJob",
+      "route": "POST /api/v1/devices/{device_id}/jobs/{job_id}/inspect",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "issueReadGrant",
+      "route": "POST /api/v1/assets/{asset_id}/versions/{version_id}/read-grants",
+      "cli": [
+        "download-link"
+      ],
+      "mcp": [
+        "resource_download_link",
+        "resource_pull"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "listAgentOperations",
+      "route": "GET /api/v1/capabilities",
+      "cli": [
+        "capabilities"
+      ],
+      "mcp": [
+        "capability_list"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "listAssetVersions",
+      "route": "GET /api/v1/assets/{asset_id}/versions",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "listDeviceJobs",
+      "route": "GET /api/v1/devices/{device_id}/jobs",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "listDevices",
+      "route": "GET /api/v1/devices",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "listMilestones",
+      "route": "GET /api/v1/projects/{project_id}/milestones",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "listPrincipalCredentials",
+      "route": "GET /api/v1/identity/principals/{principal_id}/credentials",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "listPrincipals",
+      "route": "GET /api/v1/identity/principals",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "listProjects",
+      "route": "GET /api/v1/projects",
+      "cli": [
+        "project list"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "listTypes",
+      "route": "GET /api/v1/types",
+      "cli": [
+        "types"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "localMaintenance",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "local_only",
+      "reason": "Local doctor, backup, restore, restore-complete, fsck, recover and reindex require an operator-controlled instance path; not public remote Agent routes."
+    },
+    {
+      "id": "loginSession",
+      "route": "POST /api/v1/sessions/login",
+      "cli": [
+        "login"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "managedRunner",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "unimplemented",
+      "reason": "No managed model runner or automatic business trigger is enabled."
+    },
+    {
+      "id": "managementRecords",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "web_only",
+      "reason": "Prepare/save/reopen/revise high-level management envelopes currently requires the web workflow."
+    },
+    {
+      "id": "patchAssetMetadata",
+      "route": "PATCH /api/v1/assets/{asset_id}/metadata",
+      "cli": [
+        "metadata set"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "pollDevice",
+      "route": "POST /api/v1/devices/{device_id}/poll",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "postEvidence",
+      "route": "POST /api/v1/evidence",
+      "cli": [
+        "evidence append"
+      ],
+      "mcp": [
+        "qa_append"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postExtensionsEnablementsIdProbe",
+      "route": "POST /api/v1/extensions/enablements/{id}/probe",
+      "cli": [
+        "plugin probe"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "postExtensionsPackages",
+      "route": "POST /api/v1/extensions/packages",
+      "cli": [
+        "plugin import"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "postFlows",
+      "route": "POST /api/v1/flows",
+      "cli": [
+        "flow start"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsCancel",
+      "route": "POST /api/v1/flows/cancel",
+      "cli": [
+        "flow cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsDispatch",
+      "route": "POST /api/v1/flows/dispatch",
+      "cli": [
+        "flow dispatch"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsPause",
+      "route": "POST /api/v1/flows/pause",
+      "cli": [
+        "flow pause"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsResume",
+      "route": "POST /api/v1/flows/resume",
+      "cli": [
+        "flow resume"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsRetry",
+      "route": "POST /api/v1/flows/retry",
+      "cli": [
+        "flow retry"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postFlowsRetryCommand",
+      "route": "POST /api/v1/flows/retry-command",
+      "cli": [
+        "flow retry-command"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postHumanExecute",
+      "route": "POST /api/v1/human/execute",
+      "cli": [
+        "human execute"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "postHumanPrepare",
+      "route": "POST /api/v1/human/prepare",
+      "cli": [
+        "human prepare"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "postHumanRechallenge",
+      "route": "POST /api/v1/human/rechallenge",
+      "cli": [
+        "human rechallenge"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "postInboxRead",
+      "route": "POST /api/v1/inbox/read",
+      "cli": [
+        "inbox read"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postJobsCancel",
+      "route": "POST /api/v1/jobs/cancel",
+      "cli": [
+        "job cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postJobsReconcile",
+      "route": "POST /api/v1/jobs/reconcile",
+      "cli": [
+        "job reconcile"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postJobsRetry",
+      "route": "POST /api/v1/jobs/retry",
+      "cli": [
+        "job retry"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postJobsRun",
+      "route": "POST /api/v1/jobs/run",
+      "cli": [
+        "job run"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postMessages",
+      "route": "POST /api/v1/messages",
+      "cli": [
+        "message post"
+      ],
+      "mcp": [
+        "message_post"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postNodesObserve",
+      "route": "POST /api/v1/nodes/observe",
+      "cli": [
+        "node observe"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postPublications",
+      "route": "POST /api/v1/publications",
+      "cli": [
+        "review publish"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postReviewTargets",
+      "route": "POST /api/v1/review-targets",
+      "cli": [
+        "review submit"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postRightsAssertions",
+      "route": "POST /api/v1/rights/assertions",
+      "cli": [
+        "rights assert"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postRightsCancel",
+      "route": "POST /api/v1/rights/cancel",
+      "cli": [
+        "rights cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTaskRuns",
+      "route": "POST /api/v1/task-runs",
+      "cli": [
+        "run resume"
+      ],
+      "mcp": [
+        "run_start"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsAnswer",
+      "route": "POST /api/v1/task-runs/answer",
+      "cli": [
+        "run answer"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
+    },
+    {
+      "id": "postTaskRunsAsk",
+      "route": "POST /api/v1/task-runs/ask",
+      "cli": [
+        "run ask"
+      ],
+      "mcp": [
+        "run_ask"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsCancel",
+      "route": "POST /api/v1/task-runs/cancel",
+      "cli": [
+        "run cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTaskRunsCandidate",
+      "route": "POST /api/v1/task-runs/candidate",
+      "cli": [
+        "run candidate"
+      ],
+      "mcp": [
+        "run_candidate"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsCheckpoint",
+      "route": "POST /api/v1/task-runs/checkpoint",
+      "cli": [
+        "run checkpoint"
+      ],
+      "mcp": [
+        "run_checkpoint"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsProgress",
+      "route": "POST /api/v1/task-runs/progress",
+      "cli": [
+        "run progress"
+      ],
+      "mcp": [
+        "run_progress"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsReconcile",
+      "route": "POST /api/v1/task-runs/reconcile",
+      "cli": [
+        "run reconcile"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTaskRunsSeal",
+      "route": "POST /api/v1/task-runs/seal",
+      "cli": [
+        "run seal"
+      ],
+      "mcp": [
+        "run_seal"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTaskRunsTool",
+      "route": "POST /api/v1/task-runs/tool",
+      "cli": [
+        "run tool"
+      ],
+      "mcp": [
+        "run_tool"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasks",
+      "route": "POST /api/v1/tasks",
+      "cli": [
+        "task create"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksAnswer",
+      "route": "POST /api/v1/tasks/answer",
+      "cli": [
+        "task answer"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksAssign",
+      "route": "POST /api/v1/tasks/assign",
+      "cli": [
+        "task assign"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksBlock",
+      "route": "POST /api/v1/tasks/block",
+      "cli": [
+        "task block"
+      ],
+      "mcp": [
+        "task_block"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasksCancel",
+      "route": "POST /api/v1/tasks/cancel",
+      "cli": [
+        "task cancel"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksClaim",
+      "route": "POST /api/v1/tasks/claim",
+      "cli": [
+        "task claim"
+      ],
+      "mcp": [
+        "task_claim"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasksComplete",
+      "route": "POST /api/v1/tasks/complete",
+      "cli": [
+        "task complete"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksHandoff",
+      "route": "POST /api/v1/tasks/handoff",
+      "cli": [
+        "task handoff"
+      ],
+      "mcp": [
+        "task_handoff"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasksReconcile",
+      "route": "POST /api/v1/tasks/reconcile",
+      "cli": [
+        "task reconcile"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksRelease",
+      "route": "POST /api/v1/tasks/release",
+      "cli": [
+        "task release"
+      ],
+      "mcp": [
+        "task_release"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasksRenew",
+      "route": "POST /api/v1/tasks/renew",
+      "cli": [
+        "task renew"
+      ],
+      "mcp": [
+        "task_renew"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTasksRework",
+      "route": "POST /api/v1/tasks/rework",
+      "cli": [
+        "task rework"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTasksSubmit",
+      "route": "POST /api/v1/tasks/submit",
+      "cli": [
+        "task submit"
+      ],
+      "mcp": [
+        "task_submit"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "postTrashOwn",
+      "route": "POST /api/v1/trash/own",
+      "cli": [
+        "trash own"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTrashPreview",
+      "route": "POST /api/v1/trash/preview",
+      "cli": [
+        "trash preview"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "postTrashRestore",
+      "route": "POST /api/v1/trash/restore",
+      "cli": [
+        "trash restore"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+    },
+    {
+      "id": "putMilestone",
+      "route": "POST /api/v1/projects/{project_id}/milestones",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "api_only",
+      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+    },
+    {
+      "id": "putUploadPart",
+      "route": "PUT /xfer/v1/uploads/{upload_id}/files/{sha256}/parts/{part}",
+      "cli": [
+        "push"
+      ],
+      "mcp": [
+        "resource_push"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "readDevice",
+      "route": "GET /api/v1/devices/{device_id}",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "readDeviceJob",
+      "route": "GET /api/v1/devices/{device_id}/jobs/{job_id}",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "readGrantedFile",
+      "route": "GET /xfer/v1/reads/{grant_id}",
+      "cli": [
+        "pull"
+      ],
+      "mcp": [
+        "resource_pull"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "referencesCopy",
+      "cli": [
+        "asset references copy"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Explicit reference-copy execution."
+    },
+    {
+      "id": "referencesPlan",
+      "cli": [
+        "asset references plan"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Bounded reference-copy plan."
+    },
+    {
+      "id": "referencesRollback",
+      "cli": [
+        "asset references rollback"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Rollback only recorded reference copies."
+    },
+    {
+      "id": "resumeBackup",
+      "route": "POST /api/v1/admin/backups/{id}/resume",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "revokeDevice",
+      "route": "POST /api/v1/devices/{device_id}/revoke",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "saveBackupSchedule",
+      "route": "PUT /api/v1/admin/backups/schedule",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "searchAssets",
+      "route": "GET /api/v1/assets",
+      "cli": [
+        "search"
+      ],
+      "mcp": [
+        "resource_search"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "setSetupPassword",
+      "route": "PUT /api/v1/identity/password",
+      "cli": [
+        "identity password"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "startBackup",
+      "route": "POST /api/v1/admin/backups",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "startSetup",
+      "route": "POST /api/v1/sessions/setup",
+      "cli": [
+        "session setup"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "verifyIdentityChallenge",
+      "route": "POST /api/v1/identity/challenges/{challenge_id}/verify",
+      "cli": [
+        "identity verify"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
+    },
+    {
+      "id": "whoAmI",
+      "route": "GET /api/v1/whoami",
+      "cli": [
+        "whoami"
+      ],
+      "mcp": [
+        "whoami"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "worksetPlan",
+      "cli": [
+        "asset workset plan"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Fixed explicit workset planning; does not discover dependencies."
+    },
+    {
+      "id": "worksetPull",
+      "cli": [
+        "asset workset pull"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Fixed explicit workset transfer; no high-level MCP workset lifecycle yet."
+    },
+    {
+      "id": "worksetReturn",
+      "cli": [],
+      "mcp": [],
+      "skill": [],
+      "classification": "web_only",
+      "reason": "Return planning and explicit adoption of a new version require the web workflow."
+    }
+  ]
+}
