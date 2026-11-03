@@ -79,3 +79,27 @@ receipt, err := c.PullWorkset(ctx, in, directory, "production")
 `go test -race ./internal/client` 覆盖：固定版本 + 多资产依赖目录；只读计划不创建目录；重跑不重复传输；中断后 Range 续传和撤权拒绝；同目标、父子、NFC/大小写及中间目录冲突；manifest 与 grant 的错误身份/摘要；错误有效实例、多项混实例及无效 metadata 在 grant/写入前拒绝；缺入口/依赖；原有不同字节保留；现有 symlink 和授权/传输期间替换目录均不越界；硬预算和严格 JSON。
 
 这些测试使用本机 loopback 合成服务与临时目录，验证客户端协议和目录行为。真实服务联合入藏、Blender/ComfyUI 相对引用重开、九类素材以及新版本提交由集成夹具验收另行执行；本模块本身不宣称已完成真实软件兼容或目标 NAS 验收。
+
+## 私人工作集记录与明确返库
+
+正式 CLI 与 MCP 复用网页的 `lantai.managed-workset/v1` 和 `lantai.workset-return/v1` 数据格式，以及原 `lantai.client-push/v1` 状态。配置档案仍由管理记录封装为私人 config 资产的真实 `record.json`；查询索引可能稍后更新，保存回执的精确资产/版本可直接重开。列表一次最多20项，依 `next_cursor` 继续。列表元数据与历史观察都不能代替实际文件核验。
+
+| CLI `lantai asset workset` | MCP | 私有输入 |
+|---|---|---|
+| `list` | `workset_record_list` | CLI `{project_id,cursor?,limit?}`；MCP `{project_id,after?,limit?}` |
+| `record-prepare` | `workset_record_prepare` | `{project_id,title,input,asset_id?,base_version_id?}` |
+| `record-save` | `workset_record_save` | 原准备文件 |
+| `open` | `workset_record_open` | `{asset_id,version_id}` |
+| `return-prepare` | `workset_return_prepare` | `{entry,files,purpose,usage,note}` |
+| `return-apply` | `workset_return_apply` | 原返库准备文件 |
+| `adopt-prepare` | `workset_adopt_prepare` | `{record_asset_id,record_version_id,return,receipt}` |
+
+CLI 通过 `--input FILE --output FILE` 指定私有文件，list 的输出可省略；远端选项沿用 `--server --session-file`。open/save/return/adopt 使用明确已有 `--directory DIR`；record-prepare 不需要目录。save/apply 必须提供原 `--state FILE`。MCP 使用显式 workspace 中的 `input_file`、`output_file`、`directory`、`state_file`，禁止将输出覆盖输入、原状态或所选源目录。完整准备和回执私有保存，工具只返回有界摘要及文件哈希；不把本机源路径、令牌或文件字节送入上下文。
+
+record-prepare 只核对远端固定清单身份、路径与全部显式入口/依赖，再生成不可覆盖的准备；record-save 才使用原 Push 保存。open 真实下载 config 的 record.json，重查当前固定清单；它没有下载工作集原件，实际副本仍走 `workset pull`。修改条目后原观察不沿用为新结果。
+
+return-prepare 只哈希明确选择的新文件并读取当前源版本、用途和权利，不创建远端上传。purpose 必须明确为 reference 或 production；usage 只能收紧现行源权利。全新返库必须以当前最新版本为固定 base。保存准备后对同一路径重试沿用内嵌原 Push 键；CLI `--report FILE`、MCP `original_file` 可明确指定原准备。输入、用途、源字节改变时拒绝复用。准备兼容网页返库字段与原 Push 状态，修改字节后应另建明确草稿。
+
+return-apply 先保存原状态，复查实际文件、当前用途和来源，再复用原上传/提交。响应丢失时保留同一准备及状态，不换键重传。已推进的旧操作只在原核心规则下对账；description_pending 仍表示文件已提交而著录待完成，不能视为完整成功。返库不会修改旧工作集引用。
+
+adopt-prepare 要求原固定工作集、原返库准备和完整提交回执。它实际读取核心新版本，核对实例/项目/资产/版本/operation、manifest摘要、每个文件的路径/角色/SHA/大小与来源 uses；重新读取旧、新版本的当前用途，并重验整个修订工作集。通过后只准备原 config 资产的新版本，仍须明确 record-save。旧记录及旧固定版本不漂移，pending、用途收紧、不同回执/文件/原条目均拒绝。原生软件运行与本人见证保持原门禁，不由返库、采纳或助手观察自动产生。

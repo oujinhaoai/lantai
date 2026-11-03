@@ -1885,12 +1885,36 @@
       "classification": "cli_mcp"
     },
     {
-      "id": "worksetReturn",
-      "cli": [],
-      "mcp": [],
+      "id": "worksetRecords",
+      "cli": [
+        "asset workset list",
+        "asset workset open",
+        "asset workset record-prepare",
+        "asset workset record-save"
+      ],
+      "mcp": [
+        "workset_record_list",
+        "workset_record_open",
+        "workset_record_prepare",
+        "workset_record_save"
+      ],
       "skill": [],
-      "classification": "web_only",
-      "reason": "Return planning and explicit adoption of a new version require the web workflow."
+      "classification": "cli_mcp"
+    },
+    {
+      "id": "worksetReturn",
+      "cli": [
+        "asset workset return-prepare",
+        "asset workset return-apply",
+        "asset workset adopt-prepare"
+      ],
+      "mcp": [
+        "workset_return_prepare",
+        "workset_return_apply",
+        "workset_adopt_prepare"
+      ],
+      "skill": [],
+      "classification": "cli_mcp"
     }
   ]
 }

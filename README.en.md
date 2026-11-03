@@ -84,6 +84,8 @@ New `asset metadata plan/apply` and matching MCP tools freeze each selected asse
 
 `asset dependencies` / MCP `dependency_analyze` provide bounded, hash-bound dependency candidates for explicitly selected OBJ/MTL/ComfyUI text. Unknown items remain unresolved and external contents are never loaded. See [selected dependency analysis](docs/contracts/selected-dependencies.md) (Chinese).
 
+CLI/MCP provide private fixed-workset record discovery, save/reopen, original-state return and explicit adoption. Existing references stay pinned; actual core receipts and current purposes are checked before preparing a new record. See the [workset contract](docs/contracts/workset.md#私人工作集记录与明确返库) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

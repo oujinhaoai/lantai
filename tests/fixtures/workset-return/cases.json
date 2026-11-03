@@ -1,0 +1,104 @@
+[
+  {
+    "name": "cli-ordered",
+    "return": {
+      "schema": "lantai.workset-return/v1",
+      "instance_id": "01J00000000000000000000004",
+      "entry": {
+        "asset_id": "01J00000000000000000000002",
+        "version_id": "01J00000000000000000000003",
+        "destination": "scene"
+      },
+      "purpose": "production",
+      "input": {
+        "project_id": "01J00000000000000000000001",
+        "asset_id": "01J00000000000000000000002",
+        "base_version_id": "01J00000000000000000000003",
+        "content": {
+          "asset_type": "doc",
+          "version_note": "合成 <&> 续做",
+          "files": [
+            {
+              "path": "素材.txt",
+              "role": "primary",
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+              "size": 5
+            }
+          ],
+          "uses": [
+            {
+              "asset_id": "01J00000000000000000000002",
+              "relation": "derived_from",
+              "version_id": "01J00000000000000000000003"
+            }
+          ],
+          "rights": {
+            "license": "LicenseRef-Owned",
+            "noai": false,
+            "redistribute_raw": false,
+            "sensitivity": "normal",
+            "usage": "production"
+          }
+        }
+      },
+      "state": {
+        "schema": "lantai.client-push/v1",
+        "origin": "https://synthetic.example",
+        "request_hash": "f095a45b9f57993121fa089ec9fb60d1748f5ac402360f19be9202220f89e72a",
+        "create_key": "01J00000000000000000000005",
+        "commit_key": "01J00000000000000000000006"
+      }
+    }
+  },
+  {
+    "name": "browser-ordered",
+    "return": {
+      "schema": "lantai.workset-return/v1",
+      "instance_id": "01J00000000000000000000004",
+      "entry": {
+        "asset_id": "01J00000000000000000000002",
+        "version_id": "01J00000000000000000000003",
+        "destination": "scene"
+      },
+      "purpose": "production",
+      "input": {
+        "project_id": "01J00000000000000000000001",
+        "asset_id": "01J00000000000000000000002",
+        "base_version_id": "01J00000000000000000000003",
+        "content": {
+          "asset_type": "doc",
+          "version_note": "合成 <&> 续做",
+          "files": [
+            {
+              "path": "素材.txt",
+              "role": "primary",
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+              "size": 5
+            }
+          ],
+          "uses": [
+            {
+              "asset_id": "01J00000000000000000000002",
+              "version_id": "01J00000000000000000000003",
+              "relation": "derived_from"
+            }
+          ],
+          "rights": {
+            "license": "LicenseRef-Owned",
+            "noai": false,
+            "redistribute_raw": false,
+            "sensitivity": "normal",
+            "usage": "production"
+          }
+        }
+      },
+      "state": {
+        "schema": "lantai.client-push/v1",
+        "origin": "https://synthetic.example",
+        "request_hash": "e7da59c9c4ca880367b53f946e53c804691329d5cd9b7e0c1ce5faeab6de53cc",
+        "create_key": "b7e57756-eab6-4a0c-9cb9-aeeb35da5135",
+        "commit_key": "5e05b184-0719-4fb1-88cd-4f3e0a47c930"
+      }
+    }
+  }
+]

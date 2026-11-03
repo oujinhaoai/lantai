@@ -90,6 +90,7 @@ func (a *adapter) localTools() error {
 	a.metadataBatchTools()
 
 	a.dependencyTools()
+	a.worksetRecordTools()
 	inputSchema, e := a.pushInputSchema()
 	if e != nil {
 		return e

@@ -83,6 +83,8 @@ MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与�
 
 `asset dependencies` / MCP `dependency_analyze` 为明确选中的 OBJ/MTL/ComfyUI 文本提供有界、摘要绑定的依赖候选，保留未知项且不加载外部内容；见[选定依赖分析](docs/contracts/selected-dependencies.md)。
 
+CLI/MCP 已提供私人固定工作集记录的列举、保存/重开、原状态返库和显式采纳；旧引用保持固定，实际核心回执与当前用途复验后才准备新记录，见[工作集契约](docs/contracts/workset.md#私人工作集记录与明确返库)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
