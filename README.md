@@ -75,6 +75,8 @@ MCP 的 `import_*`、`workset_*`、`references_*` 批次工具复用原 CLI 客�
 
 管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
 
+新目标恢复控制和恢复后所选版本证据已有[CLI入口](docs/contracts/recovery-clients.md)，复用原安装认领、本人因素和HumanOnly实例读取；证据来自真实核心回执及实际逐文件检查，历史重开不恢复当前通过结论。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

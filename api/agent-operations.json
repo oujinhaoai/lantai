@@ -550,7 +550,9 @@
     {
       "id": "getInstanceManagementInfo",
       "route": "GET /api/v1/admin/instance",
-      "cli": [],
+      "cli": [
+        "instance show"
+      ],
       "mcp": [],
       "skill": [],
       "classification": "human_only",
@@ -1657,6 +1659,43 @@
       ],
       "skill": [],
       "classification": "cli_mcp"
+    },
+    {
+      "id": "recoveryControl",
+      "cli": [
+        "recovery status",
+        "recovery upload",
+        "recovery restore",
+        "recovery cancel",
+        "recovery check",
+        "recovery complete"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "human_only",
+      "reason": "Separate existing new-target installation claim only; normal sessions, administrator factor enrollment and permission changes are not adapters. Complete still requires the current core review and every explicit owner cutover confirmation."
+    },
+    {
+      "id": "recoveryEvidence",
+      "cli": [
+        "asset recovery-evidence prepare",
+        "asset recovery-evidence save",
+        "asset recovery-evidence open"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "cli_only",
+      "reason": "Fresh evidence preparation uses the unchanged HumanOnly current-instance projection and real selected file verification. Saving/reopening private config records uses existing management adapters; captured evidence is historical and grants no authority."
+    },
+    {
+      "id": "recoveryPackageHash",
+      "cli": [
+        "recovery package-hash"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "local_only",
+      "reason": "Read-only streaming SHA/size of an explicitly selected private package; this neither claims a target nor proves its trusted source."
     },
     {
       "id": "referencesCopy",

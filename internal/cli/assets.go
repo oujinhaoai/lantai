@@ -19,6 +19,7 @@ import (
 )
 
 const assetHelp = `素材管理（现有公共 API 与显式本地副本，不直接访问服务端数据）：
+  asset recovery-evidence prepare|save|open --input JSON --directory DIR --output FILE [--state FILE]
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
@@ -50,7 +51,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	name := args[0]
 	args = args[1:]
-	if name == "workset" || name == "import" || name == "references" {
+	if name == "workset" || name == "import" || name == "references" || name == "recovery-evidence" {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
 			fmt.Fprint(stdout, assetHelp)
 			return 0
@@ -110,8 +111,8 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		var protected []string
 		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") {
 			protected = []string{o.directory, o.state, o.destination}
-		} else if strings.HasPrefix(name, "workset-") {
-			protected = []string{o.directory}
+		} else if strings.HasPrefix(name, "workset-") || strings.HasPrefix(name, "recovery-evidence-") {
+			protected = []string{o.directory, o.state}
 		}
 		if o.referencePlan != nil {
 			protected = append(protected, o.referencePlan.SourceRoot)
@@ -156,7 +157,11 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				saveErr = errors.New("asset: output parent changed during the operation")
 			}
 			if saveErr == nil {
-				saveErr = output.Write(append(raw, '\n'))
+				if name == "recovery-evidence-prepare" {
+					saveErr = output.WriteOriginal(append(raw, '\n'))
+				} else {
+					saveErr = output.Write(append(raw, '\n'))
+				}
 			}
 			if saveErr != nil {
 				fmt.Fprintln(stderr, "asset: result could not be saved; retain the original state before retrying")
@@ -175,6 +180,8 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 func executeAsset(ctx context.Context, name string, o assetOptions) (any, error) {
 	switch name {
+	case "recovery-evidence-prepare", "recovery-evidence-save", "recovery-evidence-open":
+		return executeRecoveryEvidence(ctx, name, o)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`
