@@ -156,6 +156,16 @@
       "reason": "Requires the existing human session, factors or target-bound approval. Adapter availability does not authorize an Agent to use it."
     },
     {
+      "id": "collaborationRecords",
+      "cli": [],
+      "mcp": [
+        "collaboration_read_chunk"
+      ],
+      "skill": [],
+      "classification": "mcp_only",
+      "reason": "Bounded exact collaboration and authorized extension snapshots; every chunk rechecks current scope."
+    },
+    {
       "id": "commitUpload",
       "route": "POST /api/v1/uploads/{upload_id}/commit",
       "cli": [
@@ -444,10 +454,11 @@
       "cli": [
         "plugin commands"
       ],
-      "mcp": [],
+      "mcp": [
+        "extension_commands"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getExtensionsEnablements",
@@ -455,7 +466,9 @@
       "cli": [
         "plugin enablements"
       ],
-      "mcp": [],
+      "mcp": [
+        "extension_enablements"
+      ],
       "skill": [],
       "classification": "human_only",
       "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
@@ -466,7 +479,9 @@
       "cli": [
         "plugin list"
       ],
-      "mcp": [],
+      "mcp": [
+        "extension_packages"
+      ],
       "skill": [],
       "classification": "human_only",
       "reason": "The existing identity/domain service requires a current non-delegated human session for this action; no Agent adapter can bypass this boundary."
@@ -579,11 +594,14 @@
     {
       "id": "getMilestoneProgress",
       "route": "GET /api/v1/projects/{project_id}/milestones/{id}/progress",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "milestone progress"
+      ],
+      "mcp": [
+        "milestone_progress"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "getOperation",
@@ -636,10 +654,11 @@
       "cli": [
         "resync list"
       ],
-      "mcp": [],
+      "mcp": [
+        "resync_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getReviewTargetsId",
@@ -647,10 +666,11 @@
       "cli": [
         "review show"
       ],
-      "mcp": [],
+      "mcp": [
+        "review_target_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getTaskRuns",
@@ -733,10 +753,11 @@
       "cli": [
         "trash show"
       ],
-      "mcp": [],
+      "mcp": [
+        "trash_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getUpload",
@@ -874,11 +895,14 @@
     {
       "id": "listMilestones",
       "route": "GET /api/v1/projects/{project_id}/milestones",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "milestone list"
+      ],
+      "mcp": [
+        "milestone_list"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "listPrincipalCredentials",
@@ -1132,10 +1156,11 @@
       "cli": [
         "inbox read"
       ],
-      "mcp": [],
+      "mcp": [
+        "inbox_mark_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postJobsCancel",
@@ -1215,10 +1240,11 @@
       "cli": [
         "review publish"
       ],
-      "mcp": [],
+      "mcp": [
+        "review_publish"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postReviewTargets",
@@ -1226,10 +1252,11 @@
       "cli": [
         "review submit"
       ],
-      "mcp": [],
+      "mcp": [
+        "review_submit"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postRightsAssertions",
@@ -1534,10 +1561,11 @@
       "cli": [
         "trash own"
       ],
-      "mcp": [],
+      "mcp": [
+        "trash_own"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTrashPreview",
@@ -1545,10 +1573,11 @@
       "cli": [
         "trash preview"
       ],
-      "mcp": [],
+      "mcp": [
+        "trash_preview"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTrashRestore",
@@ -1556,19 +1585,23 @@
       "cli": [
         "trash restore"
       ],
-      "mcp": [],
+      "mcp": [
+        "trash_restore"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "putMilestone",
       "route": "POST /api/v1/projects/{project_id}/milestones",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "milestone set"
+      ],
+      "mcp": [
+        "milestone_set"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "putUploadPart",

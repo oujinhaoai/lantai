@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -211,9 +210,7 @@ else: raise AssertionError("expected API error")
 	names := map[string]bool{}
 	for _, tool := range tools.Tools {
 		names[tool.Name] = true
-		if strings.Contains(tool.Name, "human") || strings.Contains(tool.Name, "trash") || strings.Contains(tool.Name, "shell") || strings.Contains(tool.Name, "token") {
-			t.Fatal("unsafe tool", tool.Name)
-		}
+		assertOrdinaryMCPTool(t, tool)
 	}
 	for _, name := range []string{"task_read", "run_progress", "message_post", "resource_push", "resource_pull"} {
 		if !names[name] {

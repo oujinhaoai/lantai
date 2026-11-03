@@ -1019,6 +1019,49 @@
         ],
         "type": "object"
       },
+      "CollaborationSnapshotChunk": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "data": {
+            "maxLength": 10924,
+            "type": "string"
+          },
+          "encoding": {
+            "enum": [
+              "base64"
+            ],
+            "type": "string"
+          },
+          "next_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "total_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "encoding",
+          "data",
+          "sha256",
+          "offset",
+          "total_bytes",
+          "complete"
+        ],
+        "type": "object"
+      },
       "CommandType": {
         "description": "命令类型，<module>.<command>，例如 ledger.commit_version。",
         "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
@@ -10526,11 +10569,30 @@
       "MilestonePage": {
         "additionalProperties": false,
         "properties": {
+          "complete": {
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/Milestone"
             },
             "type": "array"
+          },
+          "next_offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "total_items": {
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -14290,23 +14352,101 @@
       "get": {
         "description": "当前主体可见的已启用本机 cli.command；本机仍须显式安装并核验入口摘要，不下发令牌或人审能力。",
         "operationId": "getExtensionsCommands",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsCLICommand"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsCLICommand"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -14326,23 +14466,101 @@
       "get": {
         "description": "启用意图、运行激活、熔断和拒绝原因诊断；启停本身经 /api/v1/human 的 extension_enable / extension_disable。",
         "operationId": "getExtensionsEnablements",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsEnablementView"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsEnablementView"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -14396,23 +14614,101 @@
     "/api/v1/extensions/packages": {
       "get": {
         "operationId": "getExtensionsPackages",
+        "parameters": [
+          {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "items": {
-                      "items": {
-                        "$ref": "#/components/schemas/M2ExtensionsPackageView"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    },
+                    {
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "items": {
+                          "items": {
+                            "$ref": "#/components/schemas/M2ExtensionsPackageView"
+                          },
+                          "type": "array"
+                        },
+                        "next_offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "sha256": {
+                          "pattern": "^[a-f0-9]{64}$",
+                          "type": "string"
+                        },
+                        "total_items": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
                       },
-                      "type": "array"
+                      "required": [
+                        "items"
+                      ],
+                      "type": "object"
                     }
-                  },
-                  "required": [
-                    "items"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },
@@ -16182,6 +16478,56 @@
         "operationId": "listMilestones",
         "parameters": [
           {
+            "description": "Opt-in bounded item pages or full-snapshot byte chunks; legacy defaults stay unchanged.",
+            "in": "query",
+            "name": "pagination",
+            "schema": {
+              "enum": [
+                "explicit",
+                "chunk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bytes",
+            "schema": {
+              "default": 4096,
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Required for nonzero offset; changed snapshots require replacing prior pages/chunks.",
+            "in": "query",
+            "name": "expected_sha256",
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "project_id",
             "required": true,
@@ -16195,7 +16541,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MilestonePage"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MilestonePage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CollaborationSnapshotChunk"
+                    }
+                  ]
                 }
               }
             },

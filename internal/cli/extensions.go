@@ -32,16 +32,28 @@ func pluginCommand(ctx context.Context, c *client.Client, action string, o optio
 		}
 		return c.Do(ctx, http.MethodPost, "/api/v1/extensions/packages", body, opts)
 	case "", "list":
-		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/packages", nil, opts)
+		query, err := snapshotQuery(o)
+		if err != nil {
+			return client.Response{}, err
+		}
+		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/packages"+query, nil, opts)
 	case "enablements":
-		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/enablements", nil, opts)
+		query, err := snapshotQuery(o)
+		if err != nil {
+			return client.Response{}, err
+		}
+		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/enablements"+query, nil, opts)
 	case "probe":
 		if err := needed(o.id, "--id enablement ID is required"); err != nil {
 			return client.Response{}, err
 		}
 		return c.Do(ctx, http.MethodPost, "/api/v1/extensions/enablements/"+segment(o.id)+"/probe", nil, opts)
 	case "commands":
-		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/commands", nil, opts)
+		query, err := snapshotQuery(o)
+		if err != nil {
+			return client.Response{}, err
+		}
+		return c.Do(ctx, http.MethodGet, "/api/v1/extensions/commands"+query, nil, opts)
 	}
 	return client.Response{}, usage("plugin requires import, list, enablements, probe or commands")
 }

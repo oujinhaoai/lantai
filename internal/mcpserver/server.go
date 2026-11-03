@@ -77,6 +77,9 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 		return false
 	}
 	a.readTools(has)
+	if e = a.collaborationTools(has); e != nil {
+		return nil, e
+	}
 	if e = a.orchestrationTools(has); e != nil {
 		return nil, e
 	}
@@ -207,10 +210,24 @@ func toolResult(response client.Response, e error) (*mcp.CallToolResult, error) 
 	return out, nil
 }
 func (a *adapter) postTool(name, path, description string) error {
+	return a.commandTool(name, path, description, http.MethodPost, nil, false)
+}
+func (a *adapter) commandTool(name, path, description, method string, pathParameters []string, conditional bool) error {
 	paths := a.schema["paths"].(map[string]any)
-	route := paths["/api/v1/"+path].(map[string]any)["post"].(map[string]any)
+	route := paths["/api/v1/"+path].(map[string]any)[strings.ToLower(method)].(map[string]any)
 	request := route["requestBody"].(map[string]any)["content"].(map[string]any)["application/json"].(map[string]any)["schema"]
 	root := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"request", "idempotency_key"}, "properties": map[string]any{"request": request, "idempotency_key": map[string]any{"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}}}
+	properties := root["properties"].(map[string]any)
+	required := root["required"].([]string)
+	for _, parameter := range pathParameters {
+		properties[parameter] = map[string]any{"type": "string", "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"}
+		required = append(required, parameter)
+	}
+	if conditional {
+		properties["if_match"] = map[string]any{"type": "string", "pattern": `^"[0-9]+"$`}
+		required = append(required, "if_match")
+	}
+	root["required"] = required
 	input, e := a.localSchema(root)
 	if e != nil {
 		return e
@@ -239,11 +256,23 @@ func (a *adapter) postTool(name, path, description string) error {
 		var in struct {
 			Request json.RawMessage `json:"request"`
 			Key     string          `json:"idempotency_key"`
+			IfMatch string          `json:"if_match,omitempty"`
 		}
 		if e := json.Unmarshal(req.Params.Arguments, &in); e != nil {
 			return toolResult(client.Response{}, e)
 		}
-		out, e := a.c.Do(ctx, http.MethodPost, "/api/v1/"+path, in.Request, client.Options{IdempotencyKey: in.Key})
+		target := path
+		var fields map[string]json.RawMessage
+		_ = json.Unmarshal(req.Params.Arguments, &fields)
+		for _, parameter := range pathParameters {
+			var id string
+			_ = json.Unmarshal(fields[parameter], &id)
+			if !ids.ID(id).Valid() {
+				return toolResult(client.Response{}, errcode.New(errcode.SchemaInvalid, "invalid path identifier"))
+			}
+			target = strings.ReplaceAll(target, "{"+parameter+"}", id)
+		}
+		out, e := a.c.Do(ctx, method, "/api/v1/"+target, in.Request, client.Options{IdempotencyKey: in.Key, IfMatch: in.IfMatch})
 		return toolResult(out, e)
 	})
 	return nil

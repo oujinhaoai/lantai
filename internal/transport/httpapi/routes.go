@@ -60,6 +60,9 @@ func (h *Handler) meta(w http.ResponseWriter, r *http.Request, _ authz.Context) 
 	stage := "M1"
 	capabilities := []string{"agent_operation_catalog", "sessions", "projects", "asset_types", "uploads", "commit_version", "exact_read", "read_grants", "conditional_metadata", "structured_asset_profile", "search", "operation_status"}
 	unsupported := []string{"managed_runner", "third_party_web_ui", "resident_extension_services", "automatic_triggers", "federation"}
+	if h.deps.Milestones != nil || h.deps.Extensions != nil {
+		capabilities = append(capabilities, "bounded_collaboration_snapshots")
+	}
 	if h.deps.Backups != nil {
 		capabilities = append(capabilities, "backup_management")
 	}
