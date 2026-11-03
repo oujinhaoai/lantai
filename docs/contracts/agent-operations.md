@@ -4,7 +4,9 @@
 `capability_list` 返回同一构建的 `lantai.agent-operations/v1` 分页目录。
 目录只包含公开操作元数据；可公开读取，不返回项目、身份、凭据或业务数据。
 每页最多 20 条，用最后的 `next_cursor` 继续，直到 `complete: true`。
-未知游标明确拒绝；升级后重新遍历并替换旧目录。
+`catalog_sha256` 标识准确目录；不透明游标绑定该摘要。未知游标明确拒绝；
+升级导致目录变化后返回 `410 CURSOR_EXPIRED`，必须重新遍历并替换旧目录，
+不能将升级前后的页面混合后宣称完整。
 
 权威映射在 `api/agent-operations.json`。每个 HTTP operation_id 对应准确方法与
 路径，列出实际 CLI、MCP、skill 入口。`cli_mcp` 仅说明两种适配存在，不表示业务

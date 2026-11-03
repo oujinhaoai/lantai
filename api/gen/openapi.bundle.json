@@ -13370,7 +13370,7 @@
             "in": "query",
             "name": "cursor",
             "schema": {
-              "maxLength": 128,
+              "maxLength": 1024,
               "type": "string"
             }
           },
@@ -13392,6 +13392,10 @@
                 "schema": {
                   "additionalProperties": false,
                   "properties": {
+                    "catalog_sha256": {
+                      "pattern": "^[a-f0-9]{64}$",
+                      "type": "string"
+                    },
                     "complete": {
                       "type": "boolean"
                     },
@@ -13465,6 +13469,7 @@
                   },
                   "required": [
                     "contract",
+                    "catalog_sha256",
                     "items",
                     "complete"
                   ],
@@ -13473,6 +13478,9 @@
               }
             },
             "description": "Bounded build metadata; not a permission grant or a claim of test completion"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
           },
           "422": {
             "$ref": "#/components/responses/Error"
