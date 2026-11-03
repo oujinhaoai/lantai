@@ -86,6 +86,21 @@ func (e BackupControlSessionCapabilities) Valid() bool {
 	}
 }
 
+// Defines values for BackupHistoryPageTruncated.
+const (
+	BackupHistoryPageTruncatedFalse BackupHistoryPageTruncated = false
+)
+
+// Valid indicates whether the value is a known member of the BackupHistoryPageTruncated enum.
+func (e BackupHistoryPageTruncated) Valid() bool {
+	switch e {
+	case BackupHistoryPageTruncatedFalse:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BackupJobSource.
 const (
 	BackupJobSourceLocal    BackupJobSource = "local"
@@ -1799,6 +1814,21 @@ func (e VersionManifestUseRelation) Valid() bool {
 	}
 }
 
+// Defines values for GetBackupHistoryParamsCompletion.
+const (
+	GetBackupHistoryParamsCompletionExplicit GetBackupHistoryParamsCompletion = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the GetBackupHistoryParamsCompletion enum.
+func (e GetBackupHistoryParamsCompletion) Valid() bool {
+	switch e {
+	case GetBackupHistoryParamsCompletionExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ApproveBackupDownload200JSONResponseBodyMethod.
 const (
 	ApproveBackupDownload200JSONResponseBodyMethodGET ApproveBackupDownload200JSONResponseBodyMethod = "GET"
@@ -2113,6 +2143,19 @@ type BackupControlSessionCapabilities string
 type BackupHistory struct {
 	Items []BackupJob `json:"items"`
 }
+
+// BackupHistoryPage defines model for BackupHistoryPage.
+type BackupHistoryPage struct {
+	Complete bool        `json:"complete"`
+	Items    []BackupJob `json:"items"`
+
+	// NextCursor 服务端生成的 ULID，只接受 26 位大写 Crockford Base32 规范形式。
+	NextCursor *Ulid                      `json:"next_cursor,omitempty"`
+	Truncated  BackupHistoryPageTruncated `json:"truncated"`
+}
+
+// BackupHistoryPageTruncated defines model for BackupHistoryPage.Truncated.
+type BackupHistoryPageTruncated bool
 
 // BackupJob defines model for BackupJob.
 type BackupJob struct {
@@ -6597,8 +6640,23 @@ type CreateBackupControlSessionParams struct {
 
 // GetBackupHistoryParams defines parameters for GetBackupHistory.
 type GetBackupHistoryParams struct {
+	// Completion Opt-in bounded live pages; default retains legacy items-only history.
+	Completion *GetBackupHistoryParamsCompletion `form:"completion,omitempty" json:"completion,omitempty"`
+	Limit      *int                              `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Original last job ID from next_cursor. Missing identity returns CURSOR_EXPIRED.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
 	// XRequestId 客户端请求编号，仅用于日志关联，不参与请求摘要。
 	XRequestId *RequestID `json:"X-Request-Id,omitempty"`
+}
+
+// GetBackupHistoryParamsCompletion defines parameters for GetBackupHistory.
+type GetBackupHistoryParamsCompletion string
+
+// GetBackupHistory200JSONResponseBody defines parameters for GetBackupHistory.
+type GetBackupHistory200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // GetBackupScheduleParams defines parameters for GetBackupSchedule.
@@ -7949,6 +8007,68 @@ func (t LantaiAgentResponseV1) MarshalJSON() ([]byte, error) {
 }
 
 func (t *LantaiAgentResponseV1) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBackupHistory returns the union data inside the GetBackupHistory200JSONResponseBody as a BackupHistory
+func (t GetBackupHistory200JSONResponseBody) AsBackupHistory() (BackupHistory, error) {
+	var body BackupHistory
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBackupHistory overwrites any union data inside the GetBackupHistory200JSONResponseBody as the provided BackupHistory
+func (t *GetBackupHistory200JSONResponseBody) FromBackupHistory(v BackupHistory) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBackupHistory performs a merge with any union data inside the GetBackupHistory200JSONResponseBody, using the provided BackupHistory
+func (t *GetBackupHistory200JSONResponseBody) MergeBackupHistory(v BackupHistory) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBackupHistoryPage returns the union data inside the GetBackupHistory200JSONResponseBody as a BackupHistoryPage
+func (t GetBackupHistory200JSONResponseBody) AsBackupHistoryPage() (BackupHistoryPage, error) {
+	var body BackupHistoryPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBackupHistoryPage overwrites any union data inside the GetBackupHistory200JSONResponseBody as the provided BackupHistoryPage
+func (t *GetBackupHistory200JSONResponseBody) FromBackupHistoryPage(v BackupHistoryPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBackupHistoryPage performs a merge with any union data inside the GetBackupHistory200JSONResponseBody, using the provided BackupHistoryPage
+func (t *GetBackupHistory200JSONResponseBody) MergeBackupHistoryPage(v BackupHistoryPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetBackupHistory200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetBackupHistory200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -2,7 +2,9 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/oujinhaoai/lantai/internal/client"
@@ -39,10 +41,37 @@ func (a *adapter) downloadTools(has func(string) bool) error {
 		})
 	}
 	if has("backup_management") {
-		mcp.AddTool(a.s, &mcp.Tool{Name: "backup_read", Description: "Read backup overview or one job. Requires a current human administrator session; Agent sessions remain forbidden.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
+		mcp.AddTool(a.s, &mcp.Tool{Name: "backup_read", Description: "Read backup overview, one exact job, schedule, or bounded history. kind=history follows after/next_cursor until complete; changes are a live view, not a frozen snapshot. Requires a current human administrator session; Agent sessions remain forbidden. No backup mutations or human proof issuance.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
 			JobID string `json:"job_id,omitempty"`
+			Kind  string `json:"kind,omitempty"`
+			After string `json:"after,omitempty"`
+			Limit int    `json:"limit,omitempty"`
 		}) (*mcp.CallToolResult, any, error) {
 			path := "/api/v1/admin/backups"
+			if in.Kind != "history" && (in.After != "" || in.Limit != 0) {
+				return readError("after and limit apply only to history")
+			}
+			if in.JobID != "" && in.Kind != "" {
+				return readError("use job_id or kind, not both")
+			}
+			switch in.Kind {
+			case "", "overview":
+			case "schedule":
+				path += "/schedule"
+			case "history":
+				if !has("bounded_backup_history") {
+					return readError("bounded backup history requires an upgraded server")
+				}
+				if in.Limit == 0 {
+					in.Limit = 10
+				}
+				if in.Limit < 1 || in.Limit > 20 || in.After != "" && !ids.ID(in.After).Valid() {
+					return readError("history limit must be1..20 and after an original job ID")
+				}
+				path += "/history?" + url.Values{"completion": {"explicit"}, "limit": {fmt.Sprint(in.Limit)}, "cursor": {in.After}}.Encode()
+			default:
+				return readError("backup kind must be overview, schedule or history")
+			}
 			if in.JobID != "" {
 				if !ids.ID(in.JobID).Valid() {
 					return readError("backup job ULID required")

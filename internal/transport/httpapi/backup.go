@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/oujinhaoai/lantai/internal/backupmgmt"
@@ -112,6 +113,38 @@ func (h *Handler) backupHistory(w http.ResponseWriter, r *http.Request, who auth
 		}
 		if v == nil {
 			v = []backupmgmt.Job{}
+		}
+		if r.URL.Query().Get("completion") == "explicit" {
+			limit := 20
+			if raw := r.URL.Query().Get("limit"); raw != "" {
+				var err error
+				limit, err = strconv.Atoi(raw)
+				if err != nil || limit < 1 || limit > 20 {
+					return errcode.New(errcode.SchemaInvalid, "backup history limit must be 1..20")
+				}
+			}
+			start := 0
+			if cursor := r.URL.Query().Get("cursor"); cursor != "" {
+				if !ids.ID(cursor).Valid() {
+					return errcode.New(errcode.SchemaInvalid, "backup history cursor must be an original job ID")
+				}
+				found := false
+				for i, job := range v {
+					if string(job.ID) == cursor {
+						start, found = i+1, true
+						break
+					}
+				}
+				if !found {
+					return errcode.New(errcode.CursorExpired, "backup history cursor no longer exists; replace prior pages")
+				}
+			}
+			end := min(start+limit, len(v))
+			page := map[string]any{"items": v[start:end], "complete": end == len(v), "truncated": false}
+			if end < len(v) {
+				page["next_cursor"] = v[end-1].ID
+			}
+			return respond(w, 200, page)
 		}
 		return respond(w, 200, map[string]any{"items": v})
 	})
