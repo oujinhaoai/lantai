@@ -177,7 +177,7 @@ func (s *Service) List(ctx context.Context, w authz.Context, p, after ids.ID, li
 	if e := s.auth(ctx, w, identity.ActTasksRead, p); e != nil {
 		return nil, e
 	}
-	rows, e := s.d.DB.QueryContext(ctx, `SELECT record FROM jobs_jobs WHERE project_id=? AND job_id>? ORDER BY job_id LIMIT ?`, p, after, limit)
+	rows, e := s.d.DB.QueryContext(ctx, `SELECT record FROM jobs_jobs WHERE project_id=? AND job_id>? ORDER BY job_id`, p, after)
 	if e != nil {
 		return nil, e
 	}
@@ -201,6 +201,12 @@ func (s *Service) List(ctx context.Context, w authz.Context, p, after ids.ID, li
 			}
 		}
 		out = append(out, j)
+		// Hidden device jobs must not turn an SQL candidate page into an apparently
+		// complete authorized page. Stream until the visible page is full or the
+		// query is exhausted, without exposing hidden IDs or counts.
+		if len(out) == limit {
+			break
+		}
 	}
 	return out, rows.Err()
 }

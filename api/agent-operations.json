@@ -477,10 +477,11 @@
       "cli": [
         "flow list"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_list"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getFlowsId",
@@ -489,7 +490,8 @@
         "flow show"
       ],
       "mcp": [
-        "flow_read"
+        "flow_read",
+        "record_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -532,10 +534,11 @@
       "cli": [
         "job list"
       ],
-      "mcp": [],
+      "mcp": [
+        "job_list"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getJobsId",
@@ -544,7 +547,8 @@
         "job show"
       ],
       "mcp": [
-        "job_read"
+        "job_read",
+        "record_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -666,10 +670,11 @@
       "cli": [
         "run capabilities"
       ],
-      "mcp": [],
+      "mcp": [
+        "run_capabilities"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getTaskRunsId",
@@ -678,7 +683,8 @@
         "run show"
       ],
       "mcp": [
-        "run_read"
+        "run_read",
+        "record_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -702,7 +708,8 @@
         "task show"
       ],
       "mcp": [
-        "task_read"
+        "task_read",
+        "record_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -713,10 +720,12 @@
       "cli": [
         "task attempts"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_attempts",
+        "record_read_chunk"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getTrashId",
@@ -1006,10 +1015,11 @@
       "cli": [
         "flow start"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_start"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsCancel",
@@ -1017,10 +1027,11 @@
       "cli": [
         "flow cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsDispatch",
@@ -1028,10 +1039,11 @@
       "cli": [
         "flow dispatch"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_dispatch"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsPause",
@@ -1039,10 +1051,11 @@
       "cli": [
         "flow pause"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_pause"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsResume",
@@ -1050,10 +1063,11 @@
       "cli": [
         "flow resume"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_resume"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsRetry",
@@ -1061,10 +1075,11 @@
       "cli": [
         "flow retry"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_retry"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postFlowsRetryCommand",
@@ -1072,10 +1087,11 @@
       "cli": [
         "flow retry-command"
       ],
-      "mcp": [],
+      "mcp": [
+        "flow_retry_command"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postHumanExecute",
@@ -1127,10 +1143,11 @@
       "cli": [
         "job cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "job_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postJobsReconcile",
@@ -1138,10 +1155,11 @@
       "cli": [
         "job reconcile"
       ],
-      "mcp": [],
+      "mcp": [
+        "job_reconcile"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postJobsRetry",
@@ -1149,10 +1167,11 @@
       "cli": [
         "job retry"
       ],
-      "mcp": [],
+      "mcp": [
+        "job_retry"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postJobsRun",
@@ -1160,10 +1179,11 @@
       "cli": [
         "job run"
       ],
-      "mcp": [],
+      "mcp": [
+        "job_run"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postMessages",
@@ -1183,10 +1203,11 @@
       "cli": [
         "node observe"
       ],
-      "mcp": [],
+      "mcp": [
+        "node_observe"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postPublications",
@@ -1273,10 +1294,11 @@
       "cli": [
         "run cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "run_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTaskRunsCandidate",
@@ -1320,10 +1342,11 @@
       "cli": [
         "run reconcile"
       ],
-      "mcp": [],
+      "mcp": [
+        "run_reconcile"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTaskRunsSeal",
@@ -1355,10 +1378,11 @@
       "cli": [
         "task create"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_create"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksAnswer",
@@ -1366,10 +1390,11 @@
       "cli": [
         "task answer"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_answer"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksAssign",
@@ -1377,10 +1402,11 @@
       "cli": [
         "task assign"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_assign"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksBlock",
@@ -1400,10 +1426,11 @@
       "cli": [
         "task cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksClaim",
@@ -1423,10 +1450,11 @@
       "cli": [
         "task complete"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_complete"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksHandoff",
@@ -1446,10 +1474,11 @@
       "cli": [
         "task reconcile"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_reconcile"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksRelease",
@@ -1481,10 +1510,11 @@
       "cli": [
         "task rework"
       ],
-      "mcp": [],
+      "mcp": [
+        "task_rework"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTasksSubmit",

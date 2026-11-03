@@ -68,6 +68,8 @@ Check results are validated against the complete wire contract before decoding, 
 
 Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
 
+MCP adds task management, explicit Flow dispatch, Run cancellation/reconciliation, Job operations and bounded record reads under existing authority and human-input rules; see the [Agent orchestration contract](docs/contracts/agent-orchestration.md).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

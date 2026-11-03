@@ -2006,12 +2006,18 @@ paths:
             application/json:
               schema:
                 properties:
+                  complete:
+                    type: boolean
+                    description: A full page returns false and a next_cursor; continue even if the next page is empty.
+                  next_cursor:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
                   items:
                     items:
                       $ref: ../schemas/tasks/v1/flow.schema.json
                     type: array
                 required:
                   - items
+                  - complete
                 type: object
           description: 领域服务结果；执行成功不等于人审通过。
         default:
@@ -2513,12 +2519,18 @@ paths:
             application/json:
               schema:
                 properties:
+                  complete:
+                    type: boolean
+                    description: A full page returns false and a next_cursor; continue even if the next page is empty.
+                  next_cursor:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
                   items:
                     items:
                       $ref: '#/components/schemas/M2JobsJob'
                     type: array
                 required:
                   - items
+                  - complete
                 type: object
           description: 领域服务结果；执行成功不等于人审通过。
         default:
@@ -2986,12 +2998,18 @@ paths:
             application/json:
               schema:
                 properties:
+                  complete:
+                    type: boolean
+                    description: A full page returns false and a next_cursor; continue even if the next page is empty.
+                  next_cursor:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
                   items:
                     items:
                       $ref: ../schemas/agent-execution/v1/task-run.schema.json
                     type: array
                 required:
                   - items
+                  - complete
                 type: object
           description: 领域服务结果；执行成功不等于人审通过。
         default:
@@ -3292,12 +3310,18 @@ paths:
             application/json:
               schema:
                 properties:
+                  complete:
+                    type: boolean
+                    description: A full page returns false and a next_cursor; continue even if the next page is empty.
+                  next_cursor:
+                    $ref: ../schemas/common/v1/defs.schema.json#/$defs/ulid
                   items:
                     items:
                       $ref: ../schemas/tasks/v1/task.schema.json
                     type: array
                 required:
                   - items
+                  - complete
                 type: object
           description: 领域服务结果；执行成功不等于人审通过。
         default:

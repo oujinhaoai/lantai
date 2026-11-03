@@ -14496,15 +14496,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiFlowV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -15524,15 +15532,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/M2JobsJob"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -16723,15 +16739,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiTaskRunV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }
@@ -17233,15 +17257,23 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "complete": {
+                      "description": "A full page returns false and a next_cursor; continue even if the next page is empty.",
+                      "type": "boolean"
+                    },
                     "items": {
                       "items": {
                         "$ref": "#/components/schemas/LantaiTaskV1"
                       },
                       "type": "array"
+                    },
+                    "next_cursor": {
+                      "$ref": "#/components/schemas/Ulid"
                     }
                   },
                   "required": [
-                    "items"
+                    "items",
+                    "complete"
                   ],
                   "type": "object"
                 }

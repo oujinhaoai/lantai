@@ -67,6 +67,8 @@ M1-07 原生续做现有明确的[人审证据闭合路径](api/native-continuat
 
 Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐项列出实际入口、缺口与权限例外；见[操作目录](docs/contracts/agent-operations.md)。
 
+MCP 补充任务管理、显式 Flow 派发、Run 取消/对账、Job 操作与有界记录读取；权限和真人输入边界沿用原领域规则，见[Agent 编排适配](docs/contracts/agent-orchestration.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。
