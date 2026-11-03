@@ -41,7 +41,7 @@ ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | 
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
 下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE；backups overview/history/show/download-link。
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
-素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
+素材管理：asset profile/find | asset metadata plan/apply | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`
 }
 

@@ -19,6 +19,8 @@ import (
 )
 
 const assetHelp = `素材管理（现有公共 API 与显式本地副本，不直接访问服务端数据）：
+  asset metadata plan --input SELECTION.json --output PLAN
+  asset metadata apply --input PLAN --state STATE_FILE --output REPORT
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
@@ -50,7 +52,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	}
 	name := args[0]
 	args = args[1:]
-	if name == "workset" || name == "import" || name == "references" {
+	if name == "workset" || name == "import" || name == "references" || name == "metadata" {
 		if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
 			fmt.Fprint(stdout, assetHelp)
 			return 0
@@ -108,7 +110,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			}
 		}
 		var protected []string
-		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") {
+		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") {
 			protected = []string{o.directory, o.state, o.destination}
 		} else if strings.HasPrefix(name, "workset-") {
 			protected = []string{o.directory}
@@ -175,6 +177,33 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 func executeAsset(ctx context.Context, name string, o assetOptions) (any, error) {
 	switch name {
+	case "metadata-plan", "metadata-apply":
+		if o.output == "" {
+			return nil, usage("metadata batch requires --output")
+		}
+		var selection client.MetadataBatchInput
+		var plan client.MetadataBatchPlan
+		if name == "metadata-plan" {
+			if err := decodeAssetInput(o.input, &selection); err != nil {
+				return nil, err
+			}
+		} else {
+			if o.state == "" {
+				return nil, usage("metadata apply requires original --state file")
+			}
+			if err := decodeAssetInput(o.input, &plan); err != nil {
+				return nil, err
+			}
+		}
+		c, err := assetClient(o)
+		if err != nil {
+			return nil, err
+		}
+		defer c.Close()
+		if name == "metadata-plan" {
+			return c.PlanMetadataBatch(ctx, selection)
+		}
+		return c.ApplyMetadataBatch(ctx, plan, o.state)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`

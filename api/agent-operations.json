@@ -103,11 +103,17 @@
     },
     {
       "id": "bulkMetadata",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "asset metadata plan",
+        "asset metadata apply"
+      ],
+      "mcp": [
+        "metadata_batch_plan",
+        "metadata_batch_apply",
+        "metadata_batch_report_page"
+      ],
       "skill": [],
-      "classification": "unimplemented",
-      "reason": "Conditional bulk metadata planning and per-item receipts are not implemented."
+      "classification": "cli_mcp"
     },
     {
       "id": "cancelBackup",
