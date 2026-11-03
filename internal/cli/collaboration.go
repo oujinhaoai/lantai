@@ -17,7 +17,7 @@ var collaborationPosts = map[string]string{
 	"flow/start": "flows", "flow/pause": "flows/pause", "flow/resume": "flows/resume", "flow/cancel": "flows/cancel", "flow/retry": "flows/retry", "flow/retry-command": "flows/retry-command", "flow/dispatch": "flows/dispatch",
 	"run/start": "task-runs", "run/resume": "task-runs", "run/progress": "task-runs/progress", "run/tool": "task-runs/tool", "run/candidate": "task-runs/candidate", "run/checkpoint": "task-runs/checkpoint", "run/ask": "task-runs/ask", "run/answer": "task-runs/answer", "run/cancel": "task-runs/cancel", "run/reconcile": "task-runs/reconcile", "run/seal": "task-runs/seal",
 	"job/run": "jobs/run", "job/cancel": "jobs/cancel", "job/retry": "jobs/retry", "job/reconcile": "jobs/reconcile", "node/observe": "nodes/observe",
-	"rights/assert": "rights/assertions", "rights/cancel": "rights/cancel",
+	"rights/evidence": "rights/evidence", "rights/assert": "rights/assertions", "rights/cancel": "rights/cancel",
 	"message/post": "messages", "review/submit": "review-targets", "review/publish": "publications", "evidence/append": "evidence", "inbox/read": "inbox/read",
 	"trash/preview": "trash/preview", "trash/own": "trash/own", "trash/restore": "trash/restore",
 	"human/prepare": "human/prepare", "human/execute": "human/execute", "human/rechallenge": "human/rechallenge",
@@ -46,6 +46,14 @@ func collaborationCommand(ctx context.Context, c *client.Client, command, action
 	}
 	path := ""
 	switch command {
+	case "rights":
+		if action == "show" {
+			exact, err := readPath(o)
+			if err != nil {
+				return client.Response{}, err
+			}
+			return c.Do(ctx, http.MethodGet, exact+"/rights", nil, client.Options{})
+		}
 	case "task", "flow", "run", "job":
 		base := map[string]string{"task": "tasks", "flow": "flows", "run": "task-runs", "job": "jobs"}[command]
 		switch action {

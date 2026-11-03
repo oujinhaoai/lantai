@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -146,7 +147,7 @@ func (c *Client) VerifyImport(ctx context.Context, plan ImportPlan, report Impor
 		if err != nil {
 			vr.Status = "failed"
 			vr.ErrorCode = importErrorCode(err)
-			failures = append(failures, errors.New("client: import verification failed for "+item.Key+"; preserve source and reuse verification destination"))
+			failures = append(failures, fmt.Errorf("client: import verification failed for %s; preserve source and reuse verification destination: %w", item.Key, err))
 		} else {
 			vr.Status = "verified"
 			for _, f := range item.Push.Content.Files {

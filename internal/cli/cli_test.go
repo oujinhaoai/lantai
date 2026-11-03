@@ -212,3 +212,17 @@ func TestBusinessMetadataIsNotRedactedAsCredential(t *testing.T) {
 		t.Fatalf("metadata changed: %d %s %s", code, out, err)
 	}
 }
+
+func TestSearchExplicitCompletionFlag(t *testing.T) {
+	t.Setenv("LANTAI_SESSION_TOKEN", "synthetic-session")
+	server := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/assets" || r.URL.Query().Get("completion") != "explicit" {
+			t.Errorf("explicit mode not sent: %s", r.URL)
+		}
+		respond(w, map[string]any{"items": []any{}, "complete": true, "truncated": false})
+	})
+	code, out, stderr := invoke(t, server, "search", "--explicit-completion")
+	if code != 0 || !strings.Contains(out, `"complete":true`) {
+		t.Fatal(code, out, stderr)
+	}
+}

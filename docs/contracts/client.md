@@ -1,6 +1,6 @@
 # 远程 CLI 与可恢复文件客户端
 
-`internal/cli.Run(ctx, args, stdout, stderr) int` 接收含命令名的参数，由 `cmd/lantai` 组装。`internal/client` 只调用公共 REST 与服务端返回的传输 URL；不导入领域服务，不读取服务端的数据目录，MCP 复用相同 HTTP client，任务等入口直接调用已组装的领域服务。M2 新增命令见[手动执行与远程协作](manual-execution.md)。公共接口以 [OpenAPI](../../api/openapi.yaml) 为准。
+`internal/cli.Run(ctx, args, stdout, stderr) int` 接收含命令名的参数，由 `cmd/lantai` 组装。`internal/client` 只调用公共 REST 与服务端返回的传输 URL；不导入领域服务，不读取服务端的数据目录，MCP 复用相同 HTTP client，任务等入口直接调用已组装的领域服务。M2 新增命令见[手动执行与远程协作](manual-execution.md)。公共接口以 [OpenAPI](../../api/openapi.yaml) 为准。Agent 发现、清单分页、完整读取和条件著录/rights 见[资源操作](agent-resources.md)，覆盖与例外见[操作目录](agent-operations.md)。
 
 ## 连接与凭据
 
@@ -39,6 +39,10 @@ lantai session end --server https://gateway.example --session-file session.json
 | 命令 | 参数与行为 |
 | --- | --- |
 | `meta` | 无需凭据，读取公共实例能力 |
+| `capabilities` | 无需凭据，分页读取构建操作目录；不是授权或验收结果 |
+| `versions` | `--asset ID [--cursor CURSOR --limit N]`，授权历史版本页 |
+| `rights show` | `--asset ID --version ID`，当前有效 rights 与证据修订 |
+| `rights evidence` | `--input JSON --idempotency-key KEY`，正式来源证据追加 |
 | `whoami` | 读取当前身份与会话 |
 | `project list` | `--limit`、`--cursor`、`--view brief\|full` |
 | `project show` | `--name PROJECT_KEY` |

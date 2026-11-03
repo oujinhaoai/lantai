@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -188,7 +189,7 @@ func (c *Client) ApplyImport(ctx context.Context, plan ImportPlan, sourceRoot, s
 			if importCommitted(report.Results[i].Status) {
 				result = report.Results[i]
 			}
-			failures = append(failures, errors.New("client: import item "+a.Key+" did not complete; reuse the original state"))
+			failures = append(failures, fmt.Errorf("client: import item %s did not complete; reuse the original state: %w", a.Key, err))
 		}
 		report.Results[i] = result
 		report.Complete = importAllDescribed(report.Results)

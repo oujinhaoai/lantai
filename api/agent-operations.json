@@ -23,11 +23,14 @@
     {
       "id": "appendRightsEvidence",
       "route": "POST /api/v1/rights/evidence",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "rights evidence"
+      ],
+      "mcp": [
+        "rights_evidence"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "approveBackupDownload",
@@ -89,6 +92,16 @@
       "reason": "Local profile normalization; current metadata is changed only with conditional metadata commands."
     },
     {
+      "id": "batchReports",
+      "cli": [],
+      "mcp": [
+        "batch_report_page"
+      ],
+      "skill": [],
+      "classification": "mcp_only",
+      "reason": "Bounded private receipt metadata; saved observations never become current remote authority."
+    },
+    {
       "id": "bulkMetadata",
       "cli": [],
       "mcp": [],
@@ -120,10 +133,11 @@
       "cli": [
         "upload cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "upload_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "checkManagementBatch",
@@ -144,7 +158,8 @@
         "upload check"
       ],
       "mcp": [
-        "resource_push"
+        "resource_push",
+        "upload_check"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -165,7 +180,8 @@
         "commit"
       ],
       "mcp": [
-        "resource_push"
+        "resource_push",
+        "resource_commit"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -346,10 +362,12 @@
       "cli": [
         "show"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_current",
+        "resource_read_chunk"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getAssetType",
@@ -357,10 +375,11 @@
       "cli": [
         "types"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_types"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getBackupControlSession",
@@ -613,10 +632,11 @@
       "cli": [
         "project show"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_read"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getProjectMembers",
@@ -624,10 +644,11 @@
       "cli": [
         "identity members"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_members"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "getResync",
@@ -739,7 +760,9 @@
         "upload status"
       ],
       "mcp": [
-        "resource_push"
+        "resource_push",
+        "upload_status",
+        "upload_parts"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -751,7 +774,9 @@
         "show"
       ],
       "mcp": [
-        "resource_read"
+        "resource_read",
+        "resource_files",
+        "resource_read_chunk"
       ],
       "skill": [],
       "classification": "cli_mcp"
@@ -759,11 +784,15 @@
     {
       "id": "getVersionRights",
       "route": "GET /api/v1/assets/{asset_id}/versions/{version_id}/rights",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "rights show"
+      ],
+      "mcp": [
+        "rights_read",
+        "resource_read_chunk"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "heartbeatDeviceJob",
@@ -779,30 +808,33 @@
       "cli": [
         "asset import apply"
       ],
-      "mcp": [],
+      "mcp": [
+        "import_apply"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Persistent import execution; preserve state and idempotency keys."
+      "classification": "cli_mcp"
     },
     {
       "id": "importPlan",
       "cli": [
         "asset import plan"
       ],
-      "mcp": [],
+      "mcp": [
+        "import_plan"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Local plan creation without upload."
+      "classification": "cli_mcp"
     },
     {
       "id": "importVerify",
       "cli": [
         "asset import verify"
       ],
-      "mcp": [],
+      "mcp": [
+        "import_verify"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Current-authorized byte verification of recorded imports."
+      "classification": "cli_mcp"
     },
     {
       "id": "inspectDeviceJob",
@@ -841,11 +873,14 @@
     {
       "id": "listAssetVersions",
       "route": "GET /api/v1/assets/{asset_id}/versions",
-      "cli": [],
-      "mcp": [],
+      "cli": [
+        "versions"
+      ],
+      "mcp": [
+        "resource_versions"
+      ],
       "skill": [],
-      "classification": "api_only",
-      "reason": "Implemented HTTP operation has no complete specialized CLI/MCP adapter in this build."
+      "classification": "cli_mcp"
     },
     {
       "id": "listDeviceJobs",
@@ -898,10 +933,11 @@
       "cli": [
         "project list"
       ],
-      "mcp": [],
+      "mcp": [
+        "project_list"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "listTypes",
@@ -909,10 +945,11 @@
       "cli": [
         "types"
       ],
-      "mcp": [],
+      "mcp": [
+        "resource_types"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "localMaintenance",
@@ -980,10 +1017,11 @@
       "cli": [
         "metadata set"
       ],
-      "mcp": [],
+      "mcp": [
+        "metadata_set"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "pollDevice",
@@ -1244,10 +1282,11 @@
       "cli": [
         "rights assert"
       ],
-      "mcp": [],
+      "mcp": [
+        "rights_assert"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postRightsCancel",
@@ -1255,10 +1294,11 @@
       "cli": [
         "rights cancel"
       ],
-      "mcp": [],
+      "mcp": [
+        "rights_cancel"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "MCP adapter is missing or incomplete; a CLI entry alone does not establish MCP-only coverage."
+      "classification": "cli_mcp"
     },
     {
       "id": "postTaskRuns",
@@ -1615,30 +1655,33 @@
       "cli": [
         "asset references copy"
       ],
-      "mcp": [],
+      "mcp": [
+        "references_copy"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Explicit reference-copy execution."
+      "classification": "cli_mcp"
     },
     {
       "id": "referencesPlan",
       "cli": [
         "asset references plan"
       ],
-      "mcp": [],
+      "mcp": [
+        "references_plan"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Bounded reference-copy plan."
+      "classification": "cli_mcp"
     },
     {
       "id": "referencesRollback",
       "cli": [
         "asset references rollback"
       ],
-      "mcp": [],
+      "mcp": [
+        "references_rollback"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Rollback only recorded reference copies."
+      "classification": "cli_mcp"
     },
     {
       "id": "resumeBackup",
@@ -1738,20 +1781,22 @@
       "cli": [
         "asset workset plan"
       ],
-      "mcp": [],
+      "mcp": [
+        "workset_plan"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Fixed explicit workset planning; does not discover dependencies."
+      "classification": "cli_mcp"
     },
     {
       "id": "worksetPull",
       "cli": [
         "asset workset pull"
       ],
-      "mcp": [],
+      "mcp": [
+        "workset_pull"
+      ],
       "skill": [],
-      "classification": "cli_only",
-      "reason": "Fixed explicit workset transfer; no high-level MCP workset lifecycle yet."
+      "classification": "cli_mcp"
     },
     {
       "id": "worksetReturn",
