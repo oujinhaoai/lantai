@@ -2,6 +2,8 @@
   "contract": "lantai.schema-index/v1",
   "base_uri": "https://github.com/oujinhaoai/lantai/raw/main/schemas/",
   "schemas": [
+    { "contract": "lantai.migration-batch/v1", "path": "catalog/v1/migration-batch.schema.json", "kind": "document", "owner": "T02" },
+    { "contract": "lantai.management-record/v1", "path": "catalog/v1/management-record.schema.json", "kind": "document", "owner": "T02" },
     { "contract": "lantai.common-defs/v1", "path": "common/v1/defs.schema.json", "kind": "library", "owner": "T00" },
     { "contract": "lantai.execution-common/v1", "path": "common/v1/execution.schema.json", "kind": "library", "owner": "T00" },
     { "contract": "lantai.error/v1", "path": "common/v1/error.schema.json", "kind": "document", "owner": "T00" },

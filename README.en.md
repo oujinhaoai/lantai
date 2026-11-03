@@ -68,6 +68,8 @@ Check results are validated against the complete wire contract before decoding, 
 
 Agent operation inventory: `lantai capabilities` / MCP `capability_list` lists actual adapters, coverage gaps and human-only exceptions; see the [operation inventory contract](docs/contracts/agent-operations.md).
 
+Private management records and migration batches support CLI/MCP preparation, original-state saving, discovery, exact reads, explicit revisions and existing core checks. Unresolved imports and human witness requirements remain explicit; see the [management record contract](docs/contracts/management-records.md).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

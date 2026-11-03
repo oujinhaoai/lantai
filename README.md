@@ -67,6 +67,8 @@ M1-07 原生续做现有明确的[人审证据闭合路径](api/native-continuat
 
 Agent 操作覆盖目录：`lantai capabilities` / MCP `capability_list`，逐项列出实际入口、缺口与权限例外；见[操作目录](docs/contracts/agent-operations.md)。
 
+管理档案与迁移批次支持 CLI/MCP 准备、原状态保存、发现、准确读取、显式修订及原核心核验；未完成导入状态和真人见证边界保留，见[管理档案契约](docs/contracts/management-records.md)。
+
 ## 要解决的问题
 
 - **素材有据可查**：稳定资产 ID、不可变版本、文件清单、来源与许可记录。

@@ -133,6 +133,12 @@ func TestAssetRecoveryGovernanceAndPermissions(t *testing.T) {
 		t.Logf("%s: outsider list/detail/Range denied; member Range exact; restricted production and protected mutation denied", label)
 		return good, grant
 	}
+	// The fixture performed direct domain writes after opening the app. Bring
+	// projections/audit through the real core sync before requiring HTTP startup;
+	// do not depend on the background tick winning a race on a loaded machine.
+	if err := f.app.Sync(ctx); err != nil {
+		t.Fatal("synchronize governance fixture before HTTP startup", err)
+	}
 	permissions("before recovery")
 	due, err := clock.Parse(max(heldEntry.DueAt, uniqueEntry.DueAt, sharedEntry.DueAt))
 	if err != nil {

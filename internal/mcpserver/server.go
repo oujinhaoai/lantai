@@ -136,6 +136,7 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 			return nil, e
 		}
 	}
+	a.managementTools(has)
 	if c.ExtensionsRegistry != "" && has("extension_cli_commands") {
 		if e = a.extensionTools(ctx, c.ExtensionsRegistry); e != nil {
 			return nil, e

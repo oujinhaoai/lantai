@@ -23,7 +23,7 @@ import (
 )
 
 func Names() []string {
-	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups"}
+	return []string{"capabilities", "meta", "login", "whoami", "session", "identity", "project", "types", "upload", "push", "commit", "show", "pull", "metadata", "search", "operation", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "ext", "asset", "download-link", "backups", "management"}
 }
 func Help() string {
 	return `远程命令：capabilities | meta | login | whoami | session exchange/setup/end | identity challenge/verify/execute/principal/members/enroll/password/confirm | project list/show/create | types | upload [status/cancel/check] | push | commit | show | pull | metadata get/set | search | operation
@@ -40,6 +40,7 @@ ext install --package DIR --registry FILE | ext list | ext remove --plugin ID | 
 human prepare 返回冻结目标与摘要；本人核对后 human verify --id CHALLENGE_ID --credentials-file FILE，再 human items/execute。
 下载链接：download-link --asset ID --version ID --path FILE --purpose PURPOSE；backups overview/history/show/download-link。
 backups download-link --id JOB --input APPROVAL.json --idempotency-key KEY；仍须本人管理员及精确包摘要的人类批准。
+管理档案：management prepare/save/revise/list/read/check/batch-create/batch-revise；prepare/batch-create --input SPEC --output PRIVATE_PLAN；save --input PRIVATE_PLAN --directory DIR --state ORIGINAL_STATE。batch-revise 另需原 --asset/--version 及核验 --directory。
 素材管理：asset profile/find | asset workset plan/pull | asset import plan/apply/verify | asset references plan/copy/rollback；asset --help。
 详见 docs/contracts/client.md。`
 }
@@ -55,7 +56,7 @@ type sessionFile struct {
 	Token  string `json:"token"`
 }
 type options struct {
-	filePath, caFile, secretFile                                                                                                                                         string
+	output, recordKind, filePath, caFile, secretFile                                                                                                                     string
 	server, session, input, directory, state, key, etag, asset, version, ref, upload, id, project, query, assetType, cursor, view, purpose, credentials, tokenFile, name string
 	allowHTTP, json                                                                                                                                                      bool
 	limit                                                                                                                                                                int
@@ -136,7 +137,7 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	action := ""
 	if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		switch command {
-		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups":
+		case "session", "identity", "project", "upload", "metadata", "task", "flow", "run", "job", "node", "message", "review", "rights", "evidence", "trash", "human", "context", "events", "resync", "inbox", "plugin", "backups", "management":
 			action = rest[0]
 			rest = rest[1:]
 		}
@@ -149,6 +150,8 @@ func run(ctx context.Context, args []string) (client.Response, error) {
 	f.StringVar(&o.caFile, "ca-file", os.Getenv("LANTAI_CA_FILE"), "PEM CA bundle for this client only")
 	f.BoolVar(&o.allowHTTP, "allow-http", false, "allow loopback HTTP for development")
 	f.BoolVar(&o.json, "json", false, "stable JSON output (default)")
+	f.StringVar(&o.output, "output", "", "private output document")
+	f.StringVar(&o.recordKind, "kind", "", "management record kind")
 	f.StringVar(&o.input, "input", "", "JSON/YAML request document")
 	f.StringVar(&o.directory, "directory", "", "local working copy directory")
 	f.StringVar(&o.state, "state", "", "private persistent transfer state")
@@ -290,6 +293,8 @@ func execute(ctx context.Context, c *client.Client, command, action string, o op
 		return c.Do(ctx, method, path, body, opts)
 	}
 	switch command {
+	case "management":
+		return managementCommand(ctx, c, action, o)
 	case "capabilities":
 		q := url.Values{"cursor": {o.cursor}, "limit": {fmt.Sprint(min(o.limit, 20))}}
 		return do(http.MethodGet, "/api/v1/capabilities?"+q.Encode(), nil)

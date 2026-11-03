@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oujinhaoai/lantai/raw/main/schemas/catalog/v1/migration-batch.schema.json",
+  "title": "lantai.migration-batch/v1",
+  "description": "Private migration inventory; never an approval. Sum, revision continuity, UTF-16 budgets and unique evidence keys additionally use x-batch-rules. Current acceptance remains a core check.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "batch_id",
+    "revision",
+    "project_id",
+    "instance_id",
+    "title",
+    "owner_id",
+    "last_action",
+    "stage",
+    "acceptance",
+    "source_retained",
+    "intended_purpose",
+    "reference_scope",
+    "import_summary",
+    "evidence",
+    "checklist"
+  ],
+  "properties": {
+    "schema": {
+      "const": "lantai.migration-batch/v1"
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "previous_ref": {
+      "$ref": "#/$defs/fixed_ref"
+    },
+    "project_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "instance_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "\\S"
+    },
+    "owner_id": {
+      "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+    },
+    "last_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "at",
+        "action",
+        "note"
+      ],
+      "properties": {
+        "actor_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "\\S"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "stage": {
+      "enum": [
+        "inventory",
+        "ingest",
+        "verification",
+        "workset",
+        "references",
+        "recovery",
+        "acceptance",
+        "in_use",
+        "rollback"
+      ]
+    },
+    "acceptance": {
+      "enum": [
+        "not_requested",
+        "requested"
+      ]
+    },
+    "source_retained": {
+      "const": true
+    },
+    "intended_purpose": {
+      "enum": [
+        "archive_review",
+        "reference",
+        "production",
+        "generative_input",
+        "raw_export"
+      ]
+    },
+    "reference_scope": {
+      "enum": [
+        "none",
+        "selected_notes"
+      ]
+    },
+    "import_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned",
+        "committed",
+        "description_pending",
+        "failed",
+        "unknown",
+        "not_attempted"
+      ],
+      "properties": {
+        "planned": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "committed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "description_pending": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "not_attempted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assets",
+        "worksets",
+        "verifications",
+        "recovery",
+        "reference_jobs"
+      ],
+      "properties": {
+        "assets": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "asset_id",
+              "version_id",
+              "manifest_digest",
+              "status"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "\\S"
+              },
+              "asset_id": {
+                "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+              },
+              "version_id": {
+                "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+              },
+              "manifest_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "status": {
+                "enum": [
+                  "committed",
+                  "description_pending",
+                  "failed",
+                  "unknown",
+                  "not_attempted"
+                ]
+              }
+            }
+          }
+        },
+        "worksets": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/fixed_ref"
+          }
+        },
+        "verifications": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/fixed_ref"
+          }
+        },
+        "recovery": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/fixed_ref"
+          }
+        },
+        "native_continuations": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/fixed_ref"
+          }
+        },
+        "reference_jobs": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "job_id",
+              "action"
+            ],
+            "properties": {
+              "job_id": {
+                "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+              },
+              "action": {
+                "enum": [
+                  "references.plan",
+                  "references.copy",
+                  "references.rollback"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "checklist": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "excluded_backed_up",
+        "working_inputs_backed_up",
+        "entrypoints_opened",
+        "new_results_captured",
+        "fallback_ready",
+        "selected_notes_reviewed"
+      ],
+      "properties": {
+        "excluded_backed_up": {
+          "type": "boolean"
+        },
+        "working_inputs_backed_up": {
+          "type": "boolean"
+        },
+        "entrypoints_opened": {
+          "type": "boolean"
+        },
+        "new_results_captured": {
+          "type": "boolean"
+        },
+        "fallback_ready": {
+          "type": "boolean"
+        },
+        "selected_notes_reviewed": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fixed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "version_id"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        },
+        "version_id": {
+          "$ref": "../../common/v1/defs.schema.json#/$defs/ulid"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "revision": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "previous_ref"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "previous_ref"
+        ]
+      }
+    }
+  ],
+  "x-batch-rules": {
+    "max_safe_integer": 9007199254740991,
+    "summary_total": "planned equals sum of all five statuses",
+    "unique_keys": [
+      "evidence.assets.key",
+      "evidence.reference_jobs.job_id"
+    ],
+    "text_budget": "UTF-16 code units"
+  }
+}
