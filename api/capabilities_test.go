@@ -2,7 +2,11 @@ package api_test
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -27,10 +31,15 @@ func allOperations(t *testing.T) []api.AgentOperation {
 	t.Helper()
 	var out []api.AgentOperation
 	after := ""
+	cursors := map[string]bool{}
+	digest := sha256.Sum256(api.AgentOperations)
 	for {
 		p, err := api.AgentOperationList(after, 20)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if p.CatalogSHA256 != hex.EncodeToString(digest[:]) {
+			t.Fatal("catalog digest changed during traversal")
 		}
 		encoded, _ := json.Marshal(p)
 		// StructuredContent and text are both serialized by MCP.
@@ -44,9 +53,10 @@ func allOperations(t *testing.T) []api.AgentOperation {
 			}
 			return out
 		}
-		if p.NextCursor <= after {
+		if p.NextCursor == "" || cursors[p.NextCursor] {
 			t.Fatal("non-advancing capability cursor")
 		}
+		cursors[p.NextCursor] = true
 		after = p.NextCursor
 	}
 }
@@ -64,9 +74,17 @@ func TestAgentOperationPages(t *testing.T) {
 			t.Fatal(tc)
 		}
 	}
-	last, err := api.AgentOperationList(all[len(all)-1].ID, 10)
+	digest := sha256.Sum256(api.AgentOperations)
+	cursor := func(digest, after string) string {
+		raw, _ := json.Marshal(map[string]string{"catalog_sha256": digest, "after": after})
+		return base64.RawURLEncoding.EncodeToString(raw)
+	}
+	last, err := api.AgentOperationList(cursor(hex.EncodeToString(digest[:]), all[len(all)-1].ID), 10)
 	if err != nil || !last.Complete || len(last.Items) != 0 {
 		t.Fatal(last, err)
+	}
+	if _, err := api.AgentOperationList(cursor(strings.Repeat("0", 64), all[0].ID), 10); !errors.Is(err, api.ErrAgentOperationCursorExpired) {
+		t.Fatal("stale catalog cursor accepted", err)
 	}
 }
 

@@ -37,7 +37,7 @@ paths:
       parameters:
       - in: query
         name: cursor
-        schema: {type: string, maxLength: 128}
+        schema: {type: string, maxLength: 1024}
       - in: query
         name: limit
         schema: {type: integer, minimum: 1, maximum: 20, default: 10}
@@ -48,10 +48,11 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [contract, items, complete]
+                required: [contract, catalog_sha256, items, complete]
                 additionalProperties: false
                 properties:
                   contract: {type: string, enum: [lantai.agent-operations/v1]}
+                  catalog_sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
                   next_cursor: {type: string}
                   complete: {type: boolean}
                   items:
@@ -71,6 +72,8 @@ paths:
                           type: string
                           enum: [cli_mcp, cli_only, mcp_only, api_only, web_only, unimplemented, human_only, local_only, not_applicable]
                         reason: {type: string}
+        '410':
+          $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
   # BEGIN FIRST PARTY DEVICE PATHS

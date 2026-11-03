@@ -1,11 +1,13 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/oujinhaoai/lantai/api"
 	"github.com/oujinhaoai/lantai/internal/contract/authz"
+	"github.com/oujinhaoai/lantai/internal/contract/errcode"
 )
 
 func (h *Handler) agentOperations(w http.ResponseWriter, r *http.Request, _ authz.Context) error {
@@ -19,6 +21,9 @@ func (h *Handler) agentOperations(w http.ResponseWriter, r *http.Request, _ auth
 	}
 	page, err := api.AgentOperationList(r.URL.Query().Get("cursor"), n)
 	if err != nil {
+		if errors.Is(err, api.ErrAgentOperationCursorExpired) {
+			return errcode.New(errcode.CursorExpired, err.Error())
+		}
 		return invalid(err.Error())
 	}
 	return respond(w, http.StatusOK, page)
