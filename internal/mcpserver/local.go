@@ -87,6 +87,7 @@ func (a *adapter) localTools() error {
 	}
 	a.workspace = root
 	a.workspaceIdentity = info
+	a.worksetRecordTools()
 	inputSchema, e := a.pushInputSchema()
 	if e != nil {
 		return e

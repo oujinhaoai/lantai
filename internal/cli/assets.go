@@ -22,6 +22,7 @@ const assetHelp = `素材管理（现有公共 API 与显式本地副本，不�
   asset profile --input REQUEST [--output FILE]
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
+  asset workset list|open|record-prepare|record-save|return-prepare|return-apply|adopt-prepare --input JSON [--directory DIR --state FILE --output FILE]
   asset import plan --input INPUT --directory SOURCE --output PLAN
   asset import apply --input PLAN --directory SOURCE --state STATE_DIR --output REPORT
   asset import verify --input PLAN --report REPORT --directory SOURCE --state STATE_DIR --destination VERIFY_DIR
@@ -111,7 +112,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") {
 			protected = []string{o.directory, o.state, o.destination}
 		} else if strings.HasPrefix(name, "workset-") {
-			protected = []string{o.directory}
+			protected = []string{o.directory, o.state}
 		}
 		if o.referencePlan != nil {
 			protected = append(protected, o.referencePlan.SourceRoot)
@@ -156,7 +157,11 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				saveErr = errors.New("asset: output parent changed during the operation")
 			}
 			if saveErr == nil {
-				saveErr = output.Write(append(raw, '\n'))
+				if name == "workset-record-prepare" || name == "workset-return-prepare" || name == "workset-adopt-prepare" {
+					saveErr = output.WriteOriginal(append(raw, '\n'))
+				} else {
+					saveErr = output.Write(append(raw, '\n'))
+				}
 			}
 			if saveErr != nil {
 				fmt.Fprintln(stderr, "asset: result could not be saved; retain the original state before retrying")
@@ -175,6 +180,8 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 func executeAsset(ctx context.Context, name string, o assetOptions) (any, error) {
 	switch name {
+	case "workset-list", "workset-open", "workset-record-prepare", "workset-record-save", "workset-return-prepare", "workset-return-apply", "workset-adopt-prepare":
+		return executeManagedWorkset(ctx, name, o)
 	case "profile":
 		var in struct {
 			Input   client.PushInput `json:"input"`

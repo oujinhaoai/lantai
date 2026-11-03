@@ -76,6 +76,8 @@ MCP `import_*`, `workset_*`, and `references_*` batch tools reuse the original C
 
 Private management records and migration batches support CLI/MCP preparation, original-state saving, discovery, exact reads, explicit revisions and existing core checks. Unresolved imports and human witness requirements remain explicit; see the [management record contract](docs/contracts/management-records.md).
 
+CLI/MCP provide private fixed-workset record discovery, save/reopen, original-state return and explicit adoption. Existing references stay pinned; actual core receipts and current purposes are checked before preparing a new record. See the [workset contract](docs/contracts/workset.md#私人工作集记录与明确返库) (Chinese).
+
 ## What Lantai is for
 
 - **Traceable assets**: stable asset IDs, immutable versions, manifests, provenance, and license evidence.

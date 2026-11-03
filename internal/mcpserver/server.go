@@ -101,6 +101,7 @@ func New(ctx context.Context, c Config) (*mcp.Server, error) {
 			}
 		}
 	}
+	a.worksetRecordDiscovery(has)
 	if e = a.downloadTools(has); e != nil {
 		return nil, e
 	}
