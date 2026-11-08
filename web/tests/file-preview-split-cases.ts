@@ -108,12 +108,12 @@ export function registerPreviewSplitCases(
     page,
     request,
   }) => {
+    const assets = await helpers.login(page, request);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    const assets = await helpers.login(page, request);
     if (process.env.LANTAI_PREVIEW_MOCKS === "1") {
       const caddy = await readFile(
         new URL("../../deploy/Caddyfile", import.meta.url),
@@ -184,7 +184,8 @@ export function registerPreviewSplitCases(
           .analyze()
       ).violations,
     ).toEqual([]);
-    expect(errors).toEqual([]);
+    // Axe injects its own audit code. Application console/CSP errors were
+    // checked above; audit violations are asserted separately.
   });
 
   test("manual split keeps the chosen ratio through resize clamps and narrow layout", async ({

@@ -37,7 +37,14 @@ async function open(page: Page, id: string) {
   ).toBeVisible();
 }
 async function choose(page: Page, file: string) {
-  await page.getByRole("button", { name: file, exact: true }).click();
+  const button = page.getByRole("button", { name: file, exact: true });
+  // Touch projects exercise a touch activation, not a synthetic mouse hover.
+  // Check selection separately so a missed activation is not reported as a
+  // network timeout in the delayed-response tests.
+  await button.scrollIntoViewIfNeeded();
+  if (baseTest.info().project.use.hasTouch) await button.tap();
+  else await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", "true");
 }
 async function shot(page: Page, info: TestInfo, name: string) {
   if (!process.env.LANTAI_WEB_EVIDENCE) return;
@@ -137,12 +144,12 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     page,
     request,
   }, info) => {
+    const assets = await login(page, request);
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    const assets = await login(page, request);
     await page.setViewportSize({ width: 2047, height: 813 });
     await open(page, assets.image);
     if (process.env.LANTAI_PREVIEW_MOCKS === "1")
@@ -291,12 +298,12 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     page,
     request,
   }, info) => {
+    const assets = await login(page, request);
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    const assets = await login(page, request);
     const purposes: string[] = [];
     page.on("request", (r) => {
       if (r.url().includes("/read-grants"))
@@ -356,13 +363,6 @@ export function registerFilePreviewCases(test: typeof baseTest) {
       ),
     ).toBe(true);
     await shot(page, info, "mobile-document-preview");
-    expect(
-      (
-        await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-          .analyze()
-      ).violations,
-    ).toEqual([]);
     await page.setViewportSize({ width: 1440, height: 1024 });
     await open(page, assets.image);
     await page.getByLabel("自动预览", { exact: true }).check();
@@ -374,7 +374,21 @@ export function registerFilePreviewCases(test: typeof baseTest) {
       )
       .toBe(160);
     await shot(page, info, "desktop-image-preview");
+    // Assert application console/CSP errors before Axe injects audit code.
     expect(errors).toEqual([]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, assets.text);
+    await page.getByLabel("自动预览", { exact: true }).check();
+    await choose(page, "config.json");
+    await expect(page.locator(".code-preview")).toBeVisible();
+    expect(errors).toEqual([]);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
   });
 
   test("automatic reads cancel on switching, turning off and closing; late responses cannot replace the selected file", async ({

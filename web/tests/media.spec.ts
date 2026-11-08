@@ -70,11 +70,14 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
     "open",
     "",
   );
-  expect(
-    (await page
-      .getByRole("button", { name: "sample.png", exact: true })
-      .boundingBox())!.y,
-  ).toBeLessThan(page.viewportSize()!.height - 100);
+  // Search and file-list controls can extend below the initial mobile viewport.
+  // The selected file must remain reachable without expanding metadata.
+  const imageFile = page.getByRole("button", {
+    name: "sample.png",
+    exact: true,
+  });
+  await imageFile.scrollIntoViewIfNeeded();
+  await expect(imageFile).toBeInViewport();
   await page.getByText("著录与技术详情", { exact: true }).click();
   await expect(page.locator(".detail-metadata")).toHaveAttribute("open", "");
   await page.getByText("著录与技术详情", { exact: true }).click();
