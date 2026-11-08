@@ -2,6 +2,8 @@
 
 The Web sidebar starts with Home and My Projects, followed by the authorized management entries. The public [manual acceptance guide](docs/user-guide/acceptance.md) explains project receipts and access, five UI workflows, evidence, and stop conditions; its navigation and text work without JavaScript. Web updates are delivered separately; the artifact manifest identifies the compatible core.
 
+Asset details provide a searchable version-file list and a nonmodal preview sidebar. On desktop, drag the divider or use arrow keys to change the split ratio, remembered in the current browser with a reset option; smaller screens use a stacked layout. Opting into automatic preview updates the selected file on each switch; initial navigation does not fetch originals, downloads remain separate, and media never autoplays.
+
 
 
 Containers initialize a service-owned configuration in the data volume. The [upgrade launcher](deploy/upgrade-config.py) can migrate a legacy read-only config bind automatically while retaining the existing volumes and effective config input, after read-only instance, database-binding and existing-key checks. No manual config or key copy is needed. Valid existing configuration is preserved; unknown state fails explicitly and interrupted bootstrap is retryable. Complete-package recovery retains the read-only root, dropped capabilities, NNP and its recovery gate. If startup fails, the launcher stops only that project’s core/gateway and checks their actual state. Failed cleanup or inspection explicitly reports a possibly running or unconfirmed state; do not retry until it is resolved. See the [migration procedure](docs/deployment.md#旧只读配置-bind-的自动迁移) for prerequisites and limits.

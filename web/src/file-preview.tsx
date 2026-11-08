@@ -1,6 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { api, APIError, hasCSRF, isSessionError, message } from "./api";
 import { FileEnhancements } from "./asset-enhancements";
+import { FilePreviewSplit } from "./file-preview-split";
+import "./file-preview.css";
 
 const TextPreview = lazy(() =>
   import("./text-preview").catch(() => ({
@@ -205,11 +215,13 @@ function Viewer({
   assetID,
   versionID,
   expire,
+  autoPreview,
 }: {
   file: PreviewFile;
   assetID: string;
   versionID: string;
   expire: (error: unknown) => void;
+  autoPreview: boolean;
 }) {
   const kind = fileKind(file.path);
   const [state, setState] = useState<{
@@ -257,58 +269,78 @@ function Viewer({
     );
     return () => clearTimeout(timer);
   }, [download.expires]);
-  const issue = async (purpose: string, signal: AbortSignal) => {
-    const grant = await api<Grant>(
-      `/api/v1/assets/${encodeURIComponent(assetID)}/versions/${encodeURIComponent(versionID)}/read-grants`,
-      {
-        method: "POST",
-        body: JSON.stringify({ path: file.path, purpose }),
-        signal,
-      },
-    );
-    if (
-      grant.path !== file.path ||
-      grant.size !== file.size ||
-      grant.sha256 !== file.sha256 ||
-      !grant.range ||
-      !Number.isFinite(Date.parse(grant.expires_at))
-    )
-      throw new APIError("INVALID_RESPONSE", 0);
-    return { ...grant, url: transferURL(grant.url) };
-  };
+  const issue = useCallback(
+    async (purpose: string, signal: AbortSignal) => {
+      const grant = await api<Grant>(
+        `/api/v1/assets/${encodeURIComponent(assetID)}/versions/${encodeURIComponent(versionID)}/read-grants`,
+        {
+          method: "POST",
+          body: JSON.stringify({ path: file.path, purpose }),
+          signal,
+        },
+      );
+      if (
+        grant.path !== file.path ||
+        grant.size !== file.size ||
+        grant.sha256 !== file.sha256 ||
+        !grant.range ||
+        !Number.isFinite(Date.parse(grant.expires_at))
+      )
+        throw new APIError("INVALID_RESPONSE", 0);
+      return { ...grant, url: transferURL(grant.url) };
+    },
+    [assetID, versionID, file.path, file.size, file.sha256],
+  );
   const report = (error: unknown) => {
     if (isSessionError(error)) expire(error);
   };
-  const load = async (nextLimit = initialLimit) => {
-    if (locked.current) return;
-    locked.current = true;
-    previewRequest.current?.abort();
-    const request = new AbortController();
-    previewRequest.current = request;
-    setState({ busy: true });
-    setLimit(nextLimit);
-    try {
-      const grant = await issue("archive_review", request.signal);
-      if (kind === "text" || kind === "markdown") {
-        const text = await readText(
-          grant.url,
-          grant.size,
-          nextLimit,
-          request.signal,
-        );
-        if (!request.signal.aborted)
-          setState({ text, expires: grant.expires_at });
-      } else if (!request.signal.aborted)
-        setState({ url: grant.url, expires: grant.expires_at });
-    } catch (error) {
-      if (!request.signal.aborted) {
-        report(error);
-        setState({ error });
+  const load = useCallback(
+    async (nextLimit = initialLimit) => {
+      if (locked.current) return;
+      locked.current = true;
+      previewRequest.current?.abort();
+      const request = new AbortController();
+      previewRequest.current = request;
+      setState({ busy: true });
+      setLimit(nextLimit);
+      try {
+        const grant = await issue("archive_review", request.signal);
+        if (kind === "text" || kind === "markdown") {
+          const text = await readText(
+            grant.url,
+            grant.size,
+            nextLimit,
+            request.signal,
+          );
+          if (!request.signal.aborted)
+            setState({ text, expires: grant.expires_at });
+        } else if (!request.signal.aborted)
+          setState({ url: grant.url, expires: grant.expires_at });
+      } catch (error) {
+        if (!request.signal.aborted) {
+          if (isSessionError(error)) expire(error);
+          setState({ error });
+        }
+      } finally {
+        if (previewRequest.current === request) {
+          locked.current = false;
+          if (request.signal.aborted)
+            setState((current) => (current.busy ? {} : current));
+        }
       }
-    } finally {
-      locked.current = false;
-    }
-  };
+    },
+    [issue, kind, expire],
+  );
+  const unavailable =
+    kind === "unsupported" || (kind === "image" && file.size > imageLimit);
+  useEffect(() => {
+    if (!autoPreview || unavailable || !hasCSRF()) return;
+    const timer = setTimeout(() => void load(), 120);
+    return () => {
+      clearTimeout(timer);
+      previewRequest.current?.abort();
+    };
+  }, [autoPreview, unavailable, load]);
   const prepareDownload = async () => {
     if (downloading.current) return;
     downloading.current = true;
@@ -341,8 +373,6 @@ function Viewer({
       }
     }
   };
-  const unavailable =
-    kind === "unsupported" || (kind === "image" && file.size > imageLimit);
   return (
     <div className="file-viewer">
       <div className="preview-meta">
@@ -372,7 +402,7 @@ function Viewer({
       <div className="preview-actions">
         {!unavailable && (
           <button
-            className="primary"
+            className="secondary"
             disabled={!hasCSRF() || state.busy}
             onClick={() => void load()}
           >
@@ -400,7 +430,7 @@ function Viewer({
             下载原文件
           </a>
         )}
-        {(state.url || state.text !== undefined) && (
+        {state.busy && (
           <button
             className="text-button"
             onClick={() => {
@@ -408,7 +438,7 @@ function Viewer({
               setState({});
             }}
           >
-            关闭预览
+            取消读取
           </button>
         )}
       </div>
@@ -539,47 +569,185 @@ export function FilePreview({
     preferred[0] ||
     files[0];
   const [selected, setSelected] = useState(first?.path || "");
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(true);
+  const [autoPreview, setAutoPreview] = useState(false);
+  const selectedButton = useRef<HTMLButtonElement | null>(null);
+  const searchInput = useRef<HTMLInputElement | null>(null);
+  const drawer = useRef<HTMLElement | null>(null);
+  const drawerID = useId();
+  const helpID = useId();
   const file = files.find((item) => item.path === selected);
-  if (!file) return null;
+  const visible = files.filter((item) =>
+    item.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+  );
+  const close = () => {
+    setOpen(false);
+    (selectedButton.current || searchInput.current)?.focus({
+      preventScroll: true,
+    });
+  };
   return (
-    <section className="preview-panel" aria-label="文件预览">
+    <section className="file-preview-layout" aria-label="版本文件与预览">
       <h3>文件预览与下载</h3>
-      <label className="file-picker">
-        选择版本文件
-        <select
-          value={selected}
-          onChange={(event) => setSelected(event.target.value)}
-        >
-          {files.map((item) => (
-            <option value={item.path} key={item.path}>
-              {item.path}
-            </option>
+      <div className="version-files">
+        <div className="version-files-heading">
+          <h4>版本文件</h4>
+          <span className="subtle">{files.length} 个文件</span>
+          {file && (
+            <button
+              className="text-button"
+              onClick={() => {
+                setOpen(true);
+                requestAnimationFrame(() => {
+                  drawer.current?.focus();
+                  drawer.current?.scrollIntoView({ block: "nearest" });
+                });
+              }}
+            >
+              {open ? "跳到预览" : "打开预览"}
+            </button>
+          )}
+        </div>
+        <label className="version-file-search">
+          <span className="sr-only">搜索版本文件</span>
+          <input
+            ref={searchInput}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="搜索文件名…"
+          />
+        </label>
+        <div className="version-file-columns" aria-hidden="true">
+          <span>文件名</span>
+          <span>类型</span>
+          <span>大小</span>
+        </div>
+        <ul className="version-file-list" aria-label="版本文件">
+          {visible.map((item, index) => (
+            <li key={item.path}>
+              <button
+                type="button"
+                className="version-file-row"
+                aria-label={item.path}
+                aria-describedby={`${drawerID}-type-${index} ${drawerID}-size-${index}`}
+                aria-pressed={item.path === selected}
+                aria-controls={open ? drawerID : undefined}
+                ref={item.path === selected ? selectedButton : undefined}
+                onClick={() => {
+                  setSelected(item.path);
+                  setOpen(true);
+                  requestAnimationFrame(() =>
+                    drawer.current?.scrollIntoView({ block: "nearest" }),
+                  );
+                }}
+              >
+                <span className="version-file-name" title={item.path}>
+                  {item.path}
+                </span>
+                <span
+                  className="version-file-type"
+                  id={`${drawerID}-type-${index}`}
+                >
+                  {fileListType(item.path)}
+                </span>
+                <span
+                  className="version-file-size"
+                  id={`${drawerID}-size-${index}`}
+                >
+                  {formatFileSize(item.size)}
+                </span>
+              </button>
+            </li>
           ))}
-        </select>
-        <span className="file-picker-arrow" aria-hidden="true">
-          ⌄
-        </span>
-      </label>
-      {!canPreview(file) && candidates.length > 0 && (
-        <p className="subtle">
-          此版本另有 {candidates.length}{" "}
-          个可预览候选，可在上方选择。文件仍需点击后读取。
-        </p>
+        </ul>
+        {!visible.length && (
+          <div className="version-files-empty" role="status">
+            <p>{files.length ? "没有匹配的文件" : "此版本没有文件"}</p>
+            {!!search && (
+              <button className="text-button" onClick={() => setSearch("")}>
+                清除搜索
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {open && file && (
+        <aside
+          ref={drawer}
+          className="file-drawer"
+          tabIndex={-1}
+          id={drawerID}
+          aria-label="文件预览"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              close();
+            }
+          }}
+        >
+          <div className="file-drawer-heading">
+            <h3>文件预览</h3>
+            <button className="text-button" onClick={close}>
+              收起预览
+            </button>
+          </div>
+          <FilePreviewSplit drawerID={drawerID} />
+          <h4 className="file-drawer-name">{file.path}</h4>
+          <label className="auto-preview">
+            <input
+              type="checkbox"
+              checked={autoPreview}
+              onChange={(event) => setAutoPreview(event.target.checked)}
+              aria-describedby={helpID}
+            />
+            自动预览
+          </label>
+          <p className="subtle auto-preview-help" id={helpID}>
+            切换文件时自动更新预览
+          </p>
+          {!canPreview(file) && candidates.length > 0 && (
+            <p className="subtle">
+              此版本另有 {candidates.length} 个可预览候选，可在列表中选择。
+            </p>
+          )}
+          <Viewer
+            key={file.path}
+            file={file}
+            assetID={assetID}
+            versionID={versionID}
+            expire={expire}
+            autoPreview={autoPreview}
+          />
+          <FileEnhancements
+            key={`tools/${file.path}`}
+            file={file}
+            assetID={assetID}
+            versionID={versionID}
+            expire={expire}
+          />
+        </aside>
       )}
-      <Viewer
-        key={file.path}
-        file={file}
-        assetID={assetID}
-        versionID={versionID}
-        expire={expire}
-      />
-      <FileEnhancements
-        key={`tools/${file.path}`}
-        file={file}
-        assetID={assetID}
-        versionID={versionID}
-        expire={expire}
-      />
     </section>
   );
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fileListType(path: string) {
+  const kind = fileKind(path);
+  if (kind === "text" || kind === "unsupported") {
+    const extension = path.includes(".") ? path.split(".").pop()! : "";
+    return extension && extension.length <= 8
+      ? extension.toUpperCase()
+      : kind === "text"
+        ? "文本"
+        : "文件";
+  }
+  return kindNames[kind];
 }

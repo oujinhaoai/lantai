@@ -31,7 +31,10 @@ async function open(page: Page, id: string, file?: string) {
   await expect(
     page.getByRole("heading", { name: "文件预览与下载" }),
   ).toBeVisible();
-  if (file) await page.getByLabel("选择版本文件").selectOption(file);
+  if (file) await choose(page, file);
+}
+async function choose(page: Page, file: string) {
+  await page.getByRole("button", { name: file, exact: true }).click();
 }
 async function preview(page: Page) {
   await page.getByRole("button", { name: "预览文件", exact: true }).click();
@@ -67,14 +70,18 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
     "open",
     "",
   );
-  expect((await page.getByLabel("选择版本文件").boundingBox())!.y).toBeLessThan(
-    page.viewportSize()!.height - 100,
-  );
+  expect(
+    (await page
+      .getByRole("button", { name: "sample.png", exact: true })
+      .boundingBox())!.y,
+  ).toBeLessThan(page.viewportSize()!.height - 100);
   await page.getByText("著录与技术详情", { exact: true }).click();
   await expect(page.locator(".detail-metadata")).toHaveAttribute("open", "");
   await page.getByText("著录与技术详情", { exact: true }).click();
   expect(
-    (await page.getByLabel("选择版本文件").boundingBox())!.height,
+    (await page
+      .getByRole("button", { name: "sample.png", exact: true })
+      .boundingBox())!.height,
   ).toBeGreaterThanOrEqual(44);
   await preview(page);
   await expect
@@ -122,7 +129,7 @@ test("real authorized PNG, WAV and MP4 previews load on demand with native contr
       .poll(() => media.evaluate((el: HTMLMediaElement) => el.currentTime))
       .toBeGreaterThan(0);
     await shot(page, info, `media-${kind}`);
-    await page.getByRole("button", { name: "关闭预览" }).click();
+    await page.getByRole("button", { name: "收起预览" }).click();
     await expect(media).toHaveCount(0);
   }
   expect(grants).toBe(3);
@@ -138,18 +145,20 @@ test("mixed versions default to a previewable file without reading and keep unsu
     if (r.url().includes("/read-grants") || r.url().includes("/xfer/")) reads++;
   });
   await open(page, assets.text);
-  await expect(page.getByLabel("选择版本文件")).toHaveValue("readme.md");
+  await expect(
+    page.getByRole("button", { name: "readme.md", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page.getByRole("button", { name: "预览文件", exact: true }),
   ).toBeVisible();
   expect(reads).toBe(0);
-  await page.getByLabel("选择版本文件").selectOption("archive.zip");
+  await choose(page, "archive.zip");
   await expect(page.getByText(/此版本另有 .* 个可预览候选/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "预览文件", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByLabel("选择版本文件").locator("option[value='binary.bin']"),
+    page.getByRole("button", { name: "binary.bin", exact: true }),
   ).toHaveCount(1);
   expect(reads).toBe(0);
   // Metadata-only boundary case: an image resource with an oversized cover
@@ -179,8 +188,10 @@ test("mixed versions default to a previewable file without reading and keep unsu
   });
   await page.goto("/#/assets");
   await open(page, assets.text);
-  await expect(page.getByLabel("选择版本文件")).toHaveValue("readme.md");
-  await page.getByLabel("选择版本文件").selectOption("cover.png");
+  await expect(
+    page.getByRole("button", { name: "readme.md", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await choose(page, "cover.png");
   await expect(page.getByText(/图片超过 16 MiB/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "预览文件", exact: true }),
@@ -189,9 +200,7 @@ test("mixed versions default to a previewable file without reading and keep unsu
   await page.unroute(assetURL);
   await page.unroute(versionURL);
   await open(page, assets.unsupported);
-  await expect(page.getByLabel("选择版本文件").locator("option")).toHaveCount(
-    2,
-  );
+  await expect(page.locator(".version-file-row")).toHaveCount(2);
   await expect(page.getByText(/此格式不支持通用预览/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "预览文件", exact: true }),
@@ -249,7 +258,7 @@ test("safe Markdown, code and configuration render without executing or fetching
     "config.yaml",
     "config.toml",
   ]) {
-    await page.getByLabel("选择版本文件").selectOption(file);
+    await choose(page, file);
     await preview(page);
     await expect(page.locator(".code-preview .line-number").first()).toHaveText(
       "1",
@@ -406,10 +415,10 @@ test("archives and unknown binaries never preview; encoding and decoder errors d
   }
   expect(grants).toBe(0);
   await shot(page, info, "binary-unsupported");
-  await page.getByLabel("选择版本文件").selectOption("unknown.txt");
+  await choose(page, "unknown.txt");
   await preview(page);
   await expect(page.getByRole("alert")).toContainText("无法按 UTF-8 安全读取");
-  await page.getByLabel("选择版本文件").selectOption("broken.png");
+  await choose(page, "broken.png");
   await preview(page);
   await expect(page.getByText(/浏览器不支持此文件的格式或编码/)).toBeVisible();
   const prior = grants;
@@ -545,10 +554,10 @@ test("preview grants expire visibly, duplicate clicks are bounded and late respo
       })
       .catch(() => {});
   });
-  await page.getByLabel("选择版本文件").selectOption("source.py");
+  await choose(page, "source.py");
   await preview(page);
   await expect.poll(() => reached).toBe(true);
-  await page.getByLabel("选择版本文件").selectOption("binary.bin");
+  await choose(page, "binary.bin");
   releaseText();
   await expect(page.getByText(/此格式不支持通用预览/)).toBeVisible();
   await expect(page.locator(".code-preview")).toHaveCount(0);
@@ -564,5 +573,7 @@ test("text module load failure stays readable and does not blank the workspace",
   await preview(page);
   await expect(page.getByRole("alert")).toContainText("文本阅读模块未能加载");
   await expect(page.getByRole("navigation")).toBeVisible();
-  await expect(page.getByLabel("选择版本文件")).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "版本文件", exact: true }),
+  ).toBeVisible();
 });
