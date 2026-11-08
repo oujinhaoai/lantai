@@ -642,7 +642,40 @@ export function FilePreview({
                   // Keep focus accessible without changing either scrollport;
                   // selection still happens only on click (or keyboard click).
                   event.preventDefault();
+                  const scrollports: {
+                    element: HTMLElement;
+                    left: number;
+                    top: number;
+                  }[] = [];
+                  for (
+                    let element = event.currentTarget.parentElement;
+                    element;
+                    element = element.parentElement
+                  ) {
+                    scrollports.push({
+                      element,
+                      left: element.scrollLeft,
+                      top: element.scrollTop,
+                    });
+                  }
+                  const left = window.scrollX;
+                  const top = window.scrollY;
                   event.currentTarget.focus({ preventScroll: true });
+                  // Some WebKit ports still scroll ancestors during focus.
+                  // Restore synchronously before the matching mouseup arrives.
+                  for (const saved of scrollports) {
+                    if (
+                      saved.element.scrollLeft !== saved.left ||
+                      saved.element.scrollTop !== saved.top
+                    )
+                      saved.element.scrollTo({
+                        left: saved.left,
+                        top: saved.top,
+                        behavior: "instant",
+                      });
+                  }
+                  if (window.scrollX !== left || window.scrollY !== top)
+                    window.scrollTo({ left, top, behavior: "instant" });
                 }}
                 onClick={() => {
                   setSelected(item.path);

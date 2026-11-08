@@ -53,11 +53,12 @@ async function choose(page: Page, file: string) {
       "focusin",
       "scroll",
     ];
-    const capture = (event: Event) => {
+    const capture = (event: Event, phase = "capture") => {
       const target = event.target instanceof Element ? event.target : null;
       if (events.length >= 80) events.shift();
       events.push({
         type: event.type,
+        phase,
         time: event.timeStamp,
         defaultPrevented: event.defaultPrevented,
         target: target?.tagName,
@@ -72,13 +73,17 @@ async function choose(page: Page, file: string) {
           ?.getAttribute("aria-label"),
       });
     };
+    const bubble = (event: Event) => capture(event, "bubble");
     types.forEach((type) => document.addEventListener(type, capture, true));
+    document.addEventListener("mousedown", bubble);
     return {
       events,
-      stop: () =>
+      stop: () => {
         types.forEach((type) =>
           document.removeEventListener(type, capture, true),
-        ),
+        );
+        document.removeEventListener("mousedown", bubble);
+      },
     };
   });
   try {
@@ -522,6 +527,26 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     // A press followed by a drag off the row must not activate it.
     await page.mouse.move(0, 0);
     await page.mouse.up();
+    await expect(row).toHaveAttribute("aria-pressed", "false");
+    // Deterministically exercise a browser that ignores preventScroll, even
+    // on platforms where the native focus implementation already respects it.
+    await row.evaluate((button: HTMLButtonElement) => {
+      const focus = button.focus;
+      button.focus = function () {
+        this.dataset.focusFallbackCalled = "true";
+        focus.call(this);
+        window.scrollBy(0, -24);
+        this.closest(".version-file-list")!.scrollTop -= 12;
+      };
+    });
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    expect(await position()).toEqual(before);
+    await expect(row).toHaveAttribute("data-focus-fallback-called", "true");
+    await expect(row).toHaveAttribute("aria-pressed", "false");
+    await page.mouse.move(0, 0);
+    await page.mouse.up();
+    await row.evaluate((button) => Reflect.deleteProperty(button, "focus"));
     await expect(row).toHaveAttribute("aria-pressed", "false");
     await page.keyboard.press("Enter");
     await expect(row).toHaveAttribute("aria-pressed", "true");
