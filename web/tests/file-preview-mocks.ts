@@ -6,7 +6,7 @@ const mockVersions = new WeakMap<
   Page,
   (id: string) => {
     version: object;
-    manifest: { content: { files: { size: number }[] } };
+    manifest: { content: { files: { path: string; size: number }[] } };
   }
 >();
 export function previewMockVersion(page: Page, id: string) {
@@ -20,6 +20,19 @@ export function previewMockVersion(page: Page, id: string) {
 export async function previewMocks(page: Page) {
   if (process.env.LANTAI_PREVIEW_MOCKS !== "1")
     throw new Error("Synthetic preview mocks are disabled.");
+  // Match the gateway policy in every mock run, not only splitter tests.
+  const caddy = await readFile(
+    new URL("../../deploy/Caddyfile", import.meta.url),
+    "utf8",
+  );
+  const policy = caddy.match(/Content-Security-Policy "([^"]+)"/)![1];
+  await page.route("http://127.0.0.1:4188/", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), "content-security-policy": policy },
+    });
+  });
   const projectID = "01J0000000000000000000000C";
   const instanceID = "01J0000000000000000000000D";
   const ids: Record<string, string> = {};
@@ -39,6 +52,14 @@ export async function previewMocks(page: Page) {
         "long_code_line_".repeat(100) +
         "')\n",
       "notes.txt": "合成笔记\n",
+      "boundary.txt": "合成边界\n",
+      "broken.png": "synthetic invalid image",
+      "config.toml": 'name = "合成项目"\n',
+      "config.yaml": 'name: "合成项目"\n',
+      "index.html": "<p>synthetic</p>",
+      "long.txt": "synthetic long text\n",
+      "main.go": "package synthetic\n",
+      "unknown.txt": "synthetic\n",
       "参考资料/跨团队素材与多语言环境说明-very-long-filename-for-responsive-layout.txt":
         "合成长文件名\n",
       "disguised.txt": "PK synthetic renamed archive, never shown",
@@ -54,12 +75,25 @@ export async function previewMocks(page: Page) {
     ["audio", "wav", "audio"],
     ["video", "mp4", "video"],
     ["unsupported", "", "doc"],
+    ["textCompact", "", "doc"],
   ]) {
     const id = `01J0000000000000000000000${serial++}`;
     ids[name] = id;
     let files: Map<string, Buffer>;
     if (name === "text") files = new Map(text);
-    else if (name === "unsupported")
+    else if (name === "textCompact") {
+      files = new Map(
+        [...text].filter(
+          ([file]) => file !== "notes.txt" && !file.startsWith("参考资料/"),
+        ),
+      );
+      files.set(
+        "readme.md",
+        Buffer.from(
+          "# 安全阅读\n\n**中文 Markdown**\n\n![外部图片](https://example.invalid/tracker.png)\n\n<script>window.previewExecuted=true</script>\n\n[危险链接](javascript:alert(1))\n",
+        ),
+      );
+    } else if (name === "unsupported")
       files = new Map(
         [...text].filter(
           ([file]) => file === "archive.zip" || file === "binary.bin",
@@ -114,12 +148,14 @@ export async function previewMocks(page: Page) {
         manifest_digest: v.manifest_digest,
         content: {
           asset_type: resource.kind,
-          files: [...resource.files].map(([name, body]) => ({
-            path: name,
-            size: body.length,
-            role: "primary",
-            sha256: createHash("sha256").update(body).digest("hex"),
-          })),
+          files: [...resource.files]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([name, body]) => ({
+              path: name,
+              size: body.length,
+              role: "primary",
+              sha256: createHash("sha256").update(body).digest("hex"),
+            })),
         },
       },
     };
@@ -143,7 +179,7 @@ export async function previewMocks(page: Page) {
       )
     )
       return route.abort("blockedbyclient");
-    return route.continue();
+    return route.fallback();
   });
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());

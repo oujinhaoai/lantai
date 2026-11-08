@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { APIError, hasCSRF, isSessionError, message } from "./api";
 import { readAssetFile } from "./asset-read";
 import {
@@ -118,6 +118,7 @@ export function FileEnhancements({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const [edge, setEdge] = useState(1024);
+  const edgeGroup = useId();
   const [model, setModel] = useState<Wireframe>();
   const [result, setResult] = useState<{
     url: string;
@@ -281,20 +282,23 @@ export function FileEnhancements({
         </button>
         {image && (
           <>
-            <label>
-              代理最长边
-              <select
-                value={edge}
-                disabled={busy}
-                onChange={(event) => setEdge(Number(event.target.value))}
-              >
+            <fieldset disabled={busy}>
+              <legend>代理最长边</legend>
+              <div className="preview-actions">
                 {[512, 1024, 2048].map((n) => (
-                  <option key={n} value={n}>
+                  <label className="proxy-size-option" key={n}>
+                    <input
+                      type="radio"
+                      name={edgeGroup}
+                      value={n}
+                      checked={edge === n}
+                      onChange={() => setEdge(n)}
+                    />
                     {n} px
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+            </fieldset>
             <button
               className="secondary"
               disabled={!hasCSRF() || busy || file.size > imageByteLimit}

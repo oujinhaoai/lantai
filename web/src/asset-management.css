@@ -103,3 +103,13 @@
   border: 1px solid #b5c6bc;
   overflow-wrap: anywhere;
 }
+
+.asset-tools .proxy-size-option {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 0.4rem;
+}
+.asset-tools .proxy-size-option input {
+  width: auto;
+}

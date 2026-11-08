@@ -1,7 +1,6 @@
 import { expect, type test as baseTest } from "@playwright/test";
 import type { APIRequestContext, Page, TestInfo } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFile } from "node:fs/promises";
 
 const storageKey = "lantai.ui.file-preview-ratio.v1";
 const splitter = (page: Page) =>
@@ -114,20 +113,6 @@ export function registerPreviewSplitCases(
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    if (process.env.LANTAI_PREVIEW_MOCKS === "1") {
-      const caddy = await readFile(
-        new URL("../../deploy/Caddyfile", import.meta.url),
-        "utf8",
-      );
-      const policy = caddy.match(/Content-Security-Policy "([^"]+)"/)![1];
-      await page.route("http://127.0.0.1:4188/", async (route) => {
-        const response = await route.fetch();
-        await route.fulfill({
-          response,
-          headers: { ...response.headers(), "content-security-policy": policy },
-        });
-      });
-    }
     await page.setViewportSize({ width: 2047, height: 1000 });
     await helpers.open(page, assets.text);
     expect(await scopedRules(page)).toBe(1);
@@ -164,8 +149,6 @@ export function registerPreviewSplitCases(
     await page.getByRole("button", { name: "打开预览" }).click();
     expect(await ratio(page)).toBeCloseTo(saved, 3);
     expect(await scopedRules(page)).toBe(1);
-    // No unrelated native image-tool select: its existing WebKit/CSP warning
-    // is retained in the separate r2/r3 baseline diagnostic.
     await helpers.open(page, assets.unsupported);
     expect(await ratio(page)).toBeCloseTo(saved, 3);
     expect(await scopedRules(page)).toBe(1);

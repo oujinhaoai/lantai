@@ -38,25 +38,108 @@ async function open(page: Page, id: string) {
 }
 async function choose(page: Page, file: string) {
   const button = page.getByRole("button", { name: file, exact: true });
-  // Touch projects exercise a touch activation, not a synthetic mouse hover.
-  // Check selection separately so a missed activation is not reported as a
-  // network timeout in the delayed-response tests.
-  await button.scrollIntoViewIfNeeded();
-  if (baseTest.info().project.use.hasTouch) await button.tap();
-  else await button.click();
-  await expect(button).toHaveAttribute("aria-pressed", "true");
+  // Capture only DOM input/scroll metadata, never credentials or requests.
+  const diagnostic = await page.evaluateHandle(() => {
+    const events: object[] = [];
+    const types = [
+      "pointerdown",
+      "pointerup",
+      "pointercancel",
+      "touchstart",
+      "touchend",
+      "mousedown",
+      "mouseup",
+      "click",
+      "focusin",
+      "scroll",
+    ];
+    const capture = (event: Event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (events.length >= 80) events.shift();
+      events.push({
+        type: event.type,
+        target: target?.tagName,
+        label: target?.closest("button")?.getAttribute("aria-label"),
+        x: "clientX" in event ? event.clientX : null,
+        y: "clientY" in event ? event.clientY : null,
+        scrollY,
+        listScroll: document.querySelector(".version-file-list")?.scrollTop,
+        selected: document
+          .querySelector('.version-file-row[aria-pressed="true"]')
+          ?.getAttribute("aria-label"),
+      });
+    };
+    types.forEach((type) => document.addEventListener(type, capture, true));
+    return {
+      events,
+      stop: () =>
+        types.forEach((type) =>
+          document.removeEventListener(type, capture, true),
+        ),
+    };
+  });
+  try {
+    // Touch projects exercise a touch activation, not a synthetic mouse hover.
+    await button.scrollIntoViewIfNeeded();
+    if (baseTest.info().project.use.hasTouch) await button.tap();
+    else await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+  } catch (error) {
+    await baseTest.info().attach("file-selection-events", {
+      body: JSON.stringify(
+        { file, events: await diagnostic.evaluate((value) => value.events) },
+        null,
+        2,
+      ),
+      contentType: "application/json",
+    });
+    throw error;
+  } finally {
+    await diagnostic.evaluate((value) => value.stop());
+    await diagnostic.dispose();
+  }
+}
+
+const screenshotWarnings = new WeakMap<Page, string[]>();
+function captureScreenshotWarning(page: Page, message: string) {
+  const warnings = screenshotWarnings.get(page);
+  // Playwright WebKit inserts `body {}` while synchronizing screenshots.
+  // Record this exact harness warning only inside page.screenshot; identical
+  // messages during application interactions still fail the test.
+  if (
+    warnings &&
+    page.context().browser()?.browserType().name() === "webkit" &&
+    message ===
+      "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy."
+  ) {
+    warnings.push(message);
+    return true;
+  }
+  return false;
 }
 async function shot(page: Page, info: TestInfo, name: string) {
   if (!process.env.LANTAI_WEB_EVIDENCE) return;
   await mkdir(process.env.LANTAI_WEB_EVIDENCE, { recursive: true });
   await page.getByRole("heading", { name: "文件预览", exact: true }).click();
-  await page.screenshot({
-    path: path.join(
-      process.env.LANTAI_WEB_EVIDENCE,
-      `${info.project.name}-${name}.png`,
-    ),
-    fullPage: name.startsWith("mobile"),
-  });
+  const warnings: string[] = [];
+  screenshotWarnings.set(page, warnings);
+  try {
+    await page.screenshot({
+      caret: "initial",
+      path: path.join(
+        process.env.LANTAI_WEB_EVIDENCE,
+        `${info.project.name}-${name}.png`,
+      ),
+      fullPage: name.startsWith("mobile"),
+    });
+  } finally {
+    screenshotWarnings.delete(page);
+  }
+  if (warnings.length)
+    await info.attach(`${name}-screenshot-harness-warnings`, {
+      body: JSON.stringify(warnings),
+      contentType: "application/json",
+    });
   await info.attach(name, {
     path: path.join(
       process.env.LANTAI_WEB_EVIDENCE,
@@ -148,7 +231,11 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
-      if (message.type() === "error") errors.push(message.text());
+      if (
+        message.type() === "error" &&
+        !captureScreenshotWarning(page, message.text())
+      )
+        errors.push(message.text());
     });
     await page.setViewportSize({ width: 2047, height: 813 });
     await open(page, assets.image);
@@ -302,7 +389,11 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
-      if (message.type() === "error") errors.push(message.text());
+      if (
+        message.type() === "error" &&
+        !captureScreenshotWarning(page, message.text())
+      )
+        errors.push(message.text());
     });
     const purposes: string[] = [];
     page.on("request", (r) => {
@@ -373,6 +464,12 @@ export function registerFilePreviewCases(test: typeof baseTest) {
           .evaluate((image: HTMLImageElement) => image.naturalWidth),
       )
       .toBe(160);
+    const sizes = page.getByRole("group", { name: "代理最长边" });
+    await expect(sizes.getByRole("radio", { name: "1024 px" })).toBeChecked();
+    await sizes.getByRole("radio", { name: "512 px" }).check();
+    await expect(sizes.getByRole("radio", { name: "512 px" })).toBeChecked();
+    await sizes.getByRole("radio", { name: "2048 px" }).check();
+    await expect(sizes.getByRole("radio", { name: "2048 px" })).toBeChecked();
     await shot(page, info, "desktop-image-preview");
     // Assert application console/CSP errors before Axe injects audit code.
     expect(errors).toEqual([]);
@@ -396,7 +493,7 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     request,
   }) => {
     const assets = await login(page, request);
-    await open(page, assets.text);
+    await open(page, assets.textCompact || assets.text);
     await page.getByLabel("自动预览", { exact: true }).check();
     await expect(page.locator(".markdown-preview")).toBeVisible();
     let release!: () => void;
@@ -489,7 +586,9 @@ export function registerFilePreviewCases(test: typeof baseTest) {
       const data = response
         ? await response.json()
         : previewMockVersion(page, assets.image);
-      data.manifest.content.files[0].size = 17 * 1024 * 1024;
+      data.manifest.content.files.find(
+        (file: { path: string }) => file.path === "sample.png",
+      )!.size = 17 * 1024 * 1024;
       await route.fulfill({ ...(response ? { response } : {}), json: data });
     });
     await page.goto("/#/assets");
