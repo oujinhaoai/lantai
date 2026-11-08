@@ -58,8 +58,11 @@ async function choose(page: Page, file: string) {
       if (events.length >= 80) events.shift();
       events.push({
         type: event.type,
+        time: event.timeStamp,
+        defaultPrevented: event.defaultPrevented,
         target: target?.tagName,
         label: target?.closest("button")?.getAttribute("aria-label"),
+        rect: target?.closest("button")?.getBoundingClientRect().toJSON(),
         x: "clientX" in event ? event.clientX : null,
         y: "clientY" in event ? event.clientY : null,
         scrollY,
@@ -85,14 +88,20 @@ async function choose(page: Page, file: string) {
     else await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
   } catch (error) {
-    await baseTest.info().attach("file-selection-events", {
-      body: JSON.stringify(
-        { file, events: await diagnostic.evaluate((value) => value.events) },
-        null,
-        2,
-      ),
+    const info = baseTest.info();
+    const evidence = {
+      file,
+      viewport: page.viewportSize(),
+      events: await diagnostic.evaluate((value) => value.events),
+    };
+    const output = info.outputPath("file-selection-events.json");
+    await writeFile(output, JSON.stringify(evidence, null, 2));
+    // CI uploads test-results even when body-only attachments are unavailable.
+    await info.attach("file-selection-events", {
+      path: output,
       contentType: "application/json",
     });
+    console.error("FILE_SELECTION_EVENTS " + JSON.stringify(evidence));
     throw error;
   } finally {
     await diagnostic.evaluate((value) => value.stop());
@@ -495,7 +504,7 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     const assets = await login(page, request);
     await open(page, assets.textCompact || assets.text);
     await page.getByLabel("自动预览", { exact: true }).check();
-    await expect(page.locator(".markdown-preview")).toBeVisible();
+    await expect(page.locator(".markdown-preview")).toContainText("安全阅读");
     let release!: () => void;
     let reached = false;
     const gate = new Promise<void>((resolve) => {
