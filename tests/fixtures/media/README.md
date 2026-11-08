@@ -6,6 +6,9 @@
 ffmpeg -f lavfi -i 'testsrc2=size=160x90:rate=10' -t 1 -an -c:v libx264 -pix_fmt yuv420p -movflags +faststart -map_metadata -1 sample.mp4
 ffmpeg -f lavfi -i 'sine=frequency=440:sample_rate=8000:duration=1' -c:a pcm_s16le -map_metadata -1 sample.wav
 ffmpeg -f lavfi -i 'testsrc2=size=160x90:rate=1' -frames:v 1 -threads 1 -map_metadata -1 sample.png
+ffmpeg -f lavfi -i 'testsrc2=size=1600x1000:rate=1' -frames:v 1 -threads 1 -map_metadata -1 wide.png
 ```
 
 生成不属于测试运行前置；以上小文件已固定在仓库。文本、代码、配置和错误样本由 Go 测试夹具生成。
+
+`wide.png` 为 1600×1000 的合成测试图，用于预览侧栏连续缩放与大图等比缩小回归；不含真实素材。
