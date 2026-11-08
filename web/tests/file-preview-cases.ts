@@ -497,6 +497,43 @@ export function registerFilePreviewCases(test: typeof baseTest) {
     ).toEqual([]);
   });
 
+  test("file row focus preserves nested scroll and only completed activation selects", async ({
+    page,
+    request,
+  }) => {
+    const assets = await login(page, request);
+    await page.setViewportSize({ width: 390, height: 664 });
+    await open(page, assets.textCompact || assets.text);
+    const row = page.getByRole("button", { name: "source.py", exact: true });
+    await row.scrollIntoViewIfNeeded();
+    const position = () =>
+      page.evaluate(() => ({
+        outer: window.scrollY,
+        inner: document.querySelector(".version-file-list")!.scrollTop,
+      }));
+    const before = await position();
+    expect(before.inner).toBeGreaterThan(0);
+    const box = (await row.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await expect(row).toBeFocused();
+    expect(await position()).toEqual(before);
+    await expect(row).toHaveAttribute("aria-pressed", "false");
+    // A press followed by a drag off the row must not activate it.
+    await page.mouse.move(0, 0);
+    await page.mouse.up();
+    await expect(row).toHaveAttribute("aria-pressed", "false");
+    await page.keyboard.press("Enter");
+    await expect(row).toHaveAttribute("aria-pressed", "true");
+    const other = page.getByRole("button", {
+      name: "config.json",
+      exact: true,
+    });
+    await other.focus();
+    await page.keyboard.press("Space");
+    await expect(other).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("automatic reads cancel on switching, turning off and closing; late responses cannot replace the selected file", async ({
     page,
     request,

@@ -635,6 +635,15 @@ export function FilePreview({
                 aria-pressed={item.path === selected}
                 aria-controls={open ? drawerID : undefined}
                 ref={item.path === selected ? selectedButton : undefined}
+                onMouseDown={(event) => {
+                  if (event.button !== 0) return;
+                  // WebKit can scroll the outer page while focusing a row in
+                  // the nested list, moving it away before mouseup/click.
+                  // Keep focus accessible without changing either scrollport;
+                  // selection still happens only on click (or keyboard click).
+                  event.preventDefault();
+                  event.currentTarget.focus({ preventScroll: true });
+                }}
                 onClick={() => {
                   setSelected(item.path);
                   setOpen(true);
