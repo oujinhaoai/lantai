@@ -32,6 +32,7 @@ type command struct {
 }
 
 var commands = []command{
+	{"serve-drill", "仅在隔离恢复副本中启动受限演练，不完成正式接管", runServeDrill},
 	{"start", "自动衔接受保护的首次管理员设置与正常服务", runStart},
 	{"prepare-config", "离线核验并迁移旧配置 bind，或准备首次设置配置；已有有效配置不覆盖", runPrepareConfig},
 	{"prepare-volumes", "仅准备空容器卷的根目录，已有目录只校验", runPrepareVolumes},

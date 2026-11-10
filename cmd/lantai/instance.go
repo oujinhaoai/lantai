@@ -309,7 +309,7 @@ func runRecoverAdmin(ctx context.Context, args []string, stdout, stderr io.Write
 		fmt.Fprintln(stderr, "usage: lantai recover-admin -home <data root> -admin <name> [-note <reason>]")
 		return exitUsage
 	}
-	inst, err := operations.Open(ctx, operations.Options{Home: *home})
+	inst, err := operations.Open(ctx, operations.Options{Home: *home, DrillMaintenance: true})
 	if err != nil {
 		return reportStartup(stderr, "recover-admin", err)
 	}

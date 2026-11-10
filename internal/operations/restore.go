@@ -58,6 +58,9 @@ func RestoreTo(ctx context.Context, opts RestoreOptions) (Marker, error) {
 	if err != nil {
 		return zero, err
 	}
+	if _, e := os.Lstat(filepath.Join(l.Home, drillFile)); !errors.Is(e, fs.ErrNotExist) {
+		return zero, errors.New("operations: a recovery drill cannot be overwritten or resumed as production restore")
+	}
 	if _, err = independentTarget(opts.BackupDir, l.Home); err != nil {
 		return zero, err
 	}
@@ -72,6 +75,9 @@ func RestoreTo(ctx context.Context, opts RestoreOptions) (Marker, error) {
 		return zero, err
 	}
 	defer lock.Unlock()
+	if _, e := os.Lstat(filepath.Join(l.Home, drillFile)); !errors.Is(e, fs.ErrNotExist) {
+		return zero, errors.New("operations: a recovery drill cannot be overwritten or resumed as production restore")
+	}
 	raw, err := os.ReadFile(filepath.Join(opts.BackupDir, "manifest.json"))
 	if err != nil {
 		return zero, err
@@ -177,6 +183,9 @@ func (i *Instance) OfflineMaintenance(ctx context.Context, run func(context.Cont
 }
 
 func (i *Instance) SetRestoreStage(ctx context.Context, stage string) error {
+	if i.IsRecoveryDrill() {
+		return errors.New("operations: recovery drill restore latch is immutable")
+	}
 	if err := i.gate.RequireMaintenance(ctx); err != nil {
 		return err
 	}
@@ -222,6 +231,9 @@ type RecoveryReview struct {
 // CompleteRestore is the last step, after application-owned credential, file and
 // index checks. It leaves the gate closed; a fresh normal Start is still required.
 func (i *Instance) CompleteRestore(ctx context.Context, review RecoveryReview, check func(context.Context) error) error {
+	if i.IsRecoveryDrill() {
+		return errors.New("operations: recovery drill cannot be promoted; restore a fresh production target")
+	}
 	if err := i.gate.RequireMaintenance(ctx); err != nil {
 		return err
 	}

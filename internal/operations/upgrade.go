@@ -14,6 +14,9 @@ import (
 // durable migration record retains its binding so an interrupted run can resume
 // even while the backup medium is offline. Downgrades are never attempted.
 func (i *Instance) Migrate(ctx context.Context, backupDirs ...string) (MigrationReport, error) {
+	if i.IsRecoveryDrill() {
+		return MigrationReport{}, errors.New("operations: migrations are disabled for recovery drills")
+	}
 	if len(backupDirs) > 1 {
 		return MigrationReport{}, errors.New("operations: at most one backup is accepted")
 	}

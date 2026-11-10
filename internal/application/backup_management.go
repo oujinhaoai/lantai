@@ -77,6 +77,9 @@ type scheduleReceipt struct {
 // taking the normal core offline. A corrupt journal disables all backup writes;
 // it is never silently discarded or replaced by an empty state.
 func (a *App) ConfigureBackups(ctx context.Context, root, rootID string) *BackupControl {
+	if a.Instance.IsRecoveryDrill() {
+		return nil
+	}
 	if b, err := a.EnableBackups(ctx, root, rootID); err == nil {
 		return b
 	}

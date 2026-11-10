@@ -15,6 +15,14 @@ import (
 )
 
 func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	return serveMode(ctx, args, stdout, stderr, false)
+}
+
+func runServeDrill(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	return serveMode(ctx, args, stdout, stderr, true)
+}
+
+func serveMode(ctx context.Context, args []string, stdout, stderr io.Writer, drill bool) int {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	home := homeFlag(fs)
@@ -32,7 +40,7 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		fmt.Fprintln(stderr, "usage: lantai serve -home <data root> [-merged]")
 		return exitUsage
 	}
-	a, err := application.Open(ctx, application.Options{Instance: operations.Options{Home: *home}, Diagnostics: stderr})
+	a, err := application.Open(ctx, application.Options{Instance: operations.Options{Home: *home, RecoveryDrill: drill}, Diagnostics: stderr})
 	if err != nil {
 		return reportStartup(stderr, "serve", err)
 	}
@@ -55,7 +63,13 @@ func runServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	a.ConfigureBackups(ctx, os.Getenv("LANTAI_BACKUP_ROOT"), os.Getenv("LANTAI_BACKUP_ROOT_ID"))
 	s, err := a.StartHTTP(ctx, cfg, application.WithAccessLog(stderr))
 	if err == nil {
-		_ = json.NewEncoder(stdout).Encode(map[string]any{"ready": true, "instance_id": a.Instance.InstanceID(), "listeners": s.Addresses})
+		status := map[string]any{"ready": true, "instance_id": a.Instance.InstanceID(), "listeners": s.Addresses}
+		if drill {
+			status["recovery_drill"] = true
+			status["production_ready"] = false
+			status["unknown_after_capture"] = true
+		}
+		_ = json.NewEncoder(stdout).Encode(status)
 		err = s.Wait(ctx)
 		shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		err = errors.Join(err, s.Shutdown(shutdown))

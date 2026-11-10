@@ -90,6 +90,9 @@ func (i *Instance) backupRecordPath(id ids.ID) string {
 // write barrier. Only immutable CAS copying occurs after the barrier is released.
 // Its durable source record is also the backup pin; errors retain it for Resume.
 func (i *Instance) Backup(ctx context.Context, opts BackupOptions) (BackupManifest, error) {
+	if i.IsRecoveryDrill() {
+		return BackupManifest{}, errors.New("operations: backups are disabled for recovery drills")
+	}
 	release, err := i.lockBackup(ctx)
 	if err != nil {
 		return BackupManifest{}, err
@@ -672,6 +675,9 @@ func (i *Instance) PinsFor(ctx context.Context, sha string) ([]pin.Pin, error) {
 // CancelBackup serializes with a copier, so pins are never released while bytes
 // are still being copied. It retains incomplete artifacts for diagnosis.
 func (i *Instance) CancelBackup(ctx context.Context, id ids.ID) error {
+	if i.IsRecoveryDrill() {
+		return errors.New("operations: backups are disabled for recovery drills")
+	}
 	release, err := i.lockBackup(ctx)
 	if err != nil {
 		return err

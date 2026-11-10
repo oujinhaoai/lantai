@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -106,6 +107,10 @@ func startupErr(code, format string, args ...any) *StartupError {
 type Options struct {
 	// Home 是数据根目录。
 	Home string
+	// RecoveryDrill explicitly opens an isolated restored copy, never a live home.
+	RecoveryDrill bool
+	// DrillMaintenance permits local administrator recovery without opening service.
+	DrillMaintenance bool
 	// Clock 默认为系统时钟。
 	Clock clock.Clock
 	// IDs 默认为系统时钟与 crypto/rand。
@@ -126,13 +131,15 @@ type Hook struct {
 
 // Instance 是一个已持有数据根写锁的实例。
 type Instance struct {
-	layout Layout
-	cfg    Config
-	clock  clock.Clock
-	ids    *ids.Generator
-	src    migrationSource
-	fsInfo func(string) (fsutil.FSInfo, error)
-	before func(ownership.Database) error
+	drill        bool
+	drillServing bool
+	layout       Layout
+	cfg          Config
+	clock        clock.Clock
+	ids          *ids.Generator
+	src          migrationSource
+	fsInfo       func(string) (fsutil.FSInfo, error)
+	before       func(ownership.Database) error
 
 	lock  *fsutil.Lock
 	dbs   map[ownership.Database]*sql.DB
@@ -268,6 +275,9 @@ func Open(ctx context.Context, opts Options) (_ *Instance, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := i.prepareDrillOpen(opts); err != nil {
+		return nil, err
+	}
 	if err := i.acquireLock(); err != nil {
 		return nil, err
 	}
@@ -293,6 +303,9 @@ func Open(ctx context.Context, opts Options) (_ *Instance, err error) {
 		return nil, startupErr(CodeInitIncomplete, "initialization of %s has not completed; run lantai init to resume", i.layout.Home)
 	}
 	i.marker = marker
+	if err := i.bindDrill(opts); err != nil {
+		return nil, err
+	}
 	if err := i.checkFileSystem(i.layout.Home, i.layout.DBDir()); err != nil {
 		return nil, err
 	}
@@ -332,6 +345,12 @@ var instanceNameRE = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 // 或存在无标记的库文件时拒绝。返回的实例处于 initializing，写入保持关闭；
 // 调用方完成身份初始化后调用 Activate。
 func Create(ctx context.Context, opts CreateOptions) (_ *Instance, err error) {
+	if opts.RecoveryDrill || opts.DrillMaintenance {
+		return nil, errors.New("operations: drill mode cannot initialize an instance")
+	}
+	if _, e := os.Lstat(filepath.Join(opts.Home, drillFile)); !errors.Is(e, fs.ErrNotExist) {
+		return nil, errors.New("operations: a recovery drill cannot be initialized")
+	}
 	if opts.Home == "" {
 		return nil, fmt.Errorf("operations: data root directory is not set")
 	}
@@ -350,6 +369,9 @@ func Create(ctx context.Context, opts CreateOptions) (_ *Instance, err error) {
 			i.releaseResources()
 		}
 	}()
+	if _, e := os.Lstat(filepath.Join(i.layout.Home, drillFile)); !errors.Is(e, fs.ErrNotExist) {
+		return nil, errors.New("operations: a recovery drill cannot be initialized")
+	}
 	if i.cfg, err = LoadConfig(i.layout); err != nil {
 		return nil, err
 	}
@@ -519,7 +541,7 @@ func (i *Instance) assess(ctx context.Context) (fatal, blocking []Reason, status
 				run.RunID, clock.Format(run.StartedAt))})
 		}
 	}
-	if i.marker.Restore != nil {
+	if i.marker.Restore != nil && !i.drillServing {
 		blocking = append(blocking, Reason{CodeRestoreIncomplete, "backup restoration requires offline credential rotation and reconciliation before service can start"})
 	}
 	if r, ok := i.diskReason(); ok {
