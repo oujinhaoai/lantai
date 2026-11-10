@@ -60,6 +60,9 @@ type BackupControl struct {
 }
 
 func (a *App) EnableBackups(ctx context.Context, root, rootID string) (*BackupControl, error) {
+	if a.Instance.IsRecoveryDrill() {
+		return nil, errors.New("application: backups are disabled in recovery drill")
+	}
 	if a.backupControl != nil {
 		return nil, errors.New("backup controller already enabled")
 	}

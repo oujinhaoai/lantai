@@ -33,6 +33,7 @@
 | 自动衔接受保护首次设置与正常服务（HTTPS 网关、私有 setup 目录已配置） | `go run ./cmd/lantai start -home <数据根> -setup-dir <私有引导目录>` |
 | 真实容器首次启动、TLS、旧挂载兼容与重启测试（需要 Docker Compose） | `python3 scripts/test-compose-first-start.py`，仅使用随机测试项目、临时数据与合成证书 |
 | 启动同进程 API / 传输 / 本机运维监听 | `go run ./cmd/lantai serve -home <数据根>` |
+| 独立恢复副本隔离演练（保留正式恢复门闩） | `go run ./cmd/lantai serve-drill -home <独立恢复副本> -api-listen 127.0.0.1:0 -transfer-listen 127.0.0.1:0 -operations-listen 127.0.0.1:0`；[边界与验收](contracts/recovery-drill.md) |
 | 本机开发合并 API 与传输监听 | `go run ./cmd/lantai serve -home <数据根> -merged` |
 | REST 与 CLI 纵向联调（merged / split、身份管理、提交丢响应后重启恢复） | `go test -run 'TestRemoteCLIStorage\|TestRemoteIdentityAdministration' -v ./tests/integration/` |
 | HTTPS 客户端 1 GiB 上传/下载双向中断续传 | `LANTAI_TEST_LARGE_MB=1024 go test -run TestRemoteResumableTransfer -v ./tests/integration/` |

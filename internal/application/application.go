@@ -168,10 +168,21 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 		return nil, err
 	}
 	// Offline recovery keeps the same task/execution acceptance guards.
-	if err = a.assembleCollaboration(); err != nil {
+	if i.IsRecoveryDrill() {
+		err = a.assembleDrillCollaboration()
+	} else {
+		err = a.assembleCollaboration()
+	}
+	if err != nil {
 		return nil, err
 	}
 	if offline {
+		return a, nil
+	}
+	if i.IsRecoveryDrill() {
+		if err = a.startRecoveryDrill(ctx); err != nil {
+			return nil, err
+		}
 		return a, nil
 	}
 	if err = i.Start(ctx,

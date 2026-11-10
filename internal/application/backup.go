@@ -33,6 +33,9 @@ func (a *App) Maintenance(ctx context.Context, run func(context.Context) error) 
 // same barrier as all database and mutable-file snapshots. Confirmation is
 // acknowledged only after verified COMPLETE; retries repeat the same watermark.
 func (a *App) Backup(ctx context.Context, opts operations.BackupOptions) (manifest operations.BackupManifest, err error) {
+	if a.Instance.IsRecoveryDrill() {
+		return manifest, errors.New("application: backups are disabled in recovery drill")
+	}
 	err = a.Maintenance(ctx, func(c context.Context) error {
 		var e error
 		manifest, e = a.backupComplete(c, opts)

@@ -63,11 +63,11 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 	if !a.Ready() {
 		return nil, errors.New("application: instance is not ready")
 	}
-	if err := validateAddress(cfg.Listen.API, false); err != nil {
+	if err := validateAddress(cfg.Listen.API, a.Instance.IsRecoveryDrill()); err != nil {
 		return nil, err
 	}
 	if !cfg.Listen.Merged {
-		if err := validateAddress(cfg.Listen.Transfer, false); err != nil {
+		if err := validateAddress(cfg.Listen.Transfer, a.Instance.IsRecoveryDrill()); err != nil {
 			return nil, err
 		}
 	}
@@ -104,6 +104,12 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 		r.servers = append(r.servers, httpapi.TransferConfig(cfg.Listen.Transfer, logger.wrap("transfer", a.business.wrap(readinessGuard(businessReady, xfer)))))
 	}
 	r.servers = append(r.servers, httpapi.APIConfig(cfg.Listen.Operations, logger.wrap("operations", a.operationsHandler(scheduler))))
+	if a.Instance.IsRecoveryDrill() {
+		// Validate even the unused transfer address; no inherited external binding.
+		if err := validateAddress(cfg.Listen.Transfer, true); err != nil {
+			return nil, err
+		}
+	}
 	var listeners []net.Listener
 	for _, srv := range r.servers {
 		lc := net.ListenConfig{}
@@ -113,6 +119,9 @@ func (a *App) StartHTTP(ctx context.Context, cfg operations.Config, options ...H
 				_ = existing.Close()
 			}
 			return nil, e
+		}
+		if a.Instance.IsRecoveryDrill() {
+			srv.Handler = recoveryDrillHandler(srv.Handler, drillHTTPOptions{instanceID: a.Instance.InstanceID(), authority: ln.Addr().String(), ready: a.Ready})
 		}
 		listeners = append(listeners, ln)
 		// 不将 panic 堆栈或请求信息写入可能带签名 URL 的默认 HTTP 日志。

@@ -32,7 +32,7 @@ lantai restore -home <empty-data-root> -backup <complete-backup-dir> \
 lantai recover-admin -home <data-root> -admin <administrator-name>
 ```
 
-仅接受完整且重新核验过的备份。目标必须为空，或是同一备份、同一清单摘要的本次中断恢复；不覆盖既有实例。复制前先写入恢复门闩 `instance.json.restore`，保留实例 ID，将 `recovery_epoch` 提升到备份与 `-minimum-epoch` 的最大值加一。更高的已知代际不能在重试中被静默忽略：需要以新的空目录重新恢复。旧服务器须持续停机，不能把一个恢复实例与原实例并行投入服务。
+仅接受完整且重新核验过的备份。目标必须为空，或是同一备份、同一清单摘要的本次中断恢复；不覆盖既有实例。复制前先写入恢复门闩 `instance.json.restore`，保留实例 ID，将 `recovery_epoch` 提升到备份与 `-minimum-epoch` 的最大值加一。更高的已知代际不能在重试中被静默忽略：需要以新的空目录重新恢复。正式接管时旧服务器须持续停机，不能把一个恢复实例与原实例并行投入正式服务。仅验证独立本机副本时使用[隔离恢复演练](recovery-drill.md)，保留恢复门闩且不开放外部执行，不要求源实例为演练停机。
 
 恢复阶段依次为 `copying → credentials_required → key_required → reconciliation_required`：
 
