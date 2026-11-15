@@ -4,7 +4,7 @@
 
 ## 前置与触发
 
-先将必要源码和本工作流合入 main，再等待目标提交的 `ci.yml` main push 运行全部 10 项成功。必须使用 40 位精确提交 SHA；源树必须干净、Go 必须是 `go.mod` 固定的 1.26.10，并含完整 Docker 输入（包括 `api/`）。工作流位于默认分支才可手动触发，依据 [GitHub 文档](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
+先将必要源码和本工作流合入 main，再等待目标提交的 `ci.yml` main push 运行全部 10 项成功。必须使用 40 位精确提交 SHA；源树必须干净、Go 必须是 `go.mod` 固定的 1.26.11，并含完整 Docker 输入（包括 `api/`）。工作流位于默认分支才可手动触发，依据 [GitHub 文档](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
 
 ```sh
 gh workflow run release-artifacts.yml --ref main \
@@ -16,7 +16,7 @@ gh workflow run release-artifacts.yml --ref main \
 
 控制脚本和目标源码各自 checkout，目标必须在 origin/main 历史上并具有该精确提交的成功 main CI。检查缺失、跳过、失败或名称不符都拒绝构建。工作流仅授予 contents/actions 读取权限，无额外 secret；版本参数经格式校验后通过 argv 传给命令，不作为 shell 代码。源码、制品和实际客户端验收应绑定同一明确目标；旧提交通过不能自动沿用。
 
-在本机 Linux Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.10、Node 24/npm、锁定的 Chromium 和 gh；必须使用本地 Linux Unix Docker socket（拒绝远程 context/DOCKER_HOST），输出位于源码树外的新目录：
+在本机 Linux Docker/Compose 构建机也可运行同一脚本，需要 Python ≥ 3.11、Git、Go 1.26.11、Node 24/npm、锁定的 Chromium 和 gh；必须使用本地 Linux Unix Docker socket（拒绝远程 context/DOCKER_HOST），输出位于源码树外的新目录：
 
 ```sh
 # gh 使用构建者已授权的只读身份；先 fetch main，保留工作区已有改动。
@@ -77,3 +77,31 @@ PR 的发行工具回归也构建实际镜像和静态包，版本为 v0.0.0-pr.
 旧 rc.5 卷不能只换镜像启动，也不能把迁移后的卷交给旧镜像。验证器先在随机合成项目内做完整备份并独立核验，拒绝缺备份和不存在备份的迁移；随后停机，通过无网络、只读根、UID 65532、无能力的短命进程运行 migrate。它只把原只读 config 来源改挂为配置模板，并添加明确的 --config-template 参数；原项目、TLS、端口、数据和密钥卷不变。检查仅 runtime schema 改变、主密钥不变及迁移重放幂等，然后验证原身份/TOTP、资源字节、网页和升级后备份。
 
 反向路径使用独立空卷、迁移前备份和单独只读原密钥，保留旧恢复器生成的配置及新本地密钥目录，拒绝用旧主机 config 绑定覆盖，执行恢复、新管理员因子和显式恢复审定，核对旧会话失效、旧资源字节及重启。旧镜像必须拒绝迁移后的源卷。该证据只覆盖合成 CLI 恢复，不代表 NAS GUI 恢复或现场数据验收；冻结 r10/r11 的旧归档、清单与原验证脚本保持不变。
+
+
+### 原始 rc.5 升级基线的长期存档
+
+默认升级基线仍固定为 `d27a06fe0af55e205a19e8f95f0764167e217741` 的原始
+Actions run `38677996246`，不重建旧包，也不替换成较新版本。仅当 GitHub API
+成功确认该精确 artifact 缺失或过期时，才从同仓库
+`ci-baseline-v0.1.0-rc.5-d27a06f` 非 latest 的历史 CI 专用 prerelease
+下载七个原文件：Linux amd64 核心镜像、Caddy 镜像、Linux CLI、Web 包、部署包，
+以及原始 `manifest.json` 和 `SHA256SUMS`。该存档不是推荐安装版本。
+
+下载后、加载镜像或解包之前，固定校验原 manifest 与校验表摘要、来源提交/run，
+并逐项核对五个升级输入的原始大小与 SHA-256；缺件、额外文件、链接或篡改均拒绝。
+此路径明确记录 `baseline_verification_scope=rc5-upgrade-inputs`，不声称验证了
+缺席的源代码、其他平台包或历史截图。候选发行包仍完整校验；可用的原始 Actions
+artifact 和自定义 dispatch 基线仍走完整校验。认证、网络和下载错误不触发替代。
+原始镜像身份、CLI 字节、Web/部署成员、保留卷升级及回滚验收保持不变。
+
+存档标签指向无父的中性提交，仅包含通用 README，不指向历史应用源码。
+GitHub 自动源码快照因此只有该说明；七个发行资产仍保持原始构建来源与摘要。
+标签用途是传输定位，信任边界仍是消费端固定的原 manifest 与校验表摘要。
+
+历史 Docker 导出的 image ID 可能是 configuration 摘要，而启用 containerd 的
+Docker 返回 manifest/index 摘要。仅上述固定 rc.5 子集路径允许兼容：在加载之前，
+从已校验的原归档验证唯一 OCI 描述符链、元数据大小/摘要/类型和固定 configuration，
+并交叉检查 Docker 归档标签、配置与层列表；加载后仍核对平台、标签和完整描述符。
+运行时镜像 ID 单独记录，实际容器及回滚继续按该已验证 ID 检查，不改写原清单。
+未知或歧义关系拒绝；候选与自定义完整基线仍执行原来的精确 ID 检查。

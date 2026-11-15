@@ -12,6 +12,7 @@ import subprocess
 from urllib.parse import unquote, urlsplit
 
 import build
+from privacy import privacy_issues
 
 
 class Page(HTMLParser):
@@ -46,6 +47,8 @@ def main():
     args = parser.parse_args()
     expected = build.build()
     for name, content in expected.items():
+        issues = privacy_issues(content)
+        assert not issues, f"private data categories in generated {name}: {issues}"
         assert (build.OUTPUT / name).read_text() == content, f"generated drift: {name}"
     pages = {name: Page(content) for name, content in expected.items() if name.endswith(".html")}
     count = 0
@@ -72,7 +75,8 @@ def main():
     md_links = 0
     for source, _, _, _ in build.TOPICS:
         text = (build.SOURCE / (source + ".md")).read_text()
-        assert not re.search(r"/Users/haoge|/Volumes/990EVO|192\.168\.31\.157|lantai\.haogeaidev\.com|(?:ltk|lts)_[A-Za-z0-9]{16}", text), f"private data in {source}"
+        issues = privacy_issues(text)
+        assert not issues, f"private data categories in {source}: {issues}"
         for label, href in re.findall(r"\[([^\]]+)\]\(([^)]+)\)", text):
             if href.startswith(("https://", "#")):
                 continue

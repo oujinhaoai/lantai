@@ -12,7 +12,7 @@
 
 ## 决定
 
-1. 单一 Go 模块 `github.com/oujinhaoai/lantai`，`go 1.26.0` 并以 `toolchain go1.26.10` 固定工具链；入口统一为 `cmd/lantai`，只做参数、组装与退出码，当前只提供已实现的 `version`、`schema` 子命令，不预留空命令。
+1. 单一 Go 模块 `github.com/oujinhaoai/lantai`，`go 1.26.0` 并以 `toolchain go1.26.11` 固定工具链；入口统一为 `cmd/lantai`，只做参数、组装与退出码，当前只提供已实现的 `version`、`schema` 子命令，不预留空命令。
 2. 开发工具（oapi-codegen、staticcheck、govulncheck）放在独立的 `scripts/tools/go.mod`，用 `go tool -modfile=...` 运行，避免工具依赖经最小版本选择抬高运行时依赖。
 3. HTTP 使用标准库；SQLite 使用纯 Go 的 modernc.org/sqlite，连接固定 WAL、synchronous=FULL、busy_timeout、外键、defensive、写事务 `BEGIN IMMEDIATE`，macOS 另开 fullfsync；SQL 采用 `database/sql` 显式语句，暂不引入 sqlc。
 4. schema 校验用 santhosh-tekuri/jsonschema v6，YAML 用 go.yaml.in/yaml/v3 并按 JSON 数据模型转换。
@@ -29,3 +29,5 @@
 - mattn/go-sqlite3：需要 CGo，作为纯 Go 驱动不达标时的对照。
 - 路由框架与通用业务框架：当前接口不需要，按需再评估。
 - sqlc：已确认 v1.31.1 可无 CGo 构建，但 T00 只有三张基础设施表；首个采用它的模块负责锁定版本与接入生成检查。
+
+2026-11-15 安全补丁更新：根据 [GO-2026-6859](https://pkg.go.dev/vuln/GO-2026-6859) 与 [官方发布记录](https://go.dev/doc/devel/release#go1.26.11)，统一固定 Go 1.26.11；不变更 Go 1.26.0 语言基线及漏洞门禁，历史工具链证据不改写。
