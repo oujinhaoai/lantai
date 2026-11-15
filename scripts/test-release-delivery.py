@@ -24,6 +24,7 @@ import tempfile
 import time
 
 from release_bundle import extract_verified_archive, sha256, validate_static, require_local_docker
+from historical_baseline import SCOPE, verify_subset
 from release_upgrade import assert_retained_upgrade, schema_upgrade_mode
 import release_migration
 from release_backup import prepare_backup_command
@@ -471,6 +472,7 @@ def main():
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--baseline-commit", required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--baseline-scope", choices=("full", SCOPE), default="full")
     args = parser.parse_args()
     require_local_docker(run)
     new, old = json.loads(args.manifest.read_text()), json.loads((args.baseline / "manifest.json").read_text())
@@ -480,8 +482,13 @@ def main():
     RESULT["baseline_caddy_image_id"] = old["caddy_image"]["id"]
     check("baseline exact original release commit", old["source_commit"] == args.baseline_commit)
     verify_files(args.artifacts, new)
-    verify_files(args.baseline, old)
-    check("actual archives match both manifests")
+    if args.baseline_scope == SCOPE:
+        verified_old = verify_subset(args.baseline, args.baseline_commit)
+        check("historical baseline manifest unchanged", verified_old == old)
+    else:
+        verify_files(args.baseline, old)
+    RESULT["baseline_verification_scope"] = args.baseline_scope
+    check("actual candidate and consumed baseline archives match original manifests")
     load_image(args.artifacts, new)
     load_image(args.baseline, old)
     run(["docker", "load", "-i", str(args.artifacts / "caddy-2.11.4-linux-amd64-image.tar.gz")])

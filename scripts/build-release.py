@@ -15,6 +15,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from release_upgrade import upgrade_evidence_passed
+from historical_baseline import SCOPE, verify_subset
 from release_bundle import build_web_bundle, build_deployment_bundle, require_local_docker
 
 
@@ -121,12 +122,15 @@ def main():
                         help="verified original release artifact directory; never a runtime data directory")
     parser.add_argument("--upgrade-from-commit", required=True,
                         help="exact original release SHA for the direct upgrade smoke")
+    parser.add_argument("--baseline-scope", choices=("full", SCOPE), default="full")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.commit):
         parser.error("commit must be a lowercase 40-character SHA")
     if not re.fullmatch(r"[0-9a-f]{40}", args.upgrade_from_commit):
         parser.error("upgrade-from-commit must be a lowercase 40-character SHA")
     baseline = args.upgrade_from_dir.resolve()
+    if args.baseline_scope == SCOPE:
+        verify_subset(baseline, args.upgrade_from_commit)
     baseline_manifest = json.loads((baseline / "manifest.json").read_text())
     if baseline_manifest.get("source_commit") != args.upgrade_from_commit:
         raise RuntimeError("upgrade baseline commit mismatch")
@@ -316,6 +320,7 @@ def main():
         delivery_output = command([sys.executable, str(build_source / "scripts/test-release-delivery.py"),
                                    "--manifest", str(candidate_file), "--artifacts", str(deliver),
                                    "--baseline", str(baseline), "--baseline-commit", args.upgrade_from_commit,
+                                   *(["--baseline-scope", args.baseline_scope] if args.baseline_scope != "full" else []),
                                    "--out", str(deliver)], cwd=build_source)
         delivery_result = json.loads((deliver / "delivery-image-smoke.json").read_text())
         if (delivery_result.get("status") != "passed"
