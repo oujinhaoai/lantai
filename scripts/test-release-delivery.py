@@ -24,6 +24,8 @@ import tempfile
 import time
 
 from release_bundle import extract_verified_archive, sha256, validate_static, require_local_docker
+from historical_baseline import SCOPE, verify_subset
+from release_image_identity import archive_identity, verified_runtime_id
 from release_upgrade import assert_retained_upgrade, schema_upgrade_mode
 import release_migration
 from release_backup import prepare_backup_command
@@ -33,6 +35,7 @@ ENV = {k: v for k, v in os.environ.items() if not k.startswith(("LANTAI_", "COMP
 RESULT = {"schema": "lantai.release-delivery-smoke/v1", "status": "running",
           "nas_access": False, "production_credentials": False, "checks": []}
 PRIVATE_VALUES = []
+VERIFIED_RUNTIME_IDS = {}
 
 
 def run(argv, *, stdin=None, timeout=600):
@@ -89,12 +92,18 @@ def inspect(cid):
     return json.loads(run(["docker", "inspect", cid]))[0]
 
 
-def load_image(directory, manifest):
+def runtime_id(manifest, kind):
+    return VERIFIED_RUNTIME_IDS.get((manifest["source_commit"], kind, manifest[kind]["id"]), manifest[kind]["id"])
+
+
+def load_image(directory, manifest, proof=None):
     archive = directory / f"lantai-{manifest['version']}-linux-amd64-image.tar.gz"
     run(["docker", "load", "-i", str(archive)])
     value = json.loads(run(["docker", "image", "inspect", manifest["core_image"]["tag"]]))[0]
+    if proof is not None:
+        VERIFIED_RUNTIME_IDS[(manifest["source_commit"], "core_image", manifest["core_image"]["id"])] = verified_runtime_id(value, proof)
     labels = value["Config"]["Labels"]
-    check("loaded core archive exact image and source", value["Id"] == manifest["core_image"]["id"]
+    check("loaded core archive exact image and source", value["Id"] == runtime_id(manifest, "core_image")
           and labels["org.opencontainers.image.revision"] == manifest["source_commit"]
           and labels["org.opencontainers.image.version"] == manifest["version"]
           and value["Architecture"] == "amd64" and value["Os"] == "linux")
@@ -416,7 +425,7 @@ class Instance:
 
     def retained(self, cli, manifest):
         current = json.loads(self.wait("/api/v1/meta", 200))
-        check("actual running target core image", inspect(self.cid())["Image"] == manifest["core_image"]["id"])
+        check("actual running target core image", inspect(self.cid())["Image"] == runtime_id(manifest, "core_image"))
         check("same instance identity", current["instance_id"] == self.meta["instance_id"])
         check("same administrator and existing CLI session", self.cli(cli, "whoami")["principal"]["principal_id"] == self.who["principal"]["principal_id"])
         check("setup remains closed", self.request("/setup/")[0] == 404)
@@ -471,6 +480,7 @@ def main():
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--baseline-commit", required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--baseline-scope", choices=("full", SCOPE), default="full")
     args = parser.parse_args()
     require_local_docker(run)
     new, old = json.loads(args.manifest.read_text()), json.loads((args.baseline / "manifest.json").read_text())
@@ -480,14 +490,28 @@ def main():
     RESULT["baseline_caddy_image_id"] = old["caddy_image"]["id"]
     check("baseline exact original release commit", old["source_commit"] == args.baseline_commit)
     verify_files(args.artifacts, new)
-    verify_files(args.baseline, old)
-    check("actual archives match both manifests")
+    if args.baseline_scope == SCOPE:
+        verified_old = verify_subset(args.baseline, args.baseline_commit)
+        check("historical baseline manifest unchanged", verified_old == old)
+    else:
+        verify_files(args.baseline, old)
+    RESULT["baseline_verification_scope"] = args.baseline_scope
+    check("actual candidate and consumed baseline archives match original manifests")
+    proofs = {}
+    if args.baseline_scope == SCOPE:
+        for kind, name in (("core_image", f"lantai-{old['version']}-linux-amd64-image.tar.gz"),
+                           ("caddy_image", "caddy-2.11.4-linux-amd64-image.tar.gz")):
+            proofs[kind] = archive_identity(args.baseline / name, old[kind]["id"], old[kind]["tag"])
     load_image(args.artifacts, new)
-    load_image(args.baseline, old)
+    load_image(args.baseline, old, proofs.get("core_image"))
     run(["docker", "load", "-i", str(args.artifacts / "caddy-2.11.4-linux-amd64-image.tar.gz")])
     check("loaded gateway archive exact image", json.loads(run(["docker", "image", "inspect", new["caddy_image"]["tag"]]))[0]["Id"] == new["caddy_image"]["id"])
     run(["docker", "load", "-i", str(args.baseline / "caddy-2.11.4-linux-amd64-image.tar.gz")])
-    check("loaded original gateway archive exact image", json.loads(run(["docker", "image", "inspect", old["caddy_image"]["tag"]]))[0]["Id"] == old["caddy_image"]["id"])
+    old_gateway = json.loads(run(["docker", "image", "inspect", old["caddy_image"]["tag"]]))[0]
+    if "caddy_image" in proofs:
+        VERIFIED_RUNTIME_IDS[(old["source_commit"], "caddy_image", old["caddy_image"]["id"])] = verified_runtime_id(old_gateway, proofs["caddy_image"])
+    check("loaded original gateway archive exact image", old_gateway["Id"] == runtime_id(old, "caddy_image"))
+    RESULT["baseline_runtime_image_ids"] = {kind: runtime_id(old, kind) for kind in ("core_image", "caddy_image")}
     run(["python3", str(ROOT / "scripts/test-release-backup.py"), "--image", new["caddy_image"]["tag"],
          "--out", str(args.out / "backup-preparation.json")])
     preparation = json.loads((args.out / "backup-preparation.json").read_text())
@@ -608,7 +632,7 @@ def main():
             upgrade.env.chmod(0o600)
             upgrade.compose = original_args
             upgrade.web, upgrade.caddy = old_web, old["caddy_image"]["tag"]
-            upgrade.caddy_id = old["caddy_image"]["id"]
+            upgrade.caddy_id = runtime_id(old, "caddy_image")
             check("rollback restores exact baseline resolved configuration",
                   json.loads(run(upgrade.compose + ["config", "--format", "json"])) == before_config)
             run(upgrade.compose + ["up", "-d"])
