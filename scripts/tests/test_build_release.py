@@ -27,9 +27,9 @@ class BuildGuards(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / "source"
         (self.source / "deploy").mkdir(parents=True)
-        (self.source / "deploy/Dockerfile").write_text("FROM golang:1.26.10 AS build\nCOPY api ./api\n")
+        (self.source / "deploy/Dockerfile").write_text("FROM golang:1.26.11 AS build\nCOPY api ./api\n")
         (self.source / "deploy/Dockerfile.dockerignore").write_text("**\n!api/**\n")
-        (self.source / "go.mod").write_text("module example.test/release\ngo 1.26.0\ntoolchain go1.26.10\n")
+        (self.source / "go.mod").write_text("module example.test/release\ngo 1.26.0\ntoolchain go1.26.11\n")
         for name in ("Caddyfile", "config.container.yaml", "compose.web.yaml", "compose.backup.yaml", "release-install.md", "release-upgrade.md"):
             (self.source / "deploy" / name).write_text("synthetic public deployment template\n")
         (self.source / "docs").mkdir()
@@ -48,7 +48,7 @@ class BuildGuards(unittest.TestCase):
         self.out = self.root / "output"
         self.head = SHA
         self.dirty = ""
-        self.go = "go version go1.26.10 linux/amd64"
+        self.go = "go version go1.26.11 linux/amd64"
         self.runs = [{"databaseId": 1, "headSha": SHA, "conclusion": "success", "url": "https://example.test/run/1"}]
         self.jobs = [{"name": n, "conclusion": "success"} for n in sorted(release.CI_JOBS)]
         self.calls = []
@@ -104,7 +104,7 @@ class BuildGuards(unittest.TestCase):
         for version in ("1.25.0", "1.26.9"):
             with self.subTest(version=version):
                 self.go = f"go version go{version} linux/amd64"
-                self.assert_blocked("Go 1.26.10")
+                self.assert_blocked("Go 1.26.11")
 
     def test_ci_must_match_commit_and_every_job(self):
         for runs in [[], [{**self.runs[0], "headSha": "b" * 40}], [{**self.runs[0], "conclusion": "failure"}]]:
@@ -176,7 +176,7 @@ class BuildGuards(unittest.TestCase):
                 return json.dumps([info])
             if argv[1] == "run":
                 if argv[-1] == "--json":
-                    return json.dumps({"platform": "linux/amd64", "go_version": "go1.26.10"})
+                    return json.dumps({"platform": "linux/amd64", "go_version": "go1.26.11"})
                 return "v2.11.4 h1:synthetic"
             if argv[1] == "create":
                 return "e" * 64
@@ -194,7 +194,7 @@ class BuildGuards(unittest.TestCase):
             return ""
         if argv[:3] == ["go", "version", "-m"]:
             goos, goarch = self.binary_platforms[argv[-1]]
-            return (argv[-1] + ": go1.26.10\n\tbuild\tvcs.revision=" + SHA +
+            return (argv[-1] + ": go1.26.11\n\tbuild\tvcs.revision=" + SHA +
                     "\n\tbuild\tvcs.modified=false\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOOS=" + goos + "\n\tbuild\tGOARCH=" + goarch)
         if argv[:2] == ["go", "test"]:
             return "--- PASS: TestCaddySingleHTTPSGateway (0.01s)\nok"
@@ -224,7 +224,7 @@ class BuildGuards(unittest.TestCase):
             return "synthetic orchestration only; not a Docker test"
         if argv[0] in self.binary_platforms:
             return json.dumps({"vcs_revision": SHA, "vcs_modified": False,
-                               "platform": "linux/amd64", "go_version": "go1.26.10"})
+                               "platform": "linux/amd64", "go_version": "go1.26.11"})
         return self.command(argv, **kwargs)
 
     def run_simulated_build(self):
@@ -359,9 +359,9 @@ class ArchiveAndImageChecks(unittest.TestCase):
             self.assertFalse((dest / "private.txt").exists())
 
     def test_buildinfo_requires_clean_commit_toolchain_and_exact_platform(self):
-        good = "binary: go1.26.10\n\tbuild\tvcs.revision=" + SHA + "\n\tbuild\tvcs.modified=false\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOOS=linux\n\tbuild\tGOARCH=amd64"
+        good = "binary: go1.26.11\n\tbuild\tvcs.revision=" + SHA + "\n\tbuild\tvcs.modified=false\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOOS=linux\n\tbuild\tGOARCH=amd64"
         release.check_buildinfo(good, SHA, "linux", "amd64")
-        for old, new in [(SHA, "b" * 40), ("modified=false", "modified=true"), ("go1.26.10", "go1.25.0"), ("go1.26.10", "go1.26.9"), ("CGO_ENABLED=0", "CGO_ENABLED=1"), ("GOARCH=amd64", "GOARCH=arm64")]:
+        for old, new in [(SHA, "b" * 40), ("modified=false", "modified=true"), ("go1.26.11", "go1.25.0"), ("go1.26.11", "go1.26.9"), ("CGO_ENABLED=0", "CGO_ENABLED=1"), ("GOARCH=amd64", "GOARCH=arm64")]:
             with self.subTest(old=old), self.assertRaises(RuntimeError):
                 release.check_buildinfo(good.replace(old, new), SHA, "linux", "amd64")
 
