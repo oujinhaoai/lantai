@@ -7,6 +7,8 @@ on:
       - scripts/historical_baseline.py
       - scripts/tests/test_historical_baseline.py
       - scripts/build-release.py
+      - scripts/release_image_identity.py
+      - scripts/tests/test_release_image_identity.py
       - scripts/release_bundle.py
       - scripts/release_upgrade.py
       - scripts/release_migration.py
