@@ -71,7 +71,7 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 
 ## 选型依据
 
-- **Go 版本**：当前固定 1.26.10 安全补丁；初始工程采用 1.26.8，历史实测保持原版本记录；x/sync v0.23.0 要求 Go ≥ 1.26.0，驱动要求 ≥ 1.25.0。升级工具链时整体重跑 `scripts/check.sh` 与平台验证。
+- **Go 版本**：当前固定 1.26.11 安全补丁；初始工程采用 1.26.8，历史实测保持原版本记录；x/sync v0.23.0 要求 Go ≥ 1.26.0，驱动要求 ≥ 1.25.0。升级工具链时整体重跑 `scripts/check.sh` 与平台验证。
 - **HTTP**：使用标准库 `net/http`（1.22 起支持方法与路径通配），不引入路由框架；生成的传输类型基于标准库。
 - **SQLite 驱动**：modernc.org/sqlite 为纯 Go，六个目标均可在 `CGO_ENABLED=0` 下交叉编译，并在开发机通过能力实测（见[开发与验证](development.md#平台验证状态)）。连接基线为 WAL、synchronous=FULL、busy_timeout、外键、defensive 模式、写事务 `BEGIN IMMEDIATE`；macOS 另开 `fullfsync`，因为其 `fsync` 不保证数据落到介质。SQLite 的 busy handler 是定时轮询而非排队，多写者竞争时个别写者可能等满 busy_timeout，因此可写库的写事务和事务外写语句（含 `INSERT … RETURNING` 查询与预编译语句，写结果集关闭前保持排队资格）先在进程内按到达顺序排队（默认最长 15 秒，超时按可重试忙碌处理），busy_timeout 只兜底其他进程；只读事务与 `VACUUM INTO` 不排队。只读连接只打开已存在的文件，设置 `query_only`，不改日志模式也不用 `BEGIN IMMEDIATE`，核验快照与备份时不改动被核验的库。mattn/go-sqlite3 需要 CGo，作为实测不达标时的对照，未引入。
 - **SQL 查询**：采用 `database/sql` 与显式 SQL，事务边界在调用处可见。sqlc v1.31.1 已验证可在 macOS/arm64 以 `CGO_ENABLED=0` 构建，但 T00 只有三张基础设施表，不为此引入生成器；首个采用 sqlc 的模块在 `scripts/tools/go.mod` 锁定版本，并把生成接入 `scripts/generate.sh` 与 `scripts/check.sh`，同时验证其对 STRICT 表等 SQLite 语法的支持。
@@ -113,3 +113,5 @@ CI 使用的 GitHub Actions 固定到提交：`actions/checkout` v7.0.1、`actio
 | highlight.js（间接） | 11.11.2 | lowlight 的语言语法 | BSD-3-Clause |
 
 依据已安装发布包的 package.json 与许可证文件，并参考 [react-markdown 安全说明](https://github.com/remarkjs/react-markdown#security)和 [lowlight](https://github.com/wooorm/lowlight)。Markdown/高亮相关传递依赖由 package-lock.json 锁定，运行时完整声明汇入 web/public/assets/THIRD_PARTY_NOTICES.txt。文档模块仅在打开文本预览后加载，不引入远程脚本或在线查看服务。
+
+2026-11-15 安全补丁核对：CI 在既有 Go 1.26.10 基线报告 [GO-2026-6859](https://pkg.go.dev/vuln/GO-2026-6859)（net/http，CVE-2026-97054）。[官方 Go 1.26.11](https://go.dev/doc/devel/release#go1.26.11) 于 2026-11-10 发布并包含该修复。核心、工具模块、Docker 构建及制品核验统一升级；语言基线、第三方模块、证书验证和漏洞门禁保持不变。历史记录仍描述原版本，本次不更新运行中的部署。
