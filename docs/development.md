@@ -11,6 +11,10 @@
 - Python ≥ 3.11 用于最小 SDK、契约元数据生成与联调测试；运行时仅用标准库，`scripts/check.sh` 也运行 Python 测试。
 - 数据库、运行数据与真实配置放在仓库之外；测试只使用临时目录和合成数据。
 
+## macOS 原生 HTTPS smoke
+
+不使用 Docker 的临时合成实例检查见 [脚本说明](../scripts/README.md#macos-原生-https-smoke不使用-docker)。它验证原生核心、Caddy TLS、Web 产物和拒绝入口，不替代已认证业务验收。
+
 ## 常用命令
 
 在仓库根目录执行：
