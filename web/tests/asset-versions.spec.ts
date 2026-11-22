@@ -469,6 +469,17 @@ test("fixed-file copy control writes a locator, never a grant", async ({
   baseURL,
 }) => {
   const fixture = await seed(page);
+  // Login opens the app shell before the hash-only file navigation.
+  // Install the clipboard probe before that document is created.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (value: string) => {
+          document.documentElement.dataset.copiedLocator = value;
+        },
+      },
+    });
+  });
   await login(page, request);
   const mockTLS = process.env.LANTAI_ASSET_VERSION_MOCK_TLS === "1";
   if (mockTLS) {
@@ -485,15 +496,6 @@ test("fixed-file copy control writes a locator, never a grant", async ({
       });
     });
   }
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "clipboard", {
-      value: {
-        writeText: async (value: string) => {
-          document.documentElement.dataset.copiedLocator = value;
-        },
-      },
-    });
-  });
   const target = mockTLS ? `https://files.example${entry}` : entry;
   await page.goto(
     `${target}#/assets/${assetID}?version=${version1}&${new URLSearchParams({ file: secondFile })}`,
