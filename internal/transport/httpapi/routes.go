@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -377,6 +378,13 @@ func (h *Handler) commit(w http.ResponseWriter, r *http.Request, who authz.Conte
 	v, err := h.deps.Catalog.CommitVersion(r.Context(), catalog.VersionRequest{Who: who, IdempotencyKey: k, UploadID: id, AssetID: in.AssetID, Slug: in.Slug, BaseVersionID: in.BaseVersionID, Content: in.Content, Describe: in.Describe, Task: in.Task})
 	if err != nil {
 		return err
+	}
+	if h.deps.Flows != nil {
+		if err := h.deps.Flows.PostCommitChecklist(r.Context(), who, v.ProjectID, v.VersionID); err != nil {
+			// The upload is already committed. The durable enrollment permits retry;
+			// a checklist failure must not report the version as failed.
+			slog.Warn("post-commit checklist deferred", "version_id", v.VersionID, "code", errcode.CodeOf(err))
+		}
 	}
 	w.Header().Set("Location", "/api/v1/assets/"+string(v.AssetID)+"/versions/"+string(v.VersionID))
 	return respond(w, 201, v)

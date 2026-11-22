@@ -35,28 +35,30 @@ type Authority interface {
 // Deps uses already migrated instance resources. Verifiers may be connected
 // after construction to resolve the catalog/storage/ledger assembly cycle.
 type Deps struct {
-	DB         *sql.DB
-	Gate       *commands.Gate
-	Authority  Authority
-	Clock      clock.Clock
-	IDs        *ids.Generator
-	Installer  install.Installer
-	Revisions  commit.RevisionVerifier
-	Acceptance commit.AcceptanceVerifier
+	DB              *sql.DB
+	Gate            *commands.Gate
+	Authority       Authority
+	Clock           clock.Clock
+	IDs             *ids.Generator
+	Installer       install.Installer
+	Revisions       commit.RevisionVerifier
+	Acceptance      commit.AcceptanceVerifier
+	PostCommitCheck commit.PostCommitCheckRule
 }
 
 type Service struct {
-	db         *sql.DB
-	gate       *commands.Gate
-	authority  Authority
-	clock      clock.Clock
-	ids        *ids.Generator
-	store      *commands.Store
-	wiring     sync.RWMutex
-	installer  install.Installer
-	revisions  commit.RevisionVerifier
-	acceptance commit.AcceptanceVerifier
-	guard      CheckoutGuard
+	db              *sql.DB
+	gate            *commands.Gate
+	authority       Authority
+	clock           clock.Clock
+	ids             *ids.Generator
+	store           *commands.Store
+	wiring          sync.RWMutex
+	installer       install.Installer
+	revisions       commit.RevisionVerifier
+	acceptance      commit.AcceptanceVerifier
+	guard           CheckoutGuard
+	postCommitCheck commit.PostCommitCheckRule
 }
 
 var (
@@ -78,7 +80,7 @@ func New(d Deps) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{db: d.DB, gate: d.Gate, authority: d.Authority, clock: d.Clock, ids: d.IDs, store: st, installer: d.Installer, revisions: d.Revisions, acceptance: d.Acceptance}, nil
+	return &Service{db: d.DB, gate: d.Gate, authority: d.Authority, clock: d.Clock, ids: d.IDs, store: st, installer: d.Installer, revisions: d.Revisions, acceptance: d.Acceptance, postCommitCheck: d.PostCommitCheck}, nil
 }
 
 func (s *Service) SetInstaller(v install.Installer) {

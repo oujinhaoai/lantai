@@ -136,7 +136,7 @@ func open(ctx context.Context, opts Options, offline bool) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.Ledger, err = ledger.New(ledger.Deps{DB: i.DB(ownership.Ledger), Gate: i.Gate(), Authority: authority{a.Identity, i}, Clock: i.Clock(), IDs: i.IDs()})
+	a.Ledger, err = ledger.New(ledger.Deps{DB: i.DB(ownership.Ledger), Gate: i.Gate(), Authority: authority{a.Identity, i}, Clock: i.Clock(), IDs: i.IDs(), PostCommitCheck: i.Config().PostCommitCheck})
 	if err != nil {
 		return nil, err
 	}

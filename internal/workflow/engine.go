@@ -127,7 +127,7 @@ func (w *Service) CatchUp(ctx context.Context, limit int) (int, error) {
 					return nil, err
 				}
 			}
-			return nil, nil
+			return w.postCommitIntent(e.Envelope), nil
 		})
 		if err != nil {
 			return n, err

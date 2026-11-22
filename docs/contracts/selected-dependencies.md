@@ -32,3 +32,40 @@ CLI 的完整报告原子保存于私有输出，输出不得覆盖选择或写�
 这是本机明确文件分析，不依赖远端资源授权。其结果不授予读取未选资料的权限；若随后
 读馆内固定版本，仍按原项目、用途和当前 rights 重新授权。没有解析或原生运行证明
 的资料保持未解决，不因工具退出0或文件名后缀看似正确而升级为验收通过。
+
+## ComfyUI 固定工作集预检（本地 CLI）
+
+`lantai asset comfy-preflight --input REQUEST.json --directory SOURCE [--output REPORT]`
+只打开在 SOURCE 中明确选择的一个不超过 1 MiB 的 JSON 图，不打开其中引用的文件，
+不查询服务器，也不扫描任何模型目录。REQUEST 包含相对于 SOURCE 的 `workflow`、
+显式工作集相对根 `comfy_input_root`、可选分类根 `model_roots`，以及 `workset` 内嵌
+此前由 `asset workset pull` 生成的完整回执对象。例如用已有回执组装：
+
+```sh
+jq -n --slurpfile receipt completed-receipt.json '{
+  workflow: "scene/workflow.json",
+  comfy_input_root: "input",
+  model_roots: {checkpoints: "model/checkpoints", loras: "model/loras", vae: "model/vae"},
+  workset: $receipt[0]
+}' > request.json
+lantai asset comfy-preflight --input request.json --directory SOURCE
+```
+
+API 图识别 `LoadImage.image`、`CheckpointLoaderSimple.ckpt_name`、
+`LoraLoader.lora_name` 和 `VAELoader.vae_name` 的明确字面值；UI 图仅识别未连接的
+`LoadImage` 图片控件。分类根不自动推断，`.` 表示显式工作集根。模型只接受常见权重文件后缀；运行时别名不猜测。链接输入、无法
+解释的目录注记、自定义节点、UI 模型控件及路径拼写或层级冲突均报告 `manual`。
+只有指定根下的精确路径才能匹配；不会按 basename 猜测、解码 URL 或搜索备用根。
+节点序号是确定的解析顺序（API 图按键排序，UI 图按数组顺序），不是 ComfyUI 节点 ID。
+
+报告 `scope` 为 `fixed-workset-receipt-only`。 `present` 表示回执声明曾核验，
+不是当前本机文件存在、已获授权或可被 ComfyUI 加载。 `missing` 仅表示回执中无对应
+精确条目，不要求文件不存在于磁盘； `manual` 需要操作者解释。如果图也在回执所列
+路径里，预检要求其大小和 SHA-256 一致。报告返回固定匹配项的版本、路径、大小和摘要，
+不使用回执的 origin、不把历史回执当签名凭据、不执行该图或改写工作集。现有 CLI/MCP
+选定文本分析报告和网页语义保持不变。
+
+报告中的 `draft_entries` 和 `draft_dependencies` 是供人工审阅的工作集片段，分别沿用
+工作集 `entries` 和 `dependencies` 元素结构；只列回执精确匹配、去重后的候选项。
+同一文件被多个节点引用时，`findings` 仍逐节点保留。草稿不包含 `missing` 或 `manual`
+项，不是完整工作集；若图本身不在回执中，采纳依赖关系前也需先固定图的来源。

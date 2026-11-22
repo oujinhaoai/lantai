@@ -127,44 +127,52 @@ func analyzeDependencyRoot(ctx context.Context, in DependencySelection, root *os
 	if worksetConflicts(in.Paths) {
 		return DependencyReport{}, worksetConflict("selected dependency paths conflict")
 	}
-	sources := make([]DependencySource, 0, len(in.Paths))
+	sources, err := readDependencySources(ctx, root, in.Paths)
+	if err != nil {
+		return DependencyReport{}, err
+	}
+	return AnalyzeSelectedDependencies(ctx, sources, in.ComfyInputRoot)
+}
+
+func readDependencySources(ctx context.Context, root *os.Root, paths []string) ([]DependencySource, error) {
+	sources := make([]DependencySource, 0, len(paths))
 	total := 0
-	for _, name := range in.Paths {
+	for _, name := range paths {
 		if err := ctx.Err(); err != nil {
-			return DependencyReport{}, err
+			return nil, err
 		}
 		if err := worksetPath(name); err != nil {
-			return DependencyReport{}, err
+			return nil, err
 		}
 		if err := checkWorksetTarget(root, name, false); err != nil {
-			return DependencyReport{}, err
+			return nil, err
 		}
 		f, err := root.Open(filepath.FromSlash(name))
 		if err != nil {
-			return DependencyReport{}, err
+			return nil, err
 		}
 		before, err := f.Stat()
 		if err != nil || !before.Mode().IsRegular() || before.Size() > MaxDependencyFileBytes {
 			f.Close()
-			return DependencyReport{}, worksetInvalid("selected dependency must be a regular file <=1MiB")
+			return nil, worksetInvalid("selected dependency must be a regular file <=1MiB")
 		}
 		raw, err := io.ReadAll(io.LimitReader(f, MaxDependencyFileBytes+1))
 		after, statErr := f.Stat()
 		f.Close()
 		if err != nil {
-			return DependencyReport{}, err
+			return nil, err
 		}
 		entry, entryErr := root.Lstat(filepath.FromSlash(name))
 		if statErr != nil || entryErr != nil || !os.SameFile(before, after) || !os.SameFile(after, entry) || before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) || int64(len(raw)) != before.Size() {
-			return DependencyReport{}, worksetConflict("selected dependency changed while reading")
+			return nil, worksetConflict("selected dependency changed while reading")
 		}
 		total += len(raw)
 		if len(raw) > MaxDependencyFileBytes || total > MaxDependencyTotalBytes {
-			return DependencyReport{}, worksetInvalid("dependency limits:1MiB each,4MiB total")
+			return nil, worksetInvalid("dependency limits:1MiB each,4MiB total")
 		}
 		sources = append(sources, DependencySource{Path: name, Bytes: raw})
 	}
-	return AnalyzeSelectedDependencies(ctx, sources, in.ComfyInputRoot)
+	return sources, nil
 }
 
 func AnalyzeSelectedDependencies(ctx context.Context, sources []DependencySource, inputRoot string) (DependencyReport, error) {
@@ -410,24 +418,24 @@ func dependencyJSONDepth(value any, depth int) bool {
 	}
 	return true
 }
-func comfyDependencyText(ctx context.Context, text, inputRoot string, out *DependencyFileReport) error {
+func decodeComfyNodes(text string) ([]any, bool, error) {
 	value, err := canonjson.Decode([]byte(text))
 	if err != nil {
-		return errors.New("ComfyUI JSON 无效或包含重复字段。")
+		return nil, false, errors.New("ComfyUI JSON 无效或包含重复字段。")
 	}
 	if !dependencyJSONDepth(value, 0) {
-		return errors.New("JSON 嵌套超过 64 层。")
+		return nil, false, errors.New("JSON 嵌套超过 64 层。")
 	}
 	obj, ok := value.(map[string]any)
 	if !ok {
-		return errors.New("仅支持 ComfyUI API 图或 nodes 数组 UI 图")
+		return nil, false, errors.New("仅支持 ComfyUI API 图或 nodes 数组 UI 图")
 	}
 	nodes, ui := obj["nodes"].([]any)
 	if !ui {
 		keys := make([]string, 0, len(obj))
 		for key := range obj {
 			if !dependencyNodeKey.MatchString(key) {
-				return errors.New("API 图含非节点顶层字段，未假定其格式")
+				return nil, false, errors.New("API 图含非节点顶层字段，未假定其格式")
 			}
 			keys = append(keys, key)
 		}
@@ -437,7 +445,15 @@ func comfyDependencyText(ctx context.Context, text, inputRoot string, out *Depen
 		}
 	}
 	if len(nodes) < 1 || len(nodes) > 4096 {
-		return errors.New("图需包含 1–4096 个明确节点")
+		return nil, false, errors.New("图需包含 1–4096 个明确节点")
+	}
+	return nodes, ui, nil
+}
+
+func comfyDependencyText(ctx context.Context, text, inputRoot string, out *DependencyFileReport) error {
+	nodes, ui, err := decodeComfyNodes(text)
+	if err != nil {
+		return err
 	}
 	refs := map[string]bool{}
 	out.Format = "comfy-api"
@@ -494,7 +510,7 @@ func comfyDependencyText(ctx context.Context, text, inputRoot string, out *Depen
 			}
 		} else {
 			name, ok := typeName.(string)
-			if !ok || !slices.Contains([]string{"ImageScale", "ImageScaleBy", "SaveImage", "PreviewImage", "EmptyImage", "ImageBatch", "InvertImage", "ImagePadForOutpaint", "ImageCrop"}, name) {
+			if !ok || !comfySafeImageNode(name) {
 				out.Notices = append(out.Notices, fmt.Sprintf("节点 %v 不在已支持范围；模型、自定义节点和其他文件输入未解析。", typeName))
 			}
 		}

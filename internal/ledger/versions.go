@@ -372,7 +372,16 @@ func (s *Service) Commit(ctx context.Context, id ids.ID, who authz.Context, proo
 		if err != nil {
 			return err
 		}
-		return s.store.Complete(ctx, tx, id, commands.StageInstalled, commands.Result{Status: commands.ReceiptSucceeded, ResponseCode: 201, Summary: result, ResultRefs: []commands.ResultRef{{Kind: "version", ID: p.VersionID, Revision: 1}}, Events: []event.Envelope{ev}})
+		evs := []event.Envelope{ev}
+		if rule := s.postCommitCheck; rule.ProjectID == result.ProjectID && rule.Allows(who) {
+			enrollment := commit.PostCommitCheckEnrollment{Rule: rule, AssetID: result.AssetID, VersionID: result.VersionID, ManifestDigest: result.ManifestDigest}
+			e, err := s.event(o.Command, EvPostCommitCheckEnrolled, "version", p.VersionID, 1, enrollment)
+			if err != nil {
+				return err
+			}
+			evs = append(evs, e)
+		}
+		return s.store.Complete(ctx, tx, id, commands.StageInstalled, commands.Result{Status: commands.ReceiptSucceeded, ResponseCode: 201, Summary: result, ResultRefs: []commands.ResultRef{{Kind: "version", ID: p.VersionID, Revision: 1}}, Events: evs})
 	})
 	if err != nil {
 		return zero, err

@@ -102,19 +102,20 @@ type CheckExecutions interface {
 }
 
 type Deps struct {
-	DB         *sql.DB
-	Gate       *commands.Gate
-	Authority  Authority
-	Tasks      *tasks.Service
-	Ledger     Ledger
-	Reviews    Reviews
-	Manifests  Manifests
-	Events     *events.Store
-	Jobs       Jobs
-	Checks     CheckExecutions
-	Clock      clock.Clock
-	IDs        *ids.Generator
-	InstanceID ids.ID
+	DB              *sql.DB
+	Gate            *commands.Gate
+	Authority       Authority
+	Tasks           *tasks.Service
+	Ledger          Ledger
+	Reviews         Reviews
+	Manifests       Manifests
+	Events          *events.Store
+	Jobs            Jobs
+	Checks          CheckExecutions
+	Clock           clock.Clock
+	IDs             *ids.Generator
+	InstanceID      ids.ID
+	PostCommitCheck commit.PostCommitCheckRule
 }
 
 type Service struct {

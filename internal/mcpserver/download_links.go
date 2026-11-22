@@ -25,6 +25,12 @@ type BackupLinkArgs struct {
 }
 
 func (a *adapter) downloadTools(has func(string) bool) error {
+	if has("exact_read") {
+		mcp.AddTool(a.s, &mcp.Tool{Name: "resource_fixed_file_link", Description: "Read the current authorized exact manifest and return an HTTPS Web locator for one exact member, not a download grant or permission change.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in client.FixedFileLinkInput) (*mcp.CallToolResult, any, error) {
+			out, err := a.c.FixedFileLink(ctx, in)
+			return managementResult(out, err)
+		})
+	}
 	if has("read_grants") {
 		schema, err := a.pullInputSchema()
 		if err != nil {

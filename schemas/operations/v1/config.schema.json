@@ -166,6 +166,17 @@
         }
       }
     },
+    "post_commit_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generation", "project_id", "actor_id"],
+      "description": "默认不启用。仅在一个明确授权的项目与人类提交者启用固定版本人工检查任务。重新启用必须生成新的 generation。",
+      "properties": {
+        "generation": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+        "project_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" },
+        "actor_id": { "$ref": "../../common/v1/defs.schema.json#/$defs/ulid" }
+      }
+    },
     "lifecycle": {
       "type": "object",
       "additionalProperties": false,
