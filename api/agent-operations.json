@@ -197,6 +197,16 @@
       "reason": "Bounded exact collaboration and authorized extension snapshots; every chunk rechecks current scope."
     },
     {
+      "id": "comfyPreflight",
+      "cli": [
+        "asset comfy-preflight"
+      ],
+      "mcp": [],
+      "skill": [],
+      "classification": "local_only",
+      "reason": "Reads an explicitly selected local ComfyUI workflow and a pinned workset receipt to draft exact dependencies; never grants access or executes the workflow."
+    },
+    {
       "id": "commitUpload",
       "route": "POST /api/v1/uploads/{upload_id}/commit",
       "cli": [
@@ -825,12 +835,14 @@
       "id": "getVersion",
       "route": "GET /api/v1/assets/{asset_id}/versions/{version_id}",
       "cli": [
-        "show"
+        "show",
+        "asset fixed-file-link"
       ],
       "mcp": [
         "resource_read",
         "resource_files",
-        "resource_read_chunk"
+        "resource_read_chunk",
+        "resource_fixed_file_link"
       ],
       "skill": [],
       "classification": "cli_mcp"

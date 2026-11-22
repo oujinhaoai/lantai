@@ -391,9 +391,12 @@ func (c *Client) worksetManifest(ctx context.Context, e WorksetEntry, instanceID
 		if !digest.ValidHex(f.SHA256) || f.Size < 0 {
 			return out, worksetInvalid("invalid workset manifest file size or digest")
 		}
-		target := e.Destination + "/" + f.Path
-		if err = worksetPath(target); err != nil {
-			return out, err
+		target := f.Path
+		if e.Destination != "" {
+			target = e.Destination + "/" + target
+			if err = worksetPath(target); err != nil {
+				return out, err
+			}
 		}
 		sources = append(sources, f.Path)
 		out.Files = append(out.Files, WorksetFile{SourcePath: f.Path, Path: target, SHA256: f.SHA256, Size: f.Size, State: "planned"})

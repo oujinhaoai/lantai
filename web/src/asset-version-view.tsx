@@ -10,6 +10,7 @@ import {
   type Identity,
 } from "./api";
 import { FilePreview } from "./file-preview";
+import { fixedFileURL, fixedFileSelection } from "./fixed-file-link";
 import { AssetAdministration } from "./asset-management";
 
 type Expire = (error: unknown) => void;
@@ -40,14 +41,21 @@ export function assetVersionPath(
 }
 
 function selection(route: string) {
-  const query = new URLSearchParams(route.split("?")[1]);
+  const rawQuery = route.includes("?")
+    ? route.slice(route.indexOf("?") + 1)
+    : "";
+  const query = new URLSearchParams(rawQuery);
+  const file = fixedFileSelection(rawQuery);
   const versions = query.getAll("version");
   const from = query.get("from") || "/assets";
   return {
     versionID: versions[0],
+    filePath: file.path,
     valid:
-      versions.length === 0 ||
-      (versions.length === 1 && identifier.test(versions[0])),
+      file.valid &&
+      (!file.path || versions.length === 1) &&
+      (versions.length === 0 ||
+        (versions.length === 1 && identifier.test(versions[0]))),
     from: /^\/(?:assets(?:\?|$)|projects(?:\/|$)|$)/.test(from)
       ? from
       : "/assets",
@@ -135,6 +143,7 @@ function VersionContent({
   who,
   exact,
   metadataAvailable,
+  filePath,
   selected,
   from,
   expire,
@@ -143,6 +152,7 @@ function VersionContent({
   who?: Identity;
   exact: FullVersion;
   metadataAvailable: boolean;
+  filePath?: string;
   selected: boolean;
   from: string;
   expire: Expire;
@@ -203,6 +213,17 @@ function VersionContent({
           <FilePreview
             key={`${asset.asset_id}/${version.version_id}`}
             files={files}
+            initialPath={filePath}
+            shareFile={(path) =>
+              files.filter((file) => file.path === path).length === 1
+                ? fixedFileURL(
+                    location.href,
+                    asset.asset_id,
+                    version.version_id,
+                    path,
+                  )
+                : undefined
+            }
             assetType={asset.asset_type}
             assetID={asset.asset_id}
             versionID={version.version_id}
@@ -325,6 +346,7 @@ function VersionRequest({
   assetID,
   who,
   versionID,
+  filePath,
   from,
   expire,
   retry,
@@ -332,6 +354,7 @@ function VersionRequest({
   assetID: string;
   who?: Identity;
   versionID?: string;
+  filePath?: string;
   from: string;
   expire: Expire;
   retry: () => void;
@@ -410,6 +433,12 @@ function VersionRequest({
         正在读取…
       </div>
     );
+  if (
+    filePath !== undefined &&
+    state.exact.manifest.content.files.filter((file) => file.path === filePath)
+      .length !== 1
+  )
+    return <Failure error={new APIError("NOT_FOUND", 404)} />;
   return (
     <VersionContent
       asset={
@@ -430,6 +459,7 @@ function VersionRequest({
       exact={state.exact}
       who={who}
       metadataAvailable={!!state.asset}
+      filePath={filePath}
       selected={versionID !== undefined}
       from={from}
       expire={expire}
@@ -451,7 +481,7 @@ export function AssetVersionView({
   route: string;
   expire: Expire;
 }) {
-  const { versionID, valid, from } = selection(route);
+  const { versionID, filePath, valid, from } = selection(route);
   const [attempt, setAttempt] = useState(0);
   return (
     <div className="asset-detail">
@@ -462,10 +492,11 @@ export function AssetVersionView({
         <Failure error={new APIError("SCHEMA_INVALID", 0)} />
       ) : (
         <VersionRequest
-          key={`${assetID}/${versionID ?? "latest"}/${attempt}`}
+          key={JSON.stringify([assetID, versionID, filePath, attempt])}
           assetID={assetID}
           who={who}
           versionID={versionID}
+          filePath={filePath}
           from={from}
           expire={expire}
           retry={() => setAttempt((value) => value + 1)}

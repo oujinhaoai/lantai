@@ -77,3 +77,20 @@ shasum -a 256 downloaded.lantai
 配置包含 curl 的 `url = "服务器返回的完整URL"`、`header = "Authorization: Bearer 原会话"`，完整包另加 `header = "X-Lantai-Backup-Download: 描述符返回的短期令牌"`。保持 TLS 校验；私有 CA 用受信任的 `cacert` 文件配置，不关闭证书验证。下载后将字节数及 SHA-256 与描述符核对；HTTP 200 本身不证明客户端已正确落盘。
 
 描述符、curl 配置和完整恢复包都按私密材料处理，不加入仓库、聊天报告或日志。若保存命令输出，先使用私有目录和 `umask 077`。下载过期时重新获取普通读取授权，或重新确认备份导出；不要自动重新登录、换幂等键发起备份或改成匿名链接。
+
+## 固定文件网页定位链接
+
+网页固定文件面板可复制 HTTPS 链接：
+
+```text
+https://example.invalid/#/assets/ASSET_ID?version=VERSION_ID&file=FOLDER%2FILENAME
+```
+
+路径按完整的清单相对路径编码，不搜索同名文件。接收方需登录并有权读取指定的冻结版本；
+无效、重复或缺失的显式文件选择不会改为默认文件或最新版。打开链接不自动发起预览或申请下载权限。
+链接不包含授权、会话或下载令牌；请仅向适当的收件人分享，其中的文件名仍可能敏感。
+
+CLI 使用 `lantai asset fixed-file-link --input REQUEST.json --server HTTPS_ORIGIN`
+和已有会话；MCP 提供只读 `resource_fixed_file_link`。两者输入均为
+`{ "asset_id": "…", "version_id": "…", "path": "folder/file.ext" }`，只读取并核对当前有权访问的
+清单，不读取文件字节。生成的网址使用所连接的 HTTPS 部署入口；它应同时提供网页。

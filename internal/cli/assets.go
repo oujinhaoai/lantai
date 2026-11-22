@@ -22,9 +22,11 @@ const assetHelp = `素材管理（现有公共 API 与显式本地副本，不�
   asset metadata plan --input SELECTION.json --output PLAN
   asset metadata apply --input PLAN --state STATE_FILE --output REPORT
   asset dependencies --input SELECTION.json --directory SOURCE --output REPORT
+  asset comfy-preflight --input REQUEST.json --directory SOURCE [--output REPORT]
   asset derive --input JSON --directory VERIFIED_FILES --artifact FILE --output RECEIPT
   asset recovery-evidence prepare|save|open --input JSON --directory DIR --output FILE [--state FILE]
   asset profile --input REQUEST [--output FILE]
+  asset fixed-file-link --input REQUEST --server ORIGIN --session-file FILE
   asset find --input REQUEST --server ORIGIN --session-file FILE
   asset workset plan|pull --input WORKSET --directory DIR [--purpose archive_review]
   asset workset list|open|record-prepare|record-save|return-prepare|return-apply|adopt-prepare --input JSON [--directory DIR --state FILE --output FILE]
@@ -35,7 +37,7 @@ const assetHelp = `素材管理（现有公共 API 与显式本地副本，不�
   asset references copy --input PLAN --directory NOTES --destination COPY --output RECEIPT
   asset references rollback --input PLAN --directory COPY --destination ROLLBACK --post-cutover-refs FILE --output RECEIPT
 profile 输入为 {input: PushInput, profile: AssetProfile}；find 为 {filter: AssetFilter, options: AssetFindOptions}。
-profile、import plan 和 references 不连接服务端；其他命令使用 --server、--session-file / LANTAI_SESSION_TOKEN。
+profile、dependencies、comfy-preflight、import plan 和 references 不连接服务端；远端命令使用 --server、--session-file / LANTAI_SESSION_TOKEN。
 公共选项：--ca-file PEM、--allow-http（仅loopback开发）、--output FILE（私有JSON结果）。
 import 不移动/删除源文件；apply 是显式写入口，先审阅 plan；verify 写入独立验证目录。
 references 仅按显式映射创建独立笔记副本；rollback 另建原文副本并保留显式声明的切换后固定版本引用。
@@ -115,7 +117,7 @@ func runAssets(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			}
 		}
 		var protected []string
-		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") || name == "dependencies" {
+		if strings.HasPrefix(name, "import-") || strings.HasPrefix(name, "references-") || strings.HasPrefix(name, "metadata-") || name == "dependencies" || name == "comfy-preflight" {
 			protected = []string{o.directory, o.state, o.destination}
 		} else if strings.HasPrefix(name, "workset-") || strings.HasPrefix(name, "recovery-evidence-") {
 			protected = []string{o.directory, o.state}
@@ -217,6 +219,15 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 			return plan, nil
 		}
 		return c.ApplyMetadataBatch(ctx, plan, o.state)
+	case "comfy-preflight":
+		if o.directory == "" {
+			return nil, usage("comfy-preflight requires --directory SOURCE")
+		}
+		var in client.ComfyPreflightInput
+		if err := decodeAssetInput(o.input, &in); err != nil {
+			return nil, err
+		}
+		return client.AnalyzeComfyPreflight(ctx, in, o.directory)
 	case "dependencies":
 		if o.directory == "" || o.output == "" {
 			return nil, usage("dependencies requires --directory SOURCE and --output REPORT")
@@ -299,7 +310,7 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 			return nil, usage("post-cutover references must be an explicit array")
 		}
 		return client.RollbackReferenceNotes(ctx, plan, o.directory, o.destination, refs)
-	case "find", "workset-plan", "workset-pull", "import-apply", "import-verify":
+	case "find", "fixed-file-link", "workset-plan", "workset-pull", "import-apply", "import-verify":
 	default:
 		return nil, usage("unknown asset command; use asset --help")
 	}
@@ -308,10 +319,15 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 		Filter  client.AssetFilter      `json:"filter"`
 		Options client.AssetFindOptions `json:"options"`
 	}
+	var link client.FixedFileLinkInput
 	var workset client.WorksetInput
 	var plan client.ImportPlan
 	var report client.ImportReport
 	switch name {
+	case "fixed-file-link":
+		if err := decodeAssetInput(o.input, &link); err != nil {
+			return nil, err
+		}
 	case "find":
 		if err := decodeAssetInput(o.input, &find); err != nil {
 			return nil, err
@@ -351,6 +367,8 @@ func executeAsset(ctx context.Context, name string, o assetOptions) (any, error)
 	}
 	defer c.Close()
 	switch name {
+	case "fixed-file-link":
+		return c.FixedFileLink(ctx, link)
 	case "find":
 		return c.FindAssets(ctx, find.Filter, find.Options)
 	case "workset-plan":

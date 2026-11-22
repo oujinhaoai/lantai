@@ -12,11 +12,14 @@ const version2 = "01J00000000000000000000012";
 const projectID = "01J0000000000000000000000C";
 const instanceID = "01J0000000000000000000000D";
 const filePath = "工作流/readme.md";
+const secondFile = "另一个/readme.md";
 const digest = `sha256:${"a".repeat(64)}`;
 const hash = "b".repeat(64);
 const bytes = new TextEncoder().encode("# 合成旧版本\n");
 const harness = process.env.LANTAI_ASSET_VERSION_HARNESS === "1";
-const entry = harness ? "/assets/version-fixture.html" : "/";
+const entry = harness
+  ? process.env.LANTAI_ASSET_VERSION_ENTRY || "/assets/version-fixture.html"
+  : "/";
 const version = (id: string, number: number) => ({
   version_id: id,
   version_number: number,
@@ -40,6 +43,7 @@ const exact = (id: string) => ({
       version_note: id === version1 ? "旧版工作流 v1" : "新版工作流 v2",
       files: [
         { path: filePath, size: bytes.length, role: "primary", sha256: hash },
+        { path: secondFile, size: bytes.length, role: "support", sha256: hash },
       ],
     },
   },
@@ -414,5 +418,100 @@ test("exact-version session expiry returns control to the original authenticatio
   await expect(
     page.getByRole("heading", { name: "文件预览与下载" }),
   ).toHaveCount(0);
+  expect(fixture.grants).toEqual([]);
+});
+
+test("fixed file follows hash history and refresh, and never falls back from a bad selection", async ({
+  page,
+  request,
+}) => {
+  const fixture = await seed(page);
+  await login(page, request);
+  const base = `/assets/${assetID}?version=${version1}&`;
+  const first = base + new URLSearchParams({ file: filePath });
+  const second = base + new URLSearchParams({ file: secondFile });
+  const preview = (name: string) =>
+    page
+      .getByRole("complementary", { name: "文件预览" })
+      .getByRole("heading", { name, exact: true });
+  await page.goto(`${entry}#${first}`);
+  await expect(preview(filePath)).toBeVisible();
+  await page.evaluate((hash) => {
+    location.hash = hash;
+  }, second);
+  await expect(preview(secondFile)).toBeVisible();
+  await page.reload();
+  await expect(preview(secondFile)).toBeVisible();
+  await page.goBack();
+  await expect(preview(filePath)).toBeVisible();
+  await page.goForward();
+  await expect(preview(secondFile)).toBeVisible();
+  for (const hash of [
+    base + "file=missing.md",
+    base + "file=%ZZ",
+    second + "&file=other.md",
+    `/assets/${assetID}?file=missing.md`,
+  ]) {
+    await page.evaluate((value) => {
+      location.hash = value;
+    }, hash);
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(
+      page.getByRole("complementary", { name: "文件预览" }),
+    ).toHaveCount(0);
+  }
+  expect(fixture.grants).toEqual([]);
+});
+
+test("fixed-file copy control writes a locator, never a grant", async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  const fixture = await seed(page);
+  // Login opens the app shell before the hash-only file navigation.
+  // Install the clipboard probe before that document is created.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (value: string) => {
+          document.documentElement.dataset.copiedLocator = value;
+        },
+      },
+    });
+  });
+  await login(page, request);
+  const mockTLS = process.env.LANTAI_ASSET_VERSION_MOCK_TLS === "1";
+  if (mockTLS) {
+    await page.route(/^https:\/\/files\.example\//, async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.startsWith("/api/")) {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        response: await route.fetch({
+          url: new URL(url.pathname + url.search, baseURL).toString(),
+        }),
+      });
+    });
+  }
+  const target = mockTLS ? `https://files.example${entry}` : entry;
+  await page.goto(
+    `${target}#/assets/${assetID}?version=${version1}&${new URLSearchParams({ file: secondFile })}`,
+  );
+  await page.getByRole("button", { name: "复制固定文件链接" }).click();
+  await expect(page.getByText("已复制固定文件链接")).toBeVisible();
+  const copied = await page.locator("html").getAttribute("data-copied-locator");
+  expect(copied).not.toBeNull();
+  const measured = new URL(copied!);
+  expect(measured.protocol).toBe("https:");
+  expect(measured.search).toBe("");
+  expect(measured.hash.startsWith(`#/assets/${assetID}?`)).toBeTruthy();
+  const q = new URLSearchParams(measured.hash.split("?")[1]);
+  expect([...q]).toEqual([
+    ["version", version1],
+    ["file", secondFile],
+  ]);
   expect(fixture.grants).toEqual([]);
 });

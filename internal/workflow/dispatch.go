@@ -34,7 +34,10 @@ func (w *Service) Dispatch(ctx context.Context, who authz.Context, limit int) (i
 	if limit < 1 || limit > 100 {
 		return 0, invalid("dispatch limit must be 1-100")
 	}
-	n := 0
+	n, err := w.dispatchPostCommitChecks(ctx, who, limit)
+	if err != nil {
+		return n, err
+	}
 	skip := map[ids.ID]bool{}
 	for n < limit {
 		c, err := w.claim(ctx, who, skip)

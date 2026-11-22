@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/oujinhaoai/lantai/internal/contract/commit"
 	"github.com/oujinhaoai/lantai/internal/contract/schema"
 	"github.com/oujinhaoai/lantai/internal/contract/yamljson"
 )
@@ -35,11 +36,12 @@ type Config struct {
 	// Uploads 是上传限额与会话到期；零值表示采用存储模块默认值。
 	Uploads UploadLimits
 	// Present 表示 config.yaml 存在。
-	Present   bool
-	Listen    ListenConfig
-	HTTP      HTTPConfig
-	Transfer  TransferConfig
-	Lifecycle LifecycleConfig
+	Present         bool
+	Listen          ListenConfig
+	HTTP            HTTPConfig
+	Transfer        TransferConfig
+	Lifecycle       LifecycleConfig
+	PostCommitCheck commit.PostCommitCheckRule
 }
 
 // UploadLimits 是 config.yaml storage 下的上传限额与会话到期。
@@ -99,10 +101,11 @@ type configWire struct {
 		IdleExpirySeconds     int64   `json:"upload_idle_expiry_seconds"`
 		AbsoluteExpirySeconds int64   `json:"upload_absolute_expiry_seconds"`
 	} `json:"storage"`
-	Listen    ListenConfig    `json:"listen"`
-	HTTP      HTTPConfig      `json:"http"`
-	Transfer  TransferConfig  `json:"transfer"`
-	Lifecycle LifecycleConfig `json:"lifecycle"`
+	Listen          ListenConfig               `json:"listen"`
+	HTTP            HTTPConfig                 `json:"http"`
+	Transfer        TransferConfig             `json:"transfer"`
+	Lifecycle       LifecycleConfig            `json:"lifecycle"`
+	PostCommitCheck commit.PostCommitCheckRule `json:"post_commit_check"`
 }
 
 // LoadConfig 读取并校验数据根下的 config.yaml；文件不存在时返回默认配置。
@@ -179,5 +182,6 @@ func ParseConfig(l Layout, raw []byte) (Config, error) {
 	cfg.Uploads = UploadLimits{MaxFileBytes: st.MaxFileBytes, MaxUploadBytes: st.MaxUploadBytes, MaxUploadFiles: st.MaxUploadFiles,
 		IdleExpiry: time.Duration(st.IdleExpirySeconds) * time.Second, AbsoluteExpiry: time.Duration(st.AbsoluteExpirySeconds) * time.Second}
 	cfg.Listen, cfg.HTTP, cfg.Transfer, cfg.Lifecycle = w.Listen, w.HTTP, w.Transfer, w.Lifecycle
+	cfg.PostCommitCheck = w.PostCommitCheck
 	return cfg, nil
 }

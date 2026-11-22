@@ -37,7 +37,7 @@ func (a *App) assembleCollaboration() error {
 	if e != nil {
 		return e
 	}
-	a.Flows, e = workflow.New(workflow.Deps{DB: db, Gate: i.Gate(), Authority: auth, Tasks: a.Tasks, Ledger: a.Ledger, Manifests: a.Storage, Events: a.Events, Jobs: a.Jobs, Checks: a.Jobs, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID()})
+	a.Flows, e = workflow.New(workflow.Deps{DB: db, Gate: i.Gate(), Authority: auth, Tasks: a.Tasks, Ledger: a.Ledger, Manifests: a.Storage, Events: a.Events, Jobs: a.Jobs, Checks: a.Jobs, Clock: i.Clock(), IDs: i.IDs(), InstanceID: i.InstanceID(), PostCommitCheck: i.Config().PostCommitCheck})
 	if e != nil {
 		return e
 	}

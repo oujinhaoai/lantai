@@ -540,12 +540,16 @@ function canPreview(file: PreviewFile) {
 
 export function FilePreview({
   files,
+  initialPath,
+  shareFile,
   assetType,
   assetID,
   versionID,
   expire,
 }: {
   files: PreviewFile[];
+  initialPath?: string;
+  shareFile?: (path: string) => string | undefined;
   assetType: string;
   assetID: string;
   versionID: string;
@@ -568,7 +572,7 @@ export function FilePreview({
     ) ||
     preferred[0] ||
     files[0];
-  const [selected, setSelected] = useState(first?.path || "");
+  const [selected, setSelected] = useState(initialPath ?? first?.path ?? "");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(true);
   const [autoPreview, setAutoPreview] = useState(false);
@@ -578,6 +582,8 @@ export function FilePreview({
   const drawerID = useId();
   const helpID = useId();
   const file = files.find((item) => item.path === selected);
+  const link = file && shareFile?.(file.path);
+  const [copy, setCopy] = useState<{ href: string; message: string }>();
   const visible = files.filter((item) =>
     item.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
   );
@@ -737,6 +743,25 @@ export function FilePreview({
           </div>
           <FilePreviewSplit drawerID={drawerID} />
           <h4 className="file-drawer-name">{file.path}</h4>
+          {link && (
+            <button
+              className="text-button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(link);
+                  setCopy({ href: link, message: "已复制固定文件链接" });
+                } catch {
+                  setCopy({
+                    href: link,
+                    message: "无法复制链接，请检查剪贴板权限。",
+                  });
+                }
+              }}
+            >
+              复制固定文件链接
+            </button>
+          )}
+          {copy && copy.href === link && <p role="status">{copy.message}</p>}
           <label className="auto-preview">
             <input
               type="checkbox"
