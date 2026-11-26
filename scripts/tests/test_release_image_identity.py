@@ -91,6 +91,54 @@ class ImageIdentity(unittest.TestCase):
         with self.assertRaises(RuntimeError): identity.archive_identity(self.path, 'sha256:' + '0'*64, self.tag)
 
 
+    def delivery(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('delivery_full_baseline_test', Path(__file__).parents[1] / 'test-release-delivery.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module
+
+    def test_full_verified_baseline_normalises_core_and_gateway(self):
+        module = self.delivery()
+        self.write()
+        for kind in ('core_image', 'caddy_image'):
+            with self.subTest(kind=kind):
+                old = {'source_commit': 'old', kind: {'id': self.config_desc['digest'], 'tag': self.tag}}
+                self.assertEqual(module.register_baseline_runtime_id(self.path, old, kind, self.value), self.desc['digest'])
+                self.assertEqual(module.runtime_id(old, kind), self.desc['digest'])
+                self.assertEqual(old[kind]['id'], self.config_desc['digest'])
+
+    def test_full_baseline_does_not_need_legacy_proof_if_runtime_id_already_exact(self):
+        module = self.delivery()
+        # A recent release may pin an OCI descriptor rather than config ID.
+        old = {'source_commit': 'recent', 'core_image': {'id': self.desc['digest'], 'tag': self.tag}}
+        self.assertEqual(module.register_baseline_runtime_id(self.path, old, 'core_image', self.value), self.desc['digest'])
+        self.assertFalse(module.VERIFIED_RUNTIME_IDS)
+
+    def test_full_baseline_rejects_unknown_wrong_platform_labels_and_tampered_archive(self):
+        for change in ({'Id': 'sha256:'+'a'*64}, {'Descriptor': {}}, {'Os': 'windows'}, {'Architecture': 'arm64'}, {'Config': {'Labels': {'version': 'wrong'}}}):
+            with self.subTest(change=change):
+                module = self.delivery(); self.write()
+                old = {'source_commit': 'old', 'core_image': {'id': self.config_desc['digest'], 'tag': self.tag}}
+                with self.assertRaises(RuntimeError): module.register_baseline_runtime_id(self.path, old, 'core_image', {**self.value, **change})
+                self.assertFalse(module.VERIFIED_RUNTIME_IDS)
+        module = self.delivery(); key = 'blobs/sha256/' + self.desc['digest'][7:]; self.blobs[key] += b' '; self.write()
+        with self.assertRaises(RuntimeError): module.register_baseline_runtime_id(self.path, old, 'core_image', self.value)
+        self.assertFalse(module.VERIFIED_RUNTIME_IDS)
+
+    def test_candidate_id_mismatch_never_gets_baseline_identity_proof(self):
+        from unittest.mock import patch
+        module = self.delivery()
+        current = {'version': 'v0.1.0-test', 'source_commit': 'current', 'core_image': {'id': self.config_desc['digest'], 'tag': self.tag}}
+        value = {**self.value, 'Config': {'Labels': {'org.opencontainers.image.revision': 'current', 'org.opencontainers.image.version': current['version']}}}
+        with patch.object(module, 'run', side_effect=['', json.dumps([value])]), patch.object(module, 'archive_identity') as proof:
+            with self.assertRaisesRegex(AssertionError, 'loaded core archive exact image and source'):
+                module.load_image(self.path.parent, current)
+            proof.assert_not_called()
+        with self.assertRaises(RuntimeError):
+            with patch.object(module, 'run', side_effect=['', json.dumps([value])]):
+                module.load_image(self.path.parent, current, proof={})
+
+
 class DeliveryScope(unittest.TestCase):
     def test_unregistered_current_and_custom_ids_remain_exact(self):
         import importlib.util
