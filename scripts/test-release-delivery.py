@@ -96,17 +96,40 @@ def runtime_id(manifest, kind):
     return VERIFIED_RUNTIME_IDS.get((manifest["source_commit"], kind, manifest[kind]["id"]), manifest[kind]["id"])
 
 
-def load_image(directory, manifest, proof=None):
+def register_baseline_runtime_id(archive, manifest, kind, value, proof=None):
+    """A previously hash-verified baseline may use a legacy config ID.
+
+    Preserve exact IDs when already equal. Otherwise accept only the original
+    archive's strict content-addressed config-to-descriptor proof, never a tag.
+    Both full and historical-subset baselines have had their archive bytes
+    verified before reaching this function. The current candidate is excluded.
+    """
+    original_id = manifest[kind]["id"]
+    key = (manifest["source_commit"], kind, original_id)
+    if proof is not None or value.get("Id") != original_id:
+        proof = proof if proof is not None else archive_identity(archive, original_id, manifest[kind]["tag"])
+        VERIFIED_RUNTIME_IDS[key] = verified_runtime_id(value, proof)
+    else:
+        VERIFIED_RUNTIME_IDS.pop(key, None)
+    return runtime_id(manifest, kind)
+
+
+def load_image(directory, manifest, proof=None, *, baseline=False):
     archive = directory / f"lantai-{manifest['version']}-linux-amd64-image.tar.gz"
     run(["docker", "load", "-i", str(archive)])
     value = json.loads(run(["docker", "image", "inspect", manifest["core_image"]["tag"]]))[0]
-    if proof is not None:
-        VERIFIED_RUNTIME_IDS[(manifest["source_commit"], "core_image", manifest["core_image"]["id"])] = verified_runtime_id(value, proof)
+    if baseline:
+        RESULT["baseline_loaded_core_observed_id"] = value.get("Id")
+        register_baseline_runtime_id(archive, manifest, "core_image", value, proof)
+    else:
+        if proof is not None:
+            raise RuntimeError("baseline identity proof must not apply to the current candidate")
     labels = value["Config"]["Labels"]
     check("loaded core archive exact image and source", value["Id"] == runtime_id(manifest, "core_image")
           and labels["org.opencontainers.image.revision"] == manifest["source_commit"]
           and labels["org.opencontainers.image.version"] == manifest["version"]
-          and value["Architecture"] == "amd64" and value["Os"] == "linux")
+          and value["Architecture"] == "amd64" and value["Os"] == "linux",
+          original_id=manifest["core_image"]["id"], loaded_id=value.get("Id"), baseline=baseline)
 
 
 class Instance:
@@ -503,14 +526,15 @@ def main():
                            ("caddy_image", "caddy-2.11.4-linux-amd64-image.tar.gz")):
             proofs[kind] = archive_identity(args.baseline / name, old[kind]["id"], old[kind]["tag"])
     load_image(args.artifacts, new)
-    load_image(args.baseline, old, proofs.get("core_image"))
+    load_image(args.baseline, old, proofs.get("core_image"), baseline=True)
     run(["docker", "load", "-i", str(args.artifacts / "caddy-2.11.4-linux-amd64-image.tar.gz")])
     check("loaded gateway archive exact image", json.loads(run(["docker", "image", "inspect", new["caddy_image"]["tag"]]))[0]["Id"] == new["caddy_image"]["id"])
     run(["docker", "load", "-i", str(args.baseline / "caddy-2.11.4-linux-amd64-image.tar.gz")])
     old_gateway = json.loads(run(["docker", "image", "inspect", old["caddy_image"]["tag"]]))[0]
-    if "caddy_image" in proofs:
-        VERIFIED_RUNTIME_IDS[(old["source_commit"], "caddy_image", old["caddy_image"]["id"])] = verified_runtime_id(old_gateway, proofs["caddy_image"])
-    check("loaded original gateway archive exact image", old_gateway["Id"] == runtime_id(old, "caddy_image"))
+    RESULT["baseline_loaded_caddy_observed_id"] = old_gateway.get("Id")
+    register_baseline_runtime_id(args.baseline / "caddy-2.11.4-linux-amd64-image.tar.gz", old, "caddy_image", old_gateway, proofs.get("caddy_image"))
+    check("loaded original gateway archive exact image", old_gateway["Id"] == runtime_id(old, "caddy_image"),
+          original_id=old["caddy_image"]["id"], loaded_id=old_gateway.get("Id"))
     RESULT["baseline_runtime_image_ids"] = {kind: runtime_id(old, kind) for kind in ("core_image", "caddy_image")}
     run(["python3", str(ROOT / "scripts/test-release-backup.py"), "--image", new["caddy_image"]["tag"],
          "--out", str(args.out / "backup-preparation.json")])
